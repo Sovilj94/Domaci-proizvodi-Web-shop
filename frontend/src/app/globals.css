@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 /*
- * E piljara design tokens.
- * Tailwind v4 reads these from @theme and generates utilities
- * (bg-brand-500, text-honey-600, rounded-card, font-display, ...).
+ * E piljara design tokens — Wolt-čista paleta.
+ * Tailwind v4 čita ove iz @theme i generiše utilitije
+ * (bg-brand-500, text-muted, rounded-card, shadow-card, font-display, ...).
  */
 @theme {
-  /* Brand — fresh domestic green */
+  /* Brand — domaća maslinasto zelena (akcenat) */
   --color-brand-50: #f0f9f1;
   --color-brand-100: #dcf0df;
   --color-brand-200: #bce3c2;
@@ -18,23 +18,38 @@
   --color-brand-800: #204f2a;
   --color-brand-900: #1c4125;
 
-  /* Accent — honey / harvest */
+  /* Med — SAMO za istaknuto ("Izdvojeno"), ne za CTA */
   --color-honey-100: #fdf1d6;
   --color-honey-300: #f8cf7a;
   --color-honey-400: #f6b545;
   --color-honey-500: #ef9d1f;
   --color-honey-600: #d98209;
 
-  /* Warm neutrals */
-  --color-cream: #faf7f0;
-  --color-sand: #f1ece0;
-  --color-ink: #23271f;
-  --color-muted: #6b7263;
+  /* Neutrali — čisti, hladni (Wolt) */
+  --color-cream: #ffffff;   /* pozadina stranice */
+  --color-sand: #f4f5f7;    /* prigušena površina / hover */
+  --color-ink: #16181d;     /* skoro-crn tekst */
+  --color-muted: #8a9099;   /* sekundarni tekst */
+  --color-line: #ececef;    /* hairline granice */
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, sans-serif;
 
-  --radius-card: 1rem;
+  --radius-card: 0.875rem; /* 14px, Wolt-tijesno */
+
+  /* Elevacije — mekane, hladne sjenke */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 6px 20px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 14px 36px rgba(16, 24, 40, 0.12);
+
+  /* Animacije */
+  --animate-shimmer: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 html,
@@ -56,4 +71,22 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Shimmer skeleton površina */
+.skeleton {
+  background: linear-gradient(90deg, #eef0f3 25%, #f6f7f9 37%, #eef0f3 63%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Poštuj korisnikovu želju za manje pokreta */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
