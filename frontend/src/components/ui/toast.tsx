@@ -37,7 +37,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={t.id}
             className={cn(
-              "pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-lg ring-1 ring-black/5",
+              "pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-lg",
               t.variant === "success" && "bg-brand-600 text-white",
               t.variant === "error" && "bg-red-600 text-white",
               t.variant === "info" && "bg-ink text-white",

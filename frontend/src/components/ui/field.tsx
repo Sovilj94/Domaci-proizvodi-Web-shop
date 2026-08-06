@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 export const fieldClass =
-  "w-full rounded-xl border-none bg-white px-3.5 py-2.5 text-sm text-ink ring-1 ring-black/10 transition placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60";
+  "w-full rounded-xl border border-line bg-sand px-3.5 py-2.5 text-sm text-ink transition placeholder:text-muted/70 focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60";
 
 export function Label({
   children,
