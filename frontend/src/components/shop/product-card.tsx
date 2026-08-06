@@ -14,7 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
   const soldOut = !product.isAvailable || product.stock <= 0;
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-card bg-white ring-1 ring-black/5 transition hover:shadow-md">
+    <div className="group flex flex-col overflow-hidden rounded-card bg-white shadow-card transition hover:shadow-md">
       <Link
         href={`/products/${product.slug}`}
         className="relative block aspect-square overflow-hidden bg-sand"
@@ -60,7 +60,7 @@ export function ProductCard({ product }: { product: Product }) {
               show(`${product.name} dodano u korpu`);
             }}
             aria-label={`Dodaj ${product.name} u korpu`}
-            className="grid h-10 w-10 place-items-center rounded-full bg-brand-600 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
+            className="grid h-10 w-10 place-items-center rounded-full bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 active:scale-90 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
           >
             <Plus className="h-5 w-5" />
           </button>
