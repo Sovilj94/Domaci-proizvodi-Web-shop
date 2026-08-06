@@ -1,0 +1,116 @@
+import type { ApiError, ApiMeta, ApiResponse } from "./envelope";
+
+/**
+ * Base URL for the REST API. In development this defaults to the same-origin
+ * mock route handlers under /api. In production, point it at the ASP.NET Core
+ * backend via NEXT_PUBLIC_API_BASE_URL (e.g. https://api.epiljara.ba).
+ */
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "/api";
+
+const TOKEN_KEY = "epiljara.token";
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string | null): void {
+  if (typeof window === "undefined") return;
+  if (token) window.localStorage.setItem(TOKEN_KEY, token);
+  else window.localStorage.removeItem(TOKEN_KEY);
+}
+
+export class ApiRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly apiError: ApiError,
+  ) {
+    super(apiError.message);
+    this.name = "ApiRequestError";
+  }
+
+  /** Field-level validation errors, if the server returned any. */
+  get fieldErrors(): Record<string, string[]> {
+    return this.apiError.details ?? {};
+  }
+}
+
+export type QueryPrimitive = string | number | boolean | undefined | null;
+type Query = Record<string, QueryPrimitive>;
+
+interface RequestOptions {
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  body?: unknown;
+  /** Accepts typed query objects; values are coerced to strings. */
+  query?: Record<string, QueryPrimitive>;
+  /** Attach the bearer token if one is stored. Defaults to true. */
+  auth?: boolean;
+  signal?: AbortSignal;
+}
+
+function buildUrl(path: string, query?: Query): string {
+  const url = `${API_BASE}${path}`;
+  if (!query) return url;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  return qs ? `${url}?${qs}` : url;
+}
+
+export interface ApiResult<T> {
+  data: T;
+  meta: ApiMeta | null;
+}
+
+export async function apiFetch<T>(
+  path: string,
+  { method = "GET", body, query, auth = true, signal }: RequestOptions = {},
+): Promise<ApiResult<T>> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+
+  if (auth) {
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, query), {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiRequestError(0, {
+      code: "network_error",
+      message: "Nije moguće povezati se sa serverom. Provjerite konekciju.",
+    });
+  }
+
+  let payload: ApiResponse<T> | null = null;
+  try {
+    payload = (await res.json()) as ApiResponse<T>;
+  } catch {
+    // Non-JSON response (e.g. an unexpected 500 HTML page).
+  }
+
+  if (!res.ok || !payload || payload.error) {
+    throw new ApiRequestError(
+      res.status,
+      payload?.error ?? {
+        code: "unexpected_error",
+        message: `Neočekivana greška (${res.status}).`,
+      },
+    );
+  }
+
+  return { data: payload.data as T, meta: payload.meta ?? null };
+}

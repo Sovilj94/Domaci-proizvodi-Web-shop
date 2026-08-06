@@ -1,0 +1,50 @@
+namespace EPiljara.Application.DTOs;
+
+public record CategoryDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Slug { get; init; } = string.Empty;
+    public string? ImageUrl { get; init; }
+    public int SortOrder { get; init; }
+    public int? ProductCount { get; init; }
+}
+
+public record ProducerRefDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Village { get; init; } = string.Empty;
+    public string? PhotoUrl { get; init; }
+}
+
+public record ProducerDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Village { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public string? PhotoUrl { get; init; }
+    public double? Latitude { get; init; }
+    public double? Longitude { get; init; }
+    public string? Phone { get; init; }
+}
+
+public record ProductDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Slug { get; init; } = string.Empty;
+    public decimal Price { get; init; }
+    public string Unit { get; init; } = "kom";
+    public decimal Stock { get; init; }
+    public bool IsAvailable { get; init; }
+    public Guid CategoryId { get; init; }
+    public string CategoryName { get; init; } = string.Empty;
+    public string CategorySlug { get; init; } = string.Empty;
+    public Guid ProducerId { get; init; }
+    public ProducerRefDto? Producer { get; init; }
+    public string? ImageUrl { get; init; }
+    public string Description { get; init; } = string.Empty;
+    public bool IsFeatured { get; init; }
+}

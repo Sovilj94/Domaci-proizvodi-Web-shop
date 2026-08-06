@@ -1,0 +1,193 @@
+using EPiljara.Application.Common;
+using EPiljara.Application.Common.Interfaces;
+using EPiljara.Application.DTOs;
+using EPiljara.Application.Mapping;
+using EPiljara.Domain.Common;
+using EPiljara.Domain.Entities;
+using EPiljara.Domain.Enums;
+using FluentValidation;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace EPiljara.Application.Features.Admin;
+
+/// <summary>Shared payload for creating and updating products.</summary>
+public record ProductInput(
+    string Name,
+    decimal Price,
+    string Unit,
+    decimal Stock,
+    Guid CategoryId,
+    Guid ProducerId,
+    string Description,
+    string? ImageUrl,
+    bool IsAvailable,
+    bool? IsFeatured);
+
+public class ProductInputValidator : AbstractValidator<ProductInput>
+{
+    public ProductInputValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().WithMessage("Naziv je obavezan.");
+        RuleFor(x => x.Price).GreaterThan(0).WithMessage("Cijena mora biti veća od 0.");
+        RuleFor(x => x.Unit).NotEmpty().WithMessage("Jedinica je obavezna.");
+        RuleFor(x => x.CategoryId).NotEmpty().WithMessage("Kategorija je obavezna.");
+        RuleFor(x => x.ProducerId).NotEmpty().WithMessage("Proizvođač je obavezan.");
+    }
+}
+
+/* ---------- List ---------- */
+
+public record GetAdminProductsQuery : IRequest<IReadOnlyList<ProductDto>>;
+
+public class GetAdminProductsHandler(IAppDbContext db)
+    : IRequestHandler<GetAdminProductsQuery, IReadOnlyList<ProductDto>>
+{
+    public async Task<IReadOnlyList<ProductDto>> Handle(GetAdminProductsQuery q, CancellationToken ct)
+    {
+        var products = await db.Products
+            .Include(p => p.Category)
+            .Include(p => p.Producer)
+            .OrderBy(p => p.Name)
+            .ToListAsync(ct);
+        return products.Select(p => p.ToDto()).ToList();
+    }
+}
+
+/* ---------- Create ---------- */
+
+public record CreateProductCommand(ProductInput Input) : IRequest<ProductDto>;
+
+public class CreateProductValidator : AbstractValidator<CreateProductCommand>
+{
+    public CreateProductValidator() => RuleFor(x => x.Input).SetValidator(new ProductInputValidator());
+}
+
+public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProductCommand, ProductDto>
+{
+    public async Task<ProductDto> Handle(CreateProductCommand cmd, CancellationToken ct)
+    {
+        var input = cmd.Input;
+        var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == input.CategoryId, ct)
+            ?? throw new DomainException("Nepoznata kategorija.", "invalid_reference");
+        var producer = await db.Producers.FirstOrDefaultAsync(p => p.Id == input.ProducerId, ct)
+            ?? throw new DomainException("Nepoznat proizvođač.", "invalid_reference");
+
+        var product = new Product
+        {
+            Name = input.Name.Trim(),
+            Slug = await UniqueSlugAsync(input.Name, ct),
+            Price = input.Price,
+            Unit = UnitExtensions.ParseUnit(input.Unit),
+            Stock = input.Stock,
+            Description = input.Description ?? string.Empty,
+            ImageUrl = input.ImageUrl,
+            IsAvailable = input.IsAvailable,
+            IsFeatured = input.IsFeatured ?? false,
+            CategoryId = category.Id,
+            Category = category,
+            ProducerId = producer.Id,
+            Producer = producer,
+        };
+
+        db.Products.Add(product);
+        await db.SaveChangesAsync(ct);
+        return product.ToDto();
+    }
+
+    private async Task<string> UniqueSlugAsync(string name, CancellationToken ct)
+    {
+        var baseSlug = Slug.From(name);
+        var slug = baseSlug;
+        var n = 2;
+        while (await db.Products.AnyAsync(p => p.Slug == slug, ct))
+            slug = $"{baseSlug}-{n++}";
+        return slug;
+    }
+}
+
+/* ---------- Update ---------- */
+
+public record UpdateProductCommand(Guid Id, ProductInput Input) : IRequest<ProductDto>;
+
+public class UpdateProductValidator : AbstractValidator<UpdateProductCommand>
+{
+    public UpdateProductValidator() => RuleFor(x => x.Input).SetValidator(new ProductInputValidator());
+}
+
+public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProductCommand, ProductDto>
+{
+    public async Task<ProductDto> Handle(UpdateProductCommand cmd, CancellationToken ct)
+    {
+        var input = cmd.Input;
+        var product = await db.Products
+            .Include(p => p.Category)
+            .Include(p => p.Producer)
+            .FirstOrDefaultAsync(p => p.Id == cmd.Id, ct)
+            ?? throw new NotFoundException("Proizvod nije pronađen.");
+
+        var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == input.CategoryId, ct)
+            ?? throw new DomainException("Nepoznata kategorija.", "invalid_reference");
+        var producer = await db.Producers.FirstOrDefaultAsync(p => p.Id == input.ProducerId, ct)
+            ?? throw new DomainException("Nepoznat proizvođač.", "invalid_reference");
+
+        product.Name = input.Name.Trim();
+        product.Price = input.Price;
+        product.Unit = UnitExtensions.ParseUnit(input.Unit);
+        product.Stock = input.Stock;
+        product.Description = input.Description ?? string.Empty;
+        product.ImageUrl = input.ImageUrl ?? product.ImageUrl;
+        product.IsAvailable = input.IsAvailable;
+        product.IsFeatured = input.IsFeatured ?? product.IsFeatured;
+        product.CategoryId = category.Id;
+        product.Category = category;
+        product.ProducerId = producer.Id;
+        product.Producer = producer;
+        product.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return product.ToDto();
+    }
+}
+
+/* ---------- Delete (soft) ---------- */
+
+public record DeleteProductCommand(Guid Id) : IRequest<Guid>;
+
+public class DeleteProductHandler(IAppDbContext db) : IRequestHandler<DeleteProductCommand, Guid>
+{
+    public async Task<Guid> Handle(DeleteProductCommand cmd, CancellationToken ct)
+    {
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == cmd.Id, ct)
+            ?? throw new NotFoundException("Proizvod nije pronađen.");
+
+        // Soft delete keeps order history intact (see the global query filter).
+        product.IsDeleted = true;
+        product.IsAvailable = false;
+        product.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return cmd.Id;
+    }
+}
+
+/* ---------- Toggle availability ---------- */
+
+public record SetProductAvailabilityCommand(Guid Id, bool IsAvailable) : IRequest<ProductDto>;
+
+public class SetProductAvailabilityHandler(IAppDbContext db)
+    : IRequestHandler<SetProductAvailabilityCommand, ProductDto>
+{
+    public async Task<ProductDto> Handle(SetProductAvailabilityCommand cmd, CancellationToken ct)
+    {
+        var product = await db.Products
+            .Include(p => p.Category)
+            .Include(p => p.Producer)
+            .FirstOrDefaultAsync(p => p.Id == cmd.Id, ct)
+            ?? throw new NotFoundException("Proizvod nije pronađen.");
+
+        product.IsAvailable = cmd.IsAvailable;
+        product.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return product.ToDto();
+    }
+}

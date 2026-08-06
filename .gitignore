@@ -1,0 +1,13 @@
+# Superpowers scratch (brainstorm mockups, session state)
+.superpowers/
+
+# Claude Code local config & memory
+.claude/
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Env
+*.env
+.env.local

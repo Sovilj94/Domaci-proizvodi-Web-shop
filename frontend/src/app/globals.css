@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/*
+ * E piljara design tokens.
+ * Tailwind v4 reads these from @theme and generates utilities
+ * (bg-brand-500, text-honey-600, rounded-card, font-display, ...).
+ */
+@theme {
+  /* Brand — fresh domestic green */
+  --color-brand-50: #f0f9f1;
+  --color-brand-100: #dcf0df;
+  --color-brand-200: #bce3c2;
+  --color-brand-300: #8fce9a;
+  --color-brand-400: #5bb06b;
+  --color-brand-500: #379548;
+  --color-brand-600: #2a7a3a;
+  --color-brand-700: #246330;
+  --color-brand-800: #204f2a;
+  --color-brand-900: #1c4125;
+
+  /* Accent — honey / harvest */
+  --color-honey-100: #fdf1d6;
+  --color-honey-300: #f8cf7a;
+  --color-honey-400: #f6b545;
+  --color-honey-500: #ef9d1f;
+  --color-honey-600: #d98209;
+
+  /* Warm neutrals */
+  --color-cream: #faf7f0;
+  --color-sand: #f1ece0;
+  --color-ink: #23271f;
+  --color-muted: #6b7263;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, sans-serif;
+
+  --radius-card: 1rem;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbars on horizontal rails (category chips, etc.) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
