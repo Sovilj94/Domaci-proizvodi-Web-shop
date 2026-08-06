@@ -6,6 +6,7 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { ProductCard } from "@/components/shop/product-card";
 import { ProductGridSkeleton } from "@/components/shop/product-grid";
 import { buttonVariants } from "@/components/ui/button";
+import { Reveal } from "@/components/ui/reveal";
 import { useCategories, useProducers, useProducts } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
@@ -103,65 +104,70 @@ export default function HomePage() {
       </section>
 
       {/* Producers */}
-      <section id="domacini" className="mx-auto max-w-6xl px-4 pt-12">
-        <h2 className="font-display text-lg font-bold sm:text-xl">Naši domaćini</h2>
-        <p className="mt-1 max-w-xl text-sm text-muted">
-          Iza svakog proizvoda stoji porodica sa Manjače koju poznajemo lično.
-        </p>
-        <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {producers.isLoading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-64 animate-pulse rounded-card bg-white shadow-card" />
-              ))
-            : producers.data?.map((p) => (
-                <article
-                  key={p.id}
-                  className="overflow-hidden rounded-card bg-white shadow-card"
-                >
-                  <div className="relative aspect-[4/3] bg-sand">
-                    <SmartImage src={p.photoUrl} alt={p.name} sizes="300px" />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-display font-semibold">{p.name}</h3>
-                    <p className="flex items-center gap-1 text-xs text-brand-700">
-                      <MapPin className="h-3.5 w-3.5" /> {p.village}
-                    </p>
-                    <p className="mt-2 line-clamp-3 text-sm text-muted">{p.description}</p>
-                  </div>
-                </article>
-              ))}
-        </div>
-      </section>
+      <Reveal>
+        <section id="domacini" className="mx-auto max-w-6xl px-4 pt-12">
+          <h2 className="font-display text-lg font-bold sm:text-xl">Naši domaćini</h2>
+          <p className="mt-1 max-w-xl text-sm text-muted">
+            Iza svakog proizvoda stoji porodica sa Manjače koju poznajemo lično.
+          </p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {producers.isLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-64 animate-pulse rounded-card bg-white shadow-card" />
+                ))
+              : producers.data?.map((p, i) => (
+                  <Reveal key={p.id} delay={i * 0.06}>
+                    <article className="overflow-hidden rounded-card bg-white shadow-card">
+                      <div className="relative aspect-[4/3] bg-sand">
+                        <SmartImage src={p.photoUrl} alt={p.name} sizes="300px" />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-display font-semibold">{p.name}</h3>
+                        <p className="flex items-center gap-1 text-xs text-brand-700">
+                          <MapPin className="h-3.5 w-3.5" /> {p.village}
+                        </p>
+                        <p className="mt-2 line-clamp-3 text-sm text-muted">{p.description}</p>
+                      </div>
+                    </article>
+                  </Reveal>
+                ))}
+          </div>
+        </section>
+      </Reveal>
 
       {/* How it works */}
-      <section id="kako" className="mx-auto max-w-6xl px-4 pt-12">
-        <h2 className="font-display text-lg font-bold sm:text-xl">Kako funkcioniše</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          <Step icon={<CalendarClock className="h-5 w-5" />} title="Naruči do utorka" text="Napuni korpu domaćim proizvodima." />
-          <Step icon={<PackageCheck className="h-5 w-5" />} title="Pakujemo na Manjači" text="Srijedom domaćini beru i pakuju svježe." />
-          <Step icon={<Truck className="h-5 w-5" />} title="Dostava u četvrtak" text="Kombiji dostavljaju na kućni prag u BL." />
-        </div>
-      </section>
+      <Reveal>
+        <section id="kako" className="mx-auto max-w-6xl px-4 pt-12">
+          <h2 className="font-display text-lg font-bold sm:text-xl">Kako funkcioniše</h2>
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <Step icon={<CalendarClock className="h-5 w-5" />} title="Naruči do utorka" text="Napuni korpu domaćim proizvodima." />
+            <Step icon={<PackageCheck className="h-5 w-5" />} title="Pakujemo na Manjači" text="Srijedom domaćini beru i pakuju svježe." />
+            <Step icon={<Truck className="h-5 w-5" />} title="Dostava u četvrtak" text="Kombiji dostavljaju na kućni prag u BL." />
+          </div>
+        </section>
+      </Reveal>
 
       {/* Delivery strip */}
-      <section className="mt-12 bg-sand">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-9 text-center">
-          <h2 className="font-display text-lg font-bold">Dostavljamo u tvoj kraj</h2>
-          <div className="flex flex-wrap justify-center gap-2">
-            {["Centar", "Borik", "Lauš", "Starčevica"].map((z) => (
-              <span
-                key={z}
-                className="rounded-full bg-white px-4 py-2 text-sm font-medium shadow-card"
-              >
-                {z}
-              </span>
-            ))}
+      <Reveal>
+        <section className="mt-12 bg-sand">
+          <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-9 text-center">
+            <h2 className="font-display text-lg font-bold">Dostavljamo u tvoj kraj</h2>
+            <div className="flex flex-wrap justify-center gap-2">
+              {["Centar", "Borik", "Lauš", "Starčevica"].map((z) => (
+                <span
+                  key={z}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-medium shadow-card"
+                >
+                  {z}
+                </span>
+              ))}
+            </div>
+            <Link href="/products" className={cn(buttonVariants({ size: "md" }), "mt-1")}>
+              Počni kupovinu
+            </Link>
           </div>
-          <Link href="/products" className={cn(buttonVariants({ size: "md" }), "mt-1")}>
-            Počni kupovinu
-          </Link>
-        </div>
-      </section>
+        </section>
+      </Reveal>
     </div>
   );
 }
