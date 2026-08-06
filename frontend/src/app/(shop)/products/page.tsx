@@ -58,7 +58,7 @@ export default function ProductsPage() {
               <div
                 className={cn(
                   "grid aspect-square place-items-center rounded-2xl bg-sand transition",
-                  category === null ? "ring-2 ring-brand-500" : "ring-1 ring-black/5",
+                  category === null ? "ring-2 ring-brand-500" : "border border-line",
                 )}
               >
                 <LayoutGrid className="h-6 w-6 text-brand-700" />
@@ -84,7 +84,7 @@ export default function ProductsPage() {
                   <div
                     className={cn(
                       "relative aspect-square overflow-hidden rounded-2xl bg-sand transition",
-                      active ? "ring-2 ring-brand-500" : "ring-1 ring-black/5",
+                      active ? "ring-2 ring-brand-500" : "border border-line",
                     )}
                   >
                     <SmartImage

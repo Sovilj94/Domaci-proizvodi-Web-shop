@@ -54,7 +54,7 @@ export default function ProductDetailPage() {
       </Link>
 
       <div className="mt-6 grid gap-8 md:grid-cols-2">
-        <div className="relative aspect-square overflow-hidden rounded-card bg-sand ring-1 ring-black/5">
+        <div className="relative aspect-square overflow-hidden rounded-card bg-sand shadow-card">
           <SmartImage src={product.imageUrl} alt={product.name} sizes="(max-width:768px) 100vw, 50vw" />
         </div>
 
@@ -65,7 +65,7 @@ export default function ProductDetailPage() {
           >
             {product.categoryName}
           </Link>
-          <h1 className="mt-1 font-display text-3xl font-extrabold">{product.name}</h1>
+          <h1 className="mt-1 font-display text-3xl font-bold">{product.name}</h1>
 
           <div className="mt-4 flex items-baseline gap-1">
             <span className="text-3xl font-bold">{formatPrice(product.price)}</span>
@@ -102,7 +102,7 @@ export default function ProductDetailPage() {
 
           {/* Producer story */}
           {product.producer && (
-            <div className="mt-8 rounded-card bg-white p-5 ring-1 ring-black/5">
+            <div className="mt-8 rounded-card bg-white p-5 shadow-card">
               <div className="flex items-center gap-3">
                 <div className="relative h-14 w-14 overflow-hidden rounded-full bg-sand">
                   <SmartImage src={product.producer.photoUrl} alt={product.producer.name} sizes="56px" />
