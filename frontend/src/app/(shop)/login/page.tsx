@@ -59,12 +59,12 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="rounded-2xl bg-white p-8 shadow-[0_12px_44px_rgba(30,36,32,0.08)] ring-1 ring-black/5">
+        <div className="rounded-2xl border border-line bg-white p-8 shadow-[0_12px_44px_rgba(30,36,32,0.08)]">
           <div className="flex justify-center">
             <Logo />
           </div>
 
-          <h1 className="mt-6 text-center font-display text-2xl font-extrabold">Dobrodošli nazad!</h1>
+          <h1 className="mt-6 text-center font-display text-2xl font-bold">Dobrodošli nazad!</h1>
           <p className="mt-1 text-center text-sm text-muted">
             Nemate nalog?{" "}
             <Link href="/register" className="font-semibold text-brand-700 hover:underline">

@@ -42,7 +42,7 @@ export default function OrdersPage() {
         ) : orders.data && orders.data.length > 0 ? (
           <ul className="space-y-4">
             {orders.data.map((o) => (
-              <li key={o.id} className="rounded-card bg-white p-5 ring-1 ring-black/5">
+              <li key={o.id} className="rounded-card bg-white p-5 shadow-card">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-display font-semibold">{o.code}</p>
@@ -65,7 +65,7 @@ export default function OrdersPage() {
                   ))}
                 </ul>
 
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-black/5 pt-3 text-xs text-muted">
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-line pt-3 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     <CalendarClock className="h-3.5 w-3.5" /> {o.deliverySlot?.label}
                   </span>
