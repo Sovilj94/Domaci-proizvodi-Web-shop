@@ -32,7 +32,7 @@ export default function HomePage() {
             </p>
             <Link
               href="/products"
-              className={cn(buttonVariants({ variant: "honey", size: "lg" }), "mt-5")}
+              className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "mt-5")}
             >
               Kupuj proizvode <ArrowRight className="h-4 w-4" />
             </Link>
