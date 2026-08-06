@@ -28,14 +28,14 @@ export function ShopNavbar() {
   }
 
   const locationChip = (
-    <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-black/5">
+    <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-sm">
       <MapPin className="h-4 w-4 text-brand-600" />
       <span className="font-medium">Banja Luka</span>
     </span>
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-black/5 bg-cream/85 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-line bg-cream/85 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4">
         {/* Top row */}
         <div className="flex h-16 items-center gap-3">
@@ -123,7 +123,7 @@ export function ShopNavbar() {
 
       {/* Mobile account menu (main nav lives in the bottom bar) */}
       {open && (
-        <div className="border-t border-black/5 bg-cream md:hidden">
+        <div className="border-t border-line bg-cream md:hidden">
           <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
             {user ? (
               <>

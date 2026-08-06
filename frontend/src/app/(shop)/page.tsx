@@ -19,12 +19,12 @@ export default function HomePage() {
       {/* Promo banner */}
       <section className="mx-auto max-w-6xl px-4 pt-5">
         <div className="relative overflow-hidden rounded-3xl bg-brand-700 px-6 py-8 text-white sm:px-10 sm:py-11">
-          <div className="absolute inset-0 bg-[radial-gradient(65%_90%_at_92%_8%,rgba(246,181,69,0.30),transparent)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_90%_10%,rgba(255,255,255,0.10),transparent)]" />
           <div className="relative max-w-md">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">
               <Leaf className="h-3.5 w-3.5" /> Svježe sa Manjače
             </span>
-            <h1 className="mt-3 font-display text-2xl font-extrabold leading-tight sm:text-4xl">
+            <h1 className="mt-3 font-display text-2xl font-bold leading-tight sm:text-4xl">
               Domaće na tvoja vrata
             </h1>
             <p className="mt-2 max-w-sm text-sm text-brand-100 sm:text-base">
@@ -64,7 +64,7 @@ export default function HomePage() {
                 href={`/products?category=${c.slug}`}
                 className="group w-24 shrink-0 sm:w-28"
               >
-                <div className="relative aspect-square overflow-hidden rounded-2xl bg-sand ring-1 ring-black/5">
+                <div className="relative aspect-square overflow-hidden rounded-2xl bg-sand shadow-card">
                   <SmartImage
                     src={c.imageUrl}
                     alt={c.name}
@@ -111,12 +111,12 @@ export default function HomePage() {
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {producers.isLoading
             ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-64 animate-pulse rounded-card bg-white ring-1 ring-black/5" />
+                <div key={i} className="h-64 animate-pulse rounded-card bg-white shadow-card" />
               ))
             : producers.data?.map((p) => (
                 <article
                   key={p.id}
-                  className="overflow-hidden rounded-card bg-white ring-1 ring-black/5"
+                  className="overflow-hidden rounded-card bg-white shadow-card"
                 >
                   <div className="relative aspect-[4/3] bg-sand">
                     <SmartImage src={p.photoUrl} alt={p.name} sizes="300px" />
@@ -144,14 +144,14 @@ export default function HomePage() {
       </section>
 
       {/* Delivery strip */}
-      <section className="mt-12 bg-honey-100">
+      <section className="mt-12 bg-sand">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-9 text-center">
           <h2 className="font-display text-lg font-bold">Dostavljamo u tvoj kraj</h2>
           <div className="flex flex-wrap justify-center gap-2">
             {["Centar", "Borik", "Lauš", "Starčevica"].map((z) => (
               <span
                 key={z}
-                className="rounded-full bg-white px-4 py-2 text-sm font-medium ring-1 ring-black/5"
+                className="rounded-full bg-white px-4 py-2 text-sm font-medium shadow-card"
               >
                 {z}
               </span>
@@ -168,7 +168,7 @@ export default function HomePage() {
 
 function Step({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-card bg-white p-4 ring-1 ring-black/5">
+    <div className="flex items-start gap-3 rounded-card bg-white p-4 shadow-card">
       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-700">
         {icon}
       </div>
