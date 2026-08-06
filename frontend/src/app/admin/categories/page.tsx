@@ -64,8 +64,8 @@ export default function AdminCategoriesPage() {
       {categories.isLoading ? (
         <LoadingBlock />
       ) : (
-        <div className="overflow-hidden rounded-card bg-white ring-1 ring-black/5">
-          <ul className="divide-y divide-black/5">
+        <div className="overflow-hidden rounded-card bg-white shadow-card">
+          <ul className="divide-y divide-line">
             {categories.data?.map((c) => {
               const inUse = (c.productCount ?? 0) > 0;
               const confirming = confirmId === c.id;

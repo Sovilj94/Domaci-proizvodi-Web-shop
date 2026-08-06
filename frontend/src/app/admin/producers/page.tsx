@@ -64,8 +64,8 @@ export default function AdminProducersPage() {
       {producers.isLoading ? (
         <LoadingBlock />
       ) : (
-        <div className="overflow-hidden rounded-card bg-white ring-1 ring-black/5">
-          <ul className="divide-y divide-black/5">
+        <div className="overflow-hidden rounded-card bg-white shadow-card">
+          <ul className="divide-y divide-line">
             {producers.data?.map((p) => {
               const confirming = confirmId === p.id;
               return (

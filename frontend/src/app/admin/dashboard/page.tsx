@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <section className="rounded-card bg-white p-5 ring-1 ring-black/5">
+        <section className="rounded-card bg-white p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold">Narudžbe danas</h2>
             <Link href="/admin/orders" className="text-sm font-semibold text-brand-700 hover:underline">
@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
           {orders.isLoading ? (
             <LoadingBlock />
           ) : orders.data && orders.data.length > 0 ? (
-            <ul className="divide-y divide-black/5">
+            <ul className="divide-y divide-line">
               {orders.data.map((o) => (
                 <li key={o.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
@@ -91,7 +91,7 @@ export default function AdminDashboardPage() {
           )}
         </section>
 
-        <section className="rounded-card bg-white p-5 ring-1 ring-black/5">
+        <section className="rounded-card bg-white p-5 shadow-card">
           <h2 className="mb-4 font-display text-lg font-semibold">Po statusu</h2>
           <ul className="space-y-2">
             {s?.statusBreakdown.map((row) => (

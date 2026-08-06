@@ -74,8 +74,8 @@ export default function AdminProductsPage() {
       {products.isLoading ? (
         <LoadingBlock />
       ) : (
-        <div className="overflow-hidden rounded-card bg-white ring-1 ring-black/5">
-          <ul className="divide-y divide-black/5">
+        <div className="overflow-hidden rounded-card bg-white shadow-card">
+          <ul className="divide-y divide-line">
             {products.data?.map((p) => (
               <li key={p.id} className="flex items-center gap-4 p-3">
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand">

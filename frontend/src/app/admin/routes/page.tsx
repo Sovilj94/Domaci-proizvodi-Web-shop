@@ -97,7 +97,7 @@ export default function AdminRoutesPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Assign */}
-        <section className="rounded-card bg-white p-5 ring-1 ring-black/5">
+        <section className="rounded-card bg-white p-5 shadow-card">
           <h2 className="font-display text-lg font-semibold">Narudžbe za dostavu</h2>
           <p className="text-sm text-muted">Odaberite narudžbe i vozača.</p>
 
@@ -134,7 +134,7 @@ export default function AdminRoutesPage() {
                     "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition",
                     selected.has(o.id)
                       ? "border-brand-400 bg-brand-50"
-                      : "border-black/5 hover:bg-sand/50",
+                      : "border-line hover:bg-sand/50",
                   )}
                 >
                   <input
@@ -249,7 +249,7 @@ function RouteCard({
   }
 
   return (
-    <div className="rounded-card bg-white p-5 ring-1 ring-black/5">
+    <div className="rounded-card bg-white p-5 shadow-card">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-display font-semibold">{route.driverName}</p>

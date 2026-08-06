@@ -104,7 +104,7 @@ export function ProductForm({
         className="absolute inset-0 bg-black/40"
       />
       <div className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-cream shadow-xl">
-        <div className="flex items-center justify-between border-b border-black/5 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
           <h2 className="font-display text-lg font-bold">
             {product ? "Uredi proizvod" : "Novi proizvod"}
           </h2>
@@ -216,7 +216,7 @@ export function ProductForm({
           </div>
         </form>
 
-        <div className="flex gap-3 border-t border-black/5 p-4">
+        <div className="flex gap-3 border-t border-line p-4">
           <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
             Otkaži
           </Button>

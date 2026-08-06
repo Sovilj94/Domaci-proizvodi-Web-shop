@@ -20,14 +20,14 @@ export function StatCard({
     blue: "bg-blue-100 text-blue-700",
   };
   return (
-    <div className="rounded-card bg-white p-5 ring-1 ring-black/5">
+    <div className="rounded-card bg-white p-5 shadow-card">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-muted">{label}</span>
         <span className={cn("grid h-9 w-9 place-items-center rounded-full", accents[accent])}>
           {icon}
         </span>
       </div>
-      <p className="mt-3 font-display text-3xl font-extrabold">{value}</p>
+      <p className="mt-3 font-display text-3xl font-bold">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );

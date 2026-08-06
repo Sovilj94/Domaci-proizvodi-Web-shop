@@ -27,7 +27,7 @@ export function OrderCard({
   const next = NEXT_STATUSES[order.status];
 
   return (
-    <div className="overflow-hidden rounded-card bg-white ring-1 ring-black/5">
+    <div className="overflow-hidden rounded-card bg-white shadow-card">
       {/* Header (click to expand) */}
       <button
         onClick={onToggle}
@@ -57,7 +57,7 @@ export function OrderCard({
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="space-y-5 border-t border-black/5 p-4 sm:p-5">
+        <div className="space-y-5 border-t border-line p-4 sm:p-5">
           <section className="space-y-1">
             <p className="text-sm">
               <span className="font-medium">{order.customerName}</span>
@@ -91,7 +91,7 @@ export function OrderCard({
                 </li>
               ))}
             </ul>
-            <div className="mt-3 space-y-1 border-t border-black/5 pt-3 text-sm">
+            <div className="mt-3 space-y-1 border-t border-line pt-3 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Međuzbir</span>
                 <span>{formatPrice(order.subtotal)}</span>
@@ -127,7 +127,7 @@ export function OrderCard({
                     onClick={() => isValid && onAdvance(s)}
                     className={cn(
                       "grow basis-24 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition",
-                      isCurrent && "bg-white text-ink shadow-sm ring-1 ring-black/5",
+                      isCurrent && "bg-white text-ink shadow-sm border border-line",
                       !isCurrent && isValid && "text-brand-700 hover:bg-white",
                       !isCurrent && !isValid && "cursor-not-allowed text-muted opacity-40",
                     )}
