@@ -206,7 +206,7 @@ export default function CheckoutPage() {
       <form onSubmit={submit} className="mt-6 space-y-6">
         {/* Step 1 — address & delivery */}
         {step === 1 && (
-          <section className="space-y-5 rounded-card bg-white p-5 ring-1 ring-black/5">
+          <section className="space-y-5 rounded-card bg-white p-5 shadow-card">
             <div>
               <h2 className="font-display text-lg font-semibold">Gdje da dostavimo?</h2>
               <p className="text-sm text-muted">
@@ -257,7 +257,7 @@ export default function CheckoutPage() {
 
         {/* Step 2 — contact */}
         {step === 2 && (
-          <section className="space-y-4 rounded-card bg-white p-5 ring-1 ring-black/5">
+          <section className="space-y-4 rounded-card bg-white p-5 shadow-card">
             <div>
               <h2 className="font-display text-lg font-semibold">Vaši podaci</h2>
               <p className="text-sm text-muted">Da vas kontaktiramo za dostavu.</p>
@@ -285,7 +285,7 @@ export default function CheckoutPage() {
 
         {/* Step 3 — review */}
         {step === 3 && (
-          <section className="space-y-5 rounded-card bg-white p-5 ring-1 ring-black/5">
+          <section className="space-y-5 rounded-card bg-white p-5 shadow-card">
             <h2 className="font-display text-lg font-semibold">Potvrdi narudžbu</h2>
 
             <ul className="space-y-2 text-sm">
@@ -300,7 +300,7 @@ export default function CheckoutPage() {
               ))}
             </ul>
 
-            <dl className="space-y-2 border-t border-black/5 pt-4 text-sm">
+            <dl className="space-y-2 border-t border-line pt-4 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted">Međuzbir</dt>
                 <dd className="font-medium">{formatPrice(subtotal)}</dd>
@@ -309,7 +309,7 @@ export default function CheckoutPage() {
                 <dt className="text-muted">Dostava</dt>
                 <dd className="font-medium">{formatPrice(deliveryFee)}</dd>
               </div>
-              <div className="flex justify-between border-t border-black/5 pt-2 text-base">
+              <div className="flex justify-between border-t border-line pt-2 text-base">
                 <dt className="font-semibold">Ukupno</dt>
                 <dd className="font-display font-bold">{formatPrice(total)}</dd>
               </div>
@@ -327,7 +327,7 @@ export default function CheckoutPage() {
                   </span>
                 </span>
               </p>
-              <p className="mt-2 border-t border-black/5 pt-2 font-medium text-brand-700">
+              <p className="mt-2 border-t border-line pt-2 font-medium text-brand-700">
                 Plaćanje pouzećem pri dostavi
               </p>
             </div>
@@ -397,7 +397,7 @@ export default function CheckoutPage() {
 function Confirmation({ order, loggedIn }: { order: Order; loggedIn: boolean }) {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <div className="rounded-card bg-white p-8 text-center ring-1 ring-black/5">
+      <div className="rounded-card bg-white p-8 text-center shadow-card">
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-brand-100 text-brand-600">
           <CheckCircle2 className="h-9 w-9" />
         </div>
@@ -424,7 +424,7 @@ function Confirmation({ order, loggedIn }: { order: Order; loggedIn: boolean }) 
             <span className="text-muted">Adresa</span>
             <span className="max-w-[60%] text-right font-medium">{order.deliveryAddress}</span>
           </div>
-          <div className="flex justify-between border-t border-black/5 pt-2">
+          <div className="flex justify-between border-t border-line pt-2">
             <span className="font-semibold">Ukupno</span>
             <span className="font-bold">{formatPrice(order.totalAmount)}</span>
           </div>

@@ -28,7 +28,7 @@ export function CartDrawer() {
     <div className="fixed inset-0 z-50">
       <button aria-label="Zatvori" onClick={closeCart} className="absolute inset-0 bg-black/40" />
       <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-cream shadow-xl">
-        <div className="flex items-center justify-between border-b border-black/5 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="font-display text-lg font-bold">Korpa</h2>
           <button
             onClick={closeCart}
@@ -59,7 +59,7 @@ export function CartDrawer() {
               {items.map((item) => (
                 <li
                   key={item.productId}
-                  className="flex gap-3 rounded-card bg-white p-3 ring-1 ring-black/5"
+                  className="flex gap-3 rounded-card bg-white p-3 border border-line"
                 >
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-sand">
                     <SmartImage src={item.imageUrl} alt={item.name} sizes="64px" />
@@ -93,7 +93,7 @@ export function CartDrawer() {
               ))}
             </ul>
 
-            <div className="border-t border-black/5 bg-white p-4">
+            <div className="border-t border-line bg-white p-4">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Ukupno (bez dostave)</span>
                 <span className="font-display text-xl font-bold">{formatPrice(subtotal)}</span>
