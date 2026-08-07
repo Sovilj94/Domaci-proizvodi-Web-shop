@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import type { Product } from "@/types/domain";
 import { SmartImage } from "@/components/ui/smart-image";
 import { useCart } from "@/lib/cart/cart-context";
+import { flyToCart } from "@/lib/cart/fly-to-cart";
 import { useToast } from "@/components/ui/toast";
 import { formatPrice, unitSuffix } from "@/lib/utils";
 
@@ -55,9 +56,10 @@ export function ProductCard({ product }: { product: Product }) {
           <button
             type="button"
             disabled={soldOut}
-            onClick={() => {
+            onClick={(e) => {
               add(product);
               show(`${product.name} dodano u korpu`);
+              flyToCart(e.currentTarget);
             }}
             aria-label={`Dodaj ${product.name} u korpu`}
             className="grid h-10 w-10 place-items-center rounded-full bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 active:scale-90 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"

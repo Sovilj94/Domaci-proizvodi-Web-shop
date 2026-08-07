@@ -47,7 +47,10 @@ export function MobileTabBar() {
               <span className="relative">
                 <t.icon className={cn("h-5 w-5", active && "stroke-[2.5]")} />
                 {t.cart && count > 0 && (
-                  <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
+                  <span
+                    id="cart-target-mobile"
+                    className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white"
+                  >
                     {count}
                   </span>
                 )}

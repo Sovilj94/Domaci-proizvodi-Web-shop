@@ -52,6 +52,13 @@
   100% { background-position: 200% 0; }
 }
 
+@keyframes bump {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.animate-bump { animation: bump 0.35s ease; }
+
 html,
 body {
   height: 100%;
