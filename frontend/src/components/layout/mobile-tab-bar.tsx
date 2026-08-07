@@ -30,7 +30,7 @@ export function MobileTabBar() {
   const { count, isOpen, openCart } = useCart();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-cream/95 backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-cream/95 backdrop-blur md:hidden">
       <ul className="mx-auto flex max-w-md items-stretch">
         {TABS.map((t) => {
           const active = t.cart

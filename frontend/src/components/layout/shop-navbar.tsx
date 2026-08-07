@@ -9,7 +9,7 @@ import { CartButton } from "@/components/shop/cart-button";
 import { useAuth } from "@/lib/auth/auth-context";
 
 const searchInputClass =
-  "w-full rounded-full border-none bg-white py-2.5 pl-9 pr-4 text-sm ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-brand-400";
+  "w-full rounded-full border border-line bg-sand py-2.5 pl-9 pr-4 text-sm transition focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400";
 
 export function ShopNavbar() {
   const [open, setOpen] = useState(false);

@@ -41,7 +41,7 @@ export default function ConfirmEmailPage() {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-20">
       <Logo />
-      <div className="mt-6 w-full rounded-card bg-white p-8 text-center ring-1 ring-black/5">
+      <div className="mt-6 w-full rounded-card bg-white p-8 text-center shadow-card">
         {status === "loading" && (
           <>
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-600" />

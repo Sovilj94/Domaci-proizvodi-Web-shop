@@ -4,7 +4,7 @@ import { Logo } from "@/components/layout/logo";
 
 export function ShopFooter() {
   return (
-    <footer className="mt-20 border-t border-black/5 bg-white">
+    <footer className="mt-20 border-t border-line bg-white">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-3">
           <Logo />
@@ -39,7 +39,7 @@ export function ShopFooter() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-black/5 py-5">
+      <div className="border-t border-line py-5">
         <p className="mx-auto max-w-6xl px-4 text-xs text-muted">
           © {new Date().getFullYear()} E piljara. Svježe sa Manjače.
         </p>

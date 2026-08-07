@@ -89,7 +89,7 @@ export default function AdminRoutesPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-xl border-none bg-white px-3.5 py-2.5 text-sm ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-brand-400"
+              className="w-full rounded-xl border border-line bg-sand px-3.5 py-2.5 text-sm transition focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"
             />
           </Field>
         </div>

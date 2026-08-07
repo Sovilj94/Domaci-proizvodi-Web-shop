@@ -44,7 +44,7 @@
   --shadow-lg: 0 14px 36px rgba(16, 24, 40, 0.12);
 
   /* Animacije */
-  --animate-shimmer: shimmer 1.5s infinite;
+  --animate-shimmer: shimmer 1.5s linear infinite;
 }
 
 @keyframes shimmer {
