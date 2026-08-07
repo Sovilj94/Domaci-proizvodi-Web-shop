@@ -57,9 +57,10 @@ export function ProductCard({ product }: { product: Product }) {
             type="button"
             disabled={soldOut}
             onClick={(e) => {
+              const btn = e.currentTarget;
               add(product);
               show(`${product.name} dodano u korpu`);
-              flyToCart(e.currentTarget);
+              requestAnimationFrame(() => flyToCart(btn));
             }}
             aria-label={`Dodaj ${product.name} u korpu`}
             className="grid h-10 w-10 place-items-center rounded-full bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 active:scale-90 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
