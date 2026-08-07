@@ -14,7 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
   const soldOut = !product.isAvailable || product.stock <= 0;
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-card bg-white shadow-card transition hover:shadow-md">
+    <div className="group flex h-full flex-col overflow-hidden rounded-card bg-white shadow-card transition hover:shadow-md">
       <Link
         href={`/products/${product.slug}`}
         className="relative block aspect-square overflow-hidden bg-sand"

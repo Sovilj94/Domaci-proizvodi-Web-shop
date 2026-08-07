@@ -6,7 +6,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
       {products.map((p, i) => (
-        <Reveal key={p.id} delay={Math.min(i, 8) * 0.04}>
+        <Reveal key={p.id} className="h-full" delay={Math.min(i, 8) * 0.04}>
           <ProductCard product={p} />
         </Reveal>
       ))}

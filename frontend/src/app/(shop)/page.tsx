@@ -116,8 +116,8 @@ export default function HomePage() {
                   <div key={i} className="h-64 animate-pulse rounded-card bg-white shadow-card" />
                 ))
               : producers.data?.map((p, i) => (
-                  <Reveal key={p.id} delay={i * 0.06}>
-                    <article className="overflow-hidden rounded-card bg-white shadow-card">
+                  <Reveal key={p.id} className="h-full" delay={i * 0.06}>
+                    <article className="h-full overflow-hidden rounded-card bg-white shadow-card">
                       <div className="relative aspect-[4/3] bg-sand">
                         <SmartImage src={p.photoUrl} alt={p.name} sizes="300px" />
                       </div>
