@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle2, Info, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,22 +34,29 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ show }}>
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={cn(
-              "pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-lg",
-              t.variant === "success" && "bg-brand-600 text-white",
-              t.variant === "error" && "bg-red-600 text-white",
-              t.variant === "info" && "bg-ink text-white",
-            )}
-          >
-            {t.variant === "success" && <CheckCircle2 className="h-4 w-4" />}
-            {t.variant === "error" && <XCircle className="h-4 w-4" />}
-            {t.variant === "info" && <Info className="h-4 w-4" />}
-            {t.message}
-          </div>
-        ))}
+        <AnimatePresence>
+          {toasts.map((t) => (
+            <motion.div
+              key={t.id}
+              layout
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
+              className={cn(
+                "pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-lg",
+                t.variant === "success" && "bg-brand-600 text-white",
+                t.variant === "error" && "bg-red-600 text-white",
+                t.variant === "info" && "bg-ink text-white",
+              )}
+            >
+              {t.variant === "success" && <CheckCircle2 className="h-4 w-4" />}
+              {t.variant === "error" && <XCircle className="h-4 w-4" />}
+              {t.variant === "info" && <Info className="h-4 w-4" />}
+              {t.message}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );
