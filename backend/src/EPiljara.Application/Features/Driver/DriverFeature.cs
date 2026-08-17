@@ -62,6 +62,11 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current)
             .FirstOrDefaultAsync(o => o.Id == cmd.OrderId, ct)
             ?? throw new NotFoundException("Narudžba nije pronađena.");
 
+        // Ruta se može dodijeliti narudžbi koja je još Confirmed/Packing (vidi ASSIGNABLE
+        // u admin panelu). Mašina stanja dozvoljava Delivered samo iz OutForDelivery, pa je
+        // ovdje prevodimo kroz međukorake — svaki pojedinačni prelaz je dozvoljen.
+        if (order.Status is OrderStatus.Confirmed) order.TransitionTo(OrderStatus.Packing);
+        if (order.Status is OrderStatus.Packing) order.TransitionTo(OrderStatus.OutForDelivery);
         order.TransitionTo(status);
         await db.SaveChangesAsync(ct);
         return order.ToDto();
