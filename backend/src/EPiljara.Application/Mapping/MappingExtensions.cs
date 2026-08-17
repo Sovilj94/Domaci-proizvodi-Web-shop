@@ -134,6 +134,7 @@ public static class MappingExtensions
         ZoneName = s.Order?.DeliveryZone?.Name ?? string.Empty,
         Sequence = s.Sequence,
         CustomerPhone = s.Order?.CustomerPhone,
+        Status = s.Order?.Status.ToString() ?? "Confirmed",
     };
 
     public static DeliveryRouteDto ToDto(this DeliveryRoute r) => new()

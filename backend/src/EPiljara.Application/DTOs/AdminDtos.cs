@@ -17,6 +17,8 @@ public record RouteStopDto
     public int Sequence { get; init; }
     /// <summary>Included for the driver mobile app so it can call the customer.</summary>
     public string? CustomerPhone { get; init; }
+    /// <summary>Order status, so the driver app knows which stops are done.</summary>
+    public string Status { get; init; } = "Confirmed";
 }
 
 public record DeliveryRouteDto
