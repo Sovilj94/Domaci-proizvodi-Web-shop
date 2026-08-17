@@ -14,16 +14,33 @@
 
 - **Jezik svih korisnički vidljivih stringova je srpski.** Bez izuzetka — dugmad, poruke o greškama, prazna stanja.
 - **Target framework je `net10.0-android` i ništa drugo.** Spec je pisao `net9.0-android`; na ovoj mašini su instalirani workload manifesti za SDK band 10.0.100 (`android 36.1.43/10.0.100`, `maui-windows 10.0.20/10.0.100`) i `dotnet new maui` generiše `net10.0`. TFM-ove za `ios`, `maccatalyst` i `windows` **obrisati** — bez iOS TFM-a build ne traži Mac.
-- **`mobile/` ne dobija `global.json`.** `backend/global.json` pinuje SDK 9.0.310 ali važi samo unutar `backend/`; `mobile/` mora ostati na SDK 10.
+- **Mobilni repo ne dobija `global.json`.** Backend repo pinuje SDK 9.0.310 u svom `backend/global.json`, ali to važi samo tamo; mobilni repo mora ostati na SDK 10.
 - **Svaki HTTP odgovor je envelope `{ data, error, meta }`** — i uspjeh i greška. Nikad ne čitati tijelo odgovora mimo `ApiClient`-a.
-- **DTO-ovi se prepisuju ručno i drže 1:1 sa backendom.** Zabranjeno je referencirati `EPiljara.Application` ili bilo koji backend projekat iz `mobile/`.
+- **DTO-ovi se prepisuju ručno i drže 1:1 sa backendom.** Zabranjeno je referencirati `EPiljara.Application` ili bilo koji backend projekat iz mobilnog repoa.
 - **Bazni URL API-ja nije hardkodiran** — čita se iz `Resources/Raw/appsettings.json`.
 - **Commit poslije svakog taska.**
 
+## Dva repozitorija
+
+Posao se dijeli na dva odvojena git repozitorija. Svaki task pripada tačno jednom
+— dispatch svakog taska nosi punu putanju, nikad ne pretpostavljaj radni folder.
+
+| Repo | Putanja | Grana | Taskovi |
+|---|---|---|---|
+| **Mobilni** (novi) | `C:\Users\soviljn\Desktop\EPiljaraVozac` | `main` | 1, 2, 5, 6, 7 |
+| **Backend** (worktree) | `C:\Users\soviljn\Desktop\epiljara-backend-wt` | `driver-app-backend` | 3, 4, 8 |
+
+Backend worktree je izdvojena kopija repoa `Kumov Web Shop`; njegov glavni radni
+folder ima nekommitovane izmjene koje **se ne diraju**.
+
+Mobilni repo već sadrži `README.md` i `.gitignore` iz inicijalnog commita —
+`.gitignore` već hvata `bin/` i `obj/`.
+
 ## Struktura fajlova
 
+U mobilnom repou (`EPiljaraVozac/`), sve u korijenu — nema `mobile/` omotača:
+
 ```
-mobile/
   EPiljara.Driver.sln                       solution za mobilni dio
   EPiljara.Driver/
     EPiljara.Driver.csproj                  net10.0-android
@@ -51,20 +68,20 @@ mobile/
     RouteViewModelTests.cs
 ```
 
-Backend se dira samo ovdje:
+U backend repou (`epiljara-backend-wt/`) se dira samo ovo:
 - `backend/src/EPiljara.Application/DTOs/AdminDtos.cs` — `RouteStopDto.Status`
 - `backend/src/EPiljara.Application/Mapping/MappingExtensions.cs` — mapiranje tog polja
 - `backend/src/EPiljara.Application/Features/Driver/DriverFeature.cs` — preguravanje statusa
-- `CLAUDE.md` — jezik
+- `CLAUDE.md` — jezik i pomen mobilnog repoa
 
 ---
 
 ### Task 1: Skeleton MAUI projekta koji se builda
 
 **Files:**
-- Create: `mobile/EPiljara.Driver/` (iz `dotnet new maui`)
-- Create: `mobile/EPiljara.Driver.sln`
-- Modify: `mobile/EPiljara.Driver/EPiljara.Driver.csproj`
+- Create: `EPiljara.Driver/` (iz `dotnet new maui`)
+- Create: `EPiljara.Driver.sln`
+- Modify: `EPiljara.Driver/EPiljara.Driver.csproj`
 
 **Interfaces:**
 - Consumes: ništa
@@ -82,10 +99,11 @@ Ako `dotnet new list maui` ne vrati ništa: `dotnet workload install maui`.
 
 - [ ] **Step 2: Napravi projekat**
 
+Repo već postoji i ima `README.md` i `.gitignore` — projekat ide u njegov korijen,
+bez ikakvog `mobile/` podfoldera.
+
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-mkdir -p mobile
-cd mobile
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
 dotnet new maui -n EPiljara.Driver
 dotnet new sln -n EPiljara.Driver
 dotnet sln EPiljara.Driver.sln add EPiljara.Driver/EPiljara.Driver.csproj
@@ -93,7 +111,7 @@ dotnet sln EPiljara.Driver.sln add EPiljara.Driver/EPiljara.Driver.csproj
 
 - [ ] **Step 3: Svedi na samo Android i postavi identitet aplikacije**
 
-U `mobile/EPiljara.Driver/EPiljara.Driver.csproj` **obriši** ova tri reda:
+U `EPiljara.Driver/EPiljara.Driver.csproj` **obriši** ova tri reda:
 
 ```xml
 <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
@@ -113,7 +131,7 @@ Zatim zamijeni vrijednosti:
 - [ ] **Step 4: Dodaj MVVM i konfiguracione pakete**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile/EPiljara.Driver"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac/EPiljara.Driver"
 dotnet add package CommunityToolkit.Mvvm
 dotnet add package Microsoft.Extensions.Configuration.Json
 dotnet add package Microsoft.Extensions.Http
@@ -122,13 +140,13 @@ dotnet add package Microsoft.Extensions.Http
 - [ ] **Step 5: Build i potvrdi da prolazi**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile/EPiljara.Driver"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac/EPiljara.Driver"
 dotnet build -f net10.0-android -c Debug
 ```
 
 Expected: `Build succeeded. 0 Error(s)`. Prvi build traje oko 2 minuta.
 
-Ovaj build je unaprijed provjeren na ovoj mašini, na putanji iste dužine i sa istim razmakom u imenu (`Kumov Web Shop`) — prolazi za 1:53. Ako ipak pukne sa **`error APT2098: ... failed to open file`**, to je Windows MAX_PATH ograničenje u `aapt2`, ne greška u kodu. Rješenje: skrati međuputanju dodavanjem u `csproj` unutar glavnog `<PropertyGroup>`:
+Ovaj build je unaprijed provjeren na ovoj mašini i prolazi za oko 2 minuta, čak i na dužoj putanji sa razmakom u imenu. Putanja mobilnog repoa (`Desktop\EPiljaraVozac`) je kratka, pa problema ne bi trebalo biti. Ako ipak pukne sa **`error APT2098: ... failed to open file`**, to je Windows MAX_PATH ograničenje u `aapt2`, ne greška u kodu. Rješenje: skrati međuputanju dodavanjem u `csproj` unutar glavnog `<PropertyGroup>`:
 
 ```xml
 <IntermediateOutputPath>C:\o\epd\</IntermediateOutputPath>
@@ -136,26 +154,26 @@ Ovaj build je unaprijed provjeren na ovoj mašini, na putanji iste dužine i sa 
 
 - [ ] **Step 6: Ne commituj build izlaz**
 
-Provjeri da `.gitignore` u korijenu repoa hvata `bin/` i `obj/`:
+`.gitignore` iz inicijalnog commita već hvata `bin/` i `obj/`. Potvrdi to:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-git status --short mobile/
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
+git status --short
 ```
 
-Expected: nema nijednog `mobile/EPiljara.Driver/bin/...` ni `obj/...` reda. Ako ih ima, dodaj u `.gitignore`:
+Expected: nema nijednog `EPiljara.Driver/bin/...` ni `obj/...` reda. Ako ih ima, dodaj u `.gitignore`:
 
 ```
-mobile/**/bin/
-mobile/**/obj/
+**/bin/
+**/obj/
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-git add mobile/ .gitignore
-git commit -m "feat(mobile): scaffold MAUI driver app (Android only)"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
+git add -A
+git commit -m "feat: scaffold MAUI driver app (Android only)"
 ```
 
 ---
@@ -163,12 +181,12 @@ git commit -m "feat(mobile): scaffold MAUI driver app (Android only)"
 ### Task 2: DTO-ovi, konfiguracija i ApiClient koji raspakuje envelope
 
 **Files:**
-- Create: `mobile/EPiljara.Driver/Models/Dtos.cs`
-- Create: `mobile/EPiljara.Driver/Services/ApiClient.cs`
-- Create: `mobile/EPiljara.Driver/Resources/Raw/appsettings.json`
-- Create: `mobile/EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj`
-- Create: `mobile/EPiljara.Driver.Tests/ApiClientTests.cs`
-- Modify: `mobile/EPiljara.Driver/Platforms/Android/AndroidManifest.xml`
+- Create: `EPiljara.Driver/Models/Dtos.cs`
+- Create: `EPiljara.Driver/Services/ApiClient.cs`
+- Create: `EPiljara.Driver/Resources/Raw/appsettings.json`
+- Create: `EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj`
+- Create: `EPiljara.Driver.Tests/ApiClientTests.cs`
+- Modify: `EPiljara.Driver/Platforms/Android/AndroidManifest.xml`
 
 **Interfaces:**
 - Consumes: projekat iz Taska 1
@@ -185,12 +203,12 @@ git commit -m "feat(mobile): scaffold MAUI driver app (Android only)"
 - [ ] **Step 1: Napravi test projekat i zakači ga na solution**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
 dotnet new xunit -n EPiljara.Driver.Tests -f net10.0
 dotnet sln EPiljara.Driver.sln add EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj
 ```
 
-Test projekat **ne** referencira MAUI projekat (MAUI cilja Android, test cilja `net10.0` — reference se ne slažu). Umjesto toga, `Dtos.cs` i `ApiClient.cs` se u test projekat uvlače kao linkovani fajlovi. Dodaj u `mobile/EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj` unutar novog `<ItemGroup>`:
+Test projekat **ne** referencira MAUI projekat (MAUI cilja Android, test cilja `net10.0` — reference se ne slažu). Umjesto toga, `Dtos.cs` i `ApiClient.cs` se u test projekat uvlače kao linkovani fajlovi. Dodaj u `EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj` unutar novog `<ItemGroup>`:
 
 ```xml
 <ItemGroup>
@@ -204,7 +222,7 @@ Test projekat **ne** referencira MAUI projekat (MAUI cilja Android, test cilja `
 
 - [ ] **Step 2: Napiši testove koji padaju**
 
-`mobile/EPiljara.Driver.Tests/ApiClientTests.cs`:
+`EPiljara.Driver.Tests/ApiClientTests.cs`:
 
 ```csharp
 using System.Net;
@@ -317,7 +335,7 @@ public class ApiClientTests
 - [ ] **Step 3: Pokreni testove i potvrdi da padaju**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
 dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj
 ```
 
@@ -325,7 +343,7 @@ Expected: FAIL — greška prevođenja, `ApiClient` i `ApiEnvelope` ne postoje.
 
 - [ ] **Step 4: Napiši DTO-ove**
 
-`mobile/EPiljara.Driver/Models/Dtos.cs`:
+`EPiljara.Driver/Models/Dtos.cs`:
 
 ```csharp
 namespace EPiljara.Driver.Models;
@@ -369,7 +387,7 @@ public record DeliveryRouteDto(
 
 - [ ] **Step 5: Napiši ApiClient**
 
-`mobile/EPiljara.Driver/Services/ApiClient.cs`:
+`EPiljara.Driver/Services/ApiClient.cs`:
 
 ```csharp
 using System.Text.Json;
@@ -439,7 +457,7 @@ public class ApiClient(HttpClient http)
 - [ ] **Step 6: Pokreni testove i potvrdi da prolaze**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
 dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj
 ```
 
@@ -447,7 +465,7 @@ Expected: `Passed! - Failed: 0, Passed: 6`
 
 - [ ] **Step 7: Dodaj konfiguraciju baznog URL-a**
 
-`mobile/EPiljara.Driver/Resources/Raw/appsettings.json`:
+`EPiljara.Driver/Resources/Raw/appsettings.json`:
 
 ```json
 {
@@ -459,7 +477,7 @@ Expected: `Passed! - Failed: 0, Passed: 6`
 
 - [ ] **Step 8: Dozvoli običan HTTP samo u Debug build-u**
 
-U `mobile/EPiljara.Driver/Platforms/Android/AndroidManifest.xml`, dodaj `usesCleartextTraffic` na `<application>` element:
+U `EPiljara.Driver/Platforms/Android/AndroidManifest.xml`, dodaj `usesCleartextTraffic` na `<application>` element:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -482,7 +500,7 @@ Bez ovoga svaki poziv na `http://` pukne bez jasne poruke — Android blokira ob
 
 - [ ] **Step 9: Poveži konfiguraciju i HttpClient u DI**
 
-Zamijeni sadržaj `mobile/EPiljara.Driver/MauiProgram.cs`:
+Zamijeni sadržaj `EPiljara.Driver/MauiProgram.cs`:
 
 ```csharp
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -527,10 +545,10 @@ public static class MauiProgram
 - [ ] **Step 10: Build i commit**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile/EPiljara.Driver"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac/EPiljara.Driver"
 dotnet build -f net10.0-android -c Debug
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-git add mobile/
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
+git add -A
 git commit -m "feat(mobile): DTOs, envelope-unwrapping ApiClient, config + tests"
 ```
 
@@ -568,7 +586,7 @@ U `backend/src/EPiljara.Application/Mapping/MappingExtensions.cs`, u `ToDto(this
 - [ ] **Step 3: Build backend**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/backend"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
 dotnet build
 ```
 
@@ -579,7 +597,7 @@ Expected: `Build succeeded`. Migracija **nije** potrebna — `Status` već posto
 Pokreni bazu i API:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/backend"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
 docker compose up -d postgres
 dotnet run --project src/EPiljara.API
 ```
@@ -600,7 +618,7 @@ Expected: ako rute postoje, svaka stanica ima `"status"` polje. Ako je lista pra
 - [ ] **Step 5: Commit**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt"
 git add backend/src/EPiljara.Application
 git commit -m "feat(api): expose order status on RouteStopDto for the driver app"
 ```
@@ -634,7 +652,7 @@ U `backend/src/EPiljara.Application/Features/Driver/DriverFeature.cs`, u `Update
 - [ ] **Step 2: Build**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/backend"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
 dotnet build
 ```
 
@@ -663,7 +681,7 @@ Ako nemaš rutu, prvo je napravi kroz web admin na `http://localhost:3000/admin/
 - [ ] **Step 4: Commit**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt"
 git add backend/src/EPiljara.Application/Features/Driver/DriverFeature.cs
 git commit -m "fix(api): advance order through OutForDelivery on driver confirmation"
 ```
@@ -673,13 +691,13 @@ git commit -m "fix(api): advance order through OutForDelivery on driver confirma
 ### Task 5: Prijava vozača
 
 **Files:**
-- Create: `mobile/EPiljara.Driver/Services/AuthService.cs`
-- Create: `mobile/EPiljara.Driver/Services/AuthHeaderHandler.cs`
-- Create: `mobile/EPiljara.Driver/ViewModels/LoginViewModel.cs`
-- Create: `mobile/EPiljara.Driver/Views/LoginPage.xaml`, `Views/LoginPage.xaml.cs`
-- Modify: `mobile/EPiljara.Driver/MauiProgram.cs`
-- Modify: `mobile/EPiljara.Driver/AppShell.xaml`, `AppShell.xaml.cs`
-- Delete: `mobile/EPiljara.Driver/MainPage.xaml`, `MainPage.xaml.cs`
+- Create: `EPiljara.Driver/Services/AuthService.cs`
+- Create: `EPiljara.Driver/Services/AuthHeaderHandler.cs`
+- Create: `EPiljara.Driver/ViewModels/LoginViewModel.cs`
+- Create: `EPiljara.Driver/Views/LoginPage.xaml`, `Views/LoginPage.xaml.cs`
+- Modify: `EPiljara.Driver/MauiProgram.cs`
+- Modify: `EPiljara.Driver/AppShell.xaml`, `AppShell.xaml.cs`
+- Delete: `EPiljara.Driver/MainPage.xaml`, `MainPage.xaml.cs`
 
 **Interfaces:**
 - Consumes: `ApiClient.SendAsync<T>`, `AuthResultDto`, `ApiException` (Task 2)
@@ -692,7 +710,7 @@ git commit -m "fix(api): advance order through OutForDelivery on driver confirma
 
 - [ ] **Step 1: Napiši AuthService**
 
-`mobile/EPiljara.Driver/Services/AuthService.cs`:
+`EPiljara.Driver/Services/AuthService.cs`:
 
 ```csharp
 using System.Net.Http.Json;
@@ -750,7 +768,7 @@ public class AuthService(ApiClient api)
 
 - [ ] **Step 2: Napiši AuthHeaderHandler**
 
-`mobile/EPiljara.Driver/Services/AuthHeaderHandler.cs`:
+`EPiljara.Driver/Services/AuthHeaderHandler.cs`:
 
 ```csharp
 using System.Net.Http.Headers;
@@ -792,7 +810,7 @@ public class AuthHeaderHandler(IServiceProvider services) : DelegatingHandler
 
 - [ ] **Step 3: Napiši LoginViewModel**
 
-`mobile/EPiljara.Driver/ViewModels/LoginViewModel.cs`:
+`EPiljara.Driver/ViewModels/LoginViewModel.cs`:
 
 ```csharp
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -848,7 +866,7 @@ public partial class LoginViewModel(AuthService auth) : ObservableObject
 
 - [ ] **Step 4: Napiši LoginPage**
 
-`mobile/EPiljara.Driver/Views/LoginPage.xaml`:
+`EPiljara.Driver/Views/LoginPage.xaml`:
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -885,7 +903,7 @@ public partial class LoginViewModel(AuthService auth) : ObservableObject
 </ContentPage>
 ```
 
-Konverteri `IsStringNotEmpty` i `InvertedBool` ne postoje u MAUI-ju — napravi ih u `mobile/EPiljara.Driver/Converters.cs`:
+Konverteri `IsStringNotEmpty` i `InvertedBool` ne postoje u MAUI-ju — napravi ih u `EPiljara.Driver/Converters.cs`:
 
 ```csharp
 using System.Globalization;
@@ -911,7 +929,7 @@ public class InvertedBoolConverter : IValueConverter
 }
 ```
 
-Registruj ih u `mobile/EPiljara.Driver/App.xaml`, unutar `<Application.Resources><ResourceDictionary>`:
+Registruj ih u `EPiljara.Driver/App.xaml`, unutar `<Application.Resources><ResourceDictionary>`:
 
 ```xml
 <local:IsStringNotEmptyConverter x:Key="IsStringNotEmpty" />
@@ -920,7 +938,7 @@ Registruj ih u `mobile/EPiljara.Driver/App.xaml`, unutar `<Application.Resources
 
 i dodaj `xmlns:local="clr-namespace:EPiljara.Driver"` na `<Application>` element.
 
-`mobile/EPiljara.Driver/Views/LoginPage.xaml.cs`:
+`EPiljara.Driver/Views/LoginPage.xaml.cs`:
 
 ```csharp
 using EPiljara.Driver.ViewModels;
@@ -949,7 +967,7 @@ public partial class LoginPage : ContentPage
 
 Obriši `MainPage.xaml` i `MainPage.xaml.cs`.
 
-`mobile/EPiljara.Driver/AppShell.xaml`:
+`EPiljara.Driver/AppShell.xaml`:
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -967,7 +985,7 @@ Obriši `MainPage.xaml` i `MainPage.xaml.cs`.
 
 `RoutePage` nastaje u Tasku 6 — do tada zakomentariši njegov `ShellContent` red, inače build puca.
 
-`mobile/EPiljara.Driver/AppShell.xaml.cs`:
+`EPiljara.Driver/AppShell.xaml.cs`:
 
 ```csharp
 namespace EPiljara.Driver;
@@ -986,7 +1004,7 @@ public partial class AppShell : Shell
 
 - [ ] **Step 6: Registruj sve u DI**
 
-U `mobile/EPiljara.Driver/MauiProgram.cs`, zamijeni blok registracije `HttpClient`/`ApiClient` sa:
+U `EPiljara.Driver/MauiProgram.cs`, zamijeni blok registracije `HttpClient`/`ApiClient` sa:
 
 ```csharp
 		builder.Services.AddSingleton<AuthService>();
@@ -1010,7 +1028,7 @@ Dodaj `using EPiljara.Driver.Services;` na vrh ako već nije.
 Pokreni Android emulator iz Visual Studia ili Android Studia, pa:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile/EPiljara.Driver"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac/EPiljara.Driver"
 dotnet build -f net10.0-android -c Debug -t:Run
 ```
 
@@ -1023,8 +1041,8 @@ Ugasi i ponovo pokreni aplikaciju: vozač **ne** vidi ekran za prijavu jer `Poku
 - [ ] **Step 8: Commit**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-git add mobile/
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
+git add -A
 git commit -m "feat(mobile): driver login with token in SecureStorage"
 ```
 
@@ -1033,12 +1051,12 @@ git commit -m "feat(mobile): driver login with token in SecureStorage"
 ### Task 6: Ekran „Moja ruta"
 
 **Files:**
-- Create: `mobile/EPiljara.Driver/Services/DriverService.cs`
-- Create: `mobile/EPiljara.Driver/ViewModels/RouteViewModel.cs`
-- Create: `mobile/EPiljara.Driver/Views/RoutePage.xaml`, `Views/RoutePage.xaml.cs`
-- Modify: `mobile/EPiljara.Driver/MauiProgram.cs`, `AppShell.xaml`
-- Modify: `mobile/EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj` (odkomentariši link na `RouteViewModel.cs`)
-- Test: `mobile/EPiljara.Driver.Tests/RouteViewModelTests.cs`
+- Create: `EPiljara.Driver/Services/DriverService.cs`
+- Create: `EPiljara.Driver/ViewModels/RouteViewModel.cs`
+- Create: `EPiljara.Driver/Views/RoutePage.xaml`, `Views/RoutePage.xaml.cs`
+- Modify: `EPiljara.Driver/MauiProgram.cs`, `AppShell.xaml`
+- Modify: `EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj` (odkomentariši link na `RouteViewModel.cs`)
+- Test: `EPiljara.Driver.Tests/RouteViewModelTests.cs`
 
 **Interfaces:**
 - Consumes: `ApiClient`, `DeliveryRouteDto`, `RouteStopDto`, `ApiException` (Task 2); `AuthService` (Task 5)
@@ -1054,7 +1072,7 @@ git commit -m "feat(mobile): driver login with token in SecureStorage"
 
 - [ ] **Step 1: Napiši test za podjelu stanica**
 
-`mobile/EPiljara.Driver.Tests/RouteViewModelTests.cs`:
+`EPiljara.Driver.Tests/RouteViewModelTests.cs`:
 
 ```csharp
 using EPiljara.Driver.Models;
@@ -1146,10 +1164,10 @@ public class RouteViewModelTests
 
 - [ ] **Step 2: Odkomentariši link i pokreni testove da padnu**
 
-U `mobile/EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj` odkomentariši red za `RouteViewModel.cs`, pa:
+U `EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj` odkomentariši red za `RouteViewModel.cs`, pa:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
 dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj
 ```
 
@@ -1157,7 +1175,7 @@ Expected: FAIL — `RouteViewModel` ne postoji.
 
 - [ ] **Step 3: Napiši DriverService**
 
-`mobile/EPiljara.Driver/Services/DriverService.cs`:
+`EPiljara.Driver/Services/DriverService.cs`:
 
 ```csharp
 using System.Net.Http.Json;
@@ -1188,7 +1206,7 @@ public class DriverService(ApiClient api)
 
 - [ ] **Step 4: Napiši RouteViewModel**
 
-`mobile/EPiljara.Driver/ViewModels/RouteViewModel.cs`:
+`EPiljara.Driver/ViewModels/RouteViewModel.cs`:
 
 ```csharp
 using System.Collections.ObjectModel;
@@ -1267,7 +1285,7 @@ public partial class RouteViewModel(DriverService driver, AuthService auth) : Ob
 - [ ] **Step 5: Pokreni testove i potvrdi da prolaze**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
 dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj
 ```
 
@@ -1275,7 +1293,7 @@ Expected: `Passed! - Failed: 0, Passed: 11`
 
 - [ ] **Step 6: Napiši RoutePage**
 
-`mobile/EPiljara.Driver/Views/RoutePage.xaml`:
+`EPiljara.Driver/Views/RoutePage.xaml`:
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -1358,7 +1376,7 @@ Expected: `Passed! - Failed: 0, Passed: 11`
 </ContentPage>
 ```
 
-Dodaj još jedan konverter u `mobile/EPiljara.Driver/Converters.cs`:
+Dodaj još jedan konverter u `EPiljara.Driver/Converters.cs`:
 
 ```csharp
 public class IsPositiveConverter : IValueConverter
@@ -1373,7 +1391,7 @@ public class IsPositiveConverter : IValueConverter
 
 i registruj ga u `App.xaml`: `<local:IsPositiveConverter x:Key="IsPositive" />`
 
-`mobile/EPiljara.Driver/Views/RoutePage.xaml.cs`:
+`EPiljara.Driver/Views/RoutePage.xaml.cs`:
 
 ```csharp
 using EPiljara.Driver.ViewModels;
@@ -1413,15 +1431,15 @@ U `AppShell.xaml` odkomentariši `<ShellContent Route="route" ... />`.
 - [ ] **Step 8: Build, pokreni, commit**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile/EPiljara.Driver"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac/EPiljara.Driver"
 dotnet build -f net10.0-android -c Debug -t:Run
 ```
 
 Expected: poslije prijave se vidi lista stanica (ili `"Nemate rutu za danas."` ako ruta nije dodijeljena — vidi Task 8).
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-git add mobile/
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
+git add -A
 git commit -m "feat(mobile): route screen with active/done stop split"
 ```
 
@@ -1430,9 +1448,9 @@ git commit -m "feat(mobile): route screen with active/done stop split"
 ### Task 7: Ekran stanice i potvrda primopredaje
 
 **Files:**
-- Create: `mobile/EPiljara.Driver/ViewModels/StopViewModel.cs`
-- Create: `mobile/EPiljara.Driver/Views/StopPage.xaml`, `Views/StopPage.xaml.cs`
-- Modify: `mobile/EPiljara.Driver/MauiProgram.cs`, `AppShell.xaml.cs`
+- Create: `EPiljara.Driver/ViewModels/StopViewModel.cs`
+- Create: `EPiljara.Driver/Views/StopPage.xaml`, `Views/StopPage.xaml.cs`
+- Modify: `EPiljara.Driver/MauiProgram.cs`, `AppShell.xaml.cs`
 
 **Interfaces:**
 - Consumes: `DriverService.UpdateStopStatusAsync` (Task 6), `RouteStopDto` (Task 2), `ApiException` (Task 2)
@@ -1440,7 +1458,7 @@ git commit -m "feat(mobile): route screen with active/done stop split"
 
 - [ ] **Step 1: Napiši StopViewModel**
 
-`mobile/EPiljara.Driver/ViewModels/StopViewModel.cs`:
+`EPiljara.Driver/ViewModels/StopViewModel.cs`:
 
 ```csharp
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -1531,7 +1549,7 @@ Povratak na `".."` vraća na `RoutePage`, čiji `OnAppearing` ponovo učita rutu
 
 - [ ] **Step 2: Napiši StopPage**
 
-`mobile/EPiljara.Driver/Views/StopPage.xaml`:
+`EPiljara.Driver/Views/StopPage.xaml`:
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -1574,7 +1592,7 @@ Povratak na `".."` vraća na `RoutePage`, čiji `OnAppearing` ponovo učita rutu
 </ContentPage>
 ```
 
-`mobile/EPiljara.Driver/Views/StopPage.xaml.cs`:
+`EPiljara.Driver/Views/StopPage.xaml.cs`:
 
 ```csharp
 using EPiljara.Driver.ViewModels;
@@ -1609,7 +1627,7 @@ U `AppShell.xaml.cs` odkomentariši:
 - [ ] **Step 4: Build i probaj cio tok na emulatoru**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile/EPiljara.Driver"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac/EPiljara.Driver"
 dotnet build -f net10.0-android -c Debug -t:Run
 ```
 
@@ -1618,8 +1636,8 @@ Expected: dodir na stanicu otvara detalje; *Primopredaja izvršena* traži potvr
 - [ ] **Step 5: Commit**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-git add mobile/
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
+git add -A
 git commit -m "feat(mobile): stop detail screen with handover confirmation"
 ```
 
@@ -1627,15 +1645,19 @@ git commit -m "feat(mobile): stop detail screen with handover confirmation"
 
 ### Task 8: Ručna provjera cijelog toka i ispravka jezika u CLAUDE.md
 
+**Ovaj task dira oba repoa.** Koraci 1–2 idu u **backend repo**
+(`C:\Users\soviljn\Desktop\epiljara-backend-wt`, grana `driver-app-backend`),
+koraci 3–6 u **mobilni repo** (`C:\Users\soviljn\Desktop\EPiljaraVozac`).
+
 **Files:**
-- Modify: `CLAUDE.md:16` i `CLAUDE.md:105` (oblast o jeziku)
-- Create: `mobile/README.md`
+- Modify (backend repo): `CLAUDE.md` — oblast o jeziku i sekcija „What this is"
+- Modify (mobilni repo): `README.md` — dopuna nakon što je aplikacija gotova
 
 **Interfaces:**
 - Consumes: sve iz taskova 1–7
 - Produces: ništa novo u kodu
 
-- [ ] **Step 1: Ispravi jezik u CLAUDE.md**
+- [ ] **Step 1: Ispravi jezik u CLAUDE.md (backend repo)**
 
 Zamijeni u `CLAUDE.md`:
 
@@ -1652,59 +1674,42 @@ UI text and API messages are in Serbian; keep new user-facing strings in Serbian
 Pretraži cio fajl za `Bosnian` da ne ostane nijedna pojava:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt"
 grep -n "Bosnian" CLAUDE.md
 ```
 
 Expected: bez izlaza.
 
-- [ ] **Step 2: Dopuni CLAUDE.md opisom mobilnog dijela**
+- [ ] **Step 2: Dopuni CLAUDE.md pomenom mobilnog repoa (backend repo)**
 
 U sekciju „What this is", ispod opisa `frontend/` i `backend/`, dodaj:
 
 ```
-mobile/     .NET MAUI driver app (Android only, net10.0-android) — consumes /driver/* over HTTP
+The Android driver app lives in a separate repository (`../EPiljaraVozac`, .NET MAUI,
+net10.0-android). It consumes `/driver/*` over the same HTTP contract and shares no code.
 ```
 
-- [ ] **Step 3: Napiši mobile/README.md**
+Commituj backend dio prije nego pređeš na mobilni:
 
-`mobile/README.md`:
+```bash
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt"
+git add CLAUDE.md
+git commit -m "docs: correct UI language to Serbian, note the driver app repo"
+```
+
+- [ ] **Step 3: Dopuni README.md u mobilnom repou**
+
+`README.md` već postoji iz inicijalnog commita i opisuje pokretanje, testove i
+endpointe. **Nemoj ga prepisivati** — samo dodaj na kraj sekciju o statusu:
 
 ```markdown
-# E piljara — aplikacija za vozače
+## Status
 
-.NET MAUI aplikacija (samo Android) kojom vozač odrađuje svoju turu:
-prijava, lista stanica za danas, potvrda primopredaje po stanici.
+Faza 1 je gotova: prijava, lista stanica za danas, potvrda primopredaje.
 
-## Pokretanje
-
-Potreban je .NET 10 SDK i MAUI workload (`dotnet workload install maui`).
-
-```bash
-dotnet build -f net10.0-android -c Debug -t:Run
-```
-
-Backend mora biti pokrenut (`backend/`, port 5080). Bazni URL je u
-`EPiljara.Driver/Resources/Raw/appsettings.json`:
-
-- Emulator: `http://10.0.2.2:5080` (`localhost` iz emulatora pokazuje na emulator)
-- Pravi telefon: IP računara na Wi-Fi mreži, npr. `http://192.168.1.10:5080`
-
-## Testovi
-
-```bash
-dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj
-```
-
-Pokrivena je samo logika koja ne traži uređaj — raspakivanje envelope-a i
-podjela stanica na aktivne i završene. Sve ostalo se provjerava ručno.
-
-## Napomene
-
-- Aplikacija cilja **samo Android**. iOS TFM je namjerno uklonjen jer build za
-  iOS traži Mac.
-- Običan HTTP je dozvoljen samo u Debug build-u (`usesCleartextTraffic`).
-- DTO-ovi u `Models/Dtos.cs` se drže 1:1 sa backendom i **ne** dijele projekat s njim.
+Van obima: mapa i pinovi lokacija, prava optimizacija rute, utovar i push
+notifikacije, naplata, iOS verzija, rad bez interneta. Vidi Faze 2 i 3 u
+spec dokumentu.
 ```
 
 - [ ] **Step 4: Odradi cio scenario od nule**
@@ -1712,7 +1717,7 @@ podjela stanica na aktivne i završene. Sve ostalo se provjerava ručno.
 Obriši bazu da kreneš od čistog seed-a:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/backend"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
 docker compose up -d postgres
 docker exec epiljara-postgres psql -U epiljara -d epiljara -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 dotnet run --project src/EPiljara.API
@@ -1721,7 +1726,7 @@ dotnet run --project src/EPiljara.API
 U drugom terminalu pokreni web admin:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/frontend"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/frontend"
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5080 npm run dev
 ```
 
@@ -1745,21 +1750,32 @@ Zapiši svaki korak koji ne prođe i popravi prije commita.
 - [ ] **Step 5: Pokreni sve testove još jednom**
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/mobile"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
 dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop/backend"
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
 dotnet build
 ```
 
 Expected: `Passed! - Failed: 0, Passed: 11` i `Build succeeded`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Commit u mobilnom repou**
+
+Backend dio je već commitovan u Step 2. Ostaje samo `README.md`:
 
 ```bash
-cd "C:/Users/soviljn/Desktop/Kumov Web Shop"
-git add CLAUDE.md mobile/README.md
-git commit -m "docs: mobile app README, correct UI language to Serbian in CLAUDE.md"
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac"
+git add README.md
+git commit -m "docs: mark Phase 1 complete in README"
 ```
+
+Na kraju potvrdi da su oba repoa čista:
+
+```bash
+cd "C:/Users/soviljn/Desktop/EPiljaraVozac" && git status --short
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt" && git status --short
+```
+
+Expected: oba bez izlaza.
 
 ---
 
