@@ -353,7 +353,7 @@ Pokreni API (`dotnet run --project src/EPiljara.API --urls http://0.0.0.0:5080`)
 API=http://localhost:5080
 curl -s $API/delivery/zones | head -c 300; echo
 curl -s $API/delivery/slots | head -c 300; echo
-curl -s "$API/catalog/products?take=1" | head -c 300; echo
+curl -s "$API/products" | head -c 300; echo
 ```
 
 Zatim pošalji narudžbu, popunjavajući ID-jeve iz prethodnog koraka:
