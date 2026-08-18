@@ -53,7 +53,8 @@ src/components/shop/address-picker.tsx      emituje koordinate
 src/components/shop/address-chooser.tsx     prosljeđuje ih dalje
 src/app/(shop)/checkout/page.tsx            šalje ih u narudžbu
 src/app/admin/orders/new/page.tsx           isto
-src/types/domain.ts                          CreateOrderRequest + RouteStop
+src/lib/api/contracts.ts                    CreateOrderRequest
+ src/types/domain.ts                          RouteStop
 src/lib/api/endpoints.ts                     adminApi.geocodeMissing, adminApi.setOrderCoordinates
 ```
 
@@ -465,14 +466,14 @@ U `frontend/src/components/shop/address-chooser.tsx` dodaj `onCoordinates` u pro
 
 - [ ] **Step 5: Proširi tip zahtjeva**
 
-U `frontend/src/types/domain.ts`, u `CreateOrderRequest`, dodaj:
+U `frontend/src/lib/api/contracts.ts`, u `CreateOrderRequest`, dodaj:
 
 ```ts
   latitude?: number;
   longitude?: number;
 ```
 
-U istom fajlu, u `RouteStop` interfejsu, dodaj i:
+U `frontend/src/types/domain.ts`, u `RouteStop` interfejsu, dodaj i:
 
 ```ts
   status?: string;
