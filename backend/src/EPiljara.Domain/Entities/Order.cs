@@ -28,6 +28,13 @@ public class Order : Entity
     public string DeliveryAddress { get; set; } = string.Empty;
     public string? Note { get; set; }
 
+    /// <summary>
+    /// Geografska širina i dužina adrese dostave. null kad geokodiranje nije uspjelo —
+    /// takva narudžba se i dalje može dodijeliti ruti, samo nema pin na mapi vozača.
+    /// </summary>
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();

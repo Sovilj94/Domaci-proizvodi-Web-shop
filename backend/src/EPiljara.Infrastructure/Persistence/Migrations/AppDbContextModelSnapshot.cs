@@ -205,6 +205,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DeliveryZoneId")
                         .HasColumnType("uuid");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
