@@ -28,6 +28,13 @@ public static class DependencyInjection
         services.AddSingleton<IRouteOptimizer, ZoneRouteOptimizer>();
         services.AddScoped<ISocialAuthVerifier, SocialAuthVerifier>();
 
+        services.AddHttpClient<IGeocodingService, NominatimGeocodingService>(c =>
+        {
+            // Nominatim odbija zahtjeve bez User-Agenta koji identifikuje aplikaciju.
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("EPiljara/1.0 (dostava Banja Luka)");
+            c.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         return services;
     }
 }

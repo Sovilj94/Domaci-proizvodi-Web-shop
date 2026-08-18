@@ -78,4 +78,15 @@ public class AdminController : ApiControllerBase
     [HttpPost("admin/routes/{id:guid}/optimize")]
     public async Task<IActionResult> OptimizeRoute(Guid id) =>
         Envelope(await Mediator.Send(new OptimizeRouteCommand(id)));
+
+    [HttpPost("admin/orders/geocode-missing")]
+    public async Task<IActionResult> GeocodeMissing() =>
+        Envelope(await Mediator.Send(new GeocodeMissingCommand()));
+
+    [HttpPut("admin/orders/{id:guid}/coordinates")]
+    public async Task<IActionResult> SetCoordinates(Guid id, [FromBody] SetCoordinatesRequest body)
+    {
+        await Mediator.Send(new SetOrderCoordinatesCommand(id, body.Latitude, body.Longitude));
+        return Envelope(new { message = "Koordinate su sačuvane." });
+    }
 }

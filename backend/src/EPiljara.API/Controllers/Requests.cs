@@ -4,3 +4,5 @@ namespace EPiljara.API.Controllers;
 public record UpdateStatusRequest(string Status);
 
 public record SetAvailabilityRequest(bool IsAvailable);
+
+public record SetCoordinatesRequest(double Latitude, double Longitude);
