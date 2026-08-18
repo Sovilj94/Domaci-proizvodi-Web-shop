@@ -12,8 +12,11 @@ frontend/   Next.js 15 web shop + admin panel (TypeScript, Tailwind v4, TanStack
 backend/    ASP.NET Core 9 REST API (Clean Architecture, EF Core + PostgreSQL)
 ```
 
+The Android driver app lives in a separate repository (`../EPiljaraVozac`, .NET MAUI,
+net10.0-android). It consumes `/driver/*` over the same HTTP contract and shares no code.
+
 They talk over HTTP only — there is no shared code or build between them. UI text and API messages
-are in Bosnian (BHS); keep new user-facing strings in Bosnian.
+are in Serbian; keep new user-facing strings in Serbian.
 
 ## Commands
 
