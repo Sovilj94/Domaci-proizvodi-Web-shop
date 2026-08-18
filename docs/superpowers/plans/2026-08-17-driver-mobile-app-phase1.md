@@ -482,19 +482,24 @@ U `EPiljara.Driver/Platforms/Android/AndroidManifest.xml`, dodaj `usesCleartextT
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:usesCleartextTraffic="true"></application>
+	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:usesCleartextTraffic="${cleartextTraffic}"></application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
 </manifest>
 ```
 
-Da ovo ne procuri u Release, dodaj u `EPiljara.Driver.csproj`:
+ISPRAVKA (utvrdjeno tokom implementacije): `AndroidUseCleartextTraffic` NIJE stvarno MSBuild svojstvo u ovom SDK-u — tiho nema efekta, a eksplicitan atribut iz izvornog manifesta pobjeduje u obje konfiguracije. Koristi `AndroidManifestPlaceholders`: u manifestu upisi `android:usesCleartextTraffic="${cleartextTraffic}"`, a u `EPiljara.Driver.csproj` dodaj:
 
 ```xml
+<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+  <AndroidManifestPlaceholders>cleartextTraffic=true</AndroidManifestPlaceholders>
+</PropertyGroup>
 <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-  <AndroidUseCleartextTraffic>false</AndroidUseCleartextTraffic>
+  <AndroidManifestPlaceholders>cleartextTraffic=false</AndroidManifestPlaceholders>
 </PropertyGroup>
 ```
+
+Provjeri tako sto build-ujes obje konfiguracije i citas SPOJENI manifest u `obj/<Config>/net10.0-android/android/AndroidManifest.xml` — Debug mora biti `true`, Release `false`.
 
 Bez ovoga svaki poziv na `http://` pukne bez jasne poruke — Android blokira običan HTTP od verzije 9.
 
