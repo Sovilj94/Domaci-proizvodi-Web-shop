@@ -20,7 +20,9 @@ public record CreateOrderCommand(
     Guid DeliverySlotId,
     string DeliveryAddress,
     string? Note,
-    IReadOnlyList<OrderItemInput> Items) : IRequest<OrderDto>;
+    IReadOnlyList<OrderItemInput> Items,
+    double? Latitude = null,
+    double? Longitude = null) : IRequest<OrderDto>;
 
 public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
 {
@@ -35,6 +37,14 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
         RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
+        RuleFor(x => x.Latitude)
+            .InclusiveBetween(-90, 90)
+            .When(x => x.Latitude.HasValue)
+            .WithMessage("Neispravna geografska širina.");
+        RuleFor(x => x.Longitude)
+            .InclusiveBetween(-180, 180)
+            .When(x => x.Longitude.HasValue)
+            .WithMessage("Neispravna geografska dužina.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
         RuleForEach(x => x.Items).Must(i => i.Quantity > 0).WithMessage("Neispravna količina.");
     }
@@ -99,6 +109,8 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUser current, IEmailSe
             DeliveryZone = zone,
             DeliveryAddress = cmd.DeliveryAddress,
             Note = cmd.Note,
+            Latitude = cmd.Latitude,
+            Longitude = cmd.Longitude,
         };
 
         db.Orders.Add(order);
