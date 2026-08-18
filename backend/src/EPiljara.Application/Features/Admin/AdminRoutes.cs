@@ -115,8 +115,8 @@ public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
             s.OrderId,
             s.Order?.DeliveryAddress ?? string.Empty,
             s.Order?.DeliveryZone?.Name ?? string.Empty,
-            null,
-            null)).ToList();
+            s.Order?.Latitude,
+            s.Order?.Longitude)).ToList();
 
         var orderedIds = await optimizer.OptimizeAsync(inputs, ct);
 

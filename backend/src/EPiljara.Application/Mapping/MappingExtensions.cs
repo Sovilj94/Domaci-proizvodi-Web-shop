@@ -135,6 +135,8 @@ public static class MappingExtensions
         Sequence = s.Sequence,
         CustomerPhone = s.Order?.CustomerPhone,
         Status = s.Order?.Status.ToString() ?? "Confirmed",
+        Latitude = s.Order?.Latitude,
+        Longitude = s.Order?.Longitude,
     };
 
     public static DeliveryRouteDto ToDto(this DeliveryRoute r) => new()

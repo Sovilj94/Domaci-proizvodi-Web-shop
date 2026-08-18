@@ -19,6 +19,9 @@ public record RouteStopDto
     public string? CustomerPhone { get; init; }
     /// <summary>Order status, so the driver app knows which stops are done.</summary>
     public string Status { get; init; } = "Confirmed";
+    /// <summary>Koordinate adrese dostave; null kad geokodiranje nije uspjelo.</summary>
+    public double? Latitude { get; init; }
+    public double? Longitude { get; init; }
 }
 
 public record DeliveryRouteDto
