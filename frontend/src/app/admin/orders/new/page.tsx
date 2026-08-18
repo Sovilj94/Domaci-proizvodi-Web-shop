@@ -36,6 +36,7 @@ export default function AdminNewOrderPage() {
     note: "",
   });
   const [qty, setQty] = useState<Record<string, number>>({});
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [search, setSearch] = useState("");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
@@ -106,6 +107,8 @@ export default function AdminNewOrderPage() {
       deliveryAddress: form.address,
       note: form.note || undefined,
       items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
+      latitude: coords?.lat,
+      longitude: coords?.lon,
     });
   }
 
@@ -254,7 +257,11 @@ export default function AdminNewOrderPage() {
               </Field>
 
               <Field label="Adresa" required error={errors.deliveryAddress?.[0]}>
-                <AddressPicker value={form.address} onChange={set("address")} />
+                <AddressPicker
+                  value={form.address}
+                  onChange={set("address")}
+                  onCoordinates={(lat, lon) => setCoords({ lat, lon })}
+                />
               </Field>
 
               <Field label="Termin dostave" required error={errors.deliverySlotId?.[0]}>

@@ -64,12 +64,15 @@ export function AddressPicker({
   value,
   onChange,
   onLocalities,
+  onCoordinates,
   id = "address",
 }: {
   value: string;
   onChange: (value: string) => void;
   /** Emits candidate neighbourhood names for best-effort delivery-zone matching. */
   onLocalities?: (localities: string[]) => void;
+  /** Emits the pin's coordinates so the order can be placed on the driver's map. */
+  onCoordinates?: (lat: number, lon: number) => void;
   id?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,6 +83,8 @@ export function AddressPicker({
   onChangeRef.current = onChange;
   const onLocalitiesRef = useRef(onLocalities);
   onLocalitiesRef.current = onLocalities;
+  const onCoordinatesRef = useRef(onCoordinates);
+  onCoordinatesRef.current = onCoordinates;
   // Set when we update the address from the map, so the geocode effect below
   // doesn't re-geocode our own reverse-geocoded value (which would loop).
   const suppressGeocode = useRef(false);
@@ -119,6 +124,7 @@ export function AddressPicker({
           suppressGeocode.current = true;
           onChangeRef.current(res.display);
           onLocalitiesRef.current?.(res.localities);
+          onCoordinatesRef.current?.(lat, lon);
         }
       };
 
@@ -171,6 +177,7 @@ export function AddressPicker({
         setFound(hit.display_name);
         setStatus("idle");
         onLocalitiesRef.current?.(localitiesOf(hit.address));
+        onCoordinatesRef.current?.(lat, lon);
       } else {
         setStatus("notfound");
         setFound(null);

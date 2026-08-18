@@ -18,6 +18,8 @@ export interface CreateOrderRequest {
   deliveryAddress: string;
   note?: string;
   items: CreateOrderItemInput[];
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface RegisterRequest {

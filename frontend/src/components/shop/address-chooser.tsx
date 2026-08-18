@@ -16,11 +16,13 @@ export function AddressChooser({
   onChange,
   savedAddresses,
   onLocalities,
+  onCoordinates,
 }: {
   value: string;
   onChange: (value: string) => void;
   savedAddresses: string[];
   onLocalities?: (localities: string[]) => void;
+  onCoordinates?: (lat: number, lon: number) => void;
 }) {
   const [addingNew, setAddingNew] = useState(false);
   const showMap = addingNew || savedAddresses.length === 0;
@@ -28,7 +30,12 @@ export function AddressChooser({
   if (showMap) {
     return (
       <div className="space-y-2">
-        <AddressPicker value={value} onChange={onChange} onLocalities={onLocalities} />
+        <AddressPicker
+          value={value}
+          onChange={onChange}
+          onLocalities={onLocalities}
+          onCoordinates={onCoordinates}
+        />
         {savedAddresses.length > 0 && (
           <button
             type="button"

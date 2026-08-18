@@ -122,6 +122,10 @@ export interface RouteStop {
   address: string;
   zoneName: string;
   sequence: number;
+  status?: string;
+  customerPhone?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface DeliveryRoute {

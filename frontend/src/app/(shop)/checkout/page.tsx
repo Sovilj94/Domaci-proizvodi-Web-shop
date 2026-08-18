@@ -73,6 +73,7 @@ export default function CheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [placed, setPlaced] = useState<Order | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   // Prefill from the logged-in customer's profile.
   useEffect(() => {
@@ -146,6 +147,8 @@ export default function CheckoutPage() {
       deliveryAddress: form.address,
       note: form.note || undefined,
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      latitude: coords?.lat,
+      longitude: coords?.lon,
     });
   }
 
@@ -220,6 +223,7 @@ export default function CheckoutPage() {
                 onChange={set("address")}
                 savedAddresses={savedAddresses}
                 onLocalities={applyZoneHint}
+                onCoordinates={(lat, lon) => setCoords({ lat, lon })}
               />
             </Field>
 
