@@ -65,6 +65,14 @@ export default function AdminRoutesPage() {
     },
   });
 
+  const geocode = useMutation({
+    mutationFn: () => adminApi.geocodeMissing(),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["admin", "routes", date] });
+      show(`Geokodirano: ${r.brojNarudzbi} narudžbi obrađeno`);
+    },
+  });
+
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -83,15 +91,24 @@ export default function AdminRoutesPage() {
           <h1 className="font-display text-2xl font-bold">Rute dostave</h1>
           <p className="text-muted">Dodijeli narudžbe vozačima i optimizuj redoslijed.</p>
         </div>
-        <div className="w-40">
-          <Field label="Datum dostave">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-xl border border-line bg-sand px-3.5 py-2.5 text-sm transition focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"
-            />
-          </Field>
+        <div className="flex items-end gap-3">
+          <div className="w-40">
+            <Field label="Datum dostave">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-xl border border-line bg-sand px-3.5 py-2.5 text-sm transition focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+            </Field>
+          </div>
+          <Button
+            variant="secondary"
+            disabled={geocode.isPending}
+            onClick={() => geocode.mutate()}
+          >
+            {geocode.isPending ? "Geokodiranje…" : "Geokodiraj adrese"}
+          </Button>
         </div>
       </div>
 
@@ -280,6 +297,11 @@ function RouteCard({
               <p className="flex items-center gap-1 truncate text-xs text-muted">
                 <MapPin className="h-3 w-3" /> {s.address} ({s.zoneName})
               </p>
+              {s.latitude == null && (
+                <p className="text-xs font-medium text-honey-600">
+                  Bez tačne lokacije — neće imati pin na mapi vozača
+                </p>
+              )}
             </div>
           </li>
         ))}

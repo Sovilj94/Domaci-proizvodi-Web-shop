@@ -177,4 +177,15 @@ export const adminApi = {
     apiFetch<DeliveryRoute>(`/admin/routes/${routeId}/optimize`, {
       method: "POST",
     }).then((r) => r.data),
+
+  geocodeMissing: () =>
+    apiFetch<{ pokrenuto: boolean; brojNarudzbi: number }>("/admin/orders/geocode-missing", {
+      method: "POST",
+    }).then((r) => r.data),
+
+  setOrderCoordinates: (id: string, latitude: number, longitude: number) =>
+    apiFetch<{ message: string }>(`/admin/orders/${id}/coordinates`, {
+      method: "PUT",
+      body: { latitude, longitude },
+    }).then((r) => r.data),
 };
