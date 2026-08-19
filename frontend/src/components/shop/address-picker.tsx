@@ -89,9 +89,12 @@ export function AddressPicker({
   onLocalitiesRef.current = onLocalities;
   const onCoordinatesRef = useRef(onCoordinates);
   onCoordinatesRef.current = onCoordinates;
-  // Set when we update the address from the map, so the geocode effect below
-  // doesn't re-geocode our own reverse-geocoded value (which would loop).
-  const suppressGeocode = useRef(false);
+  // Holds the exact address text we ourselves wrote from the map, so the geocode effect
+  // below does not re-geocode (and re-null) our own reverse-geocoded value. Keyed to the
+  // value rather than a bare boolean: a second click near the first returns the same
+  // display_name, so `value` never changes, the effect never runs, and a boolean would
+  // stay armed — swallowing the NEXT real edit of the address, pin and all.
+  const suppressFor = useRef<string | null>(null);
 
   const [found, setFound] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "searching" | "notfound" | "pinned">("idle");
@@ -132,7 +135,7 @@ export function AddressPicker({
         if (res) {
           setFound(res.display);
           setStatus("idle");
-          suppressGeocode.current = true;
+          suppressFor.current = res.display;
           onChangeRef.current(res.display);
           onLocalitiesRef.current?.(res.localities);
           onCoordinatesRef.current?.({ lat, lon });
@@ -171,10 +174,14 @@ export function AddressPicker({
 
   // Geocode the typed address (debounced) and move the pin to it.
   useEffect(() => {
-    if (suppressGeocode.current) {
-      suppressGeocode.current = false;
+    if (suppressFor.current === value) {
+      // This exact text is ours, straight from the pin: the coordinates already match it.
+      suppressFor.current = null;
       return;
     }
+    // Any other text is the user editing, so an armed value is stale by definition —
+    // disarm it here so it can never match a later edit that happens to retype it.
+    suppressFor.current = null;
     // The address text just changed under us, so whatever point we last reported belongs
     // to the previous address. Drop it now — before the debounce, before the request — so
     // there is no window in which a submit could pair this address with the old pin. A

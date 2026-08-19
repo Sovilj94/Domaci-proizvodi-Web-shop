@@ -38,20 +38,23 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
         RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
+        // Sve greške oko tačke idu pod ključ adrese — obje forme prikazuju
+        // errors.deliveryAddress ispod polja s mapom, pa poruka pod "latitude"/"longitude"
+        // ne bi imala gdje da se pojavi i narudžba bi nečujno pala.
         RuleFor(x => x.Latitude)
             .InclusiveBetween(-90, 90)
             .When(x => x.Latitude.HasValue)
+            .OverridePropertyName("deliveryAddress")
             .WithMessage("Neispravna geografska širina.");
         RuleFor(x => x.Longitude)
             .InclusiveBetween(-180, 180)
             .When(x => x.Longitude.HasValue)
+            .OverridePropertyName("deliveryAddress")
             .WithMessage("Neispravna geografska dužina.");
         // Pola tačke nije tačka — pin bez jedne ose bi se vodio kao "ima lokaciju", a ne bi se
         // mogao iscrtati.
         RuleFor(x => x)
             .Must(x => x.Latitude.HasValue == x.Longitude.HasValue)
-            // Ključ je adresa: tačka pripada polju adrese (tamo je i mapa), a greška pod
-            // ključem "latitude" ne bi imala gdje da se prikaže na formi.
             .OverridePropertyName("deliveryAddress")
             .WithMessage("Potrebne su i geografska širina i dužina.");
         // Opseg cijelog globusa propušta zamijenjenu širinu/dužinu, pa tačka mora pasti
@@ -60,8 +63,6 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
         RuleFor(x => x)
             .Must(x => GeoBounds.Contains(x.Latitude!.Value, x.Longitude!.Value))
             .When(x => x.Latitude is >= -90 and <= 90 && x.Longitude is >= -180 and <= 180)
-            // Ključ je adresa: tačka pripada polju adrese (tamo je i mapa), a greška pod
-            // ključem "latitude" ne bi imala gdje da se prikaže na formi.
             .OverridePropertyName("deliveryAddress")
             .WithMessage(GeoBounds.OutsideMessage);
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
