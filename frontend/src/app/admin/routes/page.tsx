@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, Route, Sparkles } from "lucide-react";
+import { StopLocationDrawer } from "@/components/admin/stop-location-drawer";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -240,6 +241,9 @@ function RouteCard({
 }) {
   const { show } = useToast();
   const [locating, setLocating] = useState(false);
+  const [lokacijaZa, setLokacijaZa] = useState<{ id: string; code: string; address: string } | null>(
+    null,
+  );
 
   function openNavigation() {
     const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
@@ -298,9 +302,13 @@ function RouteCard({
                 <MapPin className="h-3 w-3" /> {s.address} ({s.zoneName})
               </p>
               {s.latitude == null && (
-                <p className="text-xs font-medium text-honey-600">
-                  Bez tačne lokacije — neće imati pin na mapi vozača
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setLokacijaZa({ id: s.orderId, code: s.orderCode, address: s.address })}
+                  className="text-xs font-medium text-honey-600 underline"
+                >
+                  Bez tačne lokacije — postavi
+                </button>
               )}
             </div>
           </li>
@@ -315,6 +323,15 @@ function RouteCard({
           <Navigation className="h-4 w-4" /> {locating ? "Lociranje…" : "Navigacija"}
         </Button>
       </div>
+
+      {lokacijaZa && (
+        <StopLocationDrawer
+          orderId={lokacijaZa.id}
+          orderCode={lokacijaZa.code}
+          address={lokacijaZa.address}
+          onClose={() => setLokacijaZa(null)}
+        />
+      )}
     </div>
   );
 }
