@@ -260,7 +260,7 @@ export default function AdminNewOrderPage() {
                 <AddressPicker
                   value={form.address}
                   onChange={set("address")}
-                  onCoordinates={(lat, lon) => setCoords({ lat, lon })}
+                  onCoordinates={setCoords}
                 />
               </Field>
 

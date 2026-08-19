@@ -1,3 +1,4 @@
+using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Mapping;
@@ -45,6 +46,24 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
             .InclusiveBetween(-180, 180)
             .When(x => x.Longitude.HasValue)
             .WithMessage("Neispravna geografska dužina.");
+        // Pola tačke nije tačka — pin bez jedne ose bi se vodio kao "ima lokaciju", a ne bi se
+        // mogao iscrtati.
+        RuleFor(x => x)
+            .Must(x => x.Latitude.HasValue == x.Longitude.HasValue)
+            // Ključ je adresa: tačka pripada polju adrese (tamo je i mapa), a greška pod
+            // ključem "latitude" ne bi imala gdje da se prikaže na formi.
+            .OverridePropertyName("deliveryAddress")
+            .WithMessage("Potrebne su i geografska širina i dužina.");
+        // Opseg cijelog globusa propušta zamijenjenu širinu/dužinu, pa tačka mora pasti
+        // i u okvir Bosne i Hercegovine. Provjerava se tek kad su obje vrijednosti u opsegu,
+        // da se poruke ne dupliraju.
+        RuleFor(x => x)
+            .Must(x => GeoBounds.Contains(x.Latitude!.Value, x.Longitude!.Value))
+            .When(x => x.Latitude is >= -90 and <= 90 && x.Longitude is >= -180 and <= 180)
+            // Ključ je adresa: tačka pripada polju adrese (tamo je i mapa), a greška pod
+            // ključem "latitude" ne bi imala gdje da se prikaže na formi.
+            .OverridePropertyName("deliveryAddress")
+            .WithMessage(GeoBounds.OutsideMessage);
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
         RuleForEach(x => x.Items).Must(i => i.Quantity > 0).WithMessage("Neispravna količina.");
     }

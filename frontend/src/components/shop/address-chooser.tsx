@@ -22,7 +22,8 @@ export function AddressChooser({
   onChange: (value: string) => void;
   savedAddresses: string[];
   onLocalities?: (localities: string[]) => void;
-  onCoordinates?: (lat: number, lon: number) => void;
+  /** `null` clears the parent's point — a saved address carries no pin of its own. */
+  onCoordinates?: (coords: { lat: number; lon: number } | null) => void;
 }) {
   const [addingNew, setAddingNew] = useState(false);
   const showMap = addingNew || savedAddresses.length === 0;
@@ -39,7 +40,12 @@ export function AddressChooser({
         {savedAddresses.length > 0 && (
           <button
             type="button"
-            onClick={() => setAddingNew(false)}
+            onClick={() => {
+              // Back to the saved list: the pin dropped for the new address is abandoned
+              // with it, so it must not travel to whichever saved address gets picked.
+              onCoordinates?.(null);
+              setAddingNew(false);
+            }}
             className="text-sm font-medium text-brand-700 hover:underline"
           >
             ← Sačuvane adrese
@@ -63,7 +69,10 @@ export function AddressChooser({
             type="radio"
             name="saved-address"
             checked={value === addr}
-            onChange={() => onChange(addr)}
+            onChange={() => {
+              onCoordinates?.(null);
+              onChange(addr);
+            }}
             className="mt-0.5 h-4 w-4 accent-brand-600"
           />
           <span className="flex items-start gap-2">
@@ -75,6 +84,7 @@ export function AddressChooser({
       <button
         type="button"
         onClick={() => {
+          onCoordinates?.(null);
           onChange("");
           setAddingNew(true);
         }}

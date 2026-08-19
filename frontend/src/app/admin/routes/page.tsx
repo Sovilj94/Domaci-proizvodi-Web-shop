@@ -70,7 +70,17 @@ export default function AdminRoutesPage() {
     mutationFn: () => adminApi.geocodeMissing(),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["admin", "routes", date] });
-      show(`Geokodirano: ${r.brojNarudzbi} narudžbi obrađeno`);
+      if (r.obradjeno === 0) {
+        show("Nema narudžbi bez lokacije.");
+        return;
+      }
+      const neuspjesno = r.obradjeno - r.uspjesno;
+      show(
+        `Geokodirano ${r.uspjesno} od ${r.obradjeno} narudžbi` +
+          (neuspjesno > 0
+            ? ` — za ${neuspjesno} adresa nema rezultata, postavite lokaciju ručno.`
+            : "."),
+      );
     },
   });
 
@@ -302,13 +312,20 @@ function RouteCard({
                 <MapPin className="h-3 w-3" /> {s.address} ({s.zoneName})
               </p>
               {s.latitude == null && (
-                <button
-                  type="button"
-                  onClick={() => setLokacijaZa({ id: s.orderId, code: s.orderCode, address: s.address })}
-                  className="text-xs font-medium text-honey-600 underline"
-                >
-                  Bez tačne lokacije — postavi
-                </button>
+                // Honey ostaje samo oznaka stanja; radnja je zelena, kao i ostale inline
+                // akcije u adminu — honey nikad nije CTA.
+                <p className="text-xs font-medium text-honey-600">
+                  Bez tačne lokacije —{" "}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLokacijaZa({ id: s.orderId, code: s.orderCode, address: s.address })
+                    }
+                    className="text-brand-700 hover:underline"
+                  >
+                    postavi
+                  </button>
+                </p>
               )}
             </div>
           </li>

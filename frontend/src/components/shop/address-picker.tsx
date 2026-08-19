@@ -71,8 +71,12 @@ export function AddressPicker({
   onChange: (value: string) => void;
   /** Emits candidate neighbourhood names for best-effort delivery-zone matching. */
   onLocalities?: (localities: string[]) => void;
-  /** Emits the pin's coordinates so the order can be placed on the driver's map. */
-  onCoordinates?: (lat: number, lon: number) => void;
+  /**
+   * Emits the pin's coordinates so the order can be placed on the driver's map — and
+   * `null` the moment they stop describing the address in the field, so a point can
+   * never outlive the address it was found for.
+   */
+  onCoordinates?: (coords: { lat: number; lon: number } | null) => void;
   id?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,7 +94,11 @@ export function AddressPicker({
   const suppressGeocode = useRef(false);
 
   const [found, setFound] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "searching" | "notfound">("idle");
+  const [status, setStatus] = useState<"idle" | "searching" | "notfound" | "pinned">("idle");
+
+  // The pin is gone when the picker goes: whoever holds the coordinates must not keep
+  // them after this field disappears (e.g. checkout switching back to a saved address).
+  useEffect(() => () => onCoordinatesRef.current?.(null), []);
 
   // Initialise the map once, client-side only.
   useEffect(() => {
@@ -118,14 +126,24 @@ export function AddressPicker({
 
       const commitFromMap = async (lat: number, lon: number) => {
         const res = await reverse(lat, lon);
+        // Unmounted while the lookup was in flight: the cleanup below already told the
+        // parent to forget the point, and reporting one now would resurrect it.
+        if (cancelled) return;
         if (res) {
           setFound(res.display);
           setStatus("idle");
           suppressGeocode.current = true;
           onChangeRef.current(res.display);
           onLocalitiesRef.current?.(res.localities);
-          onCoordinatesRef.current?.(lat, lon);
+          onCoordinatesRef.current?.({ lat, lon });
+          return;
         }
+        // Reverse geocoding missed, so the address text stays as typed — but the pin the
+        // user dropped is still the truth about where to deliver, and leaving the previous
+        // point in place would silently disagree with the marker on screen.
+        setFound(null);
+        setStatus("pinned");
+        onCoordinatesRef.current?.({ lat, lon });
       };
 
       marker.on("dragend", () => {
@@ -157,6 +175,12 @@ export function AddressPicker({
       suppressGeocode.current = false;
       return;
     }
+    // The address text just changed under us, so whatever point we last reported belongs
+    // to the previous address. Drop it now — before the debounce, before the request — so
+    // there is no window in which a submit could pair this address with the old pin. A
+    // missing coordinate is recoverable (admin can set it); a wrong one is invisible.
+    onCoordinatesRef.current?.(null);
+
     const q = value.trim();
     if (q.length < 4) {
       setFound(null);
@@ -164,8 +188,13 @@ export function AddressPicker({
       return;
     }
     setStatus("searching");
+    let stale = false;
     const t = setTimeout(async () => {
       const hit = await geocode(q);
+      // `clearTimeout` cannot recall a request that already left. Without this the answer
+      // for a previous address could arrive after the field moved on and re-attach its
+      // coordinates to the new text.
+      if (stale) return;
       const map = mapRef.current;
       const marker = markerRef.current;
       if (!map || !marker) return;
@@ -177,13 +206,18 @@ export function AddressPicker({
         setFound(hit.display_name);
         setStatus("idle");
         onLocalitiesRef.current?.(localitiesOf(hit.address));
-        onCoordinatesRef.current?.(lat, lon);
+        onCoordinatesRef.current?.({ lat, lon });
       } else {
         setStatus("notfound");
         setFound(null);
+        // Nothing was found for this address; make sure nothing is reported for it either.
+        onCoordinatesRef.current?.(null);
       }
     }, 800);
-    return () => clearTimeout(t);
+    return () => {
+      stale = true;
+      clearTimeout(t);
+    };
   }, [value]);
 
   return (
@@ -212,6 +246,12 @@ export function AddressPicker({
       {status === "notfound" && (
         <p className="text-xs text-honey-600">
           Adresa nije pronađena — kliknite na mapu ili prevucite pin da označite tačnu lokaciju.
+        </p>
+      )}
+      {status === "pinned" && (
+        <p className="text-xs text-muted">
+          📍 Lokacija je označena na mapi. Adresu nismo prepoznali — provjerite da tekst iznad
+          odgovara označenoj tački.
         </p>
       )}
       {status === "idle" && found && (

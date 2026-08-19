@@ -223,7 +223,7 @@ export default function CheckoutPage() {
                 onChange={set("address")}
                 savedAddresses={savedAddresses}
                 onLocalities={applyZoneHint}
-                onCoordinates={(lat, lon) => setCoords({ lat, lon })}
+                onCoordinates={setCoords}
               />
             </Field>
 

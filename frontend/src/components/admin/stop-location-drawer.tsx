@@ -54,7 +54,7 @@ export function StopLocationDrawer({
           <AddressPicker
             value={tekst}
             onChange={setTekst}
-            onCoordinates={(lat, lon) => setCoords({ lat, lon })}
+            onCoordinates={setCoords}
           />
         </div>
 

@@ -179,7 +179,9 @@ export const adminApi = {
     }).then((r) => r.data),
 
   geocodeMissing: () =>
-    apiFetch<{ pokrenuto: boolean; brojNarudzbi: number }>("/admin/orders/geocode-missing", {
+    // `obradjeno` = koliko je adresa ovaj prolaz pokušao (serija je ograničena, pa se dugme
+    // ponavlja dok ima ostatka), `uspjesno` = koliko ih je stvarno dobilo koordinate.
+    apiFetch<{ obradjeno: number; uspjesno: number }>("/admin/orders/geocode-missing", {
       method: "POST",
     }).then((r) => r.data),
 
