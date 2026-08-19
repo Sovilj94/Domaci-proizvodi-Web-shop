@@ -6,6 +6,7 @@ import { AddressPicker } from "@/components/shop/address-picker";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { adminApi } from "@/lib/api/endpoints";
+import { ApiRequestError } from "@/lib/api/client";
 
 /**
  * Ručno postavljanje koordinata narudžbi koju geokodiranje nije pogodilo.
@@ -37,7 +38,8 @@ export function StopLocationDrawer({
       show("Lokacija je sačuvana");
       onClose();
     },
-    onError: () => show("Lokacija nije sačuvana"),
+    onError: (err) =>
+      show(err instanceof ApiRequestError ? err.message : "Lokacija nije sačuvana", "error"),
   });
 
   return (
