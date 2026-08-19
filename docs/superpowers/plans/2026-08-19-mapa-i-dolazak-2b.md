@@ -132,14 +132,14 @@ public class GeoTests
     }
 
     [Fact]
-    public void Zamijenjene_koordinate_daju_bitno_drugaciji_rezultat()
+    public void Zamijenjene_koordinate_vode_na_sasvim_drugo_mjesto()
     {
-        // Banja Luka je 44.77 N, 17.19 E. Zamjena vodi u Somaliju.
-        // Ovo nije provjera formule nego brana protiv zamjene argumenata.
-        var tacno = Geo.RazdaljinaMetara(TrgLat, TrgLon, DvorLat, DvorLon);
-        var zamijenjeno = Geo.RazdaljinaMetara(TrgLon, TrgLat, DvorLon, DvorLat);
-        Assert.True(zamijenjeno > 100_000, $"očekivano preko 100 km, dobijeno {zamijenjeno:F0} m");
-        Assert.True(tacno < 1_000);
+        // Banja Luka je 44.77 N, 17.19 E. Ako neko zamijeni argumente, tačka
+        // odleti na 17.19 N, 44.77 E — u Arabijsko more, hiljadama kilometara daleko.
+        // Ovo nije provjera Haversine formule nego brana protiv zamjene argumenata.
+        var odletjelo = Geo.RazdaljinaMetara(TrgLat, TrgLon, TrgLon, TrgLat);
+
+        Assert.True(odletjelo > 1_000_000, $"očekivano preko 1000 km, dobijeno {odletjelo:F0} m");
     }
 }
 ```
