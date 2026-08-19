@@ -816,7 +816,14 @@ cd EPiljara.Driver && dotnet build -f net10.0-android -c Debug
 
 Expected: 40 testova prolazi (`RouteViewModel` je linkovan u test projekat, pa nove članove mora da prevede), build uspijeva.
 
-Napomena: `Connectivity.Current` je MAUI Essentials API. Test projekat linkuje `RouteViewModel.cs` i referencira `Microsoft.Maui.Controls`, pa se prevodi — ali `ProvjeriMrezu` se u testovima nikad ne poziva, jer testovi zovu samo `Primijeni`. Ako se ispostavi da se ne prevodi, prijavi to umjesto da mijenjaš dizajn.
+ISPRAVKA (utvrdjeno tokom implementacije): `Connectivity.Current` se PREVODI u test projektu ali BACA `NotImplementedInReferenceAssemblyException` u test hostu, a `RouteViewModelUcitavanjeTests` zaista zove `UcitajAsync`. Zato `ProvjeriMrezu` mora hvatati taj izuzetak i pretpostaviti da mreže ima:
+
+```csharp
+        try { NemaInterneta = Connectivity.Current.NetworkAccess != NetworkAccess.Internet; }
+        catch (NotImplementedInReferenceAssemblyException) { NemaInterneta = false; }
+```
+
+Hvatati taj tip, ne goli `Exception` — stvarni kvar veze na uređaju treba da se vidi. Traka je obavještenje a ne gard, pa je lažno „sve u redu" bezopasno.
 
 - [ ] **Step 8: Commit**
 
