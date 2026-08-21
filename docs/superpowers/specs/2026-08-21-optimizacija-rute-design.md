@@ -113,9 +113,28 @@ Kartica trenutne stanice dobija ukupnu kilometražu i vrijeme, npr. „3,7 km ·
 
 ### Serije
 
-Google Maps kroz `maps/dir/?api=1` prima polazište, **do devet međustanica** i odredište. Polazište
-je vozačeva trenutna pozicija (parametar se izostavlja), pa jedan link nosi **deset naših stanica**:
-devet kao međustanice i desetu kao odredište. I ne preslaže ih — vozi ih redom kojim mu se daju.
+Google Maps kroz `maps/dir/?api=1` prima polazište, međustanice i odredište. Polazište je vozačeva
+trenutna pozicija (parametar se izostavlja).
+
+Granica je provjerena u Google-ovoj dokumentaciji i **nije ista svuda**:
+
+> „The number of waypoints allowed varies by the platform where the link opens, with up to three
+> waypoints supported on mobile browsers, and a maximum of nine waypoints supported otherwise."
+
+| Gdje se link otvori | Međustanica | Ukupno naših stanica |
+|---|---|---|
+| Google Maps aplikacija | 9 | **10** |
+| Mobilni browser | 3 | **4** |
+
+Šaljemo **koliko god stane**, dakle deset. Na vozačevom telefonu Android link hvata Google Maps
+aplikacija, pa je to i realan slučaj. Ali ako Maps nije instaliran, link pada u browser koji prima
+samo četiri i **ostatak tiho nestaje** — vozač bi vidio četiri stanice i pomislio da je to cijela
+serija. Zato se prije otvaranja provjerava da li je Google Maps instaliran; ako nije, šalje se
+serija od četiri i natpis to kaže.
+
+Potvrđeno i ono što je za nas ključno: **„Waypoints are displayed on the map in the same order they
+are listed in the URL"** — Google ih ne preslaže. Naše računanje redoslijeda je jedini izvor
+optimizacije, u svakom slučaju.
 
 Zato:
 
@@ -182,7 +201,7 @@ ne smije se dogoditi kao nusprodukt ove funkcije.
 | **Zamijeniti OSRM demo server** | `router.project-osrm.org` je po pravilima korišćenja za testiranje i razvoj, ne za produkciju, i nema garantovanu dostupnost. Rješenja: sopstvena instanca (Docker + OSM izvod za BiH) ili OpenRouteService sa besplatnim ključem. Interfejs je isti, mijenja se samo implementacija. |
 | **Upisati stvarne koordinate magacina** | Konfiguracija kreće sa placeholder vrijednošću. Bez ovoga se cijela ruta računa od pogrešne tačke, a rezultat izgleda uvjerljivo. |
 | **Zamijeniti `https://api.example.invalid`** | Naslijeđeno iz Faze 2a: `appsettings.Release.json` nosi namjerno neispravan URL. Bez izmjene Release build ne može doći ni do jednog backenda, a mora biti `https` jer Release zabranjuje običan HTTP. |
-| **Provjeriti Google-ovu granicu međustanica** | Dizajn radi po tome da je devet međustanica plus odredište. Potvrditi u Google-ovoj dokumentaciji prije puštanja — ako se granica smanji, sječenje na serije puca tiho. |
+| **Provjeriti ponašanje na telefonu bez Google Maps-a** | Granica je već provjerena u dokumentaciji: devet međustanica kad link otvori aplikacija, ali samo tri kad ga otvori mobilni browser. Na uređaju bez instaliranog Google Maps-a potvrditi da aplikacija to prepozna i pošalje seriju od četiri, umjesto da tiho izgubi šest stanica. |
 | **Nominatim za geokodiranje adresa** | Isti problem kao OSRM: javni servis nije za masovnu upotrebu. Naslijeđeno iz Faze 2a. |
 | **Provjeriti foreground servis na stvarnom telefonu** | Iz Faze 2b: sa `NotSticky`, ako Android ubije proces usred smjene, praćenje tiho prestane i aplikacija to ne može otkriti. |
 
@@ -205,6 +224,7 @@ ne smije se dogoditi kao nusprodukt ove funkcije.
 - Sječenje usred serije: od deset poslatih tri zatvorene → sljedeći poziv vraća sedam preostalih
   plus tri naredne, u ispravnom redoslijedu
 - Natpis dugmeta: „Navigacija (10 od 24)" kad ima ostatka, samo „Navigacija" kad ga nema
+- Veličina serije po odredištu: deset kad je Google Maps instaliran, četiri kad nije
 - Zamjena `[dužina, širina]` iz GeoJSON-a u Leafletov `[širina, dužina]`
 - Izbor stanica za ponovnu optimizaciju: samo otvorene, zatvorene zadržavaju `Sequence`
 
