@@ -468,8 +468,12 @@ Napomena: `.NET` procesi u ovom okruženju nemaju izlaz na internet, ali `curl` 
 <script src="leaflet.js"></script>
 <script>
   var BANJA_LUKA = [44.7722, 17.1910];
-  var mapa = L.map('mapa', { zoomControl: false, attributionControl: false }).setView(BANJA_LUKA, 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapa);
+  var mapa = L.map('mapa', { zoomControl: false }).setView(BANJA_LUKA, 13);
+  // Atribucija je uslov OSM-ove politike besplatnih pločica (Tile Usage Policy), ne kozmetika.
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(mapa);
 
   var slojStanica = L.layerGroup().addTo(mapa);
   var pozicija = null;
@@ -555,8 +559,7 @@ git commit -m "feat: bundle leaflet and the map page"
   - `RouteViewModel.TrenutnaStanica` → `RouteStopDto?` (prva nezatvorena po `Sequence`)
   - `RouteViewModel.BezLokacije` → `ObservableCollection<RouteStopDto>` (aktivne bez koordinata)
   - `RouteViewModel.ImaBezLokacije` → `bool`
-  - `RouteViewModel.StaniceZaMapu` → `string` (base64 JSON koji ide u `postaviStanice`)
-  - događaj `RouteViewModel.MapaTreba` → `event Action<string>?` koji stranica sluša
+  - događaj `RouteViewModel.MapaTreba` → `event Action<string>?` koji stranica sluša, nosi base64 JSON (za `postaviStanice`)
 
 - [ ] **Step 1: Dopuni RouteViewModel**
 
@@ -1354,7 +1357,7 @@ Expected: u roku od nekoliko sekundi iskoči popup sa imenom kupca te stanice.
 
 Provjeri redom:
 - popup pokazuje **tačnu** stanicu (onu na čije si koordinate stao)
-- „Zatvori" ga skloni, a ponovno slanje iste pozicije ga vrati
+- „Zatvori" ga skloni, i ponovno slanje **iste** pozicije ga **ne vraća** — ista stanica se javlja tek kad vozač izađe preko 225 m i vrati se
 - „Primopredaja izvršena" zatvori stanicu, popup nestane, brojač poraste, pin posivi
 - pomjeri poziciju daleko (`adb emu geo fix 17.30 44.90`) pa nazad — popup se javi ponovo samo ako stanica nije zatvorena
 
