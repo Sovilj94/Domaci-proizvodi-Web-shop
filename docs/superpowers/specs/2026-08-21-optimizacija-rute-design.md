@@ -122,11 +122,19 @@ Zato:
 1. **Optimizacija pokriva cijelu turu odjednom.** Dvadeset četiri stanice znače da OSRM računa
    redoslijed za sve 24 i upisuje `Sequence` 1–24. Ništa se u toj fazi ne siječe.
 2. **Dugme „Navigacija" reže iz tog redoslijeda.** Uzme **otvorene** stanice poredane po
-   `Sequence`, uzme prvih deset, napravi link.
-3. Kad vozač te odradi, isto dugme uzme sljedećih deset — a to su po definiciji sljedeće po
-   globalnom redoslijedu, jer su prethodne zatvorene.
+   `Sequence`, uzme prvih deset, napravi link. Ostatak se ne šalje.
+3. **Dugme je dostupno u svakom trenutku, ne samo kad se serija završi.** Pravilo je uvijek isto:
+   prvih deset otvorenih po redoslijedu. Ako je vozač od deset poslatih odradio tri, sljedeći
+   dodir daje onih sedam preostalih **plus tri naredne** — opet punih deset. Ne mora da doveze
+   seriju do kraja da bi povukao nove; može poslije jedne dostave, poslije par, ili tek kad
+   isprazni seriju.
 4. **Nikad se ne računa iznova.** Serija je samo prozor u već izračunatu rutu. Ako vozač preskoči
-   stanicu i ostavi je otvorenu, ona ostaje u sljedećoj seriji na svom mjestu.
+   stanicu i ostavi je otvorenu, ona ostaje u sljedećoj seriji na svom mjestu, jer je prozor
+   vezan za `Sequence`, a ne za to koliko je puta dugme stisnuto.
+
+Dugme nosi i broj, da vozač zna šta dobija: **„Navigacija (10 od 24)"** — koliko ide u ovaj link
+i koliko je ukupno otvorenih. Kad otvorenih ima deset ili manje, piše samo „Navigacija", jer
+tada ostatka nema.
 
 Dugme ide na ekran rute, za cijelu seriju. Postojeće dugme na ekranu stanice ostaje, za slučaj
 kad vozač hoće samo tu jednu adresu.
@@ -194,6 +202,9 @@ ne smije se dogoditi kao nusprodukt ove funkcije.
 
 - Građenje Google Maps linka: tačan broj međustanica, redoslijed, escape-ovanje adresa
 - Sječenje na serije: preko deset stanica, nekoliko zatvorenih u sredini, tačno deset, manje od deset
+- Sječenje usred serije: od deset poslatih tri zatvorene → sljedeći poziv vraća sedam preostalih
+  plus tri naredne, u ispravnom redoslijedu
+- Natpis dugmeta: „Navigacija (10 od 24)" kad ima ostatka, samo „Navigacija" kad ga nema
 - Zamjena `[dužina, širina]` iz GeoJSON-a u Leafletov `[širina, dužina]`
 - Izbor stanica za ponovnu optimizaciju: samo otvorene, zatvorene zadržavaju `Sequence`
 
