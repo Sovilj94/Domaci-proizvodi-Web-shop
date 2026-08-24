@@ -6,6 +6,7 @@ using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Admin;
 
@@ -101,7 +102,10 @@ public class AssignRouteHandler(IAppDbContext db) : IRequestHandler<AssignRouteC
 
 public record OptimizeRouteCommand(Guid RouteId) : IRequest<DeliveryRouteDto>;
 
-public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
+/// <summary>Polazište tura. Jedna piljara, jedan magacin, pa stoji u konfiguraciji.</summary>
+public record Magacin(double Latitude, double Longitude);
+
+public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOptions<Magacin> magacin)
     : IRequestHandler<OptimizeRouteCommand, DeliveryRouteDto>
 {
     public async Task<DeliveryRouteDto> Handle(OptimizeRouteCommand cmd, CancellationToken ct)
@@ -118,10 +122,11 @@ public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
             s.Order?.Latitude,
             s.Order?.Longitude)).ToList();
 
-        var orderedIds = await optimizer.OptimizeAsync(inputs, ct);
+        var rezultat = await optimizer.OptimizeAsync(
+            magacin.Value.Latitude, magacin.Value.Longitude, inputs, ct);
 
         var sequence = 1;
-        foreach (var orderId in orderedIds)
+        foreach (var orderId in rezultat.Order)
         {
             var stop = route.Stops.FirstOrDefault(s => s.OrderId == orderId);
             if (stop is not null) stop.Sequence = sequence++;

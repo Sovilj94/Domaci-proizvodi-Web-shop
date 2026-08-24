@@ -37,12 +37,24 @@ public interface IEmailService
 public record RouteStopInput(Guid OrderId, string Address, string ZoneName, double? Latitude, double? Longitude);
 
 /// <summary>
-/// Produces an optimized visiting order for a set of stops. The default implementation
-/// groups by zone; a Google Routes-backed implementation can replace it without changes elsewhere.
+/// Rezultat optimizacije. Kilometraža, trajanje i geometrija su nullable jer
+/// rezervno sortiranje po zonama ne zna ništa o putevima — vraća samo redoslijed.
+/// </summary>
+public record RouteOptimizationResult(
+    IReadOnlyList<Guid> Order,
+    double? DuzinaMetara,
+    double? TrajanjeSekundi,
+    string? Geometrija);
+
+/// <summary>
+/// Računa redoslijed obilaska stanica, počev od zadatog polazišta.
+/// Polazište je magacin, ili trenutna pozicija vozača kod ručne ponovne optimizacije.
 /// </summary>
 public interface IRouteOptimizer
 {
-    Task<IReadOnlyList<Guid>> OptimizeAsync(
+    Task<RouteOptimizationResult> OptimizeAsync(
+        double startLat,
+        double startLon,
         IReadOnlyList<RouteStopInput> stops,
         CancellationToken cancellationToken = default);
 }

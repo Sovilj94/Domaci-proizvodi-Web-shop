@@ -3,15 +3,16 @@ using EPiljara.Application.Common.Interfaces;
 namespace EPiljara.Infrastructure.Services;
 
 /// <summary>
-/// Phase-1 route optimization: group stops by delivery zone in a sensible driving order,
-/// preserving input order within a zone. A Google Routes-backed implementation of
-/// <see cref="IRouteOptimizer"/> (true VRP) can replace this in Phase 3 with no other changes.
+/// Rezervni optimizator rute: grupiše stanice po dostavnoj zoni u smislenom voznom
+/// redoslijedu, čuvajući ulazni redoslijed unutar zone. Koristi se kad OSRM ne odgovori.
 /// </summary>
 public class ZoneRouteOptimizer : IRouteOptimizer
 {
     private static readonly string[] ZoneOrder = ["Centar", "Borik", "Lauš", "Starčevica"];
 
-    public Task<IReadOnlyList<Guid>> OptimizeAsync(
+    public Task<RouteOptimizationResult> OptimizeAsync(
+        double startLat,
+        double startLon,
         IReadOnlyList<RouteStopInput> stops,
         CancellationToken cancellationToken = default)
     {
@@ -26,6 +27,8 @@ public class ZoneRouteOptimizer : IRouteOptimizer
             .Select(x => x.stop.OrderId)
             .ToList();
 
-        return Task.FromResult<IReadOnlyList<Guid>>(ordered);
+        // Sortiranje po zonama ne zna razdaljine ni puteve, pa nema šta da javi
+        // o kilometraži, trajanju i liniji. Polazište se namjerno ignoriše.
+        return Task.FromResult(new RouteOptimizationResult(ordered, null, null, null));
     }
 }
