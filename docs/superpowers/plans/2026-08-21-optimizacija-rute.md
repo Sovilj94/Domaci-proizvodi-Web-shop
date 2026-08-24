@@ -164,7 +164,9 @@ cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
 dotnet build
 ```
 
-Expected: build **pada** sa greškom da `Magacin` nije registrovan u DI — to je očekivano na kraju ovog taska, jer registracija dolazi u Tasku 3. Ako pada sa bilo čim drugim, popravi to prije commita.
+Expected: `Build succeeded`.
+
+Ranija verzija ovog koraka je tvrdila da build pada zato što `Magacin` nije registrovan u DI. To je bilo netačno i ispravljeno je: `dotnet build` ne pravi DI kontejner, pa se nedostajuća registracija ne može ispoljiti kao greška prevođenja — ispolji se tek u vrijeme izvršavanja, kad zahtjev stigne do `OptimizeRouteHandler`. Registracija i dalje dolazi u Tasku 3; do tada je taj endpoint neupotrebljiv, ali se sve prevodi.
 
 - [ ] **Step 6: Commit**
 
@@ -449,11 +451,37 @@ Redoslijed koordinata je **dužina pa širina** — obrnuto od svega ostalog u o
 
 - [ ] **Step 2: Registruj servis i magacin**
 
-U `backend/src/EPiljara.Infrastructure/DependencyInjection.cs`, zamijeni postojeću registraciju `IRouteOptimizer`:
+**Prvo promijeni oblik `Magacin`-a.** Task 1 ga je napravio kao pozicioni record:
 
 ```csharp
-        services.Configure<EPiljara.Application.Features.Admin.Magacin>(
-            configuration.GetSection("Magacin"));
+public record Magacin(double Latitude, double Longitude);
+```
+
+To se **ne prevodi** sa `AddOptions`/`Configure`, jer oni imaju ograničenje `where TOptions : class, new()`, a pozicioni record nema konstruktor bez parametara. U `backend/src/EPiljara.Application/Features/Admin/AdminRoutes.cs` zamijeni ga oblikom koji prati kućni obrazac (`JwtOptions` u `JwtTokenService.cs`):
+
+```csharp
+/// <summary>Polazište tura. Jedna piljara, jedan magacin, pa stoji u konfiguraciji.
+/// Obična klasa sa set svojstvima, ne pozicioni record — AddOptions traži new().</summary>
+public class Magacin
+{
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+}
+```
+
+Namjerno **bez podrazumijevanih vrijednosti**: `0,0` je usred Atlantika, a validacija ispod hvata izostanak konfiguracije glasno.
+
+Zatim u `backend/src/EPiljara.Infrastructure/DependencyInjection.cs` zamijeni postojeću registraciju `IRouteOptimizer`:
+
+```csharp
+        services.AddOptions<EPiljara.Application.Features.Admin.Magacin>()
+            .Bind(configuration.GetSection("Magacin"))
+            // Bez koordinata magacina cijela ruta bi se racunala od 0°N 0°E, usred
+            // Atlantika, a rezultat bi izgledao uvjerljivo. Bolje da se aplikacija
+            // ne digne nego da tiho vozi iz pogresne tacke.
+            .Validate(m => GeoBounds.Contains(m.Latitude, m.Longitude),
+                "Magacin:Latitude i Magacin:Longitude moraju biti unutar Bosne i Hercegovine.")
+            .ValidateOnStart();
 
         // Rezerva se registruje zasebno jer je OsrmRouteOptimizer prima kroz konstruktor.
         services.AddSingleton<ZoneRouteOptimizer>();
