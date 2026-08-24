@@ -60,16 +60,41 @@ public class OsrmRouteOptimizer(
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (root.GetProperty("code").GetString() != "Ok")
+            var kod = root.GetProperty("code").GetString();
+            if (kod != "Ok")
+            {
+                logger.LogWarning("OSRM vratio code={Code} umjesto Ok", kod);
                 return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
+            }
 
             // waypoints[0] je magacin; ostali nose waypoint_index — mjesto u obilasku.
+            // Očekuje se tačno jedan waypoint po poslatoj tački; ako OSRM vrati manje
+            // (ili poremećen skup waypoint_index vrijednosti), redoslijed bi bio nepotpun
+            // i tura bi se tiho izmiješala — bolje rezerva nego pogrešna tura.
             var waypoints = root.GetProperty("waypoints");
+            if (waypoints.GetArrayLength() != saKoordinatama.Count + 1)
+            {
+                logger.LogWarning(
+                    "OSRM vratio {Broj} waypoint-a, očekivano {Ocekivano}",
+                    waypoints.GetArrayLength(), saKoordinatama.Count + 1);
+                return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
+            }
+
             var poredak = new List<(int Mjesto, Guid OrderId)>();
             for (var i = 1; i < waypoints.GetArrayLength(); i++)
             {
                 var mjesto = waypoints[i].GetProperty("waypoint_index").GetInt32();
                 poredak.Add((mjesto, saKoordinatama[i - 1].OrderId));
+            }
+
+            var mjesta = poredak.Select(x => x.Mjesto).OrderBy(x => x).ToList();
+            var ocekivanaMjesta = Enumerable.Range(1, saKoordinatama.Count).ToList();
+            if (!mjesta.SequenceEqual(ocekivanaMjesta))
+            {
+                logger.LogWarning(
+                    "OSRM waypoint_index vrijednosti nisu 1..{N} nego {Mjesta}",
+                    saKoordinatama.Count, string.Join(',', mjesta));
+                return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
             }
 
             var redoslijed = poredak
@@ -85,7 +110,13 @@ public class OsrmRouteOptimizer(
 
             return new RouteOptimizationResult(redoslijed, duzina, trajanje, geometrija);
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException)
+        // Namjerno širok catch: tačan tip greške koju OSRM (ili mreža) može izazvati je
+        // nepredvidiv — pogrešan tip vrijednosti u odgovoru, prazan trips niz, prekid
+        // konekcije... Isto rezonovanje kao ZatraziObavjestenjaAsync u mobilnom repou:
+        // tuđi servis koji se čudno ponaša ne smije koštati vozača cijele ture. Izuzetak
+        // je jedino stvarno otkazivanje sa naše strane (cancellationToken) — to se
+        // prosljeđuje dalje, umjesto da se pretvori u besmislen poziv rezerve.
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             logger.LogWarning(e, "OSRM optimizacija nije uspjela, vraćam se na sortiranje po zonama");
             return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
