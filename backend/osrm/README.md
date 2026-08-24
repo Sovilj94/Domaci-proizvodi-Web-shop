@@ -15,6 +15,11 @@ ograničavaju samo na razvoj i testiranje, ne na produkciju.
 Pokretanjem OSRM-a u sopstvenoj infrastrukturi, koordinate kupaca i pozicija
 vozača nikad ne napuštaju naš sistem.
 
+Iz istog razloga, `docker-compose.yml` pokreće `osrm-routed` sa
+`--verbosity WARNING`. Ovo nije podešavanje protiv "buke" u logu — bez njega
+OSRM sam upisuje svaki zahtjev (pa i koordinate iz njega) u sopstveni access
+log, što bi premjestilo isto curenje jedan sloj niže umjesto da ga zatvori.
+
 `data/` se namjerno **ne commituje** (vidi `backend/.gitignore`) — izvod mape
 je 152 MB, a obrađeni fajlovi dodaju još nekoliko stotina megabajta. Svako ko
 radi na projektu ga preuzima i obrađuje lokalno, jednokratno, po uputstvu
@@ -39,7 +44,7 @@ Zatim tri koraka MLD (Multi-Level Dijkstra) pipeline-a, svaki u kontejneru nad
 istim folderom:
 
 ```bash
-cd backend/osrm
+cd ..   # iz backend/osrm/data (gdje je prethodni blok ostavio terminal) u backend/osrm
 docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
   osrm-extract -p /opt/car.lua /data/bosnia-herzegovina-latest.osm.pbf
 docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
@@ -72,11 +77,11 @@ Kad podaci u `data/` zastare (nove ulice, izmjene u saobraćaju), ponoviti
 kompletan postupak nad novim izvodom — isti tri koraka:
 
 ```bash
-cd backend/osrm/data
+cd backend/osrm/data   # apsolutno od korijena repozitorija
 curl -L -o bosnia-herzegovina-latest.osm.pbf \
   https://download.geofabrik.de/europe/bosnia-herzegovina-latest.osm.pbf
 
-cd ..
+cd ..   # sada u backend/osrm
 docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
   osrm-extract -p /opt/car.lua /data/bosnia-herzegovina-latest.osm.pbf
 docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
@@ -84,8 +89,9 @@ docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
 docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
   osrm-customize /data/bosnia-herzegovina-latest.osrm
 
+cd ..   # sada u backend, gdje je docker-compose.yml
 docker compose restart osrm
 ```
 
-Stari `.osrm*` fajlovi se prepisuju preko novih pri ponovnom pokretanju
-`osrm-extract` nad istim imenom fajla; nije potrebno ništa ručno brisati.
+Novi `.osrm*` fajlovi prepisuju stare pri ponovnom pokretanju `osrm-extract`
+nad istim imenom fajla; nije potrebno ništa ručno brisati.

@@ -68,15 +68,16 @@ internal static class Optimizacija
         // strani ključ, pa Order stvarno null biti ne može. Provjera namjerno koristi
         // Any, ne All: djelimičan EF change-tracker fixup zna već pratiti poneku Order
         // (npr. iz ranijeg upita u istom kontekstu), pa bi All ispao false i propustio
-        // guard, a preostale stanice sa null navigacijom bi tiho prošle kao "otvorene"
-        // (vidi filter ispod) i pokvarile prenumeraciju.
+        // guard. Filter ispod se oslanja na ovaj guard i koristi Order! bez provjere —
+        // bez njega bi to bio NullReferenceException umjesto jasne poruke ovdje.
         if (route.Stops.Count > 0 && route.Stops.Any(s => s.Order is null))
             throw new InvalidOperationException(
                 "Optimizacija.PrimijeniAsync zahtijeva rutu učitanu sa " +
                 ".Include(r => r.Stops).ThenInclude(s => s.Order) — narudžbe nisu učitane.");
 
+        // Guard iznad je već odbacio svaku null Order — ovdje se Order! bezbjedno koristi.
         var otvorene = route.Stops
-            .Where(s => s.Order is null || !Zatvoreni.Contains(s.Order.Status))
+            .Where(s => !Zatvoreni.Contains(s.Order!.Status))
             .ToList();
 
         if (otvorene.Count < 2) return;

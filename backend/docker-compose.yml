@@ -27,7 +27,7 @@ services:
     # zatvorio na nasoj strani, samo jedan sloj nize. Greske i dalje prolaze.
     command: osrm-routed --algorithm mld --verbosity WARNING /data/bosnia-herzegovina-latest.osrm
     volumes:
-      - ./osrm/data:/data
+      - ./osrm/data:/data:ro
     ports:
       - "5000:5000"
     restart: unless-stopped
@@ -48,6 +48,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      osrm:
+        condition: service_started
 
 volumes:
   epiljara-pgdata:

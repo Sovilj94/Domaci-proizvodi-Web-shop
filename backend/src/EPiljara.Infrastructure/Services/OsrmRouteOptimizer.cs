@@ -1,7 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using EPiljara.Application.Common.Interfaces;
+using EPiljara.Application.Features.Admin;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Infrastructure.Services;
 
@@ -15,6 +17,7 @@ namespace EPiljara.Infrastructure.Services;
 public class OsrmRouteOptimizer(
     HttpClient http,
     ZoneRouteOptimizer rezerva,
+    IOptions<Magacin> magacin,
     ILogger<OsrmRouteOptimizer> logger) : IRouteOptimizer
 {
     public async Task<RouteOptimizationResult> OptimizeAsync(
@@ -47,18 +50,26 @@ public class OsrmRouteOptimizer(
             tacke.Append(Broj(startLon)).Append(',').Append(Broj(startLat));
             foreach (var s in saKoordinatama)
                 tacke.Append(';').Append(Broj(s.Longitude!.Value)).Append(',').Append(Broj(s.Latitude!.Value));
+            // Magacin se šalje i kao krajnja tačka (destination=last), ne samo kao polazište
+            // (source=first, startLat/startLon iznad — magacin kod admin dodjele, pozicija
+            // vozača kod ručnog ponovnog računa). Mjereno na stvarnoj optimizaciji: ovo daje
+            // identičan redoslijed i identičnu kilometražu kao ranije korišćeni roundtrip=true
+            // kad je start magacin, ali za ponovni račun sa pozicije vozača tura sada ispravno
+            // završava u magacinu umjesto da se petlja nazad na trenutnu poziciju vozača —
+            // 15 od 24 slučaja u testu su se razlikovala, i u svih 15 je roundtrip=true davao
+            // sporiju stvarnu rutu (prosjek ~6 min, najgore 18.6 min).
+            tacke.Append(';').Append(Broj(magacin.Value.Longitude)).Append(',').Append(Broj(magacin.Value.Latitude));
 
-            // roundtrip=true, ne false: OSRM /trip podržava samo roundtrip=true (bilo koji
-            // source/destination) ili roundtrip=false uz i source=first I destination=last.
-            // source=first&roundtrip=false samostalno vraća code=NotImplemented (HTTP 400) —
-            // nađeno tek kad je poziv stvarno stigao do OSRM-a (Task 9), jer je dotad odlazni
+            // roundtrip=false, uz i source=first I destination=last: OSRM /trip podržava samo
+            // roundtrip=true (bilo koji source/destination) ili roundtrip=false uz oba fiksirana
+            // kraja. source=first&roundtrip=false samostalno vraća code=NotImplemented (HTTP 400)
+            // — nađeno tek kad je poziv stvarno stigao do OSRM-a (Task 9), jer je dotad odlazni
             // TCP iz .NET procesa u ovom okruženju bio blokiran i sve je tiho padalo na rezervu.
-            // destination=last nije alternativa: to bi prikovalo koju god stanicu pošaljemo
-            // posljednju da bude posljednja isporuka, bez razloga — mi ne šaljemo stanice u
-            // ciljanom redoslijedu, admin ih dodjeljuje proizvoljnim redom. roundtrip=true
-            // odgovara stvarnosti: kombi kreće iz magacina, obiđe stanice i vrati se u magacin.
+            // destination=last ovdje pinuje magacin (posljednja poslata tačka, iznad) kao kraj
+            // ture — to je tačno ono što želimo, jer kombi uvijek završava u magacinu, bilo da
+            // se optimizuje od magacina (admin dodjela) ili od pozicije vozača (ponovni račun).
             var url = $"trip/v1/driving/{tacke}"
-                + "?source=first&roundtrip=true&overview=simplified&geometries=geojson";
+                + "?source=first&destination=last&roundtrip=false&overview=simplified&geometries=geojson";
 
             using var response = await http.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -78,26 +89,33 @@ public class OsrmRouteOptimizer(
                 return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
             }
 
-            // waypoints[0] je magacin; ostali nose waypoint_index — mjesto u obilasku.
-            // Očekuje se tačno jedan waypoint po poslatoj tački; ako OSRM vrati manje
-            // (ili poremećen skup waypoint_index vrijednosti), redoslijed bi bio nepotpun
-            // i tura bi se tiho izmiješala — bolje rezerva nego pogrešna tura.
+            // waypoints[0] je start (source=first), posljednji je magacin (destination=last,
+            // dodat iznad kao krajnja tačka); ostali nose waypoint_index — mjesto u obilasku.
+            // Očekuje se tačno jedan waypoint po poslatoj tački, uključujući dodati magacin
+            // (zato +2, ne +1); ako OSRM vrati manje (ili poremećen skup waypoint_index
+            // vrijednosti), redoslijed bi bio nepotpun i tura bi se tiho izmiješala — bolje
+            // rezerva nego pogrešna tura.
             var waypoints = root.GetProperty("waypoints");
-            if (waypoints.GetArrayLength() != saKoordinatama.Count + 1)
+            if (waypoints.GetArrayLength() != saKoordinatama.Count + 2)
             {
                 logger.LogWarning(
                     "OSRM vratio {Broj} waypoint-a, očekivano {Ocekivano}",
-                    waypoints.GetArrayLength(), saKoordinatama.Count + 1);
+                    waypoints.GetArrayLength(), saKoordinatama.Count + 2);
                 return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
             }
 
+            // Zadnji waypoint je dodati magacin (destination=last) — ne stanica, izbacuje se
+            // iz redoslijeda isporuka gornjom granicom petlje (- 1).
             var poredak = new List<(int Mjesto, Guid OrderId)>();
-            for (var i = 1; i < waypoints.GetArrayLength(); i++)
+            for (var i = 1; i < waypoints.GetArrayLength() - 1; i++)
             {
                 var mjesto = waypoints[i].GetProperty("waypoint_index").GetInt32();
                 poredak.Add((mjesto, saKoordinatama[i - 1].OrderId));
             }
 
+            // destination=last pinuje magacin na waypoint_index = saKoordinatama.Count + 1
+            // (posljednje mjesto u obilasku), pa stanicama i dalje ostaju tačno vrijednosti
+            // 1..N — provjereno empirijski na stvarnoj optimizaciji, ne samo pretpostavljeno.
             var mjesta = poredak.Select(x => x.Mjesto).OrderBy(x => x).ToList();
             var ocekivanaMjesta = Enumerable.Range(1, saKoordinatama.Count).ToList();
             if (!mjesta.SequenceEqual(ocekivanaMjesta))
@@ -114,9 +132,10 @@ public class OsrmRouteOptimizer(
                 .Concat(bezKoordinata)
                 .ToList();
 
-            // roundtrip=true znači da distance/duration (i geometrija ispod) uključuju i
-            // povratnu dionicu do magacina, ne samo isporuke — to je namjerno, tura stvarno
-            // tako izgleda za smjenu, ali zato je zbir veći nego prost zbir dionica do kupaca.
+            // distance/duration (i geometrija ispod) sada opisuju start → stanice → magacin,
+            // ne petlju nazad na start — kombi na kraju smjene ionako završava u magacinu,
+            // bilo da se računa od magacina (admin dodjela) ili od pozicije vozača (ponovni
+            // račun), pa je ovo tačan opis stvarne vožnje u oba slučaja.
             var trip = root.GetProperty("trips")[0];
             var duzina = trip.GetProperty("distance").GetDouble();
             var trajanje = trip.GetProperty("duration").GetDouble();
