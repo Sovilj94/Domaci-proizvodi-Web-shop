@@ -49,7 +49,60 @@ public class GetRoutesHandler(IAppDbContext db) : IRequestHandler<GetRoutesQuery
 public record AssignRouteCommand(string Date, Guid DriverId, IReadOnlyList<Guid> OrderIds)
     : IRequest<DeliveryRouteDto>;
 
-public class AssignRouteHandler(IAppDbContext db) : IRequestHandler<AssignRouteCommand, DeliveryRouteDto>
+/// <summary>
+/// Računa redoslijed i upisuje ga na stanice. Zatvorene stanice se ne diraju i
+/// zadržavaju svoje brojeve; otvorene se prenumerišu počev od broja za jedan većeg
+/// od najvećeg zatvorenog, da se brojevi ne bi sudarili i pokvarili sječenje na serije.
+/// </summary>
+internal static class Optimizacija
+{
+    private static readonly HashSet<OrderStatus> Zatvoreni =
+        [OrderStatus.Delivered, OrderStatus.FailedDelivery, OrderStatus.Cancelled];
+
+    public static async Task PrimijeniAsync(
+        DeliveryRoute route, double startLat, double startLon,
+        IRouteOptimizer optimizer, CancellationToken ct)
+    {
+        var otvorene = route.Stops
+            .Where(s => s.Order is null || !Zatvoreni.Contains(s.Order.Status))
+            .ToList();
+
+        if (otvorene.Count < 2) return;
+
+        var inputs = otvorene.Select(s => new RouteStopInput(
+            s.OrderId,
+            s.Order?.DeliveryAddress ?? string.Empty,
+            s.Order?.DeliveryZone?.Name ?? string.Empty,
+            s.Order?.Latitude,
+            s.Order?.Longitude)).ToList();
+
+        var rezultat = await optimizer.OptimizeAsync(startLat, startLon, inputs, ct);
+
+        var pocetak = route.Stops
+            .Where(s => s.Order is not null && Zatvoreni.Contains(s.Order.Status))
+            .Select(s => s.Sequence)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        foreach (var orderId in rezultat.Order)
+        {
+            var stop = route.Stops.FirstOrDefault(s => s.OrderId == orderId);
+            if (stop is not null) stop.Sequence = pocetak++;
+        }
+
+        route.DuzinaMetara = rezultat.DuzinaMetara;
+        route.TrajanjeSekundi = rezultat.TrajanjeSekundi;
+        route.Geometrija = rezultat.Geometrija;
+
+        // Status "Optimized" samo kad je stvarno optimizovano. Rezerva po zonama
+        // vraća redoslijed ali nema kilometražu — kad bismo i tada pisali Optimized,
+        // ništa u sistemu ne bi razlikovalo pravu rutu od degradirane.
+        if (rezultat.DuzinaMetara.HasValue) route.Status = RouteStatus.Optimized;
+    }
+}
+
+public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOptions<Magacin> magacin)
+    : IRequestHandler<AssignRouteCommand, DeliveryRouteDto>
 {
     public async Task<DeliveryRouteDto> Handle(AssignRouteCommand cmd, CancellationToken ct)
     {
@@ -83,6 +136,15 @@ public class AssignRouteHandler(IAppDbContext db) : IRequestHandler<AssignRouteC
         };
 
         db.DeliveryRoutes.Add(route);
+        await db.SaveChangesAsync(ct);
+
+        // Ponovo učitaj sa narudžbama, jer optimizacija treba koordinate i statuse.
+        var saStavkama = await db.DeliveryRoutes
+            .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
+            .FirstAsync(r => r.Id == route.Id, ct);
+
+        await Optimizacija.PrimijeniAsync(
+            saStavkama, magacin.Value.Latitude, magacin.Value.Longitude, optimizer, ct);
         await db.SaveChangesAsync(ct);
 
         return await LoadRouteDtoAsync(db, route.Id, ct);
@@ -120,24 +182,8 @@ public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, I
             .FirstOrDefaultAsync(r => r.Id == cmd.RouteId, ct)
             ?? throw new NotFoundException("Ruta nije pronađena.");
 
-        var inputs = route.Stops.Select(s => new RouteStopInput(
-            s.OrderId,
-            s.Order?.DeliveryAddress ?? string.Empty,
-            s.Order?.DeliveryZone?.Name ?? string.Empty,
-            s.Order?.Latitude,
-            s.Order?.Longitude)).ToList();
-
-        var rezultat = await optimizer.OptimizeAsync(
-            magacin.Value.Latitude, magacin.Value.Longitude, inputs, ct);
-
-        var sequence = 1;
-        foreach (var orderId in rezultat.Order)
-        {
-            var stop = route.Stops.FirstOrDefault(s => s.OrderId == orderId);
-            if (stop is not null) stop.Sequence = sequence++;
-        }
-
-        route.Status = RouteStatus.Optimized;
+        await Optimizacija.PrimijeniAsync(
+            route, magacin.Value.Latitude, magacin.Value.Longitude, optimizer, ct);
         await db.SaveChangesAsync(ct);
 
         return await AssignRouteHandler.LoadRouteDtoAsync(db, route.Id, ct);

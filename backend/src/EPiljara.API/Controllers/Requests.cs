@@ -11,3 +11,5 @@ public record SetAvailabilityRequest(bool IsAvailable);
 /// Handler odbija null.
 /// </summary>
 public record SetCoordinatesRequest(double? Latitude, double? Longitude);
+
+public record ReoptimizeRequest(double Latitude, double Longitude);
