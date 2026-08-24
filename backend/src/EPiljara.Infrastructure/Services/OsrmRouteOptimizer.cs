@@ -48,8 +48,17 @@ public class OsrmRouteOptimizer(
             foreach (var s in saKoordinatama)
                 tacke.Append(';').Append(Broj(s.Longitude!.Value)).Append(',').Append(Broj(s.Latitude!.Value));
 
+            // roundtrip=true, ne false: OSRM /trip podržava samo roundtrip=true (bilo koji
+            // source/destination) ili roundtrip=false uz i source=first I destination=last.
+            // source=first&roundtrip=false samostalno vraća code=NotImplemented (HTTP 400) —
+            // nađeno tek kad je poziv stvarno stigao do OSRM-a (Task 9), jer je dotad odlazni
+            // TCP iz .NET procesa u ovom okruženju bio blokiran i sve je tiho padalo na rezervu.
+            // destination=last nije alternativa: to bi prikovalo koju god stanicu pošaljemo
+            // posljednju da bude posljednja isporuka, bez razloga — mi ne šaljemo stanice u
+            // ciljanom redoslijedu, admin ih dodjeljuje proizvoljnim redom. roundtrip=true
+            // odgovara stvarnosti: kombi kreće iz magacina, obiđe stanice i vrati se u magacin.
             var url = $"trip/v1/driving/{tacke}"
-                + "?source=first&roundtrip=false&overview=simplified&geometries=geojson";
+                + "?source=first&roundtrip=true&overview=simplified&geometries=geojson";
 
             using var response = await http.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -105,6 +114,9 @@ public class OsrmRouteOptimizer(
                 .Concat(bezKoordinata)
                 .ToList();
 
+            // roundtrip=true znači da distance/duration (i geometrija ispod) uključuju i
+            // povratnu dionicu do magacina, ne samo isporuke — to je namjerno, tura stvarno
+            // tako izgleda za smjenu, ali zato je zbir veći nego prost zbir dionica do kupaca.
             var trip = root.GetProperty("trips")[0];
             var duzina = trip.GetProperty("distance").GetDouble();
             var trajanje = trip.GetProperty("duration").GetDouble();
