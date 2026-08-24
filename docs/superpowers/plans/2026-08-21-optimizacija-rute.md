@@ -525,7 +525,9 @@ curl -s "$API/admin/routes?date=$(date +%F)" -H "Authorization: Bearer $TOKEN" |
 curl -s -X POST "$API/admin/routes/<ROUTE_ID>/optimize" -H "Authorization: Bearer $TOKEN" | head -c 500
 ```
 
-Expected: odgovor nosi `duzinaMetara` i `trajanjeSekundi` različite od nule, `geometrija` kao niz koordinata, i `sequence` vrijednosti koje se razlikuju od redoslijeda kojim su narudžbe dodijeljene.
+Expected: `sequence` vrijednosti se razlikuju od redoslijeda kojim su narudžbe dodijeljene.
+
+**`duzinaMetara`, `trajanjeSekundi` i `geometrija` će u ovom tasku biti `null` čak i kad OSRM odgovori, i to je očekivano.** `OptimizeRouteHandler` ih još ne upisuje na entitet — taj upis dolazi u Tasku 4, u `Optimizacija.PrimijeniAsync`. Ranija verzija ovog koraka je tražila da budu različiti od nule, što je bilo nedostižno i navelo bi te da tražiš nepostojeći kvar.
 
 **Napomena o okruženju:** odlazni TCP iz .NET procesa je blokiran u ovom sandboxu (`WSAEACCES`), dok `curl` prolazi. Ako se to i dalje dešava, OSRM poziv će pasti i vratiće se sortiranje po zonama — što je i dalje koristan rezultat, jer dokazuje da rezerva radi. U tom slučaju to **izričito zapiši** i nemoj tvrditi da je OSRM provjeren.
 
@@ -602,7 +604,11 @@ internal static class Optimizacija
         route.DuzinaMetara = rezultat.DuzinaMetara;
         route.TrajanjeSekundi = rezultat.TrajanjeSekundi;
         route.Geometrija = rezultat.Geometrija;
-        route.Status = RouteStatus.Optimized;
+
+        // Status "Optimized" samo kad je stvarno optimizovano. Rezerva po zonama
+        // vraća redoslijed ali nema kilometražu — kad bismo i tada pisali Optimized,
+        // ništa u sistemu ne bi razlikovalo pravu rutu od degradirane.
+        if (rezultat.DuzinaMetara.HasValue) route.Status = RouteStatus.Optimized;
     }
 }
 ```
