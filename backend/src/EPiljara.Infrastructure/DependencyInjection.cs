@@ -5,6 +5,7 @@ using EPiljara.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 
 namespace EPiljara.Infrastructure;
 
@@ -45,7 +46,15 @@ public static class DependencyInjection
             // Javni demo server; predstavljamo se kao i kod geokodiranja.
             c.DefaultRequestHeaders.UserAgent.ParseAdd("EPiljara/1.0 (dostava Banja Luka)");
             c.Timeout = TimeSpan.FromSeconds(20);
-        });
+        })
+        // Podrazumijevani HttpClientFactory logger ispisuje puni URI zahtjeva na Information
+        // nivou, a OSRM koordinate vozača drži u putanji (/trip/v1/{profile}/{coords}), ne u
+        // query stringu — nema query filtera koji bi ih sklonio. Uklanja se ovdje, na builderu,
+        // namjerno umjesto kroz Logging konfiguraciju: config je najlakše mjesto da neko kasnije
+        // "diže" HTTP logging radi dijagnostike ispada, i tačno bi ponovo otvorio ovo curenje.
+        // Zamjenski signal za latenciju je eksplicitan LogInformation na uspješnoj grani u
+        // OsrmRouteOptimizer, bez koordinata.
+        .RemoveAllLoggers();
 
         services.AddHttpClient<IGeocodingService, NominatimGeocodingService>(c =>
         {

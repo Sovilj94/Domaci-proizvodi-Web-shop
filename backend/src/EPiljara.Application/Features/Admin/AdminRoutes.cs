@@ -63,6 +63,15 @@ internal static class Optimizacija
         DeliveryRoute route, double startLat, double startLon,
         IRouteOptimizer optimizer, CancellationToken ct)
     {
+        // Ako nijedna stanica nema učitanu narudžbu, poziv je vjerovatno zaboravio
+        // .ThenInclude(s => s.Order) na upitu koji je učitao rutu. Bez ove provjere
+        // svaka stanica ispadne "otvorena" (vidi filter ispod) i prenumeracija bi
+        // krenula od 1 čak i preko zatvorenih stanica — tiha korupcija redoslijeda.
+        if (route.Stops.Count > 0 && route.Stops.All(s => s.Order is null))
+            throw new InvalidOperationException(
+                "Optimizacija.PrimijeniAsync zahtijeva rutu učitanu sa " +
+                ".Include(r => r.Stops).ThenInclude(s => s.Order) — narudžbe nisu učitane.");
+
         var otvorene = route.Stops
             .Where(s => s.Order is null || !Zatvoreni.Contains(s.Order.Status))
             .ToList();
@@ -84,11 +93,22 @@ internal static class Optimizacija
             .DefaultIfEmpty(0)
             .Max() + 1;
 
+        // Po instanci stanice, ne po OrderId: da dupli OrderId u rezultat.Order (npr.
+        // stigao iz nedovoljno deduplikovanog unosa) ne pogodi istu stanicu dvaput i
+        // ostavi drugu sa zastarjelim brojem koji se sudara sa sljedećom. Stanica koja
+        // se nikad ne pojavi u rezultatu — današnji optimizatori uvijek vraćaju
+        // kompletan skup, ali buduci ne mora — ipak dobije broj, na kraju niza.
+        var dodijeljene = new HashSet<RouteStop>();
         foreach (var orderId in rezultat.Order)
         {
-            var stop = route.Stops.FirstOrDefault(s => s.OrderId == orderId);
-            if (stop is not null) stop.Sequence = pocetak++;
+            var stop = otvorene.FirstOrDefault(s => s.OrderId == orderId && !dodijeljene.Contains(s));
+            if (stop is null) continue;
+            stop.Sequence = pocetak++;
+            dodijeljene.Add(stop);
         }
+
+        foreach (var stop in otvorene.Where(s => !dodijeljene.Contains(s)))
+            stop.Sequence = pocetak++;
 
         route.DuzinaMetara = rezultat.DuzinaMetara;
         route.TrajanjeSekundi = rezultat.TrajanjeSekundi;
@@ -129,7 +149,10 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOp
             Date = date,
             DriverId = driver.Id,
             Status = RouteStatus.Planned,
+            // Distinct: dupli OrderId u zahtjevu bi inače stvorio dvije stanice sa istim
+            // OrderId-jem, koje se PrimijeniAsync ne bi mogao pouzdano razlikovati.
             Stops = cmd.OrderIds
+                .Distinct()
                 .Where(validOrderIds.Contains)
                 .Select((orderId, i) => new RouteStop { OrderId = orderId, Sequence = i + 1 })
                 .ToList(),

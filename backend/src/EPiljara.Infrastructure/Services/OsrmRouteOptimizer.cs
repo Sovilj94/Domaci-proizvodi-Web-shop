@@ -23,6 +23,8 @@ public class OsrmRouteOptimizer(
         IReadOnlyList<RouteStopInput> stops,
         CancellationToken cancellationToken = default)
     {
+        var pocetak = System.Diagnostics.Stopwatch.StartNew();
+
         // Optimizuju se samo stanice sa koordinatama; ostale idu na kraj.
         var saKoordinatama = stops
             .Where(s => s.Latitude.HasValue && s.Longitude.HasValue)
@@ -107,6 +109,12 @@ public class OsrmRouteOptimizer(
             var duzina = trip.GetProperty("distance").GetDouble();
             var trajanje = trip.GetProperty("duration").GetDouble();
             var geometrija = trip.GetProperty("geometry").GetProperty("coordinates").GetRawText();
+
+            // Jedini signal latencije otkad je HTTP logging za ovaj klijent ugašen
+            // (vidi RemoveAllLoggers u DependencyInjection.cs) — namjerno bez koordinata.
+            logger.LogInformation(
+                "OSRM optimizacija uspjela za {BrojStanica} stanica za {Ms} ms",
+                saKoordinatama.Count, pocetak.ElapsedMilliseconds);
 
             return new RouteOptimizationResult(redoslijed, duzina, trajanje, geometrija);
         }

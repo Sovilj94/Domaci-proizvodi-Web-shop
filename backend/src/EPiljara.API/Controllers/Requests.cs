@@ -12,4 +12,9 @@ public record SetAvailabilityRequest(bool IsAvailable);
 /// </summary>
 public record SetCoordinatesRequest(double? Latitude, double? Longitude);
 
+/// <summary>
+/// Ne-nullable, za razliku od <see cref="SetCoordinatesRequest"/>: ovdje je to bezbjedno jer
+/// nepotpuno tijelo (<c>{}</c>) veže na 0,0, a <c>GeoBounds</c> tu tačku odbija kao izvan BiH —
+/// nema tihog upisa pogrešne pozicije, samo 400.
+/// </summary>
 public record ReoptimizeRequest(double Latitude, double Longitude);

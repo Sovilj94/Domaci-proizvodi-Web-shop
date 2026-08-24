@@ -11,7 +11,10 @@ namespace EPiljara.Application.Features.Driver;
 
 /// <summary>
 /// Ponovo računa redoslijed preostalih stanica od mjesta gdje je vozač sada.
-/// Pozicija se koristi samo za ovaj račun i nigdje se ne upisuje ni loguje.
+/// Pozicija se koristi samo za ovaj račun i nigdje se ne upisuje ni loguje: prosljeđuje se
+/// u <c>IRouteOptimizer</c>, čiji HTTP klijent ima namjerno uklonjene podrazumijevane
+/// loggere (vidi <c>RemoveAllLoggers()</c> u Infrastructure/DependencyInjection.cs) jer bi
+/// inače ispisivali punu OSRM putanju sa koordinatama na Information nivou.
 /// </summary>
 public record ReoptimizeRouteCommand(double Latitude, double Longitude) : IRequest<DeliveryRouteDto>;
 
