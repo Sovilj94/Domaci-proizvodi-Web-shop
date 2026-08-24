@@ -1384,6 +1384,160 @@ Zapiši šta je prošlo a šta nije. Ako neka provjera padne, to je nalaz — ja
 
 ---
 
+### Task 9: Sopstveni OSRM umjesto javnog demo servera
+
+**Dodat poslije Taska 4, na osnovu nalaza pregleda i odluke vlasnika projekta.** Izvršava se odmah poslije Taska 4, prije mobilnih taskova — nije na kraju uprkos broju.
+
+**Zašto:** javnom demo serveru `router.project-osrm.org` šaljemo tačne koordinate magacina i svih kupaca na svakoj optimizaciji, a kroz ručni ponovni račun i **živu poziciju vozača** — uz `User-Agent` kojim se sami predstavljamo kao „EPiljara, dostava Banja Luka". Njegovo logovanje ne kontrolišemo i ne možemo da revidiramo. Uz to, njihova pravila korišćenja demo server ograničavaju na razvoj i testiranje.
+
+**Sporedna, ali stvarna korist:** odlazni TCP iz .NET procesa je u ovom okruženju blokiran (`WSAEACCES`), zbog čega putanja koja parsira OSRM odgovor **nikad nije izvršena** — iza nje stoje samo čitanje koda i `curl` potvrda oblika odgovora. Poziv na `localhost` tom blokadom nije pogođen (API već tako priča sa Postgresom), pa ovaj task konačno omogućava da se ta putanja stvarno provjeri.
+
+**Files:**
+- Modify: `backend/docker-compose.yml`
+- Create: `backend/osrm/README.md`
+- Modify: `backend/.gitignore`
+- Modify: `backend/src/EPiljara.Infrastructure/DependencyInjection.cs`
+- Modify: `backend/src/EPiljara.API/appsettings.json`, `appsettings.Development.json`
+
+**Interfaces:**
+- Consumes: `OsrmRouteOptimizer` (Task 3), nepromijenjen — mijenja se samo odredište
+- Produces: konfiguraciona vrijednost `Osrm:BaseUrl`; servis `osrm` u compose-u na portu 5000
+
+- [ ] **Step 1: Izvuci adresu u konfiguraciju**
+
+U `appsettings.json` i `appsettings.Development.json`:
+
+```json
+  "Osrm": {
+    "BaseUrl": "http://localhost:5000/"
+  }
+```
+
+U `backend/src/EPiljara.Infrastructure/DependencyInjection.cs`, zamijeni tvrdo upisani `BaseAddress`:
+
+```csharp
+            c.BaseAddress = new Uri(
+                config["Osrm:BaseUrl"]
+                ?? throw new InvalidOperationException(
+                    "Osrm:BaseUrl nije podešen. Bez njega optimizacija ne bi radila, "
+                    + "a ruta bi tiho ispala neoptimizovana."));
+```
+
+**Zadrži `.RemoveAllLoggers()`.** Sopstvena instanca ne mijenja to što bi puni URL nosio poziciju vozača u **naše** logove — a upravo je to popravljeno u Tasku 4.
+
+`User-Agent` više nije potreban (bio je zahtjev javnog servisa), ali ga ostavi — bezopasan je i koristan ako se ikad gleda saobraćaj.
+
+- [ ] **Step 2: Dodaj OSRM u compose**
+
+U `backend/docker-compose.yml`, uz `postgres`:
+
+```yaml
+  osrm:
+    image: osrm/osrm-backend:latest
+    container_name: epiljara-osrm
+    command: osrm-routed --algorithm mld /data/bosnia-herzegovina-latest.osrm
+    volumes:
+      - ./osrm/data:/data
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+```
+
+I u `api` servisu, uz ostale `environment` vrijednosti — jer iz kontejnera se OSRM ne zove preko `localhost`, isto kao Postgres:
+
+```yaml
+      Osrm__BaseUrl: "http://osrm:5000/"
+```
+
+- [ ] **Step 3: Ne commituj mapu**
+
+U `backend/.gitignore`:
+
+```
+osrm/data/
+```
+
+Izvod je 152 MB, a obrađeni fajlovi su još nekoliko stotina megabajta. **Provjeri `git check-ignore -v backend/osrm/data` prije nego što išta stageuješ** — slučajno commitovan `.pbf` se teško vadi iz istorije.
+
+- [ ] **Step 4: Preuzmi i obradi mapu**
+
+Jednokratno. Traje 5-15 minuta za BiH.
+
+```bash
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
+mkdir -p osrm/data && cd osrm/data
+curl -L -o bosnia-herzegovina-latest.osm.pbf \
+  https://download.geofabrik.de/europe/bosnia-herzegovina-latest.osm.pbf
+ls -lh bosnia-herzegovina-latest.osm.pbf
+```
+
+Expected: oko 152 MB. Ako je bitno manje, preuzimanje je prekinuto — ponovi umjesto da nastaviš.
+
+Zatim tri koraka MLD pipeline-a, svaki u kontejneru nad istim folderom:
+
+```bash
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend/osrm"
+docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
+  osrm-extract -p /opt/car.lua /data/bosnia-herzegovina-latest.osm.pbf
+docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
+  osrm-partition /data/bosnia-herzegovina-latest.osrm
+docker run --rm -v "$(pwd)/data:/data" osrm/osrm-backend:latest \
+  osrm-customize /data/bosnia-herzegovina-latest.osrm
+```
+
+`osrm-extract` je najzahtjevniji korak. Ako padne sa porukom o memoriji, to je Docker Desktop-ov limit, ne greška u komandi — javi umjesto da smanjuješ izvod na manju regiju.
+
+Provjeri prostor prije početka (`df -h /c`); obrada traži nekoliko stotina megabajta iznad samog izvoda.
+
+- [ ] **Step 5: Podigni i provjeri direktno**
+
+```bash
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
+docker compose up -d osrm
+sleep 10
+docker logs epiljara-osrm --tail 5
+curl -s "http://localhost:5000/trip/v1/driving/17.1910,44.7722;17.1883,44.7695;17.2010,44.7810?source=first&roundtrip=false&overview=simplified&geometries=geojson" | head -c 400
+```
+
+Expected: `"code":"Ok"`, `trips[0]` sa `distance` i `duration` različitim od nule, i `waypoints` sa `waypoint_index` vrijednostima. Ako vrati `"code":"NoSegment"`, tačke su van mape — provjeri da nisu zamijenjene (`lon,lat`, ne obrnuto).
+
+- [ ] **Step 6: Provjeri kroz aplikaciju — ovo je pravi cilj taska**
+
+```bash
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt/backend"
+dotnet run --project src/EPiljara.API --urls http://0.0.0.0:5080
+```
+
+U drugom terminalu dodijeli rutu sa bar tri narudžbe koje imaju koordinate.
+
+Expected, i **svaku stavku potvrdi zasebno**:
+
+1. `sequence` vrijednosti se razlikuju od redoslijeda kojim su narudžbe dodijeljene
+2. `duzinaMetara` i `trajanjeSekundi` su **različiti od nule** — do sada su uvijek bili `null` jer je radila rezerva
+3. `geometrija` je niz koordinata
+4. `status` je `Optimized` — rezerva ga namjerno ne postavlja
+5. U logovima **nema poruke** „OSRM optimizacija nije uspjela"
+6. U logovima **nema nijedne koordinate** (`RemoveAllLoggers` iz Taska 4 i dalje drži)
+
+Tačke 2, 3 i 4 su prvi stvarni dokaz da parsiranje OSRM odgovora radi. Ako bilo koja padne, **to je nalaz** — javi ga umjesto da prilagođavaš plan.
+
+Provjeri i ponovni račun od pozicije vozača, i da zatvorene stanice zadrže svoje brojeve.
+
+- [ ] **Step 7: Napiši uputstvo**
+
+`backend/osrm/README.md`, na srpskom: šta je ovaj folder, zašto sopstvena instanca umjesto javne (privatnost — koordinate kupaca i pozicija vozača ne izlaze iz naše infrastrukture; plus pravila korišćenja demo servera), komande za preuzimanje i obradu iz Step 4, i napomena da se `data/` ne commituje. Dodaj i kako se mapa osvježava kad OSM podaci zastare — isti tri koraka nad novim izvodom.
+
+- [ ] **Step 8: Commit**
+
+```bash
+cd "C:/Users/soviljn/Desktop/epiljara-backend-wt"
+git status --short   # potvrdi da nema nicega iz osrm/data
+git add backend/docker-compose.yml backend/.gitignore backend/osrm/README.md backend/src
+git commit -m "feat(api): run OSRM ourselves so customer and driver coordinates stay in our infrastructure"
+```
+
+---
+
 ## Prije produkcije
 
 Ovaj plan namjerno ostavlja nekoliko stvari nedovršenim jer su za razvoj ispravne, a za produkciju nisu. Puna tabela sa obrazloženjima je u spec-u pod „Šta moraš uraditi prije produkcije"; ukratko:
