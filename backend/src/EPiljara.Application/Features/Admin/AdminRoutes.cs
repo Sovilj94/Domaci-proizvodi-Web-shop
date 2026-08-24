@@ -102,8 +102,13 @@ public class AssignRouteHandler(IAppDbContext db) : IRequestHandler<AssignRouteC
 
 public record OptimizeRouteCommand(Guid RouteId) : IRequest<DeliveryRouteDto>;
 
-/// <summary>Polazište tura. Jedna piljara, jedan magacin, pa stoji u konfiguraciji.</summary>
-public record Magacin(double Latitude, double Longitude);
+/// <summary>Polazište tura. Jedna piljara, jedan magacin, pa stoji u konfiguraciji.
+/// Obična klasa sa set svojstvima, ne pozicioni record — AddOptions traži new().</summary>
+public class Magacin
+{
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+}
 
 public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOptions<Magacin> magacin)
     : IRequestHandler<OptimizeRouteCommand, DeliveryRouteDto>

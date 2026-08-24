@@ -1,3 +1,4 @@
+using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Infrastructure.Persistence;
 using EPiljara.Infrastructure.Services;
@@ -25,8 +26,26 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IEmailService, SmtpEmailService>();
         services.AddScoped<IViberService, LoggingViberService>();
-        services.AddSingleton<IRouteOptimizer, ZoneRouteOptimizer>();
         services.AddScoped<ISocialAuthVerifier, SocialAuthVerifier>();
+
+        services.AddOptions<EPiljara.Application.Features.Admin.Magacin>()
+            .Bind(config.GetSection("Magacin"))
+            // Bez koordinata magacina cijela ruta bi se racunala od 0°N 0°E, usred
+            // Atlantika, a rezultat bi izgledao uvjerljivo. Bolje da se aplikacija
+            // ne digne nego da tiho vozi iz pogresne tacke.
+            .Validate(m => GeoBounds.Contains(m.Latitude, m.Longitude),
+                "Magacin:Latitude i Magacin:Longitude moraju biti unutar Bosne i Hercegovine.")
+            .ValidateOnStart();
+
+        // Rezerva se registruje zasebno jer je OsrmRouteOptimizer prima kroz konstruktor.
+        services.AddSingleton<ZoneRouteOptimizer>();
+        services.AddHttpClient<IRouteOptimizer, OsrmRouteOptimizer>(c =>
+        {
+            c.BaseAddress = new Uri("https://router.project-osrm.org/");
+            // Javni demo server; predstavljamo se kao i kod geokodiranja.
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("EPiljara/1.0 (dostava Banja Luka)");
+            c.Timeout = TimeSpan.FromSeconds(20);
+        });
 
         services.AddHttpClient<IGeocodingService, NominatimGeocodingService>(c =>
         {
