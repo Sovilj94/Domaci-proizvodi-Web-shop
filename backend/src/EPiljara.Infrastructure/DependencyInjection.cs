@@ -42,8 +42,14 @@ public static class DependencyInjection
         services.AddSingleton<ZoneRouteOptimizer>();
         services.AddHttpClient<IRouteOptimizer, OsrmRouteOptimizer>(c =>
         {
-            c.BaseAddress = new Uri("https://router.project-osrm.org/");
-            // Javni demo server; predstavljamo se kao i kod geokodiranja.
+            c.BaseAddress = new Uri(
+                config["Osrm:BaseUrl"]
+                ?? throw new InvalidOperationException(
+                    "Osrm:BaseUrl nije podešen. Bez njega optimizacija ne bi radila, "
+                    + "a ruta bi tiho ispala neoptimizovana."));
+            // Sopstvena instanca više ne zahtijeva User-Agent (bio je uslov javnog
+            // demo servera), ali ga ostavljamo — bezopasan je i koristan ako se ikad
+            // gleda saobraćaj.
             c.DefaultRequestHeaders.UserAgent.ParseAdd("EPiljara/1.0 (dostava Banja Luka)");
             c.Timeout = TimeSpan.FromSeconds(20);
         })

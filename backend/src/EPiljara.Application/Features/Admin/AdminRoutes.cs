@@ -63,11 +63,14 @@ internal static class Optimizacija
         DeliveryRoute route, double startLat, double startLon,
         IRouteOptimizer optimizer, CancellationToken ct)
     {
-        // Ako nijedna stanica nema učitanu narudžbu, poziv je vjerovatno zaboravio
-        // .ThenInclude(s => s.Order) na upitu koji je učitao rutu. Bez ove provjere
-        // svaka stanica ispadne "otvorena" (vidi filter ispod) i prenumeracija bi
-        // krenula od 1 čak i preko zatvorenih stanica — tiha korupcija redoslijeda.
-        if (route.Stops.Count > 0 && route.Stops.All(s => s.Order is null))
+        // Ako bar jedna stanica nema učitanu narudžbu, poziv je vjerovatno zaboravio
+        // .ThenInclude(s => s.Order) na upitu koji je učitao rutu — OrderId je obavezan
+        // strani ključ, pa Order stvarno null biti ne može. Provjera namjerno koristi
+        // Any, ne All: djelimičan EF change-tracker fixup zna već pratiti poneku Order
+        // (npr. iz ranijeg upita u istom kontekstu), pa bi All ispao false i propustio
+        // guard, a preostale stanice sa null navigacijom bi tiho prošle kao "otvorene"
+        // (vidi filter ispod) i pokvarile prenumeraciju.
+        if (route.Stops.Count > 0 && route.Stops.Any(s => s.Order is null))
             throw new InvalidOperationException(
                 "Optimizacija.PrimijeniAsync zahtijeva rutu učitanu sa " +
                 ".Include(r => r.Stops).ThenInclude(s => s.Order) — narudžbe nisu učitane.");

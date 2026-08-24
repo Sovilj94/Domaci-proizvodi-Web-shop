@@ -19,6 +19,19 @@ services:
       timeout: 5s
       retries: 5
 
+  osrm:
+    image: osrm/osrm-backend:latest
+    container_name: epiljara-osrm
+    # --verbosity WARNING: bez ovoga osrm-routed pise svaki zahtjev na stdout,
+    # a URL nosi koordinate kupaca i vozaca — isto curenje koje je Task 4
+    # zatvorio na nasoj strani, samo jedan sloj nize. Greske i dalje prolaze.
+    command: osrm-routed --algorithm mld --verbosity WARNING /data/bosnia-herzegovina-latest.osrm
+    volumes:
+      - ./osrm/data:/data
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -29,6 +42,7 @@ services:
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=epiljara;Username=epiljara;Password=epiljara_dev_lozinka"
       Jwt__SigningKey: "dev-only-signing-key-change-in-production-min-32-bytes!!"
       Cors__Origins__0: "http://localhost:3000"
+      Osrm__BaseUrl: "http://osrm:5000/"
     ports:
       - "5080:8080"
     depends_on:

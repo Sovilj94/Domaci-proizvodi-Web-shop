@@ -126,7 +126,10 @@ public class OsrmRouteOptimizer(
         // prosljeđuje dalje, umjesto da se pretvori u besmislen poziv rezerve.
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            logger.LogWarning(e, "OSRM optimizacija nije uspjela, vraćam se na sortiranje po zonama");
+            logger.LogWarning(
+                e,
+                "OSRM optimizacija nije uspjela poslije {Ms} ms, vraćam se na sortiranje po zonama",
+                pocetak.ElapsedMilliseconds);
             return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
         }
     }
