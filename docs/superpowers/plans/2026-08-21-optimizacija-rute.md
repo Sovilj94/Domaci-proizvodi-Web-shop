@@ -1435,13 +1435,25 @@ U `backend/docker-compose.yml`, uz `postgres`:
   osrm:
     image: osrm/osrm-backend:latest
     container_name: epiljara-osrm
-    command: osrm-routed --algorithm mld /data/bosnia-herzegovina-latest.osrm
+    # --verbosity WARNING: bez ovoga osrm-routed pise svaki zahtjev na stdout,
+    # a URL nosi koordinate kupaca i vozaca — isto curenje koje je Task 4
+    # zatvorio na nasoj strani, samo jedan sloj nize. Greske i dalje prolaze.
+    command: osrm-routed --algorithm mld --verbosity WARNING /data/bosnia-herzegovina-latest.osrm
     volumes:
       - ./osrm/data:/data
     ports:
       - "5000:5000"
     restart: unless-stopped
 ```
+
+**Ovo obavezno provjeri, ne pretpostavljaj.** Poslije Step 5, pusti nekoliko zahtjeva pa pogledaj `docker logs epiljara-osrm` i potraži bilo koju koordinatu. Ako `--verbosity WARNING` ne ukloni te linije, dodaj servisu:
+
+```yaml
+    logging:
+      driver: "none"
+```
+
+i **zapiši u izvještaju šta je stvarno bilo potrebno**. Ako ni to ne pomogne, javi — nemoj ostaviti koordinate u logu i nastaviti dalje.
 
 I u `api` servisu, uz ostale `environment` vrijednosti — jer iz kontejnera se OSRM ne zove preko `localhost`, isto kao Postgres:
 
@@ -1523,11 +1535,19 @@ Tačke 2, 3 i 4 su prvi stvarni dokaz da parsiranje OSRM odgovora radi. Ako bilo
 
 Provjeri i ponovni račun od pozicije vozača, i da zatvorene stanice zadrže svoje brojeve.
 
-- [ ] **Step 7: Napiši uputstvo**
+- [ ] **Step 7: Dvije sitnice iz pregleda Taska 4**
+
+Obje su male i tiču se koda koji ovaj task ionako dodiruje.
+
+1. `AdminRoutes.cs`, guard za zaboravljen `Include`: uslov je `All(s => s.Order is null)`. Djelimičan EF fixup ga pobjeđuje — ako kontekst već prati makar jednu `Order`, `All` postane `false`, guard propusti, a preostale stanice sa `null` navigacijom tiho prođu kao otvorene. Zamijeni sa `Any(s => s.Order is null)`; strani ključ je obavezan pa je to jednako bezbjedno.
+
+2. `OsrmRouteOptimizer.cs`: `Stopwatch` se čita samo na uspješnoj grani. Istek od 20 sekundi je najvjerovatniji simptom stvarnog pada OSRM-a, a sada se u logu ne razlikuje od trenutnog odbijanja veze. Dodaj `ElapsedMilliseconds` i u upozorenje u `catch` grani — polje već postoji i ne nosi koordinate.
+
+- [ ] **Step 8: Napiši uputstvo**
 
 `backend/osrm/README.md`, na srpskom: šta je ovaj folder, zašto sopstvena instanca umjesto javne (privatnost — koordinate kupaca i pozicija vozača ne izlaze iz naše infrastrukture; plus pravila korišćenja demo servera), komande za preuzimanje i obradu iz Step 4, i napomena da se `data/` ne commituje. Dodaj i kako se mapa osvježava kad OSM podaci zastare — isti tri koraka nad novim izvodom.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 cd "C:/Users/soviljn/Desktop/epiljara-backend-wt"
