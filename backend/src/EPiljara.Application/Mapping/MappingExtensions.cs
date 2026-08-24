@@ -146,6 +146,9 @@ public static class MappingExtensions
         DriverId = r.DriverId,
         DriverName = r.Driver?.Name,
         Status = r.Status.ToString(),
+        DuzinaMetara = r.DuzinaMetara,
+        TrajanjeSekundi = r.TrajanjeSekundi,
+        Geometrija = r.Geometrija,
         Stops = r.Stops.OrderBy(x => x.Sequence).Select(x => x.ToDto()).ToList(),
     };
 }

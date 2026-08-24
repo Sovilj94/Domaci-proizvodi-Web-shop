@@ -64,10 +64,19 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DriverId")
                         .HasColumnType("uuid");
 
+                    b.Property<double?>("DuzinaMetara")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Geometrija")
+                        .HasColumnType("text");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<double?>("TrajanjeSekundi")
+                        .HasColumnType("double precision");
 
                     b.HasKey("Id");
 

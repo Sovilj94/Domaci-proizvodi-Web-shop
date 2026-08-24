@@ -13,5 +13,14 @@ public class DeliveryRoute : Entity
 
     public RouteStatus Status { get; set; } = RouteStatus.Planned;
 
+    /// <summary>
+    /// Rezultat optimizacije. null kad optimizacija nije uspjela ili nije ni pokušana —
+    /// ruta tada radi, samo bez linije i procjene.
+    /// Geometrija je GeoJSON niz koordinata kao tekst, spreman za crtanje na mapi.
+    /// </summary>
+    public double? DuzinaMetara { get; set; }
+    public double? TrajanjeSekundi { get; set; }
+    public string? Geometrija { get; set; }
+
     public ICollection<RouteStop> Stops { get; set; } = new List<RouteStop>();
 }

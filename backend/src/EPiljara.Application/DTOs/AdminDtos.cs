@@ -32,6 +32,10 @@ public record DeliveryRouteDto
     public Guid DriverId { get; init; }
     public string? DriverName { get; init; }
     public string Status { get; init; } = "Planned";
+    /// <summary>Rezultat optimizacije; null kad je izostala.</summary>
+    public double? DuzinaMetara { get; init; }
+    public double? TrajanjeSekundi { get; init; }
+    public string? Geometrija { get; init; }
     public IReadOnlyList<RouteStopDto> Stops { get; init; } = [];
 }
 
