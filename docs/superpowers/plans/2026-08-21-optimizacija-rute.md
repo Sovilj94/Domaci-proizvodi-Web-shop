@@ -1562,14 +1562,17 @@ git commit -m "feat(api): run OSRM ourselves so customer and driver coordinates 
 
 Ovaj plan namjerno ostavlja nekoliko stvari nedovršenim jer su za razvoj ispravne, a za produkciju nisu. Puna tabela sa obrazloženjima je u spec-u pod „Šta moraš uraditi prije produkcije"; ukratko:
 
-| Stavka | Gdje |
+| Stavka | Stanje |
 |---|---|
-| Zamijeniti OSRM demo server sopstvenom instancom ili OpenRouteService-om | `DependencyInjection.cs`, `BaseAddress` — Task 3 |
-| Upisati stvarne koordinate magacina umjesto placeholder-a | `appsettings.json`, sekcija `Magacin` — Task 1 |
-| Zamijeniti `https://api.example.invalid` | `appsettings.Release.json` u mobilnom repou — naslijeđeno iz Faze 2a |
-| Provjeriti seriju od četiri na telefonu **bez** Google Maps-a | Task 8 Step 4 pokriva samo onaj slučaj koji emulator ima |
-| Zamijeniti Nominatim za geokodiranje | naslijeđeno iz Faze 2a |
-| Provjeriti foreground servis na stvarnom telefonu | naslijeđeno iz Faze 2b, `NotSticky` |
+| ~~Zamijeniti OSRM demo server~~ | **URAĐENO** u Tasku 9. Sopstvena instanca u Docker-u, koordinate ne izlaze iz naše infrastrukture. Ostaje samo osvježavati OSM izvod kad zastari — postupak je u `backend/osrm/README.md`. |
+| Upisati stvarne koordinate magacina | **OTVORENO.** `appsettings.json`, sekcija `Magacin`, još nosi placeholder. `.ValidateOnStart()` odbija tačku izvan BiH, ali ne zna koja je tačka *prava*, pa bi pogrešan magacin unutar BiH prošao i cijela ruta bi se računala od njega — a rezultat bi izgledao uvjerljivo. |
+| Zamijeniti `https://api.example.invalid` | **OTVORENO.** `appsettings.Release.json` u mobilnom repou. Mora ostati `https` jer Release zabranjuje običan HTTP. |
+| Provjeriti seriju od četiri na telefonu **bez** Google Maps-a | **OTVORENO.** Slučaj *sa* Maps-om je provjeren na uređaju i prolazi („Navigacija (10 od 12)", Maps se stvarno otvara sa 9 međustanica). Slučaj bez Maps-a nikad nije viđen. |
+| Zamijeniti Nominatim za geokodiranje | **OTVORENO, i sada teže opravdivo.** Šalje doslovne adrese kupaca javnom servisu — isti problem koji je OSRM imao dok ga nismo podigli kod sebe. Naslijeđeno iz Faze 2a. |
+| Provjeriti foreground servis na stvarnom telefonu | **OTVORENO.** Uz `NotSticky`, ako Android ubije proces usred smjene praćenje tiho prestane. Na emulatoru je usput viđen `ForegroundServiceDidNotStartInTimeException` iz zaostalog stanja — vjerovatno posljedica ponovljenih instalacija, ali nije potvrđeno. |
+| Povezati dugme „Bez tačne lokacije — postavi" u admin UI | **OTVORENO, novo.** Backend endpointi iz Faze 2a rade, ali nikad nisu povezani na frontend. Admin trenutno **nema način** da ručno postavi pin za adresu koju geokodiranje ne prepozna — a takve adrese postoje („Reljina 18, Banja Luka" ne vraća ništa). |
+| Uskladiti port u `.env.local` admin frontenda | **OTVORENO, novo.** Pokazuje na 5081, backend radi na 5080. |
+| Razmotriti jedinstveni indeks na `RouteStop(RouteId, Sequence)` | **OTVORENO, svjesno odloženo.** Duple vrijednosti trenutno korumpiraju tiho umjesto da bace grešku. Uzrok je popravljen, ali odbrana u dubinu nije dodata jer nosi rizik migracije postojećih podataka. |
 
 Nijedna od ovih stavki ne blokira taskove iz ovog plana.
 
