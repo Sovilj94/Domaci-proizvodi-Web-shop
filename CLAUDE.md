@@ -34,9 +34,13 @@ npx tsc --noEmit # typecheck (there is no "typecheck" script; use this)
 **Backend** (needs .NET 9 SDK — pinned to 9.0.310 in global.json; Docker for Postgres):
 ```bash
 docker compose up -d postgres              # Postgres 16 on :5432
+docker compose up -d osrm                  # self-hosted routing on :5000 (see below)
 dotnet run --project src/EPiljara.API      # http://localhost:5080, Swagger at /swagger
-docker compose up -d                       # or run DB + API together in containers (API on :5080)
+docker compose up -d                       # or run DB + API + OSRM together (API on :5080)
 ```
+The `osrm` service needs its map data prepared once before it will start — `backend/osrm/data/` is
+git-ignored and empty on a fresh clone. `backend/osrm/README.md` has the download and preprocessing
+commands. Without it the container restarts in a loop and every route silently falls back to zone sorting.
 The API **auto-applies migrations and seeds demo data on startup** in Development — no manual DB setup.
 The seeder is **idempotent** (it bails if any data exists), so to load changed seed data you must wipe first:
 `docker exec epiljara-postgres psql -U epiljara -d epiljara -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`
@@ -102,14 +106,76 @@ DI registration**. Validation runs automatically in the MediatR pipeline (`Valid
   any product (including soft-deleted ones — check via `IgnoreQueryFilters()`) still references it.
 
 **Auth:** JWT bearer, roles `Customer`/`Admin`/`Driver`. Admin endpoints use `[Authorize(Roles="Admin")]`;
-the driver app is a first-class consumer with its own `/driver/*` endpoints. Rate limiting is global plus a
-tighter `auth` partition. Swappable services live behind interfaces (`IEmailService`, `IRouteOptimizer`).
+the driver app is a first-class consumer with its own endpoints — `GET /driver/route`,
+`PATCH /driver/orders/{id}/status` (accepts only `Delivered` or `FailedDelivery`), and
+`POST /driver/route/reoptimize`. That last one takes the driver's live position as a parameter, uses it for
+one computation, and **never stores or logs it**; see the logging notes under Route optimization. Rate
+limiting is global plus a tighter `auth` partition. Swappable services live behind interfaces
+(`IEmailService`, `IRouteOptimizer`, `IGeocodingService`).
 
 **Order confirmation email:** `CreateOrder` calls `IEmailService.SendOrderConfirmationAsync` (failures never
 block the order — wrapped in try/catch). The impl is `SmtpEmailService`, which renders `OrderEmailTemplate`
 (self-contained HTML) and sends over SMTP using the `Email` section in `appsettings.json`. In dev it targets a
 local **Mailpit** catcher — sent mail is viewable at http://localhost:8025 (no real mailbox needed). Only sent
 when the order has a customer email; guests without one are skipped.
+
+## Route optimization
+
+`IRouteOptimizer` computes the visiting order for a day's deliveries. Two implementations:
+`OsrmRouteOptimizer` (real) and `ZoneRouteOptimizer` (fallback, sorts by zone name and knows nothing about
+roads). The fallback is registered separately and injected into the real one — **a driver must never be
+left without a route because a routing service was down.**
+
+It runs from two places: automatically when an admin assigns a route, and from
+`POST /driver/route/reoptimize`, which recomputes the remaining stops from the driver's live position.
+Both go through `Optimizacija.PrimijeniAsync` in `Features/Admin/AdminRoutes.cs` — do not duplicate that
+logic; the renumbering below lives there and only there.
+
+### OSRM runs in our own container, deliberately
+
+`docker-compose.yml` hosts `osrm/osrm-backend` on `:5000` over a Bosnia and Herzegovina extract.
+The public `router.project-osrm.org` demo was replaced because every optimization sent it the exact
+coordinates of the warehouse and **every customer**, plus the driver's live GPS position on re-optimize,
+under a `User-Agent` naming us — and its usage policy limits it to development anyway.
+
+- `Osrm:BaseUrl` is `http://localhost:5000/` in `appsettings*.json` (API run from the IDE) and
+  `http://osrm:5000/` via an environment override on the containerized `api` service — the same pattern
+  Postgres already uses.
+- `--verbosity WARNING` in the compose command is a **privacy control**, not a noise preference: without it
+  `osrm-routed` writes every request URL, coordinates included, to its log.
+- `.RemoveAllLoggers()` on the OSRM `HttpClient` in `DependencyInjection.cs` exists for the same reason —
+  the default factory loggers write the full URI at Information level. **Do not remove it**, and do not
+  replace it with a config filter: a filter lives in an editable file whose most likely edit is "turn up
+  HTTP logging to debug the OSRM outage", which is precisely the leak.
+- `backend/osrm/data/` is git-ignored (a 152 MB extract plus several hundred MB of processed files).
+  `backend/osrm/README.md` has the preprocessing steps and how to refresh a stale map.
+
+### Traps that have already bitten
+
+- **The `/trip` parameter combination is load-bearing.** `source=first&destination=last&roundtrip=false`,
+  with the warehouse appended as the final coordinate. `roundtrip=false` with only `source=first` returns
+  HTTP 400 `NotImplemented` — the code sent exactly that for weeks, every optimization silently fell back
+  to zone sorting, and nothing looked broken because the fallback is decent. The comment in
+  `OsrmRouteOptimizer.cs` records this; leave it there.
+- **OSRM takes `longitude,latitude`** — the reverse of everything else here. And every interpolated number
+  uses `InvariantCulture`; a Serbian locale's decimal comma would split the URL at the wrong place.
+- **Closed stops keep their `Sequence`; open ones are renumbered above the highest closed one.** There is
+  **no unique index on `RouteStop(RouteId, Sequence)`**, so a collision corrupts silently and also breaks
+  the driver app's Google Maps batching downstream.
+- **`Status` becomes `Optimized` only when the result carries a distance.** The fallback returns an order
+  but no distance, and writing `Optimized` anyway would leave nothing able to tell a real optimization from
+  a degraded one. `DuzinaMetara` / `TrajanjeSekundi` / `Geometrija` on `DeliveryRoute` are nullable for the
+  same reason — `null` means "not computed", and `0` would render in the driver's app as "0 km · 0 min".
+- **`Magacin` is a plain class, not a positional record**, because `AddOptions`/`Configure` constrain
+  `TOptions : class, new()`. It is bound with `.Validate(GeoBounds.Contains).ValidateOnStart()` — but that
+  only rejects a point outside Bosnia and Herzegovina, not a *wrong* one inside it, and the shipped value is
+  still a placeholder.
+
+### Geocoding
+
+`NominatimGeocodingService` resolves addresses through the public Nominatim service, one request per
+second, with an identifying `User-Agent` it requires. It still sends **literal customer addresses to a
+third party** — the same problem OSRM had before it was brought in-house, and it is still open.
 
 ## Frontend (Next.js App Router)
 
@@ -123,7 +189,11 @@ when the order has a customer email; guests without one are skipped.
   checkout page calls it against `useProducts()` so orders can't submit phantom items.
 - **Address entry** (customer checkout and admin *Nova narudžba* at `admin/orders/new`) uses a keyless
   **OpenStreetMap + Leaflet** map picker (`components/shop/address-picker.tsx`): type → Nominatim geocode →
-  draggable pin → reverse-geocode. No Google Maps key. Only the address string is persisted (no lat/lng).
+  draggable pin → reverse-geocode. No Google Maps key. **Coordinates are persisted** alongside the address
+  (`Order.Latitude`/`Longitude`, both nullable) and drive route optimization — an earlier version of this
+  file said only the address string was kept, which stopped being true when the driver app gained a map.
+  Nominatim does not resolve every real address, so `null` coordinates are normal and must stay nullable
+  end to end; `0,0` is in the Atlantic and this project has shipped that bug once already.
 - **Order management (admin):** the orders list uses expandable cards (`components/admin/order-card.tsx`) with a
   status dropdown of valid state-machine transitions. Admins create orders via the same public create-order
   endpoint (`orderApi.create`) the customer checkout uses.
