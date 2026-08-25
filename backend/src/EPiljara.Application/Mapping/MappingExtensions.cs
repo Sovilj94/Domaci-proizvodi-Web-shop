@@ -137,6 +137,7 @@ public static class MappingExtensions
         Status = s.Order?.Status.ToString() ?? "Confirmed",
         Latitude = s.Order?.Latitude,
         Longitude = s.Order?.Longitude,
+        TotalAmount = s.Order?.TotalAmount ?? 0m,
     };
 
     public static DeliveryRouteDto ToDto(this DeliveryRoute r) => new()

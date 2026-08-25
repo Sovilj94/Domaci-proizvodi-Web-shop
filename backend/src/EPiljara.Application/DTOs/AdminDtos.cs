@@ -22,6 +22,12 @@ public record RouteStopDto
     /// <summary>Koordinate adrese dostave; null kad geokodiranje nije uspjelo.</summary>
     public double? Latitude { get; init; }
     public double? Longitude { get; init; }
+    /// <summary>Iznos koji vozač naplaćuje pri dostavi. Platforma nema drugi način
+    /// plaćanja — „Plaćanje pouzećem pri dostavi" je zakucano u OrderEmailTemplate i
+    /// ViberMessage — pa je ukupan iznos narudžbe ujedno i pouzeće. Ako se ikad doda
+    /// online plaćanje, kartica u aplikaciji vozača će tiho pokazivati pogrešan iznos
+    /// za naplatu i ovo polje mora dobiti uslov.</summary>
+    public decimal TotalAmount { get; init; }
 }
 
 public record DeliveryRouteDto
