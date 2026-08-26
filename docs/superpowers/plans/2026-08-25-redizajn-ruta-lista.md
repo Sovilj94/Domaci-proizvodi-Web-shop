@@ -1514,6 +1514,206 @@ git commit -m "feat: javi dolazak notifikacijom kad je aplikacija u pozadini"
 
 ---
 
+## Task 8: Popravka pada pri hladnom startu
+
+**Dodat poslije Task 6**, kad je provjera na uređaju otkrila reproducibilan pad. Nije bio u
+prvobitnom planu.
+
+**Files:**
+- Modify: `EPiljaraVozac/EPiljara.Driver/Platforms/Android/LocationForegroundService.cs`
+- Modify: `EPiljaraVozac/EPiljara.Driver/Services/LocationTracker.cs:75-83`
+- Modify: `EPiljaraVozac/EPiljara.Driver/Views/RoutePage.xaml.cs` (`OnAppearing`)
+
+**Interfaces:**
+- Consumes: `RouteViewModel.PokreniPracenjeAsync()` (postoji), `LocationForegroundService` (postoji).
+- Produces: ništa novo — mijenja se samo redoslijed i zaštita postojećih poziva.
+
+### Izmjereno stanje
+
+Hladan start sa važećom sesijom, 11 s čekanja, po 4 pokušaja:
+
+| Grana | Padova |
+|---|---|
+| `redizajn-ruta-lista` | 4 / 4 |
+| `main` | 2 / 4 |
+
+```
+FATAL EXCEPTION: main
+android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException:
+Context.startForegroundService() did not then call Service.startForeground()
+```
+
+Kvar je **pre-postojeći na `main`**, ali ga ova grana pogoršava: bez `WebView`-a se ekran diže
+brže, pa praćenje kreće ranije u prozoru hladnog starta, a `CollectionView` u istom trenutku mjeri
+sedam kartica na glavnoj niti — tačno dok servis treba da pozove `startForeground()`.
+
+**Ključna činjenica o ovom izuzetku:** `ForegroundServiceDidNotStartInTimeException` **ne baca se
+na mjestu poziva** `StartForegroundService`. Android ga isporučuje naknadno, na glavni looper
+aplikacije. Zato `try/catch` oko `StartForegroundService` **neće** uhvatiti ovaj pad — hvata samo
+srodni `ForegroundServiceStartNotAllowedException`. Popravka mora ukloniti uzrok, ne samo ogradu.
+
+- [ ] **Step 1: Neka servis pozove `StartForeground` kao prvu radnju**
+
+Android daje ~5 sekundi od `startForegroundService()` do `startForeground()`. Trenutno
+`OnStartCommand` prvo pravi kanal, pa gradi obavještenje, pa tek onda zove `StartForeground`.
+Kanal se pravi na svaki poziv, iako se mijenja samo jednom.
+
+U `LocationForegroundService.cs`, prebaci pravljenje kanala u `OnCreate` i skrati `OnStartCommand`:
+
+```csharp
+    /// <summary>Kanal se pravi jednom, pri stvaranju servisa — ne na svakom OnStartCommand.
+    /// Android daje ~5 s od startForegroundService() do startForeground(); sve što stoji
+    /// ispred tog poziva troši taj budžet.</summary>
+    public override void OnCreate()
+    {
+        base.OnCreate();
+        NapraviKanal();
+    }
+
+    public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
+    {
+        // StartForeground je PRVA radnja, bez ičega ispred sebe. Ako se ovaj poziv ne desi
+        // na vrijeme, Android ubija proces sa ForegroundServiceDidNotStartInTimeException —
+        // izuzetkom koji se ne baca ovdje nego naknadno, na glavni looper, pa ga nikakav
+        // try/catch oko poziva ne može uhvatiti.
+        var obavjestenje = new NotificationCompat.Builder(this, KanalId)
+            .SetContentTitle("E piljara — tura u toku")
+            .SetContentText("Pratimo lokaciju da bismo javili kad stignete na adresu.")
+            .SetSmallIcon(global::Android.Resource.Drawable.IcMenuMyLocation)
+            .SetOngoing(true)
+            .Build();
+
+        StartForeground(ObavjestenjeId, obavjestenje);
+        return StartCommandResult.NotSticky;
+    }
+```
+
+`NapraviKanal` ostaje nepromijenjen, samo se više ne zove iz `OnStartCommand`.
+
+- [ ] **Step 2: Skloni pokretanje praćenja sa kritičnog puta hladnog starta**
+
+`OnStartCommand` se izvršava na **glavnoj niti**. Ako je glavna nit zauzeta podizanjem MAUI-ja,
+učitavanjem rute i mjerenjem sedam kartica, servis ne stigne na red. Zato pokretanje praćenja ne
+smije padati u isti trenutak kad i prvo iscrtavanje.
+
+U `RoutePage.xaml.cs`, zamijeni `OnAppearing`:
+
+```csharp
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _vm.UcitajCommand.Execute(null);
+
+        // Praćenje se NE pokreće odmah. OnStartCommand foreground servisa ide na glavnu nit,
+        // a ona je pri hladnom startu zauzeta podizanjem MAUI-ja i mjerenjem liste stanica —
+        // servis tada ne stigne pozvati startForeground() u roku i Android ubije proces.
+        // Mjereno: bez ove odgode pad se javljao na svakom hladnom startu.
+        // Nije `await` jer OnAppearing ne smije biti `async void` bez hvatača: aplikacija
+        // nema globalni handler neuhvaćenih izuzetaka.
+        Dispatcher.DispatchDelayed(TimeSpan.FromSeconds(2), () => _ = PokreniPracenjeSigurno());
+    }
+
+    /// <summary>Guta izuzetke namjerno — poziva se iz odgođenog povratnog poziva koji nema
+    /// nikoga iznad sebe da uhvati grešku, a neuspjelo praćenje ne smije oboriti aplikaciju.</summary>
+    private async Task PokreniPracenjeSigurno()
+    {
+        try { await _vm.PokreniPracenjeAsync(); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RoutePage] praćenje nije pokrenuto: {ex}"); }
+    }
+```
+
+Metoda više nije `async void` — to usput uklanja jedan od `async void` lanaca bez hvatača.
+
+- [ ] **Step 3: Zaštiti `StartForegroundService` od srodnog izuzetka**
+
+Ovo je nalaz I4 iz ranijeg review-a: `StartForegroundService` je jedini nezaštićen platformski
+poziv na lancu bez ijednog `catch`, dok su susjedna dva zaštićena. Ne rješava pad iz Step 1-2
+(vidi napomenu iznad), ali zatvara `ForegroundServiceStartNotAllowedException` na API 31+.
+
+U `LocationTracker.cs`, umotaj blok iz linija 75-83:
+
+```csharp
+#if ANDROID
+        // ForegroundServiceStartNotAllowedException (API 31+) leti kad se servis pokuša dići
+        // iz pozadine. Susjedni platformski pozivi su zaštićeni iz istog razloga.
+        // NAPOMENA: ovo NE hvata ForegroundServiceDidNotStartInTimeException — taj Android
+        // isporučuje naknadno na glavni looper, ne na mjestu poziva.
+        try
+        {
+            var intent = new global::Android.Content.Intent(
+                global::Android.App.Application.Context,
+                typeof(Platforms.Android.LocationForegroundService));
+            if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
+                global::Android.App.Application.Context.StartForegroundService(intent);
+            else
+                global::Android.App.Application.Context.StartService(intent);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[LocationTracker] foreground servis nije pokrenut: {ex}");
+            return false;
+        }
+#endif
+```
+
+`return false` jer praćenje tada stvarno ne radi — `PracenjeRadi` mora ostati u skladu sa
+stvarnošću, inače rezervno dugme „Stigao sam" nestane sa ekrana bez razloga.
+
+- [ ] **Step 4: Testovi**
+
+Run: `dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj`
+Expected: 103/103 PASS. Ovaj zadatak ne dodaje testove — pad se ne može reprodukovati u test
+hostu (nema Androida), pa je kapija mjerenje na uređaju u sljedećem koraku.
+
+- [ ] **Step 5: Kapija — osam hladnih startova bez pada**
+
+```bash
+cd EPiljara.Driver && dotnet build -f net10.0-android -c Debug -t:Run
+```
+
+Prijavi se kao `vozac@epiljara.ba` / `vozac123` da sesija ostane sačuvana, pa mjeri:
+
+```bash
+ADB="C:/Users/soviljn/AppData/Local/Android/Sdk/platform-tools/adb.exe"
+pao=0
+for i in $(seq 1 8); do
+  "$ADB" logcat -c
+  "$ADB" shell am force-stop ba.epiljara.driver >/dev/null 2>&1; sleep 2
+  "$ADB" shell monkey -p ba.epiljara.driver -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+  sleep 11
+  pid=$("$ADB" shell "pidof ba.epiljara.driver" 2>/dev/null | tr -d '\r')
+  fat=$("$ADB" logcat -d 2>&1 | grep -icE "ForegroundServiceDidNotStartInTime|FATAL EXCEPTION")
+  if [ -z "$pid" ] || [ "$fat" -gt 0 ]; then pao=$((pao+1)); echo "pokusaj $i: PAO"; else echo "pokusaj $i: ok"; fi
+done
+echo "=== palo $pao od 8 ==="
+```
+
+Expected: **0 od 8**. Bilo koji pad znači da popravka nije potpuna — prijavi BLOCKED sa ispisom,
+ne commituj.
+
+- [ ] **Step 6: Potvrdi da praćenje i dalje radi**
+
+Odgoda od 2 s ne smije ubiti funkciju koju štiti. Poslije uspješnog starta sačekaj ~15 s, pa:
+
+```bash
+"$ADB" shell dumpsys notification --noredact | grep -c "tura u toku"
+```
+
+Expected: rezultat veći od nule — obavještenje „E piljara — tura u toku" stoji u statusnoj traci,
+dakle foreground servis radi. Snimi i ekran, pa **pogledaj sliku** da potvrdiš da je lista stanica
+tu i da nema žutog bannera o isključenoj lokaciji.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add EPiljara.Driver/Platforms/Android/LocationForegroundService.cs \
+        EPiljara.Driver/Services/LocationTracker.cs \
+        EPiljara.Driver/Views/RoutePage.xaml.cs
+git commit -m "fix: ne obaraj aplikaciju kad foreground servis ne stigne na vrijeme pri hladnom startu"
+```
+
+---
+
 ## Završna provjera
 
 - [ ] Cijela svita: `dotnet test EPiljara.Driver.Tests/EPiljara.Driver.Tests.csproj` — sve zeleno
