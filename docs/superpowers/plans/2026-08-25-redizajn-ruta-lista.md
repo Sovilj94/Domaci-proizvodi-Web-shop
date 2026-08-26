@@ -1514,7 +1514,26 @@ git commit -m "feat: javi dolazak notifikacijom kad je aplikacija u pozadini"
 
 ---
 
-## Task 8: Popravka pada pri hladnom startu
+## Task 8: Popravka pada pri hladnom startu — ODLOŽEN, NIJE IZVRŠEN
+
+> **Ishod: pokušan, izmjeren kao nedovoljan, odbačen iz ove grane.** Kod ispod je napisan i
+> `dotnet test` je davao 103/103, ali je mjerenje na uređaju pokazalo da **pad ostaje** —
+> `ForegroundServiceDidNotStartInTimeException` se ponovio dva puta sa instaliranom popravkom.
+> Izmjene su vraćene; grana se završava bez njih.
+>
+> **Zašto nije upalilo, za onoga ko ovo bude nastavljao:** polazna pretpostavka ovog zadatka je
+> bila da `OnStartCommand` treba da bude *brz*. Pogrešno postavljeno. `OnStartCommand`
+> MAUI-vezanog servisa izvršava se **na glavnoj niti**; ako je glavna nit zauzeta duže od ~5 s
+> poslije `startForegroundService()`, tijelo te metode uopšte ne dođe na red — pa je nebitno
+> koliko je kratko. Odgoda od 2 s u koraku 2 nije dovoljna.
+>
+> **Smjer koji vjerovatno vrijedi probati:** ne dizati foreground servis tokom hladnog starta
+> uopšte, nego tek kad vozač stvarno krene turu (prvi GPS zahtjev ili izričit dodir). To je
+> izmjena ponašanja, ne popravka, pa traži svoj spec.
+>
+> **Kontekst:** kvar je **pre-postojeći na `main`** (izmjereno 2/4 naspram 4/4 na ovoj grani),
+> dakle nije regresija ovog posla. Mjerenja su rađena na emulatoru koji je bio vidno spor i sa
+> satom gosta koji odstupa ~1 h od hosta — sljedeći pokušaj traži stabilan uređaj.
 
 **Dodat poslije Task 6**, kad je provjera na uređaju otkrila reproducibilan pad. Nije bio u
 prvobitnom planu.
