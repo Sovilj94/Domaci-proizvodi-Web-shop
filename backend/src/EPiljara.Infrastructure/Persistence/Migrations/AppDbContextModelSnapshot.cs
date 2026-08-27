@@ -61,6 +61,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<Guid?>("DeliveryZoneId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("DriverId")
                         .HasColumnType("uuid");
 
@@ -69,6 +72,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Geometrija")
                         .HasColumnType("text");
+
+                    b.Property<string>("Naziv")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -80,7 +88,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DriverId", "Date");
+                    b.HasIndex("DeliveryZoneId");
+
+                    b.HasIndex("DriverId");
 
                     b.ToTable("DeliveryRoutes");
                 });
@@ -487,11 +497,18 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EPiljara.Domain.Entities.DeliveryRoute", b =>
                 {
+                    b.HasOne("EPiljara.Domain.Entities.DeliveryZone", "DeliveryZone")
+                        .WithMany()
+                        .HasForeignKey("DeliveryZoneId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EPiljara.Domain.Entities.Driver", "Driver")
                         .WithMany("Routes")
                         .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("DeliveryZone");
 
                     b.Navigation("Driver");
                 });

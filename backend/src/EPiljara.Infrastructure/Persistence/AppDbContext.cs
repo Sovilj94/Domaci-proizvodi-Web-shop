@@ -112,9 +112,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<DeliveryRoute>(e =>
         {
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
-            e.HasIndex(x => new { x.DriverId, x.Date });
+            e.Property(x => x.Naziv).HasMaxLength(100).IsRequired();
+            // Namjerno BEZ indeksa na (DriverId, Date) — više ruta po danu je sad
+            // očekivano stanje otkad se dodjela dijeli po zonama; stari indeks je
+            // implicirao "jedan red po vozaču i danu" i zato je uklonjen.
             e.HasOne(x => x.Driver).WithMany(d => d.Routes)
                 .HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DeliveryZone).WithMany()
+                .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Stops).WithOne(s => s.Route!)
                 .HasForeignKey(s => s.RouteId).OnDelete(DeleteBehavior.Cascade);
         });

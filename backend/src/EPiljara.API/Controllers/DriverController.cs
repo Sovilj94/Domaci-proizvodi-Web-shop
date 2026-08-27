@@ -12,6 +12,10 @@ public class DriverController : ApiControllerBase
     public async Task<IActionResult> MyRoute([FromQuery] string? date) =>
         Envelope(await Mediator.Send(new GetDriverRouteQuery(date)));
 
+    [HttpGet("driver/routes")]
+    public async Task<IActionResult> MyRoutes([FromQuery] string? date) =>
+        EnvelopeList(await Mediator.Send(new GetDriverRoutesQuery(date)));
+
     [HttpPatch("driver/orders/{id:guid}/status")]
     public async Task<IActionResult> UpdateStop(Guid id, [FromBody] UpdateStatusRequest body) =>
         Envelope(await Mediator.Send(new UpdateStopStatusCommand(id, body.Status)));

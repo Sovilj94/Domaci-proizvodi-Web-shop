@@ -10,6 +10,12 @@ namespace EPiljara.Application.Features.Driver;
 
 /* ---------- The driver's route for a day (mobile app) ---------- */
 
+/// <summary>
+/// Vraća PRVU rutu vozača za dati dan (poređano po nazivu) — koristi je popup na dolasku i
+/// detekcija dolaska preko svih stanica. Otkad jedan dan može imati više ruta (po zoni),
+/// "prva" mora biti determinisana, zato je poredak isti kao GET /driver/routes.
+/// Endpoint namjerno ostaje — uklanjanje bi bilo šire od posla oko više ruta po danu.
+/// </summary>
 public record GetDriverRouteQuery(string? Date) : IRequest<DeliveryRouteDto?>;
 
 public class GetDriverRouteHandler(IAppDbContext db, ICurrentUser current)
@@ -26,10 +32,45 @@ public class GetDriverRouteHandler(IAppDbContext db, ICurrentUser current)
 
         var route = await db.DeliveryRoutes
             .Include(r => r.Driver)
+            .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
-            .FirstOrDefaultAsync(r => r.DriverId == driver.Id && r.Date == date, ct);
+            .Where(r => r.DriverId == driver.Id && r.Date == date)
+            .OrderBy(r => r.Naziv)
+            .FirstOrDefaultAsync(ct);
 
         return route?.ToDto();
+    }
+}
+
+/* ---------- Sve rute vozača za dati dan (mobile app) ---------- */
+
+/// <summary>
+/// Vraća sve rute vozača za dati dan, poređane po nazivu. Prazna lista je uredan
+/// odgovor (vozač nema dodijeljenih ruta tog dana), ne greška.
+/// </summary>
+public record GetDriverRoutesQuery(string? Date) : IRequest<IReadOnlyList<DeliveryRouteDto>>;
+
+public class GetDriverRoutesHandler(IAppDbContext db, ICurrentUser current)
+    : IRequestHandler<GetDriverRoutesQuery, IReadOnlyList<DeliveryRouteDto>>
+{
+    public async Task<IReadOnlyList<DeliveryRouteDto>> Handle(GetDriverRoutesQuery q, CancellationToken ct)
+    {
+        var driver = await db.Drivers.FirstOrDefaultAsync(d => d.UserId == current.Id, ct)
+            ?? throw new ForbiddenException("Niste registrovani kao vozač.");
+
+        var date = DateOnly.TryParse(q.Date, out var parsed)
+            ? parsed
+            : DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var rute = await db.DeliveryRoutes
+            .Include(r => r.Driver)
+            .Include(r => r.DeliveryZone)
+            .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
+            .Where(r => r.DriverId == driver.Id && r.Date == date)
+            .OrderBy(r => r.Naziv)
+            .ToListAsync(ct);
+
+        return rute.Select(r => r.ToDto()).ToList();
     }
 }
 

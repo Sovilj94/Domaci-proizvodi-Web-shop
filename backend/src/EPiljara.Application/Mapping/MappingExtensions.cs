@@ -171,5 +171,7 @@ public static class MappingExtensions
         TrajanjeSekundi = r.TrajanjeSekundi,
         Geometrija = r.Geometrija,
         Stops = r.Stops.OrderBy(x => x.Sequence).Select(x => x.ToDto()).ToList(),
+        Naziv = r.Naziv,
+        ZonaNaziv = r.DeliveryZone?.Name,
     };
 }

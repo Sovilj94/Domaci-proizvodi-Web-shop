@@ -82,6 +82,11 @@ public record DeliveryRouteDto
     public double? TrajanjeSekundi { get; init; }
     public string? Geometrija { get; init; }
     public IReadOnlyList<RouteStopDto> Stops { get; init; } = [];
+    /// <summary>Naziv koji vozač vidi na kartici — naziv zone, uz redni broj ("Centar 1")
+    /// kad je zona podijeljena na više ruta.</summary>
+    public string Naziv { get; init; } = string.Empty;
+    /// <summary>Sirovi naziv zone bez rednog broja; null kad ruta nema zonu ("Bez zone").</summary>
+    public string? ZonaNaziv { get; init; }
 }
 
 public record StatusCountDto
