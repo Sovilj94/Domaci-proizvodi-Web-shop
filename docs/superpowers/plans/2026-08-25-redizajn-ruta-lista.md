@@ -1514,26 +1514,48 @@ git commit -m "feat: javi dolazak notifikacijom kad je aplikacija u pozadini"
 
 ---
 
-## Task 8: Popravka pada pri hladnom startu — ODLOŽEN, NIJE IZVRŠEN
+## Task 8: Popravka pada pri hladnom startu — ODBAČEN; kvar riješen drugačije, 2026-08-27
 
-> **Ishod: pokušan, izmjeren kao nedovoljan, odbačen iz ove grane.** Kod ispod je napisan i
-> `dotnet test` je davao 103/103, ali je mjerenje na uređaju pokazalo da **pad ostaje** —
-> `ForegroundServiceDidNotStartInTimeException` se ponovio dva puta sa instaliranom popravkom.
-> Izmjene su vraćene; grana se završava bez njih.
+> **Ne izvršavaj korake ispod.** Ostavljeni su kao zapis pogrešne dijagnoze. Stvarna popravka je
+> jedan obrisan red u `RoutePage.OnAppearing`, urađena naknadno i van ovog plana.
 >
-> **Zašto nije upalilo, za onoga ko ovo bude nastavljao:** polazna pretpostavka ovog zadatka je
-> bila da `OnStartCommand` treba da bude *brz*. Pogrešno postavljeno. `OnStartCommand`
-> MAUI-vezanog servisa izvršava se **na glavnoj niti**; ako je glavna nit zauzeta duže od ~5 s
-> poslije `startForegroundService()`, tijelo te metode uopšte ne dođe na red — pa je nebitno
-> koliko je kratko. Odgoda od 2 s u koraku 2 nije dovoljna.
+> ### Šta je stvarno bio uzrok
 >
-> **Smjer koji vjerovatno vrijedi probati:** ne dizati foreground servis tokom hladnog starta
-> uopšte, nego tek kad vozač stvarno krene turu (prvi GPS zahtjev ili izričit dodir). To je
-> izmjena ponašanja, ne popravka, pa traži svoj spec.
+> Ne brzina — **redoslijed**. `OnAppearing` je pokretao foreground servis **bezuslovno**, prije
+> nego što se zna ima li išta da se prati. Kad vozač nema rutu za taj dan, ruta stigne prazna,
+> `Primijeni` vidi `NemaStaDaSePrati` i zove `ZaustaviPracenje()` → `StopService`. Android tada
+> vidi `startForegroundService()` bez ijednog `startForeground()` i ubije proces.
 >
-> **Kontekst:** kvar je **pre-postojeći na `main`** (izmjereno 2/4 naspram 4/4 na ovoj grani),
-> dakle nije regresija ovog posla. Mjerenja su rađena na emulatoru koji je bio vidno spor i sa
-> satom gosta koji odstupa ~1 h od hosta — sljedeći pokušaj traži stabilan uređaj.
+> Dokaz iz logcat-a, koji je i preokrenuo dijagnozu:
+>
+> ```
+> 16:52:25.950  Background started FGS: Allowed ... startForegroundCount:0
+> 16:52:26.044  Bringing down service while still waiting for start foreground
+> ```
+>
+> **94 ms**, ne pet sekundi. Servis nije prekoračio rok — aplikacija ga je sama oborila.
+>
+> ### Popravka
+>
+> Brisanje `await _vm.PokreniPracenjeAsync();` iz `RoutePage.OnAppearing`. Poziv je bio i
+> **suvišan**: `UcitajAsync` već pokreće praćenje na kraju, kroz `TrebaPonovoPokrenutiPracenje()`
+> (`!NemaStaDaSePrati && !PracenjeRadi && ImaDozvolu`) — dakle tek pošto ruta stigne. Usput je
+> `OnAppearing` prestao biti `async void`, čiji izuzetak ionako nema ko da uhvati.
+>
+> Izmjereno: bez rute za danas **0 padova od 6** (ranije 4 od 4). Sa rutom: ruta se učita,
+> foreground obavještenje se digne, GPS sam okine popup na dolasku — dakle praćenje nije žrtvovano
+> zarad uklanjanja pada.
+>
+> ### Zašto je prvobitna dijagnoza promašila
+>
+> Pretpostavljeno je da `OnStartCommand` treba da bude *brz*, jer se izvršava na glavnoj niti.
+> Ta tvrdnja je tačna, ali nije bila uzrok — `OnStartCommand` u ovom kvaru uopšte i ne kasni,
+> nego mu se servis obori ispod nogu. Koraci ispod (kanal u `OnCreate`, `StartForeground` kao
+> prva radnja, odgoda od 2 s, `try/catch`) zato nisu pomogli, i mjerenje ih je odbacilo.
+>
+> **Pouka koja se isplatila:** brojevi „2/4 na `main`, 4/4 na grani" bili su **šum**, ne signal.
+> Nisu mjerili granu nego to da li je ruta za taj dan postojala. Zaključak da „grana pogoršava
+> kvar" bio je pogrešan, i skoro je odveo u nepotrebnu izmjenu ponašanja.
 
 **Dodat poslije Task 6**, kad je provjera na uređaju otkrila reproducibilan pad. Nije bio u
 prvobitnom planu.
