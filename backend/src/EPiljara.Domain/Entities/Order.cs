@@ -37,6 +37,13 @@ public class Order : Entity
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Trenutak (UTC) kad je vozač zatvorio stanicu — status prešao u Delivered ili
+    /// FailedDelivery. null za sve narudžbe od prije uvođenja ovog polja i za one koje
+    /// još nisu isporučene; to je normalno stanje, ne greška.
+    /// </summary>
+    public DateTime? ZatvorenaU { get; set; }
+
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 
     /// <summary>Allowed forward transitions for the order status state machine.</summary>

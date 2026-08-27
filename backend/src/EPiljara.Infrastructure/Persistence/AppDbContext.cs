@@ -77,6 +77,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.Property(x => x.Name).HasMaxLength(160).IsRequired();
             e.Property(x => x.Phone).HasMaxLength(40);
+            e.Property(x => x.Vozilo).HasMaxLength(80);
+            e.Property(x => x.Registracija).HasMaxLength(20);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
         });

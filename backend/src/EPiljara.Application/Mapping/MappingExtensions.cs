@@ -140,6 +140,26 @@ public static class MappingExtensions
         TotalAmount = s.Order?.TotalAmount ?? 0m,
     };
 
+    public static RouteHistoryEntryDto ToHistoryDto(this DeliveryRoute r)
+    {
+        var zatvorene = r.Stops
+            .Select(s => s.Order?.ZatvorenaU)
+            .Where(z => z.HasValue)
+            .Select(z => z!.Value)
+            .ToList();
+
+        return new RouteHistoryEntryDto
+        {
+            Id = r.Id,
+            Datum = r.Date.ToString("yyyy-MM-dd"),
+            UkupnoStanica = r.Stops.Count,
+            Isporuceno = r.Stops.Count(s => s.Order!.Status == OrderStatus.Delivered),
+            Neuspjelo = r.Stops.Count(s => s.Order!.Status == OrderStatus.FailedDelivery),
+            PrvaZatvorenaU = zatvorene.Count == 0 ? null : zatvorene.Min(),
+            PosljednjaZatvorenaU = zatvorene.Count == 0 ? null : zatvorene.Max(),
+        };
+    }
+
     public static DeliveryRouteDto ToDto(this DeliveryRoute r) => new()
     {
         Id = r.Id,

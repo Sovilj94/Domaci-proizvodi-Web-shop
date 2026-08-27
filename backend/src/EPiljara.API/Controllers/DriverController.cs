@@ -19,4 +19,12 @@ public class DriverController : ApiControllerBase
     [HttpPost("driver/route/reoptimize")]
     public async Task<IActionResult> Reoptimize([FromBody] ReoptimizeRequest body) =>
         Envelope(await Mediator.Send(new ReoptimizeRouteCommand(body.Latitude, body.Longitude)));
+
+    [HttpGet("driver/routes/history")]
+    public async Task<IActionResult> RouteHistory() =>
+        Envelope(await Mediator.Send(new GetDriverRouteHistoryQuery()));
+
+    [HttpGet("driver/profile")]
+    public async Task<IActionResult> Profile() =>
+        Envelope(await Mediator.Send(new GetDriverProfileQuery()));
 }

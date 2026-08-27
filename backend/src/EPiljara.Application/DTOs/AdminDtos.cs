@@ -7,6 +7,45 @@ public record DriverDto
     public string Phone { get; init; } = string.Empty;
 }
 
+/// <summary>Profil prijavljenog vozača za mobilnu aplikaciju (ime, kontakt, vozilo).</summary>
+public record DriverProfileDto
+{
+    public string Name { get; init; } = string.Empty;
+    public string Phone { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    /// <summary>Vozilo kojim vozač dostavlja; null dok admin ne unese podatak.</summary>
+    public string? Vozilo { get; init; }
+    /// <summary>Registarska oznaka vozila; null dok admin ne unese podatak.</summary>
+    public string? Registracija { get; init; }
+}
+
+/// <summary>Jedna prošla (završena) ruta u istoriji vozača.</summary>
+public record RouteHistoryEntryDto
+{
+    public Guid Id { get; init; }
+    /// <summary>ISO datum "yyyy-MM-dd".</summary>
+    public string Datum { get; init; } = string.Empty;
+    public int UkupnoStanica { get; init; }
+    public int Isporuceno { get; init; }
+    public int Neuspjelo { get; init; }
+    /// <summary>Kad je prva stanica na ruti zatvorena (UTC); null ako nijedna nije zatvorena.</summary>
+    public DateTime? PrvaZatvorenaU { get; init; }
+    /// <summary>Kad je posljednja stanica na ruti zatvorena (UTC); null ako nijedna nije zatvorena.</summary>
+    public DateTime? PosljednjaZatvorenaU { get; init; }
+}
+
+/// <summary>Istorija ruta prijavljenog vozača — prošle rute i agregati za tekući mjesec.</summary>
+public record DriverRouteHistoryDto
+{
+    /// <summary>Isporučene stanice u tekućem mjesecu.</summary>
+    public int UkupnoIsporuka { get; init; }
+    /// <summary>Procenat uspješnosti u tekućem mjesecu: isporučene / (isporučene + neuspjele).</summary>
+    public int Uspjesnost { get; init; }
+    /// <summary>Zbir DuzinaMetara ruta u tekućem mjesecu; null ako nijedna ruta nema poznatu dužinu.</summary>
+    public double? PredjenoMetara { get; init; }
+    public IReadOnlyList<RouteHistoryEntryDto> Rute { get; init; } = [];
+}
+
 public record RouteStopDto
 {
     public Guid OrderId { get; init; }

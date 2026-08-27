@@ -159,8 +159,16 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("Registracija")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Vozilo")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
 
                     b.HasKey("Id");
 
@@ -236,6 +244,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime?>("ZatvorenaU")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

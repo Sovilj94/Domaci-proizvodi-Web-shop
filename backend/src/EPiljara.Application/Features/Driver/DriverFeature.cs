@@ -68,7 +68,82 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current)
         if (order.Status is OrderStatus.Confirmed) order.TransitionTo(OrderStatus.Packing);
         if (order.Status is OrderStatus.Packing) order.TransitionTo(OrderStatus.OutForDelivery);
         order.TransitionTo(status);
+        order.ZatvorenaU = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
         return order.ToDto();
+    }
+}
+
+/* ---------- Istorija prošlih ruta vozača (mobile app) ---------- */
+
+public record GetDriverRouteHistoryQuery : IRequest<DriverRouteHistoryDto>;
+
+public class GetDriverRouteHistoryHandler(IAppDbContext db, ICurrentUser current)
+    : IRequestHandler<GetDriverRouteHistoryQuery, DriverRouteHistoryDto>
+{
+    public async Task<DriverRouteHistoryDto> Handle(GetDriverRouteHistoryQuery q, CancellationToken ct)
+    {
+        var driver = await db.Drivers.FirstOrDefaultAsync(d => d.UserId == current.Id, ct)
+            ?? throw new ForbiddenException("Niste registrovani kao vozač.");
+
+        var danas = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        // "Istorija" su isključivo ZAVRŠENE rute — današnja (aktivna) ruta se prikazuje
+        // na ekranu rute, ne ovdje.
+        var prosleRute = await db.DeliveryRoutes
+            .Where(r => r.DriverId == driver.Id && r.Date < danas)
+            .Include(r => r.Stops).ThenInclude(s => s.Order)
+            .OrderByDescending(r => r.Date)
+            .ToListAsync(ct);
+
+        var ruteOvogMjeseca = prosleRute
+            .Where(r => r.Date.Year == danas.Year && r.Date.Month == danas.Month)
+            .ToList();
+
+        var isporuceno = ruteOvogMjeseca.Sum(r => r.Stops.Count(s => s.Order!.Status == OrderStatus.Delivered));
+        var neuspjelo = ruteOvogMjeseca.Sum(r => r.Stops.Count(s => s.Order!.Status == OrderStatus.FailedDelivery));
+        var ukupnoZaProcenat = isporuceno + neuspjelo;
+        var uspjesnost = ukupnoZaProcenat == 0 ? 0 : (int)Math.Round(isporuceno * 100.0 / ukupnoZaProcenat);
+
+        // DuzinaMetara je nullable jer null znači "optimizacija nije uspjela", a ne
+        // "nula metara" — preskačemo null umjesto da ga računamo kao 0. Ako nijedna ruta
+        // ovog mjeseca nema poznatu dužinu, rezultat je null (nema podatka), ne 0.
+        var poznateDuzine = ruteOvogMjeseca
+            .Where(r => r.DuzinaMetara.HasValue)
+            .Select(r => r.DuzinaMetara!.Value)
+            .ToList();
+        double? predjenoMetara = poznateDuzine.Count == 0 ? null : poznateDuzine.Sum();
+
+        return new DriverRouteHistoryDto
+        {
+            UkupnoIsporuka = isporuceno,
+            Uspjesnost = uspjesnost,
+            PredjenoMetara = predjenoMetara,
+            Rute = prosleRute.Select(r => r.ToHistoryDto()).ToList(),
+        };
+    }
+}
+
+/* ---------- Profil vozača (mobile app) ---------- */
+
+public record GetDriverProfileQuery : IRequest<DriverProfileDto>;
+
+public class GetDriverProfileHandler(IAppDbContext db, ICurrentUser current)
+    : IRequestHandler<GetDriverProfileQuery, DriverProfileDto>
+{
+    public async Task<DriverProfileDto> Handle(GetDriverProfileQuery q, CancellationToken ct)
+    {
+        var driver = await db.Drivers.Include(d => d.User)
+            .FirstOrDefaultAsync(d => d.UserId == current.Id, ct)
+            ?? throw new ForbiddenException("Niste registrovani kao vozač.");
+
+        return new DriverProfileDto
+        {
+            Name = driver.Name,
+            Phone = driver.Phone,
+            Email = driver.User?.Email ?? string.Empty,
+            Vozilo = driver.Vozilo,
+            Registracija = driver.Registracija,
+        };
     }
 }
