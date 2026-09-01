@@ -12,6 +12,7 @@ import type {
 } from "@/types/domain";
 import { apiFetch } from "./client";
 import type {
+  AssignDriverRequest,
   AssignRouteRequest,
   CategoryInput,
   CreateOrderRequest,
@@ -115,7 +116,11 @@ export const adminApi = {
       (r) => r.data,
     ),
 
-  orders: (params: { status?: OrderStatus; date?: string } = {}) =>
+  /**
+   * `unassigned` mijenja značenje `date`: tada je to dan DOSTAVE i vraćaju se samo narudžbe
+   * koje tog dana nisu ni na čijoj ruti. Bez njega `date` je dan kreiranja narudžbe.
+   */
+  orders: (params: { status?: OrderStatus; date?: string; unassigned?: boolean } = {}) =>
     apiFetch<Order[]>("/admin/orders", { query: params }).then((r) => r.data),
 
   updateOrderStatus: (id: string, status: OrderStatus) =>
@@ -168,10 +173,25 @@ export const adminApi = {
   routes: (date: string) =>
     apiFetch<DeliveryRoute[]>("/admin/routes", { query: { date } }).then((r) => r.data),
 
+  // Vraća NIZ: od „više ruta po danu" jedna dodjela pravi po rutu za svaku zonu.
   assignRoute: (body: AssignRouteRequest) =>
-    apiFetch<DeliveryRoute>("/admin/routes", { method: "POST", body }).then(
+    apiFetch<DeliveryRoute[]>("/admin/routes", { method: "POST", body }).then(
       (r) => r.data,
     ),
+
+  /** Dodjeljuje ILI prebacuje narudžbu vozaču — isti poziv za oba, server skida staru stanicu. */
+  assignOrderDriver: (orderId: string, body: AssignDriverRequest) =>
+    apiFetch<DeliveryRoute[]>(`/admin/orders/${orderId}/driver`, {
+      method: "POST",
+      body,
+    }).then((r) => r.data),
+
+  /** Skida narudžbu sa rute; vraća se u „Nedodijeljeno". */
+  removeOrderDriver: (orderId: string, date: string) =>
+    apiFetch<{ message: string }>(`/admin/orders/${orderId}/driver`, {
+      method: "DELETE",
+      query: { date },
+    }).then((r) => r.data),
 
   optimizeRoute: (routeId: string) =>
     apiFetch<DeliveryRoute>(`/admin/routes/${routeId}/optimize`, {

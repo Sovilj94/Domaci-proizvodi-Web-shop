@@ -79,6 +79,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Phone).HasMaxLength(40);
             e.Property(x => x.Vozilo).HasMaxLength(80);
             e.Property(x => x.Registracija).HasMaxLength(20);
+            // Podrazumijevano true, pa postojeći redovi migracijom postaju aktivni vozači —
+            // bez toga bi svi nestali sa dispečerskog ekrana čim migracija prođe.
+            e.Property(x => x.Aktivan).HasDefaultValue(true);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
         });

@@ -5,6 +5,12 @@ public record DriverDto
     public Guid Id { get; init; }
     public string Name { get; init; } = string.Empty;
     public string Phone { get; init; } = string.Empty;
+    /// <summary>Neaktivan vozač nema tab na dispečerskom ekranu i ne prima nove narudžbe.</summary>
+    public bool Aktivan { get; init; } = true;
+    /// <summary>Dnevni kapacitet vozača u stanicama; puni traku kapaciteta na dispečerskom
+    /// ekranu. Konstanta (<see cref="Domain.Entities.Driver.MaxStanicaPoDanu"/>), ne kolona —
+    /// ide u DTO da ga front ne bi zakucao kod sebe.</summary>
+    public int MaxStanica { get; init; } = Domain.Entities.Driver.MaxStanicaPoDanu;
 }
 
 /// <summary>Profil prijavljenog vozača za mobilnu aplikaciju (ime, kontakt, vozilo).</summary>
@@ -67,6 +73,9 @@ public record RouteStopDto
     /// online plaćanje, kartica u aplikaciji vozača će tiho pokazivati pogrešan iznos
     /// za naplatu i ovo polje mora dobiti uslov.</summary>
     public decimal TotalAmount { get; init; }
+    /// <summary>Kad je vozač zatvorio stanicu (UTC); null dok je otvorena. Dispečerski
+    /// ekran time prigušuje isporučene narudžbe i ispisuje vrijeme isporuke.</summary>
+    public DateTime? ZatvorenaU { get; init; }
 }
 
 public record DeliveryRouteDto

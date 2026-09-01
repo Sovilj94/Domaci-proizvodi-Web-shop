@@ -167,9 +167,10 @@ function seed(): Db {
     { id: "slot-pet", dayOfWeek: 5, timeFrom: "16:00", timeTo: "20:00", cutoffHours: 48, label: "Petak 16–20h" },
   ];
 
+  // maxStanica prati Driver.MaxStanicaPoDanu na backendu — mock i pravi API služe isti ugovor.
   const drivers: Driver[] = [
-    { id: "drv-1", name: "Mladen (kombi 1)", phone: "+387 65 900 100" },
-    { id: "drv-2", name: "Saša (kombi 2)", phone: "+387 65 900 200" },
+    { id: "drv-1", name: "Mladen (kombi 1)", phone: "+387 65 900 100", aktivan: true, maxStanica: 30 },
+    { id: "drv-2", name: "Saša (kombi 2)", phone: "+387 65 900 200", aktivan: true, maxStanica: 30 },
   ];
 
   const users: StoredUser[] = [

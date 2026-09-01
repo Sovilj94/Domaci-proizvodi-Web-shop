@@ -11,9 +11,12 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Dashboard([FromQuery] DateTime? date) =>
         Envelope(await Mediator.Send(new GetDashboardQuery(date)));
 
+    /// <param name="unassigned">Kad je true, <paramref name="date"/> je dan DOSTAVE i vraćaju
+    /// se samo narudžbe koje tog dana nisu ni na čijoj ruti.</param>
     [HttpGet("admin/orders")]
-    public async Task<IActionResult> Orders([FromQuery] string? status, [FromQuery] DateTime? date) =>
-        EnvelopeList(await Mediator.Send(new GetAdminOrdersQuery(status, date)));
+    public async Task<IActionResult> Orders(
+        [FromQuery] string? status, [FromQuery] DateTime? date, [FromQuery] bool unassigned = false) =>
+        EnvelopeList(await Mediator.Send(new GetAdminOrdersQuery(status, date, unassigned)));
 
     [HttpPatch("admin/orders/{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest body) =>
@@ -78,6 +81,19 @@ public class AdminController : ApiControllerBase
     [HttpPost("admin/routes/{id:guid}/optimize")]
     public async Task<IActionResult> OptimizeRoute(Guid id) =>
         Envelope(await Mediator.Send(new OptimizeRouteCommand(id)));
+
+    /// <summary>Dodjeljuje ili prebacuje narudžbu vozaču za dati dan (dispečerski ekran).</summary>
+    [HttpPost("admin/orders/{id:guid}/driver")]
+    public async Task<IActionResult> AssignOrderDriver(Guid id, [FromBody] AssignDriverRequest body) =>
+        EnvelopeList(await Mediator.Send(new AssignOrderDriverCommand(id, body.DriverId, body.Date)));
+
+    /// <summary>Skida narudžbu sa rute; vraća je u „Nedodijeljeno".</summary>
+    [HttpDelete("admin/orders/{id:guid}/driver")]
+    public async Task<IActionResult> RemoveOrderDriver(Guid id, [FromQuery] string date)
+    {
+        await Mediator.Send(new RemoveOrderDriverCommand(id, date));
+        return Envelope(new { message = "Narudžba je skinuta sa rute." });
+    }
 
     [HttpPost("admin/orders/geocode-missing")]
     public async Task<IActionResult> GeocodeMissing() =>

@@ -22,7 +22,7 @@ const ITEMS = [
   { href: "/admin/products", label: "Proizvodi", icon: Package },
   { href: "/admin/categories", label: "Kategorije", icon: Tags },
   { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
-  { href: "/admin/routes", label: "Rute dostave", icon: Truck },
+  { href: "/admin/dostava", label: "Dostava", icon: Truck },
 ];
 
 function useActive() {

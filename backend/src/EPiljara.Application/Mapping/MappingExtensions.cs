@@ -112,6 +112,8 @@ public static class MappingExtensions
         Id = d.Id,
         Name = d.Name,
         Phone = d.Phone,
+        Aktivan = d.Aktivan,
+        MaxStanica = Driver.MaxStanicaPoDanu,
     };
 
     public static AuthUserDto ToAuthDto(this User u) => new()
@@ -138,6 +140,7 @@ public static class MappingExtensions
         Latitude = s.Order?.Latitude,
         Longitude = s.Order?.Longitude,
         TotalAmount = s.Order?.TotalAmount ?? 0m,
+        ZatvorenaU = s.Order?.ZatvorenaU,
     };
 
     public static RouteHistoryEntryDto ToHistoryDto(this DeliveryRoute r)
