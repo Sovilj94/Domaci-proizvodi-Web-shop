@@ -12,6 +12,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <!--
+      Eksplicitno, iako Relational dolazi i tranzitivno preko Npgsql-a: Npgsql 9.0.4 povlači
+      Relational 9.0.1, a EntityFrameworkCore je gore prikovan na 9.0.11. Kod se onda
+      kompajlira prema 9.0.11 dok se u bin kopira 9.0.1 (MSB3277), pa svaki poziv Relational
+      API-ja iz OnModelCreating — npr. HasDefaultValue — pukne tek u vrijeme izvršavanja sa
+      FileNotFoundException. Držati ovu verziju jednakom verziji EntityFrameworkCore.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.11" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.11" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.11" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.11" />
