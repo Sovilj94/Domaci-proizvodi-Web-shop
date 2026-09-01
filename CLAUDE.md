@@ -117,6 +117,44 @@ one computation, and **never stores or logs it**; see the logging notes under Ro
 limiting is global plus a tighter `auth` partition. Swappable services live behind interfaces
 (`IEmailService`, `IRouteOptimizer`, `IGeocodingService`).
 
+## Two ways to put an order on a route — pick the right one
+
+Both live under `Features/Admin` and both end up writing `RouteStop` rows, but they answer different
+questions and are not interchangeable.
+
+- **`AssignRouteCommand`** (`AdminRoutes.cs`, `POST /admin/routes`) is **declarative**: "these are all of
+  this driver's orders for this day." It deletes every open stop the driver has that day, rebuilds the
+  routes from the request, and runs OSRM for each one. Closed stops (`Delivered`/`FailedDelivery`/
+  `Cancelled`) are never touched — history must stay true. Use it for bulk planning; it returns an
+  **array**, since one assignment produces one route per zone.
+- **`AssignOrderDriverCommand` / `RemoveOrderDriverCommand`** (`AdminDispatch.cs`,
+  `POST`/`DELETE /admin/orders/{id}/driver`) are **pointwise**: one order moves, nothing else changes.
+  The POST also *is* the transfer — it lifts the order off whatever route holds it that day first.
+  Use these for anything driven by a single click.
+
+Do not emulate one with the other. Driving a per-click UI through `AssignRouteCommand` means tearing down
+and rebuilding the driver's whole day plus one OSRM call per route on every click, and a transfer becomes
+two requests with the order unassigned in between — nothing left to roll back to if the second fails.
+
+**`AdminDispatch` deliberately does not re-optimize.** The route keeps its existing `DuzinaMetara` /
+`TrajanjeSekundi` until someone optimizes it. That is honest — those numbers no longer describe the
+changed route — and writing new ones without OSRM would mean inventing them.
+
+**Both dispatch handlers load every route for the day in one query, mutate in memory, and save once.**
+Do not split that into several queries: an entity marked for deletion is still in the database until
+`SaveChanges`, so a re-query pulls it back into the navigation collection and stop counts come out wrong.
+This was hit and fixed; the single-query shape is the fix.
+
+Stops go into the route for the order's zone, a new route is created when that zone has none or the
+existing one is full at **10** (`MaxStanicaPoRuti`, the Google Maps link limit). Emptied routes are
+deleted, open stops are renumbered *above* the closed ones (closed keep their `Sequence` — and remember
+there is no unique index on `RouteStop(RouteId, Sequence)`, so a collision would corrupt silently), and
+route names follow the same convention `AssignRouteHandler` uses (`Centar`, or `Centar 1`/`Centar 2`).
+
+`Driver.Aktivan` gates assignment: an inactive driver takes no new orders. `Driver.MaxStanicaPoDanu` (30)
+is a **per-driver daily capacity** and has nothing to do with `MaxStanicaPoRuti` (10) — do not conflate
+them. It is a constant surfaced through `DriverDto.MaxStanica` so the frontend does not hardcode it.
+
 **Order confirmation email:** `CreateOrder` calls `IEmailService.SendOrderConfirmationAsync` (failures never
 block the order — wrapped in try/catch). The impl is `SmtpEmailService`, which renders `OrderEmailTemplate`
 (self-contained HTML) and sends over SMTP using the `Email` section in `appsettings.json`. In dev it targets a
@@ -156,6 +194,14 @@ under a `User-Agent` naming us — and its usage policy limits it to development
 
 ### Traps that have already bitten
 
+- **Keep `Microsoft.EntityFrameworkCore.Relational` pinned to the same version as
+  `Microsoft.EntityFrameworkCore`** in `EPiljara.Infrastructure.csproj`. Relational also arrives
+  transitively through `Npgsql.EntityFrameworkCore.PostgreSQL`, which pulls an *older* one; the code then
+  compiles against the newer version while the older one is copied to `bin`. That mismatch is the
+  long-standing `MSB3277` warning, and it sleeps until the first Relational-only call in `OnModelCreating`
+  (e.g. `HasDefaultValue`) — at which point **every** request dies, `/auth/login` included, with a
+  `FileNotFoundException` naming an assembly version, an error that looks nothing like its cause. A build
+  with zero warnings is the signal that the versions still line up.
 - **The `/trip` parameter combination is load-bearing.** `source=first&destination=last&roundtrip=false`,
   with the warehouse appended as the final coordinate. `roundtrip=false` with only `source=first` returns
   HTTP 400 `NotImplemented` — the code sent exactly that for weeks, every optimization silently fell back
@@ -201,6 +247,20 @@ third party** — the same problem OSRM had before it was brought in-house, and 
 - **Order management (admin):** the orders list uses expandable cards (`components/admin/order-card.tsx`) with a
   status dropdown of valid state-machine transitions. Admins create orders via the same public create-order
   endpoint (`orderApi.create`) the customer checkout uses.
+- **Dispatch lives on `/admin/dostava`** ("Dostava" in the nav): a tab per active driver plus a
+  "Nedodijeljeno" tab, assignment through the pointwise endpoints above, optimistic updates that snapshot
+  both lists and restore them on failure. The active tab is kept in the URL (`?vozac=`) so a reload does
+  not lose it. `components/admin/dispatch-tabs.tsx` is a hand-rolled tab strip — the project has no tab
+  component and this did not justify a dependency.
+- **`/admin/routes` is still there, out of the nav**, reachable from a button on the dispatch screen. It
+  owns route optimization, `geocode-missing`, and the manual stop-location drawer — none of which the
+  dispatch screen replaces. **Its own assignable list still filters on `ASSIGNABLE` and omits `Pending`**,
+  which is the bug fixed on the dispatch screen; if you touch that page, fix it there too.
+- **Unassigned orders come from `GET /admin/orders?unassigned=true&date=`, and that flag changes what
+  `date` means** — with it, `date` is the *delivery* day (is this order on any route that day), without it
+  it is the order's creation day. An order placed yesterday is still driven today, so filtering the
+  dispatch list by `CreatedAt` would hide it. The unassigned set deliberately includes `Pending`: the shop
+  creates every order as `Pending`, and omitting it made new orders invisible to the dispatcher.
 - **Admin data mutations** follow a consistent pattern: a TanStack `useMutation` calling `adminApi.*`,
   then `queryClient.invalidateQueries` for the affected keys and a toast. Admin CRUD forms are drawer
   components in `src/components/admin/*-form.tsx`.
