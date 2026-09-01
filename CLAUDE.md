@@ -68,10 +68,14 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   backend produces it (`ApiControllerBase` helpers + `ExceptionHandlingMiddleware`); the frontend
   unwraps it (`apiFetch` returns `data` or throws `ApiRequestError`).
 - **Single frontend API surface.** Screens never call `fetch` directly — they call
-  `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` chooses the
-  target from `NEXT_PUBLIC_API_BASE_URL`: **unset** → the app's own built-in mock (route handlers under
-  `frontend/src/app/api/**` backed by `frontend/src/server/mock/`); **set** (e.g. `http://localhost:5080`)
-  → the real backend. `frontend/.env.local` currently points at the real backend.
+  `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` derives
+  `API_BASE` as `NEXT_PUBLIC_API_BASE_URL || "/api"`: **unset/empty** → the app's own built-in mock (route
+  handlers under `frontend/src/app/api/**` backed by `frontend/src/server/mock/`); **set** (e.g.
+  `http://localhost:5080`) → the real backend. **Port gotcha:** `frontend/.env.local` points at the real
+  backend but on **`:5081`**, while `dotnet run` serves the API on **`:5080`** — reconcile it (run
+  `NEXT_PUBLIC_API_BASE_URL=http://localhost:5080 npm run dev`, or launch the API on 5081) or every request
+  fails with `network_error`. To demo purely against the mock (no backend/DB), run
+  `NEXT_PUBLIC_API_BASE_URL= npm run dev`.
 - **Two implementations of the same contract.** The real ASP.NET API and the Next.js mock both serve the
   same paths/shapes. When you change an endpoint's contract, keep the mock in sync (or accept that the
   mock is the deletable dev-only path). `frontend/src/types/domain.ts` mirrors the backend DTOs 1:1.
@@ -200,5 +204,20 @@ third party** — the same problem OSRM had before it was brought in-house, and 
 - **Admin data mutations** follow a consistent pattern: a TanStack `useMutation` calling `adminApi.*`,
   then `queryClient.invalidateQueries` for the affected keys and a toast. Admin CRUD forms are drawer
   components in `src/components/admin/*-form.tsx`.
+- **Visual design system (Wolt-clean).** Design tokens live in `src/app/globals.css` (`@theme`): white
+  page bg, cool neutrals (`sand`/`ink`/`muted`/`line`), a **green** brand accent, soft
+  `shadow-card`/`shadow-md`/`shadow-lg` and `border-line` hairlines. **Honey is label-only** (badges like
+  *Izdvojeno*) — never a CTA; CTAs are green `primary`, or white `secondary` on a colored hero. Prefer
+  `shadow-card` / `border border-line` over `ring-1 ring-black/5`, and `font-bold` over `font-extrabold`
+  (except the logo wordmark). Animations use the **`motion`** package (Framer Motion for React 19,
+  `import { motion } from "motion/react"`) wrapped globally by `<MotionConfig reducedMotion="user">` in
+  `providers.tsx`; reusable `components/ui/reveal.tsx` (scroll fade-in) and `lib/cart/fly-to-cart.ts`
+  (add-to-cart dot + badge bump). Everything must honor `prefers-reduced-motion`.
+- **Catalog imagery is self-hosted, not remote.** Product/category/producer photos live in
+  `public/products/<slug>.jpg`, `public/categories/<slug>.jpg`, `public/producers/<name>.jpg`, and
+  `DbSeeder` seeds those root-relative paths (`/products/<slug>.jpg`, …). `SmartImage`
+  (`components/ui/smart-image.tsx`) renders them via `next/image` (`unoptimized`) and falls back to a leaf
+  placeholder on a missing/failed load — so a wrong path degrades gracefully rather than breaking. Any
+  *remote* image host must be whitelisted in `next.config.ts` `images.remotePatterns`.
 
 @frontend/AGENTS.md
