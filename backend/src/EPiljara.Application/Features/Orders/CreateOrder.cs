@@ -108,8 +108,12 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUser current, IEmailSe
                 $"Minimalna narudžba za zonu {zone.Name} je {zone.MinOrderAmount:0.##} KM.",
                 "below_minimum");
 
-        // A registered customer placing their own order gets it linked to their account.
-        var customerId = current.IsAuthenticated && current.Role == UserRole.Customer ? current.Id : null;
+        // Svako ko je prijavljen dobija narudžbu vezanu za svoj nalog — u ovoj prodavnici
+        // kupuju i admin i vozači, a narudžba koju vlasnik ne može naći pod "Moje narudžbe"
+        // je greška, ne zaštita. Ranije je ovdje stajao uslov `Role == UserRole.Customer`,
+        // pa su narudžbe admina i vozača tiho ostajale sa CustomerId = NULL.
+        // Gost nema nalog i ostaje nevezan — to je i dalje ispravno.
+        var customerId = current.IsAuthenticated ? current.Id : null;
 
         var order = new Order
         {
