@@ -109,11 +109,16 @@ export function AdminSidebar() {
       </nav>
 
       <div className="border-t border-white/10 p-3">
+        {/*
+          Izlaz iz panela je dugme sa obrubom, ne još jedan prigušeni red menija.
+          Ranije je stajao u istoj sivoj kao stavke iznad i čitao se kao dio navigacije,
+          pa se previđao — a jedina je stavka ovdje koja vodi van admina.
+        */}
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
+          className="flex items-center justify-center gap-2 rounded-full border border-white/25 px-3 py-2.5 text-sm font-medium text-white transition hover:border-white/50 hover:bg-white/10"
         >
-          <Store className="h-4 w-4" /> Web shop
+          <Store className="h-4 w-4" /> Nazad u shop
         </Link>
         <div className="mt-2 flex items-center justify-between px-3">
           <span className="truncate text-xs text-white/50">{user?.email}</span>
@@ -138,12 +143,30 @@ export function AdminMobileBar() {
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
-        <span className="font-display font-extrabold">
+        <span className="font-display font-bold">
           E piljara <span className="text-xs font-medium text-white/50">admin</span>
         </span>
-        <button onClick={logout} aria-label="Odjava" className="text-white/70">
-          <LogOut className="h-4 w-4" />
-        </button>
+        {/*
+          Na telefonu izlaza u shop nije ni bilo — sidebar sa tim linkom je skriven
+          ispod `lg`, pa se iz panela moglo izaći samo ručnim kucanjem adrese.
+          U traci nema mjesta za natpis, zato ikona sa aria-label.
+        */}
+        <div className="flex items-center gap-1">
+          <Link
+            href="/"
+            aria-label="Nazad u shop"
+            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+          >
+            <Store className="h-4 w-4" />
+          </Link>
+          <button
+            onClick={logout}
+            aria-label="Odjava"
+            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
       <nav className="no-scrollbar flex gap-1 overflow-x-auto px-2 pb-2">
         {ITEMS.map((item) => (
