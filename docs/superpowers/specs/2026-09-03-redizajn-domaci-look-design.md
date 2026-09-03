@@ -61,6 +61,10 @@ Daje 2.97:1 i pada AA. Na kremu ide `honey-700`, na tamnoj `honey-500`.
 Isto vrijedi za `muted` — `#5A5244` na tamnoj daje 4.03:1, zato postoji
 `muted-dark`.
 
+Ostali provjereni parovi: krem na zelenoj 8.29:1, pijesak na zelenoj 5.89:1,
+krem na kartici `night-card` 12.67:1, `muted-dark` na kartici 5.21:1,
+`sage` na tamnoj 6.19:1.
+
 ### Tipografija
 
 `Playfair Display` (700) kao `--font-display`, `DM Sans` (400/500/700) kao
@@ -94,8 +98,10 @@ Redoslijed sekcija se ne mijenja — već se poklapa sa referencom.
 1. **Hero** — full-bleed foto, gradijent slijeva, nadnaslov
    `BANJA LUKA · MANJAČA`, serif naslov u tri reda sa srednjim redom u
    amberu, dvije pilula-akcije. Navbar providan iznad heroja, krem na skrol.
-2. **Zelena traka** — imena kategorija u amber verzalu sa ◆ razdjelnikom.
-   **Bez emoji-ja** — uz prave fotografije emoji čita kao jeftin.
+2. **Zelena traka** — imena kategorija u verzalu boje pijeska `#D9CDB8`
+   (5.89:1 na zelenoj) sa amber ◆ razdjelnikom. Amber **ne nosi taj tekst**:
+   `#C17F2A` na `#2D5016` daje 2.79:1 i pada AA; kao razdjelnik je ukras,
+   pa tu smije. **Bez emoji-ja** — uz prave fotografije emoji čita kao jeftin.
 3. **Kategorije** — mozaik: jedna velika pločica (2 reda) + 4 male.
    Imamo 7 kategorija, mozaik nosi 5; ostale dvije iza `Sve kategorije →`.
 4. **Izdvojeni proizvodi** — tamna sekcija `night`, filter-čipovi po
