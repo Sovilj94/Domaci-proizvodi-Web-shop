@@ -101,3 +101,11 @@ export interface AssignDriverRequest {
   driverId: string;
   date: string;
 }
+
+/** Grupna dodjela — cijelo naselje jednom vozaču. Sve ili ništa: ako grupa ne stane u
+ *  vozačev preostali kapacitet, server odbija cijelu dodjelu sa `driver_full`. */
+export interface AssignOrdersBulkRequest {
+  orderIds: string[];
+  driverId: string;
+  date: string;
+}

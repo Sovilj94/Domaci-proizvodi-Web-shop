@@ -25,3 +25,10 @@ public record ReoptimizeRequest(double Latitude, double Longitude);
 /// prazan <c>DriverId</c> (Guid.Empty pri nepotpunom tijelu) padne na „Vozač nije pronađen".
 /// </summary>
 public record AssignDriverRequest(Guid DriverId, string Date);
+
+/// <summary>
+/// Tijelo za grupnu dodjelu — dispečer šalje cijelo naselje jednom vozaču. Ista pravila za
+/// <c>Date</c> i <c>DriverId</c> kao kod <see cref="AssignDriverRequest"/>; prazan
+/// <c>OrderIds</c> handler odbija sa <c>no_orders</c>.
+/// </summary>
+public record AssignOrdersBulkRequest(IReadOnlyList<Guid> OrderIds, Guid DriverId, string Date);

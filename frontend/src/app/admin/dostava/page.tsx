@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, Inbox, Plus, Search, Sparkles, Truck, X } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, Inbox, Plus, Search, Sparkles, Truck, X } from "lucide-react";
 import { DispatchTabs, inicijali, type DispatchTab } from "@/components/admin/dispatch-tabs";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
@@ -12,6 +12,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { adminApi } from "@/lib/api/endpoints";
+import { narudzbeRijec } from "@/lib/orders";
 import type { Driver } from "@/lib/api/contracts";
 import type { DeliveryRoute, Order, RouteStop } from "@/types/domain";
 import { cn } from "@/lib/utils";
@@ -196,6 +197,24 @@ export default function AdminDostavaPage() {
     onSettled: osvjezi,
   });
 
+  /**
+   * Grupna dodjela: cijelo naselje jednom vozaču, jedan zahtjev. Namjerno bez optimističkog
+   * prikaza koji `dodijeli` ima — server je taj koji zna staje li grupa u kapacitet, a
+   * pomjeriti petnaest kartica pa ih vraćati na `driver_full` je gore nego sačekati odgovor.
+   */
+  const dodijeliGrupu = useMutation({
+    mutationFn: ({ orderIds, driverId }: { orderIds: string[]; driverId: string }) =>
+      adminApi.assignOrdersBulk({ orderIds, driverId, date }),
+    onSuccess: (_data, { orderIds, driverId }) => {
+      const vozac = (drivers.data ?? []).find((d) => d.id === driverId);
+      show(
+        `${orderIds.length} ${narudzbeRijec(orderIds.length)} → ${vozac?.name ?? "vozač"}`,
+      );
+    },
+    onError: (err) => show(poruka(err, "Grupna dodjela nije uspjela."), "error"),
+    onSettled: osvjezi,
+  });
+
   const ucitava = drivers.isLoading || routes.isLoading || nedodijeljene.isLoading;
 
   const stanice = aktivniVozac ? (poVozacu.get(aktivniVozac.id) ?? []) : [];
@@ -259,7 +278,10 @@ export default function AdminDostavaPage() {
           pretraga={pretraga}
           onPretraga={setPretraga}
           onDodijeli={(orderId, driverId) => dodijeli.mutate({ orderId, driverId })}
-          uToku={dodijeli.isPending}
+          onDodijeliGrupu={(orderIds, driverId) =>
+            dodijeliGrupu.mutate({ orderIds, driverId })
+          }
+          uToku={dodijeli.isPending || dodijeliGrupu.isPending}
         />
       ) : !aktivniVozac ? (
         <EmptyState
@@ -531,12 +553,35 @@ function DodajKartica({
 
 /* ---------- Tab „Nedodijeljeno" ---------- */
 
+/**
+ * Grupiše narudžbe po naselju (zoni dostave). Redoslijed je po veličini opadajuće — dispečer
+ * prvo rješava najveće naselje, jer ono nosi najviše posla i najlakše puni jednog vozača.
+ * Narudžbe bez zone padaju u „Bez naselja" i idu na kraj, isto kao `NazivBezZone` na serveru.
+ */
+const BEZ_NASELJA = "Bez naselja";
+
+function grupisiPoNaselju(narudzbe: Order[]): { naselje: string; narudzbe: Order[] }[] {
+  const mapa = new Map<string, Order[]>();
+  for (const o of narudzbe) {
+    const kljuc = o.deliveryZoneName?.trim() || BEZ_NASELJA;
+    mapa.set(kljuc, [...(mapa.get(kljuc) ?? []), o]);
+  }
+  return [...mapa.entries()]
+    .map(([naselje, narudzbe]) => ({ naselje, narudzbe }))
+    .sort((a, b) => {
+      if (a.naselje === BEZ_NASELJA) return 1;
+      if (b.naselje === BEZ_NASELJA) return -1;
+      return b.narudzbe.length - a.narudzbe.length;
+    });
+}
+
 function NedodijeljeneTab({
   narudzbe,
   vozaci,
   pretraga,
   onPretraga,
   onDodijeli,
+  onDodijeliGrupu,
   uToku,
 }: {
   narudzbe: Order[];
@@ -544,8 +589,11 @@ function NedodijeljeneTab({
   pretraga: string;
   onPretraga: (v: string) => void;
   onDodijeli: (orderId: string, driverId: string) => void;
+  onDodijeliGrupu: (orderIds: string[], driverId: string) => void;
   uToku: boolean;
 }) {
+  const grupe = useMemo(() => grupisiPoNaselju(narudzbe), [narudzbe]);
+
   if (narudzbe.length === 0 && !pretraga) {
     return (
       <EmptyState
@@ -573,45 +621,119 @@ function NedodijeljeneTab({
           Nema rezultata za „{pretraga}&rdquo;.
         </p>
       ) : (
-        <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-white shadow-card">
+        <div className="space-y-4">
+          {grupe.map((g) => (
+            <NaseljeGrupa
+              key={g.naselje}
+              naselje={g.naselje}
+              narudzbe={g.narudzbe}
+              vozaci={vozaci}
+              onDodijeli={onDodijeli}
+              onDodijeliGrupu={onDodijeliGrupu}
+              uToku={uToku}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Jedno naselje: zaglavlje sa grupnom dodjelom + spisak narudžbi ---------- */
+
+function NaseljeGrupa({
+  naselje,
+  narudzbe,
+  vozaci,
+  onDodijeli,
+  onDodijeliGrupu,
+  uToku,
+}: {
+  naselje: string;
+  narudzbe: Order[];
+  vozaci: Driver[];
+  onDodijeli: (orderId: string, driverId: string) => void;
+  onDodijeliGrupu: (orderIds: string[], driverId: string) => void;
+  uToku: boolean;
+}) {
+  const [otvorena, setOtvorena] = useState(true);
+  const idevi = narudzbe.map((o) => o.id);
+
+  return (
+    <section className="overflow-hidden rounded-card border border-line bg-white shadow-card">
+      <header className="flex flex-wrap items-center gap-3 border-b border-line bg-sand/40 p-4">
+        <button
+          type="button"
+          onClick={() => setOtvorena((v) => !v)}
+          aria-expanded={otvorena}
+          className="flex min-w-0 items-center gap-2 text-left"
+        >
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted transition-transform",
+              !otvorena && "-rotate-90",
+            )}
+          />
+          <h3 className="font-display text-base font-bold text-ink">{naselje}</h3>
+          <span className="rounded-full bg-ink px-2 py-0.5 text-xs font-bold tabular-nums text-white">
+            {narudzbe.length}
+          </span>
+        </button>
+
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {vozaci.length === 0 ? (
+            <span className="text-sm text-muted">Nema aktivnog vozača.</span>
+          ) : (
+            <>
+              <span className="text-sm text-muted">Cijelo naselje:</span>
+              {vozaci.map((d) => (
+                <Button
+                  key={d.id}
+                  size="sm"
+                  disabled={uToku}
+                  onClick={() => onDodijeliGrupu(idevi, d.id)}
+                  title={`Dodijeli svih ${narudzbe.length} ${narudzbeRijec(narudzbe.length)} vozaču ${d.name}`}
+                >
+                  <Truck className="h-4 w-4" />
+                  {d.name}
+                </Button>
+              ))}
+            </>
+          )}
+        </div>
+      </header>
+
+      {otvorena && (
+        <div className="divide-y divide-line">
           {narudzbe.map((o) => (
             <div key={o.id} className="flex flex-wrap items-start gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-bold tabular-nums text-ink">{o.code}</span>
                   <span className="text-sm text-ink">{o.customerName}</span>
-                  {o.deliveryZoneName && (
-                    <span className="rounded-md bg-sand px-2 py-0.5 text-xs font-semibold text-muted">
-                      {o.deliveryZoneName}
-                    </span>
-                  )}
                 </div>
                 <p className="mt-0.5 truncate text-sm text-muted">{o.deliveryAddress}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {vozaci.length === 0 ? (
-                  <span className="text-sm text-muted">Nema aktivnog vozača.</span>
-                ) : (
-                  vozaci.map((d) => (
-                    <Button
-                      key={d.id}
-                      variant="secondary"
-                      size="sm"
-                      disabled={uToku}
-                      onClick={() => onDodijeli(o.id, d.id)}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {d.name}
-                    </Button>
-                  ))
-                )}
+                {vozaci.map((d) => (
+                  <Button
+                    key={d.id}
+                    variant="secondary"
+                    size="sm"
+                    disabled={uToku}
+                    onClick={() => onDodijeli(o.id, d.id)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {d.name}
+                  </Button>
+                ))}
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 

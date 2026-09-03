@@ -117,6 +117,69 @@ internal static class Dispecer
         PreimenujZonu(
             vozacevRute, ruta.DeliveryZoneId, ruta.DeliveryZone?.Name ?? NazivBezZone);
     }
+
+    /// <summary>
+    /// Lijepi narudžbu na vozačevu rutu za taj dan: traži rutu iste zone koja još ima mjesta,
+    /// inače pravi novu, pa popravlja redoslijed i nazive.
+    /// </summary>
+    /// <remarks>
+    /// Namjerno NE provjerava kapacitet i NE snima. Pojedinačna dodjela broji jedno mjesto po
+    /// pozivu, a grupna sva unaprijed da bi mogla odbiti cijelo naselje odjednom — da provjera
+    /// stoji ovdje, grupna bi je radila po narudžbi i pukla na sredini naselja.
+    /// </remarks>
+    internal static void DodijeliNaRutu(
+        IAppDbContext db, List<DeliveryRoute> sveRute, Order narudzba, Guid vozacId, DateOnly datum)
+    {
+        var vozacevRute = sveRute.Where(r => r.DriverId == vozacId).ToList();
+
+        var zonaId = narudzba.DeliveryZoneId;
+        var nazivZone = narudzba.DeliveryZone?.Name ?? NazivBezZone;
+
+        // Ruta iste zone koja još ima mjesta; inače nova. Zona odlučuje jer vozač obilazi
+        // naselje po naselje, a granica od 10 dolazi od Google Maps linka.
+        var ruta = vozacevRute.FirstOrDefault(
+            r => r.DeliveryZoneId == zonaId && r.Stops.Count < MaxStanicaPoRuti);
+
+        if (ruta is null)
+        {
+            ruta = new DeliveryRoute
+            {
+                Date = datum,
+                DriverId = vozacId,
+                DeliveryZoneId = zonaId,
+                Naziv = nazivZone,
+                Status = RouteStatus.Planned,
+            };
+            db.DeliveryRoutes.Add(ruta);
+            sveRute.Add(ruta);
+            vozacevRute.Add(ruta);
+        }
+
+        var stanica = new RouteStop
+        {
+            OrderId = narudzba.Id,
+            Order = narudzba,
+            Sequence = ruta.Stops.Count == 0 ? 1 : ruta.Stops.Max(s => s.Sequence) + 1,
+        };
+
+        // Eksplicitan Add je obavezan, nije stilska sitnica. `Entity` popunjava Id sa
+        // Guid.NewGuid() još u inicijalizatoru, a EF za Guid ključeve po konvenciji uzima
+        // ValueGeneratedOnAdd. Kad DetectChanges naiđe na nepraćenu stanicu u kolekciji već
+        // praćene rute, stanje bira po ključu: ključ je popunjen → Modified → UPDATE reda koji
+        // ne postoji → DbUpdateConcurrencyException („0 rows affected"). Kod NOVE rute to ne
+        // pukne jer db.DeliveryRoutes.Add kaskadno označi cijeli graf kao Added — zato je
+        // greška pogađala samo dodavanje u rutu koja već postoji u bazi.
+        ruta.Stops.Add(stanica);
+        db.RouteStops.Add(stanica);
+
+        Prenumerisi(ruta);
+        PreimenujZonu(vozacevRute, zonaId, nazivZone);
+    }
+
+    /// <summary>Stanice vozača za taj dan, po rutama — zajednički odgovor oba handlera.</summary>
+    internal static IReadOnlyList<DeliveryRouteDto> VozacevePoRutama(
+        IEnumerable<DeliveryRoute> sveRute, Guid driverId) =>
+        sveRute.Where(r => r.DriverId == driverId).Select(r => r.ToDto()).ToList();
 }
 
 /* ---------- Dodjela i prebacivanje ---------- */
@@ -161,61 +224,109 @@ public class AssignOrderDriverHandler(IAppDbContext db)
         {
             if (staraRuta.DriverId == vozac.Id)
                 // Već je kod ovog vozača. Nije greška — dispečer je dva puta kliknuo isto.
-                return VozacevePoRutama(sveRute, vozac.Id);
+                return Dispecer.VozacevePoRutama(sveRute, vozac.Id);
 
             Dispecer.SkiniStanicu(
                 db, sveRute, staraRuta, staraRuta.Stops.First(s => s.OrderId == narudzba.Id));
         }
 
-        var vozacevRute = sveRute.Where(r => r.DriverId == vozac.Id).ToList();
-
-        var zauzeto = vozacevRute.Sum(r => r.Stops.Count);
+        var zauzeto = sveRute.Where(r => r.DriverId == vozac.Id).Sum(r => r.Stops.Count);
         if (zauzeto >= Domain.Entities.Driver.MaxStanicaPoDanu)
             throw new DomainException(
                 $"Vozač je popunjen — {Domain.Entities.Driver.MaxStanicaPoDanu} stanica je dnevni maksimum.",
                 "driver_full");
 
-        var zonaId = narudzba.DeliveryZoneId;
-        var nazivZone = narudzba.DeliveryZone?.Name ?? Dispecer.NazivBezZone;
-
-        // Ruta iste zone koja još ima mjesta; inače nova. Zona odlučuje jer vozač obilazi
-        // naselje po naselje, a granica od 10 dolazi od Google Maps linka.
-        var ruta = vozacevRute.FirstOrDefault(
-            r => r.DeliveryZoneId == zonaId && r.Stops.Count < Dispecer.MaxStanicaPoRuti);
-
-        if (ruta is null)
-        {
-            ruta = new DeliveryRoute
-            {
-                Date = datum,
-                DriverId = vozac.Id,
-                DeliveryZoneId = zonaId,
-                Naziv = nazivZone,
-                Status = RouteStatus.Planned,
-            };
-            db.DeliveryRoutes.Add(ruta);
-            sveRute.Add(ruta);
-            vozacevRute.Add(ruta);
-        }
-
-        ruta.Stops.Add(new RouteStop
-        {
-            OrderId = narudzba.Id,
-            Order = narudzba,
-            Sequence = ruta.Stops.Count == 0 ? 1 : ruta.Stops.Max(s => s.Sequence) + 1,
-        });
-
-        Dispecer.Prenumerisi(ruta);
-        Dispecer.PreimenujZonu(vozacevRute, zonaId, nazivZone);
+        Dispecer.DodijeliNaRutu(db, sveRute, narudzba, vozac.Id, datum);
 
         await db.SaveChangesAsync(ct);
 
-        return VozacevePoRutama(sveRute, vozac.Id);
+        return Dispecer.VozacevePoRutama(sveRute, vozac.Id);
     }
+}
 
-    private static IReadOnlyList<DeliveryRouteDto> VozacevePoRutama(
-        IEnumerable<DeliveryRoute> sveRute, Guid driverId) =>
-        sveRute.Where(r => r.DriverId == driverId).Select(r => r.ToDto()).ToList();
+/* ---------- Grupna dodjela (cijelo naselje jednom vozaču) ---------- */
+
+/// <summary>
+/// Dodjeljuje više narudžbi istom vozaču u jednom potezu — dispečer šalje cijelo naselje.
+/// Radi i prebacivanje: narudžba koja stoji kod drugog vozača se skida odande.
+/// </summary>
+/// <remarks>
+/// Sve ili ništa. Kapacitet se provjerava unaprijed nad cijelim skupom, pa naselje ili prođe
+/// cijelo ili nijedna narudžba ne mrdne — djelimična dodjela bi ostavila dispečera da gata
+/// šta je prošlo a šta nije.
+/// </remarks>
+public record AssignOrdersBulkCommand(IReadOnlyList<Guid> OrderIds, Guid DriverId, string Date)
+    : IRequest<IReadOnlyList<DeliveryRouteDto>>;
+
+public class AssignOrdersBulkHandler(IAppDbContext db)
+    : IRequestHandler<AssignOrdersBulkCommand, IReadOnlyList<DeliveryRouteDto>>
+{
+    public async Task<IReadOnlyList<DeliveryRouteDto>> Handle(
+        AssignOrdersBulkCommand cmd, CancellationToken ct)
+    {
+        var datum = Dispecer.ParsirajDatum(cmd.Date);
+
+        var trazeni = cmd.OrderIds.Distinct().ToList();
+        if (trazeni.Count == 0)
+            throw new DomainException("Nije izabrana nijedna narudžba.", "no_orders");
+
+        var vozac = await db.Drivers.FirstOrDefaultAsync(d => d.Id == cmd.DriverId, ct)
+            ?? throw new NotFoundException("Vozač nije pronađen.");
+
+        if (!vozac.Aktivan)
+            throw new DomainException("Vozač je neaktivan.", "driver_inactive");
+
+        var narudzbe = await db.Orders
+            .Include(o => o.DeliveryZone)
+            .Where(o => trazeni.Contains(o.Id))
+            .ToListAsync(ct);
+
+        if (narudzbe.Count != trazeni.Count)
+            throw new NotFoundException("Neka od narudžbi nije pronađena.");
+
+        if (narudzbe.FirstOrDefault(o => !Dispecer.ZaDostavu.Contains(o.Status)) is { } zatvorena)
+            throw new DomainException(
+                $"Narudžba {zatvorena.Code} je zatvorena i ne može se dodijeliti vozaču.",
+                "order_closed");
+
+        var sveRute = await Dispecer.RuteZaDanAsync(db, datum, ct);
+
+        // Ono što je već kod ovog vozača ne troši novo mjesto — dispečer je kliknuo „sve" nad
+        // naseljem u kojem mu je dio ranije dodijeljen. Bez ovoga bi provjera kapaciteta
+        // brojala iste narudžbe dvaput i odbila dodjelu koja zapravo staje.
+        var vecKodNjega = sveRute
+            .Where(r => r.DriverId == vozac.Id)
+            .SelectMany(r => r.Stops)
+            .Select(s => s.OrderId)
+            .ToHashSet();
+
+        var zaDodavanje = narudzbe.Where(o => !vecKodNjega.Contains(o.Id)).ToList();
+        if (zaDodavanje.Count == 0)
+            return Dispecer.VozacevePoRutama(sveRute, vozac.Id);
+
+        var zauzeto = sveRute.Where(r => r.DriverId == vozac.Id).Sum(r => r.Stops.Count);
+        var slobodno = Math.Max(0, Domain.Entities.Driver.MaxStanicaPoDanu - zauzeto);
+
+        if (zaDodavanje.Count > slobodno)
+            throw new DomainException(
+                $"{vozac.Name} ima {slobodno} slobodnih mjesta, a dodjeljuje se {zaDodavanje.Count} narudžbi.",
+                "driver_full");
+
+        foreach (var narudzba in zaDodavanje)
+        {
+            // Prebacivanje: stanica kod drugog vozača se prvo skida, pa lijepi ovdje.
+            var staraRuta = sveRute.FirstOrDefault(r => r.Stops.Any(s => s.OrderId == narudzba.Id));
+            if (staraRuta is not null)
+                Dispecer.SkiniStanicu(
+                    db, sveRute, staraRuta, staraRuta.Stops.First(s => s.OrderId == narudzba.Id));
+
+            Dispecer.DodijeliNaRutu(db, sveRute, narudzba, vozac.Id, datum);
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        return Dispecer.VozacevePoRutama(sveRute, vozac.Id);
+    }
 }
 
 /* ---------- Uklanjanje dodjele ---------- */

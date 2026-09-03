@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   LogOut,
@@ -12,13 +13,24 @@ import {
   Tags,
   Tractor,
   Truck,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { adminApi } from "@/lib/api/endpoints";
+import { narudzbeRijec } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 
-const ITEMS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Nosi badge sa brojem narudžbi koje čekaju potvrdu. */
+  badge?: boolean;
+}
+
+const ITEMS: NavItem[] = [
   { href: "/admin/dashboard", label: "Pregled", icon: LayoutDashboard },
-  { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag },
+  { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag, badge: true },
   { href: "/admin/products", label: "Proizvodi", icon: Package },
   { href: "/admin/categories", label: "Kategorije", icon: Tags },
   { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
@@ -30,9 +42,40 @@ function useActive() {
   return (href: string) => pathname === href || pathname.startsWith(href + "/");
 }
 
+/**
+ * Broj narudžbi u statusu Pending. Dijeli queryKey sa admin dashboardom, pa ih
+ * TanStack Query spaja u jedan zahtjev; `refetchInterval` drži badge svježim dok
+ * je admin panel otvoren (pauzira se sam kad je tab u pozadini). Promjena statusa
+ * narudžbe već invalidira ovaj ključ, pa badge padne odmah, bez čekanja intervala.
+ */
+function usePendingOrdersCount() {
+  const { data } = useQuery({
+    queryKey: ["admin", "dashboard"],
+    queryFn: () => adminApi.dashboard(),
+    refetchInterval: 30_000,
+  });
+  return data?.pendingOrders ?? 0;
+}
+
+function PendingBadge({ count, className }: { count: number; className?: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={`${count} ${narudzbeRijec(count)} na čekanju`}
+      className={cn(
+        "grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white",
+        className,
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export function AdminSidebar() {
   const isActive = useActive();
   const { user, logout } = useAuth();
+  const pending = usePendingOrdersCount();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink text-white lg:flex">
@@ -60,6 +103,7 @@ export function AdminSidebar() {
           >
             <item.icon className="h-4 w-4" />
             {item.label}
+            {item.badge && <PendingBadge count={pending} className="ml-auto" />}
           </Link>
         ))}
       </nav>
@@ -89,6 +133,7 @@ export function AdminSidebar() {
 export function AdminMobileBar() {
   const isActive = useActive();
   const { logout } = useAuth();
+  const pending = usePendingOrdersCount();
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden">
@@ -112,6 +157,7 @@ export function AdminMobileBar() {
           >
             <item.icon className="h-4 w-4" />
             {item.label}
+            {item.badge && <PendingBadge count={pending} />}
           </Link>
         ))}
       </nav>

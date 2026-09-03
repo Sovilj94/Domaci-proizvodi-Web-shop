@@ -87,6 +87,12 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> AssignOrderDriver(Guid id, [FromBody] AssignDriverRequest body) =>
         EnvelopeList(await Mediator.Send(new AssignOrderDriverCommand(id, body.DriverId, body.Date)));
 
+    /// <summary>Dodjeljuje više narudžbi (cijelo naselje) jednom vozaču — sve ili ništa.</summary>
+    [HttpPost("admin/orders/assign-bulk")]
+    public async Task<IActionResult> AssignOrdersBulk([FromBody] AssignOrdersBulkRequest body) =>
+        EnvelopeList(await Mediator.Send(
+            new AssignOrdersBulkCommand(body.OrderIds, body.DriverId, body.Date)));
+
     /// <summary>Skida narudžbu sa rute; vraća je u „Nedodijeljeno".</summary>
     [HttpDelete("admin/orders/{id:guid}/driver")]
     public async Task<IActionResult> RemoveOrderDriver(Guid id, [FromQuery] string date)

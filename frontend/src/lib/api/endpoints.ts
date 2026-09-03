@@ -13,6 +13,7 @@ import type {
 import { apiFetch } from "./client";
 import type {
   AssignDriverRequest,
+  AssignOrdersBulkRequest,
   AssignRouteRequest,
   CategoryInput,
   CreateOrderRequest,
@@ -182,6 +183,13 @@ export const adminApi = {
   /** Dodjeljuje ILI prebacuje narudžbu vozaču — isti poziv za oba, server skida staru stanicu. */
   assignOrderDriver: (orderId: string, body: AssignDriverRequest) =>
     apiFetch<DeliveryRoute[]>(`/admin/orders/${orderId}/driver`, {
+      method: "POST",
+      body,
+    }).then((r) => r.data),
+
+  /** Dodjeljuje cijelo naselje jednom vozaču u jednom zahtjevu — sve ili ništa. */
+  assignOrdersBulk: (body: AssignOrdersBulkRequest) =>
+    apiFetch<DeliveryRoute[]>("/admin/orders/assign-bulk", {
       method: "POST",
       body,
     }).then((r) => r.data),
