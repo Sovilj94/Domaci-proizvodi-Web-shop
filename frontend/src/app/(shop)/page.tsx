@@ -175,7 +175,13 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative mx-auto flex min-h-[600px] max-w-6xl items-center px-4 py-20 sm:min-h-[680px]">
+        {/*
+          `pt-36` na telefonu, ne `py-20`: tamo navbar ima dva reda (logo/korpa, pa
+          lokacija i pretraga) i visok je oko 122px, pa bi centrirani sadržaj naslonio
+          nadnaslov na donju ivicu pretrage. Od `sm` naviše navbar je jedan red i
+          simetričan razmak je opet ispravan.
+        */}
+        <div className="relative mx-auto flex min-h-[600px] max-w-6xl items-center px-4 pb-20 pt-36 sm:min-h-[680px] sm:py-20">
           <div className="max-w-2xl">
             <p className="text-xs font-medium uppercase tracking-[0.22em] text-honey-300">
               Banja Luka · Manjača
