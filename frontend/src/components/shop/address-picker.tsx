@@ -243,7 +243,7 @@ export function AddressPicker({
 
       <div
         ref={containerRef}
-        className="h-48 w-full overflow-hidden rounded-xl ring-1 ring-black/10"
+        className="h-48 w-full overflow-hidden rounded-xl ring-1 ring-line"
         style={{ zIndex: 0 }}
       />
 

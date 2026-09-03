@@ -44,7 +44,7 @@ function Chip({
         "whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition",
         selected
           ? "bg-brand-600 text-white"
-          : "bg-white text-ink ring-1 ring-black/10 hover:bg-sand",
+          : "bg-surface text-ink ring-1 ring-line hover:bg-sand",
       )}
     >
       {label}

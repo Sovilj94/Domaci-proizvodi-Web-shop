@@ -59,7 +59,7 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-[calc(100vh-4rem)] place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="rounded-2xl border border-line bg-white p-8 shadow-lg">
+        <div className="rounded-2xl border border-line bg-surface p-8 shadow-lg">
           <div className="flex justify-center">
             <Logo />
           </div>

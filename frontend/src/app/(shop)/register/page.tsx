@@ -72,7 +72,7 @@ export default function RegisterPage() {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16">
         <Logo />
-        <div className="mt-6 w-full rounded-card bg-white p-8 text-center shadow-card">
+        <div className="mt-6 w-full rounded-card bg-surface p-8 text-center shadow-card">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand-100 text-brand-600">
             <MailCheck className="h-7 w-7" />
           </div>
@@ -113,7 +113,7 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-14">
       <Logo />
-      <div className="mt-6 w-full rounded-card bg-white p-7 shadow-card">
+      <div className="mt-6 w-full rounded-card bg-surface p-7 shadow-card">
         <h1 className="font-display text-2xl font-bold">Registracija</h1>
         <p className="mt-1 text-sm text-muted">Otvorite nalog i pratite svoje narudžbe.</p>
 

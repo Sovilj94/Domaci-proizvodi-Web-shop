@@ -42,7 +42,7 @@ export default function OrdersPage() {
         ) : orders.data && orders.data.length > 0 ? (
           <ul className="space-y-4">
             {orders.data.map((o) => (
-              <li key={o.id} className="rounded-card bg-white p-5 shadow-card">
+              <li key={o.id} className="rounded-card bg-surface p-5 shadow-card">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-display font-semibold">{o.code}</p>
