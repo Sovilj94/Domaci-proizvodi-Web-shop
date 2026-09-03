@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CalendarClock, Leaf, MapPin, PackageCheck, Truck } from "lucide-react";
+import {
+  ArrowRight,
+  Leaf,
+  MapPin,
+  MessagesSquare,
+  PackageCheck,
+  Sprout,
+  Truck,
+} from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { ProductCard } from "@/components/shop/product-card";
 import { ProductGridSkeleton } from "@/components/shop/product-grid";
@@ -10,178 +18,290 @@ import { Reveal } from "@/components/ui/reveal";
 import { useCategories, useProducers, useProducts } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
+/**
+ * Uređivački raspored: pune sekcije naizmjenično bijela / pijesak, ujednačen vertikalni
+ * ritam, mreža umjesto kartica u kutijama.
+ *
+ * Horizontalne trake su namjerno zadržane ispod `sm`. Telefon ima donju tab traku i korpu
+ * — mreža od četiri u redu tamo znači beskonačno skrolanje do prvog proizvoda, pa raspored
+ * predloška (koji je brošura, ne prodavnica) vrijedi tek od tableta naviše.
+ */
+
+/** Zajednički okvir sekcije: puna širina, unutrašnja kolona, isti ritam svuda. */
+function Section({
+  children,
+  alt = false,
+  className,
+  id,
+}: {
+  children: React.ReactNode;
+  alt?: boolean;
+  className?: string;
+  id?: string;
+}) {
+  return (
+    <section id={id} className={cn("px-4 py-14 sm:py-20", alt && "bg-sand", className)}>
+      <div className="mx-auto max-w-6xl">{children}</div>
+    </section>
+  );
+}
+
+function SectionHeader({
+  naslov,
+  opis,
+  link,
+  linkTekst,
+}: {
+  naslov: string;
+  opis?: string;
+  link?: string;
+  linkTekst?: string;
+}) {
+  return (
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 className="font-display text-3xl font-extrabold text-ink sm:text-4xl">{naslov}</h2>
+        {opis && <p className="mt-2 max-w-xl text-muted">{opis}</p>}
+      </div>
+      {link && (
+        <Link href={link} className="text-sm font-semibold text-brand-700 hover:underline">
+          {linkTekst} →
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const categories = useCategories();
   const featured = useProducts({ featured: true });
   const producers = useProducers();
 
   return (
-    <div className="pb-4">
-      {/* Promo banner */}
-      <section className="mx-auto max-w-6xl px-4 pt-5">
-        <div className="relative overflow-hidden rounded-3xl bg-brand-700 px-6 py-8 text-white sm:px-10 sm:py-11">
-          <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_90%_10%,rgba(255,255,255,0.10),transparent)]" />
-          <div className="relative max-w-md">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">
-              <Leaf className="h-3.5 w-3.5" /> Svježe sa Manjače
-            </span>
-            <h1 className="mt-3 font-display text-2xl font-bold leading-tight sm:text-4xl">
-              Domaće na tvoja vrata
-            </h1>
-            <p className="mt-2 max-w-sm text-sm text-brand-100 sm:text-base">
-              Povrće, sir, jaja, med i zimnica od domaćina sa Manjače — dostava u Banju Luku.
-            </p>
-            <Link
-              href="/products"
-              className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "mt-5")}
-            >
+    <div>
+      {/* ---------- Hero ---------- */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-brand-50 via-sand to-cream px-4 py-20 text-center sm:py-28">
+        <div className="mx-auto max-w-3xl">
+          <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand-700">
+            <Leaf className="h-3.5 w-3.5" /> Direktno od domaćina
+          </span>
+          {/* clamp: 44px na telefonu, do 80px na širokom ekranu — bez skokova po breakpointima. */}
+          <h1 className="mt-6 font-display font-extrabold leading-[1.05] text-ink [font-size:clamp(2.75rem,7vw,5rem)]">
+            Domaće na tvoja vrata.
+          </h1>
+          <p className="mx-auto mt-6 max-w-xl text-lg text-muted">
+            Povrće, sir, jaja, med i zimnica od domaćina sa Manjače. Bez pijace, bez
+            posrednika — dostava u Banju Luku.
+          </p>
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <Link href="/products" className={buttonVariants({ size: "lg" })}>
               Kupuj proizvode <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="#domacini"
+              className={buttonVariants({ variant: "secondary", size: "lg" })}
+            >
+              Naši domaćini
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="mx-auto max-w-6xl px-4 pt-8">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-lg font-bold sm:text-xl">Kategorije</h2>
-          <Link href="/products" className="text-sm font-semibold text-brand-700 hover:underline">
-            Sve →
-          </Link>
-        </div>
+      {/* ---------- Kategorije ---------- */}
+      <Section alt>
+        <SectionHeader
+          naslov="Naše kategorije"
+          opis="Izaberi kategoriju i nađi sve za domaću trpezu."
+          link="/products"
+          linkTekst="Svi proizvodi"
+        />
         {categories.isLoading ? (
-          <div className="flex gap-4 overflow-hidden">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="w-24 shrink-0 sm:w-28">
-                <div className="aspect-square animate-pulse rounded-2xl bg-sand" />
-              </div>
+          <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-80 animate-pulse rounded-card bg-white" />
             ))}
           </div>
         ) : (
-          <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
+          /* auto-fit umjesto fiksne četiri kolone: zadnji red se razvuče preko slobodne
+             širine umjesto da zadnja pločica visi sama — predložak upravo to ima. */
+          <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
             {categories.data?.map((c) => (
               <Link
                 key={c.id}
                 href={`/products?category=${c.slug}`}
-                className="group w-24 shrink-0 sm:w-28"
+                className="group relative block h-80 overflow-hidden rounded-card bg-ink"
               >
-                <div className="relative aspect-square overflow-hidden rounded-2xl bg-sand shadow-card">
-                  <SmartImage
-                    src={c.imageUrl}
-                    alt={c.name}
-                    sizes="112px"
-                    className="transition duration-300 group-hover:scale-105"
-                  />
+                <SmartImage
+                  src={c.imageUrl}
+                  alt={c.name}
+                  sizes="(max-width: 640px) 100vw, 300px"
+                  className="opacity-80 transition duration-500 group-hover:scale-105"
+                />
+                {/* Gradijent, ne ravna prekrivka: vrh slike ostaje čitljiv, dno nosi tekst. */}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                  <h3 className="font-display text-xl font-bold">{c.name}</h3>
+                  {c.productCount != null && (
+                    <p className="mt-1 text-sm text-white/70">{c.productCount} proizvoda</p>
+                  )}
                 </div>
-                <p className="mt-1.5 text-center text-xs font-medium leading-tight">{c.name}</p>
               </Link>
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
-      {/* Featured carousel */}
-      <section className="mx-auto max-w-6xl px-4 pt-9">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-lg font-bold sm:text-xl">Izdvojeno ove sedmice</h2>
-          <Link href="/products" className="text-sm font-semibold text-brand-700 hover:underline">
-            Svi proizvodi →
-          </Link>
-        </div>
+      {/* ---------- Istaknuti proizvodi ---------- */}
+      <Section>
+        <SectionHeader
+          naslov="Istaknuto ove sedmice"
+          opis="Najtraženiji artikli, uvijek svježi."
+          link="/products"
+          linkTekst="Svi proizvodi"
+        />
         {featured.isLoading ? (
           <ProductGridSkeleton count={4} />
         ) : featured.data && featured.data.length > 0 ? (
-          <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
-            {featured.data.slice(0, 10).map((p) => (
-              <div key={p.id} className="w-40 shrink-0 sm:w-48">
-                <ProductCard product={p} />
-              </div>
-            ))}
-          </div>
+          <>
+            {/* Telefon: traka. Tablet naviše: mreža. */}
+            <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:hidden">
+              {featured.data.slice(0, 10).map((p) => (
+                <div key={p.id} className="w-40 shrink-0">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+            <div className="hidden gap-8 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+              {featured.data.slice(0, 8).map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </>
         ) : (
           <p className="text-muted">Trenutno nema izdvojenih proizvoda.</p>
         )}
-      </section>
+      </Section>
 
-      {/* Producers */}
+      {/* ---------- Naša priča + obećanja ---------- */}
+      <Section alt id="kako">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr]">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-widest text-brand-700">
+              Naša priča
+            </span>
+            <h2 className="mt-3 font-display text-3xl font-extrabold leading-tight text-ink sm:text-4xl">
+              Provjereno, domaće, s Manjače.
+            </h2>
+            <p className="mt-5 text-muted">
+              Sarađujemo sa porodicama sa Manjače koje poznajemo lično. Bez konzervansa, bez
+              industrijske obrade, bez dugih lanaca snabdijevanja — svaki proizvod dolazi od
+              domaćina kojeg možemo imenovati. Narudžbe primamo do utorka, a dostavljamo
+              četvrtkom.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Obecanje
+              icon={<Sprout className="h-5 w-5" />}
+              naslov="Provjereni domaćini"
+              tekst="Sarađujemo samo sa gazdinstvima koja lično poznajemo."
+            />
+            <Obecanje
+              icon={<Truck className="h-5 w-5" />}
+              naslov="Dostava četvrtkom"
+              tekst="Kombiji voze na kućni prag u Banjoj Luci, petak po potrebi."
+            />
+            <Obecanje
+              icon={<PackageCheck className="h-5 w-5" />}
+              naslov="Pakujemo na Manjači"
+              tekst="Srijedom domaćini beru i pakuju — bez skladišta između."
+            />
+            <Obecanje
+              icon={<MessagesSquare className="h-5 w-5" />}
+              naslov="Podrška na telefonu"
+              tekst="Dostupni smo za pitanja o porijeklu i uslovima dostave."
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* ---------- Domaćini ---------- */}
       <Reveal>
-        <section id="domacini" className="mx-auto max-w-6xl px-4 pt-12">
-          <h2 className="font-display text-lg font-bold sm:text-xl">Naši domaćini</h2>
-          <p className="mt-1 max-w-xl text-sm text-muted">
-            Iza svakog proizvoda stoji porodica sa Manjače koju poznajemo lično.
-          </p>
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Section id="domacini">
+          <SectionHeader
+            naslov="Naši domaćini"
+            opis="Iza svakog proizvoda stoji porodica sa Manjače."
+          />
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {producers.isLoading
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-64 animate-pulse rounded-card bg-white shadow-card" />
+                  <div key={i} className="h-72 animate-pulse rounded-card bg-sand" />
                 ))
               : producers.data?.map((p, i) => (
                   <Reveal key={p.id} className="h-full" delay={i * 0.06}>
-                    <article className="h-full overflow-hidden rounded-card bg-white shadow-card">
-                      <div className="relative aspect-[4/3] bg-sand">
+                    <article className="flex h-full flex-col">
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-sand">
                         <SmartImage src={p.photoUrl} alt={p.name} sizes="300px" />
                       </div>
-                      <div className="p-4">
-                        <h3 className="font-display font-semibold">{p.name}</h3>
-                        <p className="flex items-center gap-1 text-xs text-brand-700">
-                          <MapPin className="h-3.5 w-3.5" /> {p.village}
-                        </p>
-                        <p className="mt-2 line-clamp-3 text-sm text-muted">{p.description}</p>
-                      </div>
+                      <h3 className="mt-3 font-display text-lg font-bold text-ink">{p.name}</h3>
+                      <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-700">
+                        <MapPin className="h-3.5 w-3.5" /> {p.village}
+                      </p>
+                      <p className="mt-2 line-clamp-3 text-sm text-muted">{p.description}</p>
                     </article>
                   </Reveal>
                 ))}
           </div>
-        </section>
+        </Section>
       </Reveal>
 
-      {/* How it works */}
-      <Reveal>
-        <section id="kako" className="mx-auto max-w-6xl px-4 pt-12">
-          <h2 className="font-display text-lg font-bold sm:text-xl">Kako funkcioniše</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <Step icon={<CalendarClock className="h-5 w-5" />} title="Naruči do utorka" text="Napuni korpu domaćim proizvodima." />
-            <Step icon={<PackageCheck className="h-5 w-5" />} title="Pakujemo na Manjači" text="Srijedom domaćini beru i pakuju svježe." />
-            <Step icon={<Truck className="h-5 w-5" />} title="Dostava u četvrtak" text="Kombiji dostavljaju na kućni prag u BL." />
+      {/* ---------- Tamna traka pred footerom ---------- */}
+      <section className="bg-ink px-4 py-16 text-center text-white sm:py-20">
+        <div className="mx-auto max-w-2xl">
+          <h2 className="font-display text-3xl font-extrabold leading-tight sm:text-4xl">
+            Dostavljamo u tvoj kraj.
+          </h2>
+          <p className="mt-4 text-white/70">
+            Centar, Borik, Lauš i Starčevica — narudžbe do utorka u 12h, dostava četvrtkom.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-2">
+            {["Centar", "Borik", "Lauš", "Starčevica"].map((z) => (
+              <span
+                key={z}
+                className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white"
+              >
+                {z}
+              </span>
+            ))}
           </div>
-        </section>
-      </Reveal>
-
-      {/* Delivery strip */}
-      <Reveal>
-        <section className="mt-12 bg-sand">
-          <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-9 text-center">
-            <h2 className="font-display text-lg font-bold">Dostavljamo u tvoj kraj</h2>
-            <div className="flex flex-wrap justify-center gap-2">
-              {["Centar", "Borik", "Lauš", "Starčevica"].map((z) => (
-                <span
-                  key={z}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-medium shadow-card"
-                >
-                  {z}
-                </span>
-              ))}
-            </div>
-            <Link href="/products" className={cn(buttonVariants({ size: "md" }), "mt-1")}>
-              Počni kupovinu
-            </Link>
-          </div>
-        </section>
-      </Reveal>
+          <Link
+            href="/products"
+            className={cn(buttonVariants({ size: "lg" }), "mt-9")}
+          >
+            Počni kupovinu <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
 
-function Step({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+function Obecanje({
+  icon,
+  naslov,
+  tekst,
+}: {
+  icon: React.ReactNode;
+  naslov: string;
+  tekst: string;
+}) {
   return (
-    <div className="flex items-start gap-3 rounded-card bg-white p-4 shadow-card">
-      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-700">
+    <div>
+      <div className="grid h-11 w-11 place-items-center rounded-full bg-brand-100 text-brand-700">
         {icon}
       </div>
-      <div>
-        <h3 className="font-display font-semibold">{title}</h3>
-        <p className="mt-0.5 text-sm text-muted">{text}</p>
-      </div>
+      <h3 className="mt-4 font-display text-base font-bold text-ink">{naslov}</h3>
+      <p className="mt-1.5 text-sm text-muted">{tekst}</p>
     </div>
   );
 }

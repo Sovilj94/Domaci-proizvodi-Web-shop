@@ -9,16 +9,21 @@ import { flyToCart } from "@/lib/cart/fly-to-cart";
 import { useToast } from "@/components/ui/toast";
 import { formatPrice, unitSuffix } from "@/lib/utils";
 
+/**
+ * Kartica bez okvira i sjenke: radijus i pozadina nose samo sliku, tekst stoji direktno
+ * na pozadini sekcije. Okvir plus sjenka plus razmak su tri granice za istu stvar — kad
+ * se dvije sklone, mreža proizvoda diše i slika radi posao.
+ */
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
   const { show } = useToast();
   const soldOut = !product.isAvailable || product.stock <= 0;
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-card bg-white shadow-card transition hover:shadow-md">
+    <div className="group flex h-full flex-col">
       <Link
         href={`/products/${product.slug}`}
-        className="relative block aspect-square overflow-hidden bg-sand"
+        className="relative block aspect-square overflow-hidden rounded-card bg-sand"
       >
         <SmartImage
           src={product.imageUrl}
@@ -26,31 +31,35 @@ export function ProductCard({ product }: { product: Product }) {
           className="transition duration-300 group-hover:scale-105"
         />
         {product.isFeatured && !soldOut && (
-          <span className="absolute left-3 top-3 rounded-full bg-honey-500 px-2.5 py-1 text-[11px] font-bold text-ink">
+          <span className="absolute left-3 top-3 rounded-md bg-ink px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
             Izdvojeno
           </span>
         )}
         {soldOut && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm font-semibold text-ink">
+          <div className="absolute inset-0 flex items-center justify-center bg-cream/70 text-sm font-semibold text-ink">
             Trenutno nedostupno
           </div>
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
-        <p className="truncate text-xs text-muted">
-          {product.producer?.name} · {product.producer?.village}
+      <div className="flex flex-1 flex-col pt-3">
+        {/* Proizvođač u sitnim verzalima iznad naziva — nosilac hijerarhije ostaje naziv. */}
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted">
+          {product.producer?.name}
+          {product.producer?.village ? ` · ${product.producer.village}` : ""}
         </p>
         <Link
           href={`/products/${product.slug}`}
-          className="mt-0.5 font-display font-semibold leading-tight text-ink hover:text-brand-700"
+          className="mt-1 font-display font-bold leading-tight text-ink hover:text-brand-700"
         >
           {product.name}
         </Link>
 
-        <div className="mt-auto flex items-end justify-between pt-3">
-          <div>
-            <span className="text-lg font-bold text-ink">{formatPrice(product.price)}</span>
+        <div className="mt-auto flex items-end justify-between pt-2">
+          <div className="flex items-baseline gap-1">
+            <span className="font-display text-lg font-bold text-ink">
+              {formatPrice(product.price)}
+            </span>
             <span className="text-xs text-muted">{unitSuffix(product.unit)}</span>
           </div>
           <button
@@ -63,7 +72,7 @@ export function ProductCard({ product }: { product: Product }) {
               requestAnimationFrame(() => flyToCart(btn));
             }}
             aria-label={`Dodaj ${product.name} u korpu`}
-            className="grid h-10 w-10 place-items-center rounded-full bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 active:scale-90 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-600 text-white transition hover:bg-brand-700 active:scale-90 disabled:cursor-not-allowed disabled:bg-sand disabled:text-muted"
           >
             <Plus className="h-5 w-5" />
           </button>

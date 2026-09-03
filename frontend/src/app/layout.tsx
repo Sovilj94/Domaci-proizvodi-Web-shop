@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -9,8 +9,8 @@ const inter = Inter({
   display: "swap",
 });
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
   display: "swap",
@@ -29,7 +29,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="bs" className={`${inter.variable} ${jakarta.variable} h-full`}>
+    <html lang="bs" className={`${inter.variable} ${interTight.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>

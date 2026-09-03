@@ -1,22 +1,32 @@
 @import "tailwindcss";
 
 /*
- * E piljara design tokens — Wolt-čista paleta.
+ * E piljara design tokens — uredska, visokokontrastna paleta.
  * Tailwind v4 čita ove iz @theme i generiše utilitije
  * (bg-brand-500, text-muted, rounded-card, shadow-card, font-display, ...).
+ *
+ * Imena tokena su namjerno ostala ista (brand-*, sand, ink…) — 33 fajla ih koristi,
+ * pa se cijeli izgled mijenja ovdje umjesto kroz stotine izmjena po komponentama.
  */
 @theme {
-  /* Brand — domaća maslinasto zelena (akcenat) */
-  --color-brand-50: #f0f9f1;
-  --color-brand-100: #dcf0df;
-  --color-brand-200: #bce3c2;
-  --color-brand-300: #8fce9a;
-  --color-brand-400: #5bb06b;
-  --color-brand-500: #379548;
-  --color-brand-600: #2a7a3a;
-  --color-brand-700: #246330;
-  --color-brand-800: #204f2a;
-  --color-brand-900: #1c4125;
+  /*
+   * Brand — jedan topli narandžasti akcenat.
+   * Kontrast je razlog zašto skala nije doslovna kopija predloška: sirovi #ff5722 daje
+   * samo 3.16:1 na bijeloj i pada WCAG AA (traži 4.5:1). Zato:
+   *   500 = ukras i velike površine (badge, ikone, tanke linije),
+   *   600 = ispuna dugmadi — bijeli tekst na njemu je 5.08:1,
+   *   700 = tekst i linkovi na bijeloj — 6.89:1.
+   */
+  --color-brand-50: #fff4f0;
+  --color-brand-100: #ffe6dc;
+  --color-brand-200: #ffc9b3;
+  --color-brand-300: #ffa584;
+  --color-brand-400: #ff7d4d;
+  --color-brand-500: #ff5722;
+  --color-brand-600: #c93c0e;
+  --color-brand-700: #a63009;
+  --color-brand-800: #872707;
+  --color-brand-900: #6d2006;
 
   /* Med — SAMO za istaknuto ("Izdvojeno"), ne za CTA */
   --color-honey-100: #fdf1d6;
@@ -25,23 +35,23 @@
   --color-honey-500: #ef9d1f;
   --color-honey-600: #d98209;
 
-  /* Neutrali — čisti, hladni (Wolt) */
+  /* Neutrali — topli, uz naizmjenične sekcije bijela / pijesak */
   --color-cream: #ffffff;   /* pozadina stranice */
-  --color-sand: #f4f5f7;    /* prigušena površina / hover */
-  --color-ink: #16181d;     /* skoro-crn tekst */
-  --color-muted: #8a9099;   /* sekundarni tekst */
-  --color-line: #ececef;    /* hairline granice */
+  --color-sand: #f8f7f4;    /* prigušena površina / naizmjenična sekcija */
+  --color-ink: #1a1a1a;     /* skoro-crn tekst */
+  --color-muted: #6a6a6a;   /* sekundarni tekst — 5.41:1, prolazi AA */
+  --color-line: #ececec;    /* hairline granice */
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif, sans-serif;
 
-  --radius-card: 0.875rem; /* 14px, Wolt-tijesno */
+  --radius-card: 1rem; /* 16px */
 
-  /* Elevacije — mekane, hladne sjenke */
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 6px 20px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 14px 36px rgba(16, 24, 40, 0.12);
+  /* Elevacije — neutralne, dublje na vrhu skale */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.12);
 
   /* Animacije */
   --animate-shimmer: shimmer 1.5s linear infinite;
@@ -69,6 +79,15 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Zbijeni tracking na display naslovima. Vrijednost je u `em` da bi se skalirala sa
+ * veličinom slova — na 80px daje oko -1.6px, isto kao na predlošku, a na sitnom
+ * naslovu kartice ostaje neprimjetna umjesto da zgnječi tekst.
+ */
+.font-display {
+  letter-spacing: -0.02em;
 }
 
 /* Hide scrollbars on horizontal rails (category chips, etc.) */

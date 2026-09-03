@@ -4,8 +4,9 @@ import { Logo } from "@/components/layout/logo";
 
 export function ShopFooter() {
   return (
-    <footer className="mt-20 border-t border-line bg-white">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="border-t border-line bg-cream">
+      {/* Brend stupac je širi od ostala tri — nosi opis, a ne spisak linkova. */}
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
         <div className="space-y-3">
           <Logo />
           <p className="max-w-xs text-sm text-muted">
