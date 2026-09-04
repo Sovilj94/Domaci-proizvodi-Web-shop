@@ -12,6 +12,7 @@ public interface IAppDbContext
     DbSet<DeliveryZone> DeliveryZones { get; }
     DbSet<DeliverySlot> DeliverySlots { get; }
     DbSet<User> Users { get; }
+    DbSet<Address> Addresses { get; }
     DbSet<Driver> Drivers { get; }
     DbSet<Order> Orders { get; }
     DbSet<OrderItem> OrderItems { get; }

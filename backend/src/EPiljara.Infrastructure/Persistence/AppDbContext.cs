@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<DeliveryZone> DeliveryZones => Set<DeliveryZone>();
     public DbSet<DeliverySlot> DeliverySlots => Set<DeliverySlot>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Address> Addresses => Set<Address>();
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
@@ -71,6 +72,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Email).HasMaxLength(256).IsRequired();
             e.Property(x => x.Role).HasConversion<string>().HasMaxLength(16);
             e.HasIndex(x => x.Email).IsUnique();
+        });
+
+        b.Entity<Address>(e =>
+        {
+            e.Property(x => x.Label).HasMaxLength(60);
+            // 400 je isto kao Order.DeliveryAddress — adresa putuje odavde u narudžbu,
+            // pa kraće polje ovdje bi značilo da se nešto što je stalo u narudžbu
+            // ne može sačuvati u adresar.
+            e.Property(x => x.FullAddress).HasMaxLength(400).IsRequired();
+            e.HasIndex(x => x.UserId);
+            e.HasOne(x => x.User).WithMany()
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.DeliveryZone).WithMany()
+                .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<Driver>(e =>
