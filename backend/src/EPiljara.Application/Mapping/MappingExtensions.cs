@@ -177,4 +177,17 @@ public static class MappingExtensions
         Naziv = r.Naziv,
         ZonaNaziv = r.DeliveryZone?.Name,
     };
+
+    public static AddressDto ToDto(this Address a) => new()
+    {
+        Id = a.Id,
+        Label = a.Label,
+        FullAddress = a.FullAddress,
+        Latitude = a.Latitude,
+        Longitude = a.Longitude,
+        DeliveryZoneId = a.DeliveryZoneId,
+        DeliveryZoneName = a.DeliveryZone?.Name,
+        DeliveryZoneActive = a.DeliveryZone?.IsActive ?? false,
+        IsDefault = a.IsDefault,
+    };
 }
