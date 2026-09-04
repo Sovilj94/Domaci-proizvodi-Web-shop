@@ -12,7 +12,9 @@
 
 ## Global Constraints
 
-- **Nema test framework-a.** `CLAUDE.md` kaže doslovno: nema test projekata i nema `test` skripte; izmjene se provjeravaju pokretanjem steka i prolaskom kroz tok. Koraci „provjeri" u ovom planu su zato **stvarne komande** (`curl`, `psql`, `tsc`, `lint`, `dotnet build`), a ne unit testovi. Ne izmišljati test fajlove; ako se želi test projekat, to je zaseban dogovor prije ovog plana.
+- **Test projekat se uvodi ovim planom (Task 0).** Repozitorij ga do sada nije imao — `CLAUDE.md` kaže „nema test projekata i nema `test` skripte" i tu rečenicu treba ispraviti u Task 0. Testovi pokrivaju **backend handlere**, gdje žive invarijante (vlasništvo, tačno jedna glavna adresa, granica od 10). Uz njih ostaju i provjere kroz pokrenut stek (`curl`, `psql`), jer migracije i prolaz kupca kroz checkout unit test ne hvata.
+- **Frontend nema test setup i ovaj plan ga ne uvodi.** Dodavanje `vitest` + Testing Library je zaseban posao sa svojim odlukama (jsdom, mockovanje TanStack Query-ja, mock mape). Zadaci 5 i 6 se provjeravaju `tsc`, `lint` i prolaskom kroz tok u pretraživaču. Ovo je svjesno ograničenje, ne propust.
+- **Verzije paketa u test projektu moraju pratiti `9.0.11`**, isto kao `EPiljara.Infrastructure`. Repozitorij već nosi commit `fix: prikuj EntityFrameworkCore.Relational na istu verziju kao EF Core` — razilaženje verzija EF paketa je ovdje već jednom puklo.
 - Backend na `http://localhost:5080`, frontend na `http://localhost:3000`, Postgres kroz `docker compose up -d postgres`.
 - Svaki endpoint vraća omotač `{ data, error, meta }` — koristiti `Envelope`/`EnvelopeList`/`EnvelopeCreated` iz `ApiControllerBase`, nikad ručno graditi odgovor.
 - Ključevi validacionih grešaka su camelCase pune putanje (`Input.Name` → `input.name`).
@@ -22,6 +24,162 @@
 - Migracije: `dotnet dotnet-ef migrations add <Ime> -p src/EPiljara.Infrastructure -s src/EPiljara.Infrastructure -o Persistence/Migrations`.
 - Najviše **10** adresa po korisniku.
 - Prije svakog `dotnet build` ubiti pokrenuti `EPiljara.API`, inače build pukne na zaključanom DLL-u.
+
+---
+
+### Task 0: Test projekat
+
+Repozitorij nema nijedan test. Ovaj zadatak pravi infrastrukturu i **jedan test koji odmah nešto dokazuje**, da se ne završi sa praznom ljuskom u koju niko ne piše.
+
+**Files:**
+- Create: `backend/tests/EPiljara.Application.Tests/EPiljara.Application.Tests.csproj`
+- Create: `backend/tests/EPiljara.Application.Tests/TestDb.cs`
+- Create: `backend/tests/EPiljara.Application.Tests/FakeCurrentUser.cs`
+- Create: `backend/tests/EPiljara.Application.Tests/OrderCodeTests.cs`
+- Modify: `backend/EPiljara.sln`
+- Modify: `CLAUDE.md`
+
+**Interfaces:**
+- Produces: `TestDb.Create()` → `AppDbContext` nad SQLite in-memory bazom sa primijenjenom šemom; `FakeCurrentUser` koji implementira `ICurrentUser`.
+
+- [ ] **Step 1: Napraviti projekat i dodati ga u soluciju**
+
+```bash
+cd backend
+dotnet new xunit -o tests/EPiljara.Application.Tests -f net9.0
+dotnet sln EPiljara.sln add tests/EPiljara.Application.Tests/EPiljara.Application.Tests.csproj
+dotnet add tests/EPiljara.Application.Tests reference src/EPiljara.Application/EPiljara.Application.csproj
+dotnet add tests/EPiljara.Application.Tests reference src/EPiljara.Infrastructure/EPiljara.Infrastructure.csproj
+dotnet add tests/EPiljara.Application.Tests package Microsoft.EntityFrameworkCore.Sqlite --version 9.0.11
+dotnet add tests/EPiljara.Application.Tests package FluentAssertions --version 6.12.1
+```
+
+> **SQLite, ne InMemory provider.** EF-ov InMemory ne poštuje strane ključeve ni relacione semantike, pa bi testovi prolazili tamo gdje Postgres pada. SQLite in-memory je relacion i dovoljno blizak za logiku handlera.
+
+- [ ] **Step 2: Napisati pomoćnu bazu**
+
+`backend/tests/EPiljara.Application.Tests/TestDb.cs`:
+
+```csharp
+using EPiljara.Infrastructure.Persistence;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+
+namespace EPiljara.Application.Tests;
+
+/// <summary>
+/// SQLite in-memory baza sa stvarnom šemom. Konekcija se drži otvorenom jer
+/// SQLite briše in-memory bazu čim se zadnja konekcija zatvori.
+/// </summary>
+public sealed class TestDb : IDisposable
+{
+    private readonly SqliteConnection _connection;
+    public AppDbContext Db { get; }
+
+    public TestDb()
+    {
+        _connection = new SqliteConnection("DataSource=:memory:");
+        _connection.Open();
+
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(_connection)
+            .Options;
+
+        Db = new AppDbContext(options);
+        Db.Database.EnsureCreated();
+    }
+
+    public void Dispose()
+    {
+        Db.Dispose();
+        _connection.Dispose();
+    }
+}
+```
+
+> Ako konstruktor `AppDbContext` traži još zavisnosti osim `DbContextOptions`, proslijediti ih ovdje; provjeriti potpis prije pisanja.
+
+- [ ] **Step 3: Napisati lažnog korisnika**
+
+`backend/tests/EPiljara.Application.Tests/FakeCurrentUser.cs`:
+
+```csharp
+using EPiljara.Application.Common.Interfaces;
+using EPiljara.Domain.Enums;
+
+namespace EPiljara.Application.Tests;
+
+/// <summary>ICurrentUser bez HTTP konteksta — testovi biraju ko je prijavljen.</summary>
+public class FakeCurrentUser(Guid? id, UserRole role = UserRole.Customer) : ICurrentUser
+{
+    public Guid? Id => id;
+    public string? Email => id is null ? null : $"{id}@test.local";
+    public UserRole? Role => id is null ? null : role;
+    public bool IsAuthenticated => id is not null;
+    public bool IsInRole(UserRole r) => Role == r;
+}
+```
+
+- [ ] **Step 4: Napisati prvi test koji nešto stvarno tvrdi**
+
+Ne prazan „smoke" test. Uzeti postojeće pravilo iz `lib/orders.ts` parnjaka na backendu — ako takvog nema, testirati `GeoBounds`, koje već postoji i koristi ga i `CreateOrderValidator` i novi `AddressRules`:
+
+`backend/tests/EPiljara.Application.Tests/GeoBoundsTests.cs`:
+
+```csharp
+using EPiljara.Application.Common;
+using FluentAssertions;
+using Xunit;
+
+namespace EPiljara.Application.Tests;
+
+public class GeoBoundsTests
+{
+    [Fact]
+    public void Tacka_u_Banjoj_Luci_je_unutar_granica()
+    {
+        GeoBounds.Contains(44.7722, 17.1910).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Zamijenjena_sirina_i_duzina_padaju_van_granica()
+    {
+        // Ovo je razlog zašto opseg cijelog globusa nije dovoljan: 17/44 je
+        // sintaksno ispravna tačka, ali je u Iraku.
+        GeoBounds.Contains(17.1910, 44.7722).Should().BeFalse();
+    }
+}
+```
+
+> Prije pisanja otvoriti `backend/src/EPiljara.Application/Common/GeoBounds.cs` i uskladiti se sa stvarnim imenom klase i potpisom `Contains`.
+
+- [ ] **Step 5: Pokrenuti testove**
+
+```bash
+cd backend && dotnet test
+```
+
+Očekivano: `Passed! - Failed: 0, Passed: 2`. Ako drugi test padne, granice u `GeoBounds` su šire nego što se mislilo — to je nalaz, ne test koji treba popraviti; prijaviti ga.
+
+- [ ] **Step 6: Ispraviti `CLAUDE.md`**
+
+Rečenicu „**There is no automated test suite** (no test projects, no `test` script)" zamijeniti sa:
+
+```markdown
+**Backend ima testove** (`backend/tests/EPiljara.Application.Tests`, xUnit + SQLite in-memory):
+```bash
+dotnet test          # iz backend/
+```
+Pokriveni su handleri i domenska pravila. **Frontend nema test setup** — provjerava se sa
+`npx tsc --noEmit`, `npm run lint` i prolaskom kroz tok uz pokrenut stek.
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add backend/tests backend/EPiljara.sln CLAUDE.md
+git commit -m "test: uvedi xUnit projekat za backend"
+```
 
 ---
 
@@ -577,7 +735,124 @@ public record UpdateAddressBody(
     Guid? DeliveryZoneId);
 ```
 
-- [ ] **Step 3: Provjeriti cio ciklus preko API-ja**
+- [ ] **Step 3: Napisati testove za invarijante — PRIJE nego što se provjerava kroz API**
+
+`backend/tests/EPiljara.Application.Tests/AddressCommandsTests.cs`. Ovo su tri pravila koja se najlakše tiho pokvare i koja `curl` provjera neće uhvatiti pouzdano:
+
+```csharp
+using EPiljara.Application.Features.Account;
+using EPiljara.Domain.Common;
+using EPiljara.Domain.Entities;
+using FluentAssertions;
+using Xunit;
+
+namespace EPiljara.Application.Tests;
+
+public class AddressCommandsTests
+{
+    private static User NapraviKupca(TestDb t, string email)
+    {
+        var u = new User { Name = "Kupac", Email = email, PasswordHash = "x" };
+        t.Db.Users.Add(u);
+        t.Db.SaveChanges();
+        return u;
+    }
+
+    [Fact]
+    public async Task Prva_adresa_je_glavna_sama_od_sebe()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "a@test.local");
+        var handler = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
+
+        var rezultat = await handler.Handle(
+            new CreateAddressCommand(null, "Prva 1", null, null, null), default);
+
+        rezultat.IsDefault.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Postavljanje_glavne_gasi_prethodnu()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "b@test.local");
+        var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
+        var prva = await create.Handle(new CreateAddressCommand(null, "Prva 1", null, null, null), default);
+        var druga = await create.Handle(new CreateAddressCommand(null, "Druga 2", null, null, null), default);
+
+        var setDefault = new SetDefaultAddressHandler(t.Db, new FakeCurrentUser(u.Id));
+        await setDefault.Handle(new SetDefaultAddressCommand(druga.Id), default);
+
+        var sve = t.Db.Addresses.Where(a => a.UserId == u.Id).ToList();
+        sve.Count(a => a.IsDefault).Should().Be(1, "nikad ne smiju postojati dvije glavne");
+        sve.Single(a => a.IsDefault).Id.Should().Be(druga.Id);
+        sve.Single(a => a.Id == prva.Id).IsDefault.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Brisanje_glavne_prebacuje_oznaku_na_preostalu()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "c@test.local");
+        var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
+        var prva = await create.Handle(new CreateAddressCommand(null, "Prva 1", null, null, null), default);
+        await create.Handle(new CreateAddressCommand(null, "Druga 2", null, null, null), default);
+
+        var delete = new DeleteAddressHandler(t.Db, new FakeCurrentUser(u.Id));
+        await delete.Handle(new DeleteAddressCommand(prva.Id), default);
+
+        var sve = t.Db.Addresses.Where(a => a.UserId == u.Id).ToList();
+        sve.Should().HaveCount(1);
+        sve.Single().IsDefault.Should().BeTrue("kupac ne smije ostati bez glavne adrese");
+    }
+
+    [Fact]
+    public async Task Tudja_adresa_se_ne_moze_obrisati()
+    {
+        using var t = new TestDb();
+        var vlasnik = NapraviKupca(t, "vlasnik@test.local");
+        var napadac = NapraviKupca(t, "napadac@test.local");
+
+        var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(vlasnik.Id));
+        var adresa = await create.Handle(new CreateAddressCommand(null, "Moja 1", null, null, null), default);
+
+        var delete = new DeleteAddressHandler(t.Db, new FakeCurrentUser(napadac.Id));
+        var cin = () => delete.Handle(new DeleteAddressCommand(adresa.Id), default);
+
+        await cin.Should().ThrowAsync<ForbiddenException>();
+        t.Db.Addresses.Should().ContainSingle(a => a.Id == adresa.Id);
+    }
+
+    [Fact]
+    public async Task Jedanaesta_adresa_se_odbija()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "d@test.local");
+        var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
+
+        for (var i = 1; i <= CreateAddressHandler.MaxAdresa; i++)
+            await create.Handle(new CreateAddressCommand(null, $"Ulica {i}", null, null, null), default);
+
+        var cin = () => create.Handle(new CreateAddressCommand(null, "Preko granice", null, null, null), default);
+
+        (await cin.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("address_limit");
+    }
+}
+```
+
+> Provjeriti stvarno ime svojstva sa kodom greške na `DomainException` (`Code` ili slično) u `backend/src/EPiljara.Domain/Common/` i uskladiti zadnju tvrdnju.
+
+- [ ] **Step 4: Pokrenuti testove i vidjeti da padaju, pa da prolaze**
+
+Ako su handleri iz koraka 1 već napisani, testovi prolaze odmah. Da se dokaže da testovi zaista nešto drže, privremeno pokvariti `SetDefaultAddressHandler` tako da ne gasi staru glavnu:
+
+```bash
+cd backend && dotnet test --filter AddressCommandsTests
+```
+
+Očekivano nakon kvarenja: `Postavljanje_glavne_gasi_prethodnu` **pada**. Vratiti kod i ponovo pokrenuti — svih pet prolazi. Test koji ne pada kad se kod pokvari ne testira ništa.
+
+- [ ] **Step 5: Provjeriti cio ciklus preko API-ja**
 
 Uz pokrenut backend:
 
@@ -600,7 +875,7 @@ curl -s http://localhost:5080/account/addresses -H "Authorization: Bearer $TOKEN
 
 Očekivano: nova adresa je prva u spisku, `"isDefault":true`, a ranija adresa `"isDefault":false` — **tačno jedna** sa `true`.
 
-- [ ] **Step 4: Provjeriti zaštitu tuđe adrese**
+- [ ] **Step 6: Provjeriti zaštitu tuđe adrese**
 
 ```bash
 TUDJ=$(curl -s -X POST http://localhost:5080/auth/login -H "Content-Type: application/json" \
@@ -610,7 +885,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE "http://localhost:5080/accoun
 
 Očekivano: `403`. Ako lozinka za `ana@example.com` nije `ana123`, uzeti bilo koji drugi Customer nalog iz `DbSeeder` i njegovu lozinku.
 
-- [ ] **Step 5: Provjeriti granicu od 10**
+- [ ] **Step 7: Provjeriti granicu od 10**
 
 Dodati adrese dok ih ne bude 10, pa pokušati jedanaestu:
 
@@ -624,7 +899,7 @@ done
 
 Očekivano: prvih nekoliko `201`, a od trenutka kad ih ima 10 → `400` sa kodom `address_limit`.
 
-- [ ] **Step 6: Očistiti testne adrese**
+- [ ] **Step 8: Očistiti testne adrese**
 
 ```bash
 docker exec epiljara-postgres psql -U epiljara -d epiljara -c 'DELETE FROM "Addresses" WHERE "FullAddress" LIKE '"'"'Test ulica %'"'"' OR "FullAddress" = '"'"'Kralja Petra 10'"'"';'
@@ -638,10 +913,11 @@ docker exec epiljara-postgres psql -U epiljara -d epiljara -c 'SELECT "UserId", 
 
 Ako je neki korisnik ostao sa `glavnih = 0` jer je čišćenje obrisalo baš glavnu, postaviti glavnu ručno — i zabilježiti da brisanje kroz API to radi samo, a direktan `DELETE` u bazi ne.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add backend/src/EPiljara.Application/Features/Account/AddressCommands.cs backend/src/EPiljara.API/Controllers/AccountController.cs
+dotnet test
+git add backend/tests backend/src/EPiljara.Application/Features/Account/AddressCommands.cs backend/src/EPiljara.API/Controllers/AccountController.cs
 git commit -m "feat: dodavanje, izmjena, brisanje i postavljanje glavne adrese"
 ```
 
@@ -1324,6 +1600,7 @@ Provjereno prema specu:
 | Tačno jedna glavna, u jednom `SaveChanges` | 3 |
 | Brisanje glavne prebacuje oznaku | 3 |
 | Granica od 10 adresa | 3 |
+| Test projekat i testovi invarijanti | 0, 3 |
 | Svih šest endpointa | 2 (GET), 3 (write), 4 (profil) |
 | Provjera vlasništva → 403 | 3 |
 | Pravila za tačku ista kao u narudžbi, greške pod jednim ključem | 3 |
