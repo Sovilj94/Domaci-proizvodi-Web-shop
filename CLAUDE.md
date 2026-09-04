@@ -55,8 +55,12 @@ dotnet dotnet-ef migrations add <Name> -p src/EPiljara.Infrastructure -s src/EPi
 dotnet dotnet-ef database update       -p src/EPiljara.Infrastructure -s src/EPiljara.Infrastructure
 ```
 
-**There is no automated test suite** (no test projects, no `test` script). Verify changes by running the
-stack and exercising the affected flow end-to-end.
+**Backend ima testove** (`backend/tests/EPiljara.Application.Tests`, xUnit + SQLite in-memory):
+```bash
+dotnet test          # iz backend/
+```
+Pokriveni su handleri i domenska pravila. **Frontend nema test setup** — provjerava se sa
+`npx tsc --noEmit`, `npm run lint` i prolaskom kroz tok uz pokrenut stek.
 
 Demo accounts: `admin@epiljara.ba` / `admin123` · `mujo@example.com` / `mujo123` · `vozac@epiljara.ba` / `vozac123`.
 
