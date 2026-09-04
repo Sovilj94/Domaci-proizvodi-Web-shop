@@ -59,7 +59,9 @@ dotnet dotnet-ef database update       -p src/EPiljara.Infrastructure -s src/EPi
 ```bash
 dotnet test          # iz backend/
 ```
-Pokriveni su handleri i domenska pravila. **Frontend nema test setup** — provjerava se sa
+Za sada je pokriveno jedno domensko pravilo (`GeoBounds`) i infrastruktura za testiranje handlera
+(`TestDb`, `FakeCurrentUser`) nad SQLite in-memory bazom sa stvarno enforsovanim stranim ključevima;
+testovi handlera dolaze u narednim zadacima. **Frontend nema test setup** — provjerava se sa
 `npx tsc --noEmit`, `npm run lint` i prolaskom kroz tok uz pokrenut stek.
 
 Demo accounts: `admin@epiljara.ba` / `admin123` · `mujo@example.com` / `mujo123` · `vozac@epiljara.ba` / `vozac123`.
