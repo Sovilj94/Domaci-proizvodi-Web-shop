@@ -36,6 +36,9 @@ npx tsc --noEmit # typecheck (there is no "typecheck" script; use this)
 docker compose up -d postgres              # Postgres 16 on :5432
 docker compose up -d osrm                  # self-hosted routing on :5000 (see below)
 dotnet run --project src/EPiljara.API      # http://localhost:5080, Swagger at /swagger
+# For the Android driver app (../EPiljaraVozac) the API must be reachable from the emulator
+# via 10.0.2.2, and the default binds localhost only — use:
+dotnet run --project src/EPiljara.API --urls http://0.0.0.0:5080
 docker compose up -d                       # or run DB + API + OSRM together (API on :5080)
 ```
 The `osrm` service needs its map data prepared once before it will start — `backend/osrm/data/` is
@@ -59,9 +62,9 @@ dotnet dotnet-ef database update       -p src/EPiljara.Infrastructure -s src/EPi
 ```bash
 dotnet test          # iz backend/
 ```
-Za sada je pokriveno jedno domensko pravilo (`GeoBounds`) i infrastruktura za testiranje handlera
-(`TestDb`, `FakeCurrentUser`) nad SQLite in-memory bazom sa stvarno enforsovanim stranim ključevima;
-testovi handlera dolaze u narednim zadacima. **Frontend nema test setup** — provjerava se sa
+Pokriveno je domensko pravilo `GeoBounds`, infrastruktura za testiranje handlera (`TestDb`,
+`FakeCurrentUser`) nad SQLite in-memory bazom sa stvarno enforsovanim stranim ključevima, i prvi
+handler testovi (`AddressCommandsTests`). **Frontend nema test setup** — provjerava se sa
 `npx tsc --noEmit`, `npm run lint` i prolaskom kroz tok uz pokrenut stek.
 
 Demo accounts: `admin@epiljara.ba` / `admin123` · `mujo@example.com` / `mujo123` · `vozac@epiljara.ba` / `vozac123`.
@@ -77,11 +80,10 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` derives
   `API_BASE` as `NEXT_PUBLIC_API_BASE_URL || "/api"`: **unset/empty** → the app's own built-in mock (route
   handlers under `frontend/src/app/api/**` backed by `frontend/src/server/mock/`); **set** (e.g.
-  `http://localhost:5080`) → the real backend. **Port gotcha:** `frontend/.env.local` points at the real
-  backend but on **`:5081`**, while `dotnet run` serves the API on **`:5080`** — reconcile it (run
-  `NEXT_PUBLIC_API_BASE_URL=http://localhost:5080 npm run dev`, or launch the API on 5081) or every request
-  fails with `network_error`. To demo purely against the mock (no backend/DB), run
-  `NEXT_PUBLIC_API_BASE_URL= npm run dev`.
+  `http://localhost:5080`) → the real backend. `frontend/.env.local` currently points at
+  `http://localhost:5080`, which **matches** what `dotnet run` serves — the older `:5081` mismatch this
+  file used to warn about is gone; do not "fix" it back. To demo purely against the mock (no
+  backend/DB), run `NEXT_PUBLIC_API_BASE_URL= npm run dev`.
 - **Two implementations of the same contract.** The real ASP.NET API and the Next.js mock both serve the
   same paths/shapes. When you change an endpoint's contract, keep the mock in sync (or accept that the
   mock is the deletable dev-only path). `frontend/src/types/domain.ts` mirrors the backend DTOs 1:1.
@@ -162,7 +164,17 @@ is a **per-driver daily capacity** and has nothing to do with `MaxStanicaPoRuti`
 them. It is a constant surfaced through `DriverDto.MaxStanica` so the frontend does not hardcode it.
 
 **Order confirmation email:** `CreateOrder` calls `IEmailService.SendOrderConfirmationAsync` (failures never
-block the order — wrapped in try/catch). The impl is `SmtpEmailService`, which renders `OrderEmailTemplate`
+block the order — wrapped in try/catch). **Know what that costs before you rely on it:** the failure is
+swallowed *twice*. `SmtpEmailService.SendHtmlAsync` catches every transport exception and logs it, and
+`CreateOrder`'s own `catch` around the call is **empty — it does not even log**. So a customer's
+confirmation can vanish leaving nothing that tells anyone to react, and the Viber fallback does not
+rescue it: the `if/else` picks email *or* Viber by whether an address exists, so a failed email never
+falls through to Viber. Registration's confirmation mail (`AuthCommands`, `EmailConfirmationCommands`)
+has the same shape. The sibling SeloPlatform project replaced exactly this pattern with a durable
+outbox; if reliable delivery is ever required here, that is the precedent to follow rather than adding
+more try/catch. Note also that `SmtpEmailService` uses `System.Net.Mail.SmtpClient`, which Microsoft no
+longer recommends (SeloPlatform uses MailKit).
+The impl is `SmtpEmailService`, which renders `OrderEmailTemplate`
 (self-contained HTML) and sends over SMTP using the `Email` section in `appsettings.json`. In dev it targets a
 local **Mailpit** catcher — sent mail is viewable at http://localhost:8025 (no real mailbox needed). Only sent
 when the order has a customer email; guests without one are skipped.
