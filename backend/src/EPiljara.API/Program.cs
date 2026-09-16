@@ -93,6 +93,15 @@ builder.Services.AddRateLimiter(options =>
         o.PermitLimit = 10;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    // /geocode je anoniman (checkout rade i gosti), pa ga ovo drži da ne postane otvoren
+    // relej ka Nominatimu. Granica je iznad stvarne upotrebe — picker je debounce-ovan na
+    // 800 ms, pa jedan čovjek koji popunjava adresu napravi svega nekoliko poziva — ali
+    // daleko ispod onoga što bi skripta tražila.
+    options.AddFixedWindowLimiter("geocode", o =>
+    {
+        o.PermitLimit = 30;
+        o.Window = TimeSpan.FromMinutes(1);
+    });
 });
 
 // ----- Swagger (with JWT) -----

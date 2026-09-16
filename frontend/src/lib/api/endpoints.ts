@@ -5,6 +5,7 @@ import type {
   DeliveryRoute,
   DeliverySlot,
   DeliveryZone,
+  GeocodeHit,
   Order,
   OrderStatus,
   Producer,
@@ -196,4 +197,26 @@ export const adminApi = {
 
   updateWarehouse: (body: Warehouse) =>
     apiFetch<Warehouse>("/admin/warehouse", { method: "PUT", body }).then((r) => r.data),
+};
+
+/* ---------- Geocoding (kroz naš backend, ne direktno na Nominatim) ---------- */
+
+/*
+ * `?? null`, a ne samo `r.data`: backend serijalizuje sa WhenWritingNull, pa „nema
+ * pogotka" na žici izgleda kao `{}` i `data` stigne kao `undefined`. Bez ovoga bi tip
+ * obećavao `null` a vraćao `undefined`.
+ */
+export const geocodeApi = {
+  /** Adresa → tačka. `null` kad nema pogotka; to nije greška. */
+  search: (q: string) =>
+    apiFetch<GeocodeHit | null>("/geocode", { auth: false, query: { q } }).then(
+      (r) => r.data ?? null,
+    ),
+
+  /** Tačka → adresa. `null` kad nema pogotka. */
+  reverse: (lat: number, lon: number) =>
+    apiFetch<GeocodeHit | null>("/geocode/reverse", {
+      auth: false,
+      query: { lat: String(lat), lon: String(lon) },
+    }).then((r) => r.data ?? null),
 };

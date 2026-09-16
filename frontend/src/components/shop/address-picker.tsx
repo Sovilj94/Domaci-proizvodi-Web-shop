@@ -5,59 +5,38 @@ import type * as LType from "leaflet";
 import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { fieldClass } from "@/components/ui/field";
+import { geocodeApi } from "@/lib/api/endpoints";
+import type { GeocodeHit } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
 /**
- * Address field with a small OpenStreetMap map underneath (Leaflet + Nominatim).
+ * Address field with a small OpenStreetMap map underneath (Leaflet tiles).
  * Type an address → it's geocoded and pinned on the map so you can confirm it;
  * if it's off, drag the pin or click the map to correct it and the field updates
  * to match. Keyless and free — no Google Maps API key required.
+ *
+ * Geokodiranje ide kroz NAŠ backend (`geocodeApi`), nikad direktno na Nominatim:
+ * inače bi adresa svakog kupca išla trećoj strani sa IP-a tog kupca, na svako
+ * kucanje. Ne vraćati `fetch` na nominatim.openstreetmap.org ovdje.
  */
 
 const BANJA_LUKA: [number, number] = [44.7722, 17.191];
 
-interface NominatimAddress {
-  quarter?: string;
-  neighbourhood?: string;
-  suburb?: string;
-  city_district?: string;
-}
-interface NominatimHit {
-  lat: string;
-  lon: string;
-  display_name: string;
-  address?: NominatimAddress;
+/** Pogodak koji ne uspije nije greška ekrana — polje ostaje kako je, bez pina. */
+async function geocode(query: string): Promise<GeocodeHit | null> {
+  try {
+    return await geocodeApi.search(query);
+  } catch {
+    return null;
+  }
 }
 
-/** Candidate locality names, for best-effort delivery-zone matching. */
-function localitiesOf(a?: NominatimAddress): string[] {
-  if (!a) return [];
-  return [a.quarter, a.neighbourhood, a.suburb, a.city_district].filter(
-    (x): x is string => !!x,
-  );
-}
-
-async function geocode(query: string): Promise<NominatimHit | null> {
-  const url =
-    "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=ba&limit=1&accept-language=bs&q=" +
-    encodeURIComponent(query);
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) return null;
-  const data = (await res.json()) as NominatimHit[];
-  return data[0] ?? null;
-}
-
-interface ReverseResult {
-  display: string;
-  localities: string[];
-}
-async function reverse(lat: number, lon: number): Promise<ReverseResult | null> {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&accept-language=bs&lat=${lat}&lon=${lon}`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { display_name?: string; address?: NominatimAddress };
-  if (!data.display_name) return null;
-  return { display: data.display_name, localities: localitiesOf(data.address) };
+async function reverse(lat: number, lon: number): Promise<GeocodeHit | null> {
+  try {
+    return await geocodeApi.reverse(lat, lon);
+  } catch {
+    return null;
+  }
 }
 
 export function AddressPicker({
@@ -147,10 +126,10 @@ export function AddressPicker({
         // parent to forget the point, and reporting one now would resurrect it.
         if (cancelled) return;
         if (res) {
-          setFound(res.display);
+          setFound(res.displayName);
           setStatus("idle");
-          suppressFor.current = res.display;
-          onChangeRef.current(res.display);
+          suppressFor.current = res.displayName;
+          onChangeRef.current(res.displayName);
           onLocalitiesRef.current?.(res.localities);
           onCoordinatesRef.current?.({ lat, lon });
           return;
@@ -220,13 +199,12 @@ export function AddressPicker({
       const marker = markerRef.current;
       if (!map || !marker) return;
       if (hit) {
-        const lat = Number(hit.lat);
-        const lon = Number(hit.lon);
+        const { latitude: lat, longitude: lon } = hit;
         marker.setLatLng([lat, lon]);
         map.setView([lat, lon], 16);
-        setFound(hit.display_name);
+        setFound(hit.displayName);
         setStatus("idle");
-        onLocalitiesRef.current?.(localitiesOf(hit.address));
+        onLocalitiesRef.current?.(hit.localities);
         onCoordinatesRef.current?.({ lat, lon });
       } else {
         setStatus("notfound");

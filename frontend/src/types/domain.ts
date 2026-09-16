@@ -171,3 +171,14 @@ export interface Warehouse {
   latitude: number;
   longitude: number;
 }
+
+/**
+ * Pogodak geokodiranja sa našeg `/geocode`. Pregledač Nominatim ne zove direktno —
+ * vidi komentar u `components/shop/address-picker.tsx`.
+ */
+export interface GeocodeHit {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+  localities: string[];
+}

@@ -41,11 +41,11 @@ public class GeocodeMissingHandler(IAppDbContext db, IGeocodingService geocoder)
         {
             var tacka = await geocoder.GeocodeAsync($"{n.DeliveryAddress}, Banja Luka", ct);
             if (tacka is null) continue;
-            if (!GeoBounds.Contains(tacka.Value.Lat, tacka.Value.Lon)) continue;
+            if (!GeoBounds.Contains(tacka.Lat, tacka.Lon)) continue;
 
             var order = await db.Orders.FirstAsync(o => o.Id == n.Id, ct);
-            order.Latitude = tacka.Value.Lat;
-            order.Longitude = tacka.Value.Lon;
+            order.Latitude = tacka.Lat;
+            order.Longitude = tacka.Lon;
             await db.SaveChangesAsync(ct);
             uspjesno++;
         }
