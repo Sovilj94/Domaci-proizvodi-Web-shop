@@ -114,6 +114,13 @@ public static class MappingExtensions
         Phone = d.Phone,
     };
 
+    public static WarehouseDto ToDto(this Magacin m) => new()
+    {
+        Name = m.Naziv,
+        Latitude = m.Latitude,
+        Longitude = m.Longitude,
+    };
+
     public static AuthUserDto ToAuthDto(this User u) => new()
     {
         Id = u.Id,

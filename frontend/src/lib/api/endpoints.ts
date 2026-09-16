@@ -9,6 +9,7 @@ import type {
   OrderStatus,
   Producer,
   Product,
+  Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
 import type {
@@ -190,4 +191,9 @@ export const adminApi = {
       method: "PUT",
       body: { latitude, longitude },
     }).then((r) => r.data),
+
+  warehouse: () => apiFetch<Warehouse>("/admin/warehouse").then((r) => r.data),
+
+  updateWarehouse: (body: Warehouse) =>
+    apiFetch<Warehouse>("/admin/warehouse", { method: "PUT", body }).then((r) => r.data),
 };

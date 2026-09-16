@@ -29,14 +29,9 @@ public static class DependencyInjection
         services.AddScoped<IViberService, LoggingViberService>();
         services.AddScoped<ISocialAuthVerifier, SocialAuthVerifier>();
 
-        services.AddOptions<EPiljara.Application.Features.Admin.Magacin>()
-            .Bind(config.GetSection("Magacin"))
-            // Bez koordinata magacina cijela ruta bi se racunala od 0°N 0°E, usred
-            // Atlantika, a rezultat bi izgledao uvjerljivo. Bolje da se aplikacija
-            // ne digne nego da tiho vozi iz pogresne tacke.
-            .Validate(m => GeoBounds.Contains(m.Latitude, m.Longitude),
-                "Magacin:Latitude i Magacin:Longitude moraju biti unutar Bosne i Hercegovine.")
-            .ValidateOnStart();
+        // Magacin se više ne konfiguriše — red u bazi je jedini izvor istine, a provjera
+        // koja je nekad bila ValidateOnStart sada stoji u Program.cs (MagacinProvjera),
+        // odmah poslije migracija, jer tek tada baza može biti pitana.
 
         // Rezerva se registruje zasebno jer je OsrmRouteOptimizer prima kroz konstruktor.
         services.AddSingleton<ZoneRouteOptimizer>();
@@ -64,10 +59,18 @@ public static class DependencyInjection
 
         services.AddHttpClient<IGeocodingService, NominatimGeocodingService>(c =>
         {
+            c.BaseAddress = new Uri(
+                config["Nominatim:BaseUrl"]
+                ?? throw new InvalidOperationException(
+                    "Nominatim:BaseUrl nije podešen. Bez njega geokodiranje ne bi radilo, "
+                    + "a adrese bi tiho ostajale bez koordinata."));
             // Nominatim odbija zahtjeve bez User-Agenta koji identifikuje aplikaciju.
             c.DefaultRequestHeaders.UserAgent.ParseAdd("EPiljara/1.0 (dostava Banja Luka)");
             c.Timeout = TimeSpan.FromSeconds(15);
-        });
+        })
+        // Isti razlog kao kod OSRM klijenta: podrazumijevani logeri HttpClientFactory-ja
+        // pišu cijeli URI na Information nivou, a u URI-ju je adresa kupca. Ne vraćati.
+        .RemoveAllLoggers();
 
         return services;
     }

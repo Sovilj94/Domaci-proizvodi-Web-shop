@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -5,8 +6,10 @@ using System.Threading.RateLimiting;
 using EPiljara.API.Auth;
 using EPiljara.API.Middleware;
 using EPiljara.Application;
+using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.Common.Models;
+using EPiljara.Application.Features.Admin;
 using EPiljara.Infrastructure;
 using EPiljara.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -130,6 +133,33 @@ await using (var scope = app.Services.CreateAsyncScope())
     catch (Exception ex)
     {
         app.Logger.LogError(ex, "Database initialization failed");
+    }
+}
+
+// ----- Magacin: bez ispravne tačke aplikacija se ne diže -----
+// Ovo je nasljednik ValidateOnStart provjere koja je stajala uz AddOptions dok su
+// koordinate bile u appsettings.json. Namjerno stoji IZVAN try/catch bloka iznad:
+// on greške samo loguje, pa bi provjera unutra bila bez zuba. Ruta računata iz
+// 0°N 0°E, ili iz tuđeg grada, izgleda savršeno uvjerljivo — zato je pad na startu
+// bolji od tihe pogrešne ture.
+//
+// Nedostupna baza se i dalje samo loguje (kao i prije), jer je blok iznad očigledno
+// tako zamišljen: API koji se digne bez baze može barem reći da je živ. Razlika je
+// u tome što baza koja odgovori, a nema ispravan magacin, sada zaustavlja start.
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var magacin = await MagacinCitac.UcitajAsync(db, CancellationToken.None);
+        if (!GeoBounds.Contains(magacin.Latitude, magacin.Longitude))
+            throw new InvalidOperationException(
+                $"Magacin je na {magacin.Latitude}, {magacin.Longitude} — izvan Bosne i "
+                + "Hercegovine. Ispravi ga u admin panelu ili u tabeli \"Magacin\" prije pokretanja.");
+    }
+    catch (DbException ex)
+    {
+        app.Logger.LogError(ex, "Provjera magacina nije mogla doći do baze");
     }
 }
 

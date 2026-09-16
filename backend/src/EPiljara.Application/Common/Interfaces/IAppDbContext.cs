@@ -18,5 +18,8 @@ public interface IAppDbContext
     DbSet<DeliveryRoute> DeliveryRoutes { get; }
     DbSet<RouteStop> RouteStops { get; }
 
+    /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
+    DbSet<Magacin> Magacin { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

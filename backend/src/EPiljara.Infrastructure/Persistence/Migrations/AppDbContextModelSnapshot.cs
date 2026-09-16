@@ -169,6 +169,31 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Drivers");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.Magacin", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Naziv")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Magacin", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Magacin_JedanRed", "\"Id\" = 'a0000001-0000-4000-8000-000000000001'");
+                        });
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")

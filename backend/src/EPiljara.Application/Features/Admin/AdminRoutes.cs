@@ -125,7 +125,7 @@ internal static class Optimizacija
     }
 }
 
-public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOptions<Magacin> magacin)
+public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
     : IRequestHandler<AssignRouteCommand, DeliveryRouteDto>
 {
     public async Task<DeliveryRouteDto> Handle(AssignRouteCommand cmd, CancellationToken ct)
@@ -170,8 +170,9 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOp
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .FirstAsync(r => r.Id == route.Id, ct);
 
+        var magacin = await MagacinCitac.UcitajAsync(db, ct);
         await Optimizacija.PrimijeniAsync(
-            saStavkama, magacin.Value.Latitude, magacin.Value.Longitude, optimizer, ct);
+            saStavkama, magacin.Latitude, magacin.Longitude, optimizer, ct);
         await db.SaveChangesAsync(ct);
 
         return await LoadRouteDtoAsync(db, route.Id, ct);
@@ -191,15 +192,7 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOp
 
 public record OptimizeRouteCommand(Guid RouteId) : IRequest<DeliveryRouteDto>;
 
-/// <summary>Polazište tura. Jedna piljara, jedan magacin, pa stoji u konfiguraciji.
-/// Obična klasa sa set svojstvima, ne pozicioni record — AddOptions traži new().</summary>
-public class Magacin
-{
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
-}
-
-public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, IOptions<Magacin> magacin)
+public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
     : IRequestHandler<OptimizeRouteCommand, DeliveryRouteDto>
 {
     public async Task<DeliveryRouteDto> Handle(OptimizeRouteCommand cmd, CancellationToken ct)
@@ -209,8 +202,9 @@ public class OptimizeRouteHandler(IAppDbContext db, IRouteOptimizer optimizer, I
             .FirstOrDefaultAsync(r => r.Id == cmd.RouteId, ct)
             ?? throw new NotFoundException("Ruta nije pronađena.");
 
+        var magacin = await MagacinCitac.UcitajAsync(db, ct);
         await Optimizacija.PrimijeniAsync(
-            route, magacin.Value.Latitude, magacin.Value.Longitude, optimizer, ct);
+            route, magacin.Latitude, magacin.Longitude, optimizer, ct);
         await db.SaveChangesAsync(ct);
 
         return await AssignRouteHandler.LoadRouteDtoAsync(db, route.Id, ct);

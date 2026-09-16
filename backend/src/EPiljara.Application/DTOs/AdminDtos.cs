@@ -60,3 +60,14 @@ public record DashboardDto
     public int OutForDelivery { get; init; }
     public IReadOnlyList<StatusCountDto> StatusBreakdown { get; init; } = [];
 }
+
+/// <summary>
+/// Polazište tura. Na žici engleski kao i ostali DTO-i, u domenu <c>Magacin</c> —
+/// ime koje kod već koristi.
+/// </summary>
+public record WarehouseDto
+{
+    public string Name { get; init; } = string.Empty;
+    public double Latitude { get; init; }
+    public double Longitude { get; init; }
+}

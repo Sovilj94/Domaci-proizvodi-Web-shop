@@ -12,6 +12,7 @@ import {
   Tags,
   Tractor,
   Truck,
+  Warehouse,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const ITEMS = [
   { href: "/admin/categories", label: "Kategorije", icon: Tags },
   { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
   { href: "/admin/routes", label: "Rute dostave", icon: Truck },
+  { href: "/admin/settings", label: "Magacin", icon: Warehouse },
 ];
 
 function useActive() {

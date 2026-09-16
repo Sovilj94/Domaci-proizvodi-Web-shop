@@ -160,3 +160,14 @@ export interface AuthResult {
   token: string;
   user: AuthUser;
 }
+
+/**
+ * Polazište i krajnja tačka svake ture, jedna vrijednost za cijelu piljaru.
+ * Koordinate nisu opcione — bez njih se ruta ne bi mogla računati, pa ih backend
+ * odbija i na `PUT`-u i na startu.
+ */
+export interface Warehouse {
+  name: string;
+  latitude: number;
+  longitude: number;
+}

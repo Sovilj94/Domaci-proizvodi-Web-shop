@@ -9,6 +9,7 @@ import type {
   OrderStatus,
   Producer,
   Product,
+  Warehouse,
 } from "@/types/domain";
 import type {
   AssignRouteRequest,
@@ -38,6 +39,8 @@ interface Db {
   orders: Order[];
   routes: DeliveryRoute[];
   users: StoredUser[];
+  /** Jedna vrijednost, kao i u pravoj bazi (tabela "Magacin" ima samo jedan red). */
+  warehouse: Warehouse;
   orderSeq: number;
 }
 
@@ -203,6 +206,9 @@ function seed(): Db {
     orders: [],
     routes: [],
     users,
+    // Iste koordinate koje migracija MagacinUBazi upisuje u pravu bazu — Stričići
+    // na Manjači — da mock i backend ne polaze iz različitih tačaka.
+    warehouse: { name: "Magacin Stričići", latitude: 44.577975, longitude: 17.005162 },
     orderSeq: 40,
   };
 

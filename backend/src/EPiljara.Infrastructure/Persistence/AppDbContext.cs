@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<DeliveryRoute> DeliveryRoutes => Set<DeliveryRoute>();
     public DbSet<RouteStop> RouteStops => Set<RouteStop>();
+    public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -127,6 +128,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // it lives as raw SQL in the RouteStopSequenceUnique migration. Do not "fix" that
             // by adding HasIndex(...).IsUnique() — renumbering open stops permutes one range
             // of numbers, and a per-statement check would reject every re-optimization.
+        });
+
+        b.Entity<Magacin>(e =>
+        {
+            // Ime u jednini, jer ovo nije zbirka nego jedna vrijednost — i CHECK koji to
+            // čini pravilom baze, a ne dogovorom: samo Magacin.JediniId smije postojati.
+            e.ToTable("Magacin", t => t.HasCheckConstraint(
+                "CK_Magacin_JedanRed", $"\"Id\" = '{Domain.Entities.Magacin.JediniId}'"));
+            e.Property(x => x.Naziv).HasMaxLength(160).IsRequired();
         });
 
         // One convention for all money/quantity columns.

@@ -65,6 +65,7 @@ export function AddressPicker({
   onChange,
   onLocalities,
   onCoordinates,
+  initialCoordinates,
   id = "address",
 }: {
   value: string;
@@ -77,6 +78,13 @@ export function AddressPicker({
    * never outlive the address it was found for.
    */
   onCoordinates?: (coords: { lat: number; lon: number } | null) => void;
+  /**
+   * Tačka koja je već negdje sačuvana (npr. magacin iz baze): pin i pogled mape polaze
+   * od nje umjesto od centra Banje Luke, da ekran pokaže gdje je lokacija *sada*.
+   * Čita se jednom, na mount, i **ne** emituje se kroz `onCoordinates` — vlasnik te
+   * vrijednosti je ionako već ima, a emitovanje bi se sudarilo sa poništavanjem iznad.
+   */
+  initialCoordinates?: { lat: number; lon: number };
   id?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,6 +97,9 @@ export function AddressPicker({
   onLocalitiesRef.current = onLocalities;
   const onCoordinatesRef = useRef(onCoordinates);
   onCoordinatesRef.current = onCoordinates;
+  // Pročitano jednom, na mount: kasnije promjene ne smiju vraćati pin natrag pod rukom
+  // korisniku koji ga je upravo pomjerio.
+  const pocetnaTacka = useRef(initialCoordinates);
   // Holds the exact address text we ourselves wrote from the map, so the geocode effect
   // below does not re-geocode (and re-null) our own reverse-geocoded value. Keyed to the
   // value rather than a bare boolean: a second click near the first returns the same
@@ -110,9 +121,12 @@ export function AddressPicker({
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current || mapRef.current) return;
 
+      const pocetak: LType.LatLngExpression = pocetnaTacka.current
+        ? [pocetnaTacka.current.lat, pocetnaTacka.current.lon]
+        : BANJA_LUKA;
       const map = L.map(containerRef.current, { attributionControl: true }).setView(
-        BANJA_LUKA,
-        13,
+        pocetak,
+        pocetnaTacka.current ? 15 : 13,
       );
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -125,7 +139,7 @@ export function AddressPicker({
         iconSize: [28, 28],
         iconAnchor: [14, 26],
       });
-      const marker = L.marker(BANJA_LUKA, { draggable: true, icon }).addTo(map);
+      const marker = L.marker(pocetak, { draggable: true, icon }).addTo(map);
 
       const commitFromMap = async (lat: number, lon: number) => {
         const res = await reverse(lat, lon);

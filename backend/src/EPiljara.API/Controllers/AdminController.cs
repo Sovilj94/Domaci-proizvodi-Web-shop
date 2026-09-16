@@ -79,6 +79,16 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> OptimizeRoute(Guid id) =>
         Envelope(await Mediator.Send(new OptimizeRouteCommand(id)));
 
+    /* ---------- Magacin: polazište i krajnja tačka svake ture ---------- */
+
+    [HttpGet("admin/warehouse")]
+    public async Task<IActionResult> Warehouse() =>
+        Envelope(await Mediator.Send(new GetWarehouseQuery()));
+
+    [HttpPut("admin/warehouse")]
+    public async Task<IActionResult> UpdateWarehouse([FromBody] UpdateWarehouseCommand command) =>
+        Envelope(await Mediator.Send(command));
+
     [HttpPost("admin/orders/geocode-missing")]
     public async Task<IActionResult> GeocodeMissing() =>
         Envelope(await Mediator.Send(new GeocodeMissingCommand()));

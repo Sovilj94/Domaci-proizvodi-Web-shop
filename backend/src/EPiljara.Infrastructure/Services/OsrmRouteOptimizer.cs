@@ -17,7 +17,7 @@ namespace EPiljara.Infrastructure.Services;
 public class OsrmRouteOptimizer(
     HttpClient http,
     ZoneRouteOptimizer rezerva,
-    IOptions<Magacin> magacin,
+    IAppDbContext db,
     ILogger<OsrmRouteOptimizer> logger) : IRouteOptimizer
 {
     public async Task<RouteOptimizationResult> OptimizeAsync(
@@ -44,6 +44,12 @@ public class OsrmRouteOptimizer(
             return new RouteOptimizationResult(
                 stops.Select(s => s.OrderId).ToList(), null, null, null);
 
+        // Krajnja tačka se čita iz baze (a ne iz konfiguracije), pa je i pozivalac
+        // koji već zna polazište ovdje ponovo pročita — jedan red, pročitan po
+        // optimizaciji. Keširanje bi značilo da UPDATE na magacin ne proradi do
+        // restarta, što je upravo ono što premještanje u bazu treba da izbjegne.
+        var magacin = await MagacinCitac.UcitajAsync(db, cancellationToken);
+
         try
         {
             var tacke = new StringBuilder();
@@ -58,7 +64,7 @@ public class OsrmRouteOptimizer(
             // završava u magacinu umjesto da se petlja nazad na trenutnu poziciju vozača —
             // 15 od 24 slučaja u testu su se razlikovala, i u svih 15 je roundtrip=true davao
             // sporiju stvarnu rutu (prosjek ~6 min, najgore 18.6 min).
-            tacke.Append(';').Append(Broj(magacin.Value.Longitude)).Append(',').Append(Broj(magacin.Value.Latitude));
+            tacke.Append(';').Append(Broj(magacin.Longitude)).Append(',').Append(Broj(magacin.Latitude));
 
             // roundtrip=false, uz i source=first I destination=last: OSRM /trip podržava samo
             // roundtrip=true (bilo koji source/destination) ili roundtrip=false uz oba fiksirana
