@@ -43,6 +43,26 @@ UPDATE "Users" SET "Role" = 2 WHERE "Email" = 'you@yourdomain.com';  -- 2 = Admi
 
 (Roles: `0` Customer, `1` Admin, `2` Driver — confirm against `UserRole` before running.)
 
+## Warehouse location (already set, but check it)
+
+Every route is computed from — and back to — one point: the warehouse. It lives in the database
+(one-row `Magacin` table), **not** in `appsettings.json`, so it changes without a rebuild. The
+`MagacinUBazi` migration seeds **Stričići on Manjača** (`44.577975, 17.005162`, the village centre
+per OpenStreetMap) in every environment, production included — unlike the demo seed.
+
+Set the real point before the first delivery, either way:
+
+- **Admin panel** — *Magacin* in the sidebar (`/admin/settings`): search, drag the pin, save.
+- **SQL**, if you prefer:
+
+```sql
+UPDATE "Magacin" SET "Naziv" = 'Magacin …', "Latitude" = 44.…, "Longitude" = 17.…;
+```
+
+The API **refuses to start** when the row is missing or the point falls outside Bosnia and
+Herzegovina — a route silently computed from `0°N 0°E` (the Atlantic) looks perfectly plausible in the
+driver's app. It cannot catch a *wrong* point inside the country, so confirm it on the map.
+
 ## Security posture (enforced in code)
 
 - **No demo data / default credentials in production** — seed is gated to Development.
@@ -68,6 +88,10 @@ else in the order flow changes.
 
 - **Migrations** run automatically on startup. For multi-instance deploys, consider applying them
   once as a separate step instead.
-- **Map/geocoding** uses free OpenStreetMap + Nominatim (checkout address picker). Nominatim's policy
-  is ~1 req/sec + attribution; for real traffic use a paid geocoder or self-host.
+- **Geocoding** runs through our own `/geocode` endpoints (the browser no longer calls Nominatim
+  directly), with `Nominatim__BaseUrl` choosing the upstream. It defaults to the **public** Nominatim, so
+  customer addresses still reach a third party, and its ~1 req/sec policy means every search in the app
+  queues behind one request per second. **Point `Nominatim__BaseUrl` at a self-hosted instance before real
+  traffic** — that removes both the disclosure and the rate limit, and needs no code change. Map tiles
+  still come from `tile.openstreetmap.org` and require attribution.
 - Consider server-side **token revocation** if you need forced logout (currently stateless JWT, valid until expiry).

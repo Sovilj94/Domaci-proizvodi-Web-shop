@@ -159,23 +159,59 @@ under a `User-Agent` naming us — and its usage policy limits it to development
   `OsrmRouteOptimizer.cs` records this; leave it there.
 - **OSRM takes `longitude,latitude`** — the reverse of everything else here. And every interpolated number
   uses `InvariantCulture`; a Serbian locale's decimal comma would split the URL at the wrong place.
-- **Closed stops keep their `Sequence`; open ones are renumbered above the highest closed one.** There is
-  **no unique index on `RouteStop(RouteId, Sequence)`**, so a collision corrupts silently and also breaks
-  the driver app's Google Maps batching downstream.
+- **Closed stops keep their `Sequence`; open ones are renumbered above the highest closed one.** A collision
+  used to corrupt silently (and break the driver app's Google Maps batching downstream); `RouteStop(RouteId,
+  Sequence)` now carries `UQ_RouteStops_RouteId_Sequence`, **`DEFERRABLE INITIALLY DEFERRED`**. Deferred is
+  load-bearing: renumbering permutes one range of numbers and EF writes it as one `UPDATE` per row, so a
+  per-statement check would reject every legitimate re-optimization. It lives as raw SQL in the
+  `RouteStopSequenceUnique` migration and deliberately **not** in the EF model — the Npgsql fluent API
+  cannot express `DEFERRABLE`. Do not "fix" that with `HasIndex(...).IsUnique()`.
 - **`Status` becomes `Optimized` only when the result carries a distance.** The fallback returns an order
   but no distance, and writing `Optimized` anyway would leave nothing able to tell a real optimization from
   a degraded one. `DuzinaMetara` / `TrajanjeSekundi` / `Geometrija` on `DeliveryRoute` are nullable for the
   same reason — `null` means "not computed", and `0` would render in the driver's app as "0 km · 0 min".
-- **`Magacin` is a plain class, not a positional record**, because `AddOptions`/`Configure` constrain
-  `TOptions : class, new()`. It is bound with `.Validate(GeoBounds.Contains).ValidateOnStart()` — but that
-  only rejects a point outside Bosnia and Herzegovina, not a *wrong* one inside it, and the shipped value is
-  still a placeholder.
+- **`Magacin` lives in the database, not in configuration** — a one-row `Magacin` table (entity
+  `Domain/Entities/Magacin.cs`), so the location changes without a rebuild: admins edit it at
+  `/admin/settings` through `GET`/`PUT /admin/warehouse`. `CK_Magacin_JedanRed` allows only
+  `Magacin.JediniId`, so "one piljara, one warehouse" is enforced by the DB. The row is inserted by the
+  **`MagacinUBazi` migration, not `DbSeeder`** — the seeder bails on any existing category and only runs in
+  Development or under `Seed:Demo=true`, so real production would otherwise come up with no warehouse.
+  `Program.cs` re-checks `GeoBounds` after migrating and **refuses to start** on a missing row or a point
+  outside Bosnia and Herzegovina (the old `ValidateOnStart` guard, moved); it still cannot catch a *wrong*
+  point inside the country. An unreachable database is still only logged, as before.
+- **`Microsoft.EntityFrameworkCore.Relational` is referenced explicitly in `EPiljara.Infrastructure.csproj`
+  — keep it, and keep it on the same version as `Microsoft.EntityFrameworkCore`.** Without it, Relational
+  reached the API only transitively through `Npgsql.EntityFrameworkCore.PostgreSQL` (9.0.1) while
+  Infrastructure compiled against 9.0.11 pulled in by `EntityFrameworkCore.Design` — which is
+  `PrivateAssets=all`, so it never flowed to the API. Any call into Relational (`ToTable` included) then
+  compiled fine and died at startup with `FileNotFoundException`, with an `MSB3277` build warning as the
+  only hint. If those warnings ever come back, this is what they mean.
 
 ### Geocoding
 
-`NominatimGeocodingService` resolves addresses through the public Nominatim service, one request per
-second, with an identifying `User-Agent` it requires. It still sends **literal customer addresses to a
-third party** — the same problem OSRM had before it was brought in-house, and it is still open.
+**All geocoding goes through our own API and only through it**: `GET /geocode?q=` and
+`GET /geocode/reverse?lat=&lon=` (`GeocodingController` → `Features/Geocoding`), backed by
+`IGeocodingService`. The browser must never call Nominatim itself — `address-picker.tsx` used to, which
+meant every keystroke of every customer's address went to a third party from that customer's own IP, and
+the admin's *Nova narudžba* screen sent someone else's address the same way. It now calls `geocodeApi`;
+do not put a `fetch` to `nominatim.openstreetmap.org` back into any client component.
+
+The endpoints are **anonymous** — guests check out without an account, so they must be — and protected by
+the `geocode` rate-limit partition (30/min per IP) so they cannot become an open relay to Nominatim.
+A miss returns `200` with no `data`; because responses serialize with `WhenWritingNull`, that arrives as
+`{}`, which is why `geocodeApi` coerces with `?? null`.
+
+`Nominatim:BaseUrl` (same pattern as `Osrm:BaseUrl`) decides the upstream. It still points at the
+**public** Nominatim, so addresses do leave our infrastructure — one boundary now instead of one per
+browser, but the same third party. Self-hosting Nominatim is the remaining step; it is a config change,
+by design. Two consequences of the boundary worth knowing:
+
+- The public service's **one request per second** is enforced by a static semaphore in
+  `NominatimGeocodingService`, so *all* traffic — background batches and every browser search — now
+  queues behind a single request per second. Address search gets slower as users overlap; a self-hosted
+  instance has no such limit. This is a real cost of the proxy and the reason not to leave it half-done.
+- Map **tiles** still load from `tile.openstreetmap.org` in the browser. That reveals roughly which area
+  is being viewed, not the address string, and it is inherent to using OSM tiles.
 
 ## Frontend (Next.js App Router)
 
