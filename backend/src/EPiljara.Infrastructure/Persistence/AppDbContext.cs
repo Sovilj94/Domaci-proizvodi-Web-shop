@@ -121,6 +121,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.HasOne(x => x.Order).WithMany()
                 .HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+
+            // (RouteId, Sequence) is unique, but deliberately not configured here: it has to
+            // be DEFERRABLE INITIALLY DEFERRED, which the Npgsql fluent API cannot express, so
+            // it lives as raw SQL in the RouteStopSequenceUnique migration. Do not "fix" that
+            // by adding HasIndex(...).IsUnique() — renumbering open stops permutes one range
+            // of numbers, and a per-statement check would reject every re-optimization.
         });
 
         // One convention for all money/quantity columns.
