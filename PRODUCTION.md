@@ -89,9 +89,11 @@ else in the order flow changes.
 - **Migrations** run automatically on startup. For multi-instance deploys, consider applying them
   once as a separate step instead.
 - **Geocoding** runs through our own `/geocode` endpoints (the browser no longer calls Nominatim
-  directly), with `Nominatim__BaseUrl` choosing the upstream. It defaults to the **public** Nominatim, so
-  customer addresses still reach a third party, and its ~1 req/sec policy means every search in the app
-  queues behind one request per second. **Point `Nominatim__BaseUrl` at a self-hosted instance before real
-  traffic** — that removes both the disclosure and the rate limit, and needs no code change. Map tiles
-  still come from `tile.openstreetmap.org` and require attribution.
+  directly). The upstream is `Nominatim__BaseUrl`, and it defaults to the **public** Nominatim — so
+  customer addresses still reach a third party, and `Nominatim__ThrottleMs=1000` (their usage policy, not
+  a tuning knob — violating it gets the IP blocked) makes every search in the app queue behind one
+  request per second. **Before real traffic, self-host it:** `backend/nominatim/README.md` has the import
+  and its disk/memory cost; then set `Nominatim__BaseUrl` to your instance and `Nominatim__ThrottleMs=0`.
+  That removes both the disclosure and the rate limit, with no code change. Map tiles still come from
+  `tile.openstreetmap.org` and require attribution.
 - Consider server-side **token revocation** if you need forced logout (currently stateless JWT, valid until expiry).

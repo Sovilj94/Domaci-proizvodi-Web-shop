@@ -35,12 +35,16 @@ npx tsc --noEmit # typecheck (there is no "typecheck" script; use this)
 ```bash
 docker compose up -d postgres              # Postgres 16 on :5432
 docker compose up -d osrm                  # self-hosted routing on :5000 (see below)
+docker compose up -d nominatim             # self-hosted geocoding on :8080 (see below)
 dotnet run --project src/EPiljara.API      # http://localhost:5080, Swagger at /swagger
-docker compose up -d                       # or run DB + API + OSRM together (API on :5080)
+docker compose up -d                       # or run the whole stack together (API on :5080)
 ```
 The `osrm` service needs its map data prepared once before it will start — `backend/osrm/data/` is
 git-ignored and empty on a fresh clone. `backend/osrm/README.md` has the download and preprocessing
 commands. Without it the container restarts in a loop and every route silently falls back to zone sorting.
+The `nominatim` service is **optional but recommended**: its first start imports the map and takes tens of
+minutes (`backend/nominatim/README.md`), and until you point `Nominatim:BaseUrl` at it the app geocodes
+against the public Nominatim instead. Neither is needed just to run the shop.
 The API **auto-applies migrations and seeds demo data on startup** in Development — no manual DB setup.
 The seeder is **idempotent** (it bails if any data exists), so to load changed seed data you must wipe first:
 `docker exec epiljara-postgres psql -U epiljara -d epiljara -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`
@@ -201,17 +205,24 @@ the `geocode` rate-limit partition (30/min per IP) so they cannot become an open
 A miss returns `200` with no `data`; because responses serialize with `WhenWritingNull`, that arrives as
 `{}`, which is why `geocodeApi` coerces with `?? null`.
 
-`Nominatim:BaseUrl` (same pattern as `Osrm:BaseUrl`) decides the upstream. It still points at the
-**public** Nominatim, so addresses do leave our infrastructure — one boundary now instead of one per
-browser, but the same third party. Self-hosting Nominatim is the remaining step; it is a config change,
-by design. Two consequences of the boundary worth knowing:
+**The upstream is a config choice, not a code path.** `Nominatim:BaseUrl` (same pattern as
+`Osrm:BaseUrl`) plus `Nominatim:ThrottleMs` are the whole switch:
 
-- The public service's **one request per second** is enforced by a static semaphore in
-  `NominatimGeocodingService`, so *all* traffic — background batches and every browser search — now
-  queues behind a single request per second. Address search gets slower as users overlap; a self-hosted
-  instance has no such limit. This is a real cost of the proxy and the reason not to leave it half-done.
-- Map **tiles** still load from `tile.openstreetmap.org` in the browser. That reveals roughly which area
-  is being viewed, not the address string, and it is inherent to using OSM tiles.
+- **Default: the public Nominatim**, with `ThrottleMs: 1000`. Addresses do leave our infrastructure —
+  one boundary now instead of one per browser, but the same third party. The 1000 ms is **their usage
+  policy, not a tuning knob** (violating it gets the IP blocked), and a static semaphore in
+  `NominatimGeocodingService` enforces it, so *all* traffic — background batches and every browser
+  search — queues behind one request per second. Address search gets slower as users overlap.
+- **Self-hosted:** `docker compose up -d nominatim`, then `BaseUrl` → `http://localhost:8080/` (or
+  `http://nominatim:8080/` inside compose, already set for the `api` service) and `ThrottleMs` → `0`.
+  Addresses stop leaving, and the rate limit goes with them. First start imports the map and takes tens
+  of minutes; `backend/nominatim/README.md` has the disk/memory requirements and the switch-over.
+  `nominatim` is deliberately **not** in the `api` service's `depends_on` — a failed geocode returns
+  `null` and the screens handle it, so the API must not wait on a tens-of-minutes import.
+
+What stays with a third party either way: map **tiles** load from `tile.openstreetmap.org` in the
+browser. That reveals roughly which area is being viewed, not the address string, and it is inherent to
+using OSM tiles.
 
 ## Frontend (Next.js App Router)
 

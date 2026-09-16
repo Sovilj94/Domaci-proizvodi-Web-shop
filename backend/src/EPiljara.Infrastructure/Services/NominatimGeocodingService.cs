@@ -2,23 +2,39 @@ using System.Globalization;
 using System.Text.Json;
 using EPiljara.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Infrastructure.Services;
+
+/// <summary>Podešavanja Nominatim klijenta, iz sekcije <c>Nominatim</c>.</summary>
+public class NominatimOptions
+{
+    public string BaseUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Najmanji razmak između dva zahtjeva, u milisekundama. <b>1000 je obavezno za
+    /// javnu instancu</b> — njihova pravila korišćenja traže najviše jedan zahtjev u
+    /// sekundi, a kršenje vodi u blokadu IP adrese. Sopstvena instanca to ograničenje
+    /// ne ima, pa se tamo postavlja na 0 (vidi <c>backend/nominatim/README.md</c>).
+    /// </summary>
+    public int ThrottleMs { get; set; } = 1000;
+}
 
 /// <summary>
 /// Geokodiranje preko Nominatim-a. Adresa servisa dolazi iz <c>Nominatim:BaseUrl</c>
 /// (isti obrazac kao <c>Osrm:BaseUrl</c>), pa se prelazak na sopstvenu instancu radi
 /// bez ijedne izmjene koda.
 ///
-/// Javna instanca traži najviše JEDAN zahtjev u sekundi i User-Agent koji identifikuje
-/// aplikaciju; kršenje vodi u blokadu IP adrese. Razmak se čuva semaforom, pa je servis
-/// bezbjedan i kad ga zove više poslova odjednom. Posljedica je da se, dok se koristi
-/// javna instanca, SAV saobraćaj (i pozadinski poslovi i pretrage iz pregledača kroz
-/// /geocode) provlači kroz jedan zahtjev u sekundi — sopstvena instanca to ograničenje
-/// nema i zato je sljedeći korak.
+/// Razmak između zahtjeva čuva semafor, pa je servis bezbjedan i kad ga zove više
+/// poslova odjednom. Dok se koristi javna instanca, to znači da se SAV saobraćaj (i
+/// pozadinski poslovi i pretrage iz pregledača kroz /geocode) provlači kroz jedan
+/// zahtjev u sekundi; sa sopstvenom instancom <c>Nominatim:ThrottleMs</c> ide na 0 i
+/// ograničenja nema.
 /// </summary>
-public class NominatimGeocodingService(HttpClient http, ILogger<NominatimGeocodingService> logger)
-    : IGeocodingService
+public class NominatimGeocodingService(
+    HttpClient http,
+    IOptions<NominatimOptions> options,
+    ILogger<NominatimGeocodingService> logger) : IGeocodingService
 {
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static DateTimeOffset _zadnjiZahtjev = DateTimeOffset.MinValue;
@@ -53,9 +69,10 @@ public class NominatimGeocodingService(HttpClient http, ILogger<NominatimGeocodi
         await Gate.WaitAsync(cancellationToken);
         try
         {
+            var razmak = TimeSpan.FromMilliseconds(Math.Max(0, options.Value.ThrottleMs));
             var proteklo = DateTimeOffset.UtcNow - _zadnjiZahtjev;
-            if (proteklo < TimeSpan.FromSeconds(1))
-                await Task.Delay(TimeSpan.FromSeconds(1) - proteklo, cancellationToken);
+            if (proteklo < razmak)
+                await Task.Delay(razmak - proteklo, cancellationToken);
             _zadnjiZahtjev = DateTimeOffset.UtcNow;
 
             using var response = await http.GetAsync(putanja, cancellationToken);

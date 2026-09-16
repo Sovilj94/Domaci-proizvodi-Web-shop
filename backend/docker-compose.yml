@@ -32,6 +32,34 @@ services:
       - "5000:5000"
     restart: unless-stopped
 
+  # Sopstveni Nominatim, iz istog razloga kao osrm iznad: adrese kupaca prestaju
+  # izlaziti iz nase infrastrukture. PRVO POKRETANJE UVOZI MAPU i traje desetinama
+  # minuta — ne prekidati ga i ne ocekivati da servis odmah odgovara. Zahtjevi po
+  # disku i memoriji i cijelo uputstvo: nominatim/README.md.
+  nominatim:
+    image: mediagis/nominatim:5.3
+    container_name: epiljara-nominatim
+    environment:
+      PBF_URL: https://download.geofabrik.de/europe/bosnia-herzegovina-latest.osm.pbf
+      # Bez diffova: baza se zamrzava (manja na disku), a osvjezavanje mape je ponovni
+      # uvoz — isti pristup kao kod osrm-a.
+      FREEZE: "true"
+      UPDATE_MODE: none
+      # Podrazumijevane vrijednosti imidza su za veliku masinu (maintenance_work_mem
+      # 10GB, effective_cache_size 24GB). Ovo su vrijednosti za jedan izvod drzave na
+      # razvojnoj masini; prilagoditi svojoj (vidi README).
+      POSTGRES_SHARED_BUFFERS: 1GB
+      POSTGRES_MAINTENANCE_WORK_MEM: 4GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 4GB
+    # Podrazumijevani shm_size (64M) je premalo za uvoz; dokumentacija imidza trazi
+    # najmanje 1GB.
+    shm_size: 1gb
+    volumes:
+      - epiljara-nominatim-data:/var/lib/postgresql/16/main
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -43,8 +71,14 @@ services:
       Jwt__SigningKey: "dev-only-signing-key-change-in-production-min-32-bytes!!"
       Cors__Origins__0: "http://localhost:3000"
       Osrm__BaseUrl: "http://osrm:5000/"
+      Nominatim__BaseUrl: "http://nominatim:8080/"
+      # Sopstvena instanca ne trazi jedan zahtjev u sekundi kao javna.
+      Nominatim__ThrottleMs: "0"
     ports:
       - "5080:8080"
+    # nominatim NIJE u depends_on namjerno: prvo pokretanje uvozi mapu desetinama
+    # minuta, a API bi dotle cekao. Geokodiranje koje ne uspije vraca null i ekran
+    # to podnosi, pa je bolje da API radi bez njega nego da ne krene.
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,3 +87,4 @@ services:
 
 volumes:
   epiljara-pgdata:
+  epiljara-nominatim-data:

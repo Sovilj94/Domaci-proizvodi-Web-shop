@@ -57,6 +57,7 @@ public static class DependencyInjection
         // OsrmRouteOptimizer, bez koordinata.
         .RemoveAllLoggers();
 
+        services.Configure<NominatimOptions>(config.GetSection("Nominatim"));
         services.AddHttpClient<IGeocodingService, NominatimGeocodingService>(c =>
         {
             c.BaseAddress = new Uri(
