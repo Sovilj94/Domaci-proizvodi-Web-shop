@@ -82,7 +82,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // pa kraće polje ovdje bi značilo da se nešto što je stalo u narudžbu
             // ne može sačuvati u adresar.
             e.Property(x => x.FullAddress).HasMaxLength(400).IsRequired();
-            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.UserId, "IX_Addresses_UserId");
+            // Najviše jedna glavna adresa po korisniku — brana na nivou baze protiv
+            // trke (dupli POST/SetDefault klik) koju handler sam ne može spriječiti.
+            // Filter je obavezan: bez njega bi indeks tražio jedinstven UserId preko
+            // SVIH redova, što bi zabranilo korisniku više od jedne adrese uopšte.
+            e.HasIndex(x => x.UserId, "IX_Addresses_UserId_IsDefault")
+                .IsUnique()
+                .HasFilter("\"IsDefault\"");
             e.HasOne(x => x.User).WithMany()
                 .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.DeliveryZone).WithMany()
