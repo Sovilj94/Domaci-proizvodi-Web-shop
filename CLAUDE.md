@@ -18,6 +18,11 @@ net10.0-android). It consumes `/driver/*` over the same HTTP contract and shares
 They talk over HTTP only — there is no shared code or build between them. UI text and API messages
 are in Serbian; keep new user-facing strings in Serbian.
 
+Other docs worth knowing: `PRODUCTION.md` (required env vars, first admin, security posture — update it
+when you add config or a production-relevant behaviour), `docs/superpowers/specs|plans/` (design specs
+and implementation plans of past features — read the matching one before extending route optimization,
+the map or the driver flow).
+
 ## Commands
 
 Run frontend commands from `frontend/`, backend commands from `backend/`.
@@ -38,7 +43,14 @@ docker compose up -d osrm                  # self-hosted routing on :5000 (see b
 docker compose up -d nominatim             # self-hosted geocoding on :8080 (see below)
 dotnet run --project src/EPiljara.API      # http://localhost:5080, Swagger at /swagger
 docker compose up -d                       # or run the whole stack together (API on :5080)
+docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit   # email catcher, NOT in compose
 ```
+The containerized `api` service is wired differently from an IDE run: it points `Nominatim:BaseUrl` at the
+`nominatim` container (so geocoding returns nothing until that import finishes), uses its own dev JWT key,
+and its `Email:SmtpHost` is still `localhost` — i.e. inside the container, so confirmation mail does not
+reach a Mailpit on the host. Prefer `dotnet run` when working on email or geocoding.
+Without `Jwt:SigningKey` (empty in `appsettings.json`) the API falls back to a hard-coded insecure key in
+Development only and **refuses to start** in any other environment.
 The `osrm` service needs its map data prepared once before it will start — `backend/osrm/data/` is
 git-ignored and empty on a fresh clone. `backend/osrm/README.md` has the download and preprocessing
 commands. Without it the container restarts in a loop and every route silently falls back to zone sorting.
@@ -74,11 +86,17 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **Single frontend API surface.** Screens never call `fetch` directly — they call
   `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` chooses the
   target from `NEXT_PUBLIC_API_BASE_URL`: **unset** → the app's own built-in mock (route handlers under
-  `frontend/src/app/api/**` backed by `frontend/src/server/mock/`); **set** (e.g. `http://localhost:5080`)
-  → the real backend. `frontend/.env.local` currently points at the real backend.
+  `frontend/src/app/api/**` backed by `frontend/src/server/mock/`, data in `store.ts`); **set** (e.g.
+  `http://localhost:5080`) → the real backend. `frontend/.env.local` is git-ignored and **does not exist on a
+  fresh clone**, so `npm run dev` talks to the mock until you create it with
+  `NEXT_PUBLIC_API_BASE_URL=http://localhost:5080`. If data looks "fake" or a backend change has no effect,
+  check this first.
 - **Two implementations of the same contract.** The real ASP.NET API and the Next.js mock both serve the
   same paths/shapes. When you change an endpoint's contract, keep the mock in sync (or accept that the
   mock is the deletable dev-only path). `frontend/src/types/domain.ts` mirrors the backend DTOs 1:1.
+  The mock is **already incomplete**: it has no `admin/categories`, `admin/producers`,
+  `admin/orders/geocode-missing`, `admin/orders/{id}/coordinates` or any `driver/*` route, so those screens
+  only work against the real backend.
 - **Validation error keys are camelCased full property paths** (`Customer.Name` → `customer.name`; a
   nested `Input.Name` → `input.name`). Frontend forms read `err.fieldErrors["input.name"]` etc. to show
   inline errors — match this casing exactly.
@@ -109,19 +127,30 @@ DI registration**. Validation runs automatically in the MediatR pipeline (`Valid
   Deleting a product is soft. Deleting a Category/Producer is a *hard* delete and is blocked with 409 if
   any product (including soft-deleted ones — check via `IgnoreQueryFilters()`) still references it.
 
+**Enums are stored as strings** (`HasConversion<string>()` for `Role`, `Status`, `Unit`), so raw SQL
+compares text: `WHERE "Role" = 'Admin'`, not a number.
+
 **Auth:** JWT bearer, roles `Customer`/`Admin`/`Driver`. Admin endpoints use `[Authorize(Roles="Admin")]`;
 the driver app is a first-class consumer with its own endpoints — `GET /driver/route`,
 `PATCH /driver/orders/{id}/status` (accepts only `Delivered` or `FailedDelivery`), and
 `POST /driver/route/reoptimize`. That last one takes the driver's live position as a parameter, uses it for
 one computation, and **never stores or logs it**; see the logging notes under Route optimization. Rate
 limiting is global plus a tighter `auth` partition. Swappable services live behind interfaces
-(`IEmailService`, `IRouteOptimizer`, `IGeocodingService`).
+(`IEmailService`, `IRouteOptimizer`, `IGeocodingService`, `IViberService`, `ISocialAuthVerifier`).
 
-**Order confirmation email:** `CreateOrder` calls `IEmailService.SendOrderConfirmationAsync` (failures never
-block the order — wrapped in try/catch). The impl is `SmtpEmailService`, which renders `OrderEmailTemplate`
-(self-contained HTML) and sends over SMTP using the `Email` section in `appsettings.json`. In dev it targets a
-local **Mailpit** catcher — sent mail is viewable at http://localhost:8025 (no real mailbox needed). Only sent
-when the order has a customer email; guests without one are skipped.
+**Email confirmation is mandatory for password accounts.** `register` does **not** log in — it emails a
+link (`ConfirmEmailTemplate`, built from `App:BaseUrl`) and login throws `email_not_confirmed` until
+`POST /auth/confirm-email` consumes the token (which then returns a JWT). `resend-confirmation` always
+answers success so it never reveals whether an email is registered — keep it that way. Demo accounts are
+seeded pre-confirmed; a user you register yourself in dev needs the link from Mailpit. Social login
+(`/auth/google`, `/auth/facebook`) goes through `SocialAuthVerifier`: Google only accepts verified emails,
+Facebook checks `debug_token` against our app, so it needs both `AppId` and `AppSecret`.
+
+**Order confirmation:** `CreateOrder` sends it by **email when the order has one, otherwise by Viber** to
+the (always present) phone; failures never block the order — wrapped in try/catch. Email goes through
+`SmtpEmailService` (renders `OrderEmailTemplate`, uses the `Email` section; in dev a local **Mailpit** on
+:1025, viewable at http://localhost:8025 — start it with the command above). Viber is a **stub**:
+`LoggingViberService` only logs the message; `PRODUCTION.md` describes swapping in a real provider.
 
 ## Route optimization
 
@@ -185,7 +214,8 @@ under a `User-Agent` naming us — and its usage policy limits it to development
   point inside the country. An unreachable database is still only logged, as before.
 - **`Microsoft.EntityFrameworkCore.Relational` is referenced explicitly in `EPiljara.Infrastructure.csproj`
   — keep it, and keep it on the same version as `Microsoft.EntityFrameworkCore`.** Without it, Relational
-  reached the API only transitively through `Npgsql.EntityFrameworkCore.PostgreSQL` (9.0.1) while
+  reached the API only transitively through `Npgsql.EntityFrameworkCore.PostgreSQL` (which pulls
+  Relational 9.0.1) while
   Infrastructure compiled against 9.0.11 pulled in by `EntityFrameworkCore.Design` — which is
   `PrivateAssets=all`, so it never flowed to the API. Any call into Relational (`ToTable` included) then
   compiled fine and died at startup with `FileNotFoundException`, with an `MSB3277` build warning as the
@@ -235,12 +265,14 @@ using OSM tiles.
   `product_unavailable`. `useCart().reconcile(products)` prunes items no longer in the live catalog; the
   checkout page calls it against `useProducts()` so orders can't submit phantom items.
 - **Address entry** (customer checkout and admin *Nova narudžba* at `admin/orders/new`) uses a keyless
-  **OpenStreetMap + Leaflet** map picker (`components/shop/address-picker.tsx`): type → Nominatim geocode →
-  draggable pin → reverse-geocode. No Google Maps key. **Coordinates are persisted** alongside the address
+  **OpenStreetMap + Leaflet** map picker (`components/shop/address-picker.tsx`): type → `geocodeApi`
+  (our `/geocode`, see Geocoding) → draggable pin → reverse-geocode via `/geocode/reverse`. No Google Maps key. **Coordinates are persisted** alongside the address
   (`Order.Latitude`/`Longitude`, both nullable) and drive route optimization — an earlier version of this
   file said only the address string was kept, which stopped being true when the driver app gained a map.
   Nominatim does not resolve every real address, so `null` coordinates are normal and must stay nullable
-  end to end; `0,0` is in the Atlantic and this project has shipped that bug once already.
+  end to end; `0,0` is in the Atlantic and this project has shipped that bug once already. Orders left
+  without coordinates are fixed by admins via `POST /admin/orders/geocode-missing` (batch retry) and
+  `PUT /admin/orders/{id}/coordinates` (manual pin).
 - **Order management (admin):** the orders list uses expandable cards (`components/admin/order-card.tsx`) with a
   status dropdown of valid state-machine transitions. Admins create orders via the same public create-order
   endpoint (`orderApi.create`) the customer checkout uses.

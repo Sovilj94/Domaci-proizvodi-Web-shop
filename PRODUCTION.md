@@ -38,10 +38,12 @@ deliberately, e.g.:
 register a normal customer through the app, then promote them once in the DB:
 
 ```sql
-UPDATE "Users" SET "Role" = 2 WHERE "Email" = 'you@yourdomain.com';  -- 2 = Admin
+UPDATE "Users" SET "Role" = 'Admin', "EmailConfirmed" = true WHERE "Email" = 'you@yourdomain.com';
 ```
 
-(Roles: `0` Customer, `1` Admin, `2` Driver — confirm against `UserRole` before running.)
+(`Role` is stored as **text** — `'Customer'`, `'Admin'` or `'Driver'`, the `UserRole` enum names — not a
+number. Setting `EmailConfirmed` spares you the confirmation email if SMTP isn't configured yet; login is
+refused until it is `true`.)
 
 ## Warehouse location (already set, but check it)
 
