@@ -90,4 +90,22 @@ export interface Driver {
   id: string;
   name: string;
   phone: string;
+  /** Neaktivan vozač nema tab na dispečerskom ekranu i ne prima nove narudžbe. */
+  aktivan: boolean;
+  /** Dnevni kapacitet u stanicama; dolazi sa servera da ga front ne bi zakucao kod sebe. */
+  maxStanica: number;
+}
+
+/** Tijelo za dodjelu/prebacivanje vozača; `date` je ISO "yyyy-MM-dd" — dan rute. */
+export interface AssignDriverRequest {
+  driverId: string;
+  date: string;
+}
+
+/** Grupna dodjela — cijelo naselje jednom vozaču. Sve ili ništa: ako grupa ne stane u
+ *  vozačev preostali kapacitet, server odbija cijelu dodjelu sa `driver_full`. */
+export interface AssignOrdersBulkRequest {
+  orderIds: string[];
+  driverId: string;
+  date: string;
 }

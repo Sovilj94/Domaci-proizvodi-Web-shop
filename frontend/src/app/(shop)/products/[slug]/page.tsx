@@ -102,7 +102,7 @@ export default function ProductDetailPage() {
 
           {/* Producer story */}
           {product.producer && (
-            <div className="mt-8 rounded-card bg-white p-5 shadow-card">
+            <div className="mt-8 rounded-card bg-surface p-5 shadow-card">
               <div className="flex items-center gap-3">
                 <div className="relative h-14 w-14 overflow-hidden rounded-full bg-sand">
                   <SmartImage src={product.producer.photoUrl} alt={product.producer.name} sizes="56px" />

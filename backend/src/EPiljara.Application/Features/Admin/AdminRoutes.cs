@@ -36,6 +36,7 @@ public class GetRoutesHandler(IAppDbContext db) : IRequestHandler<GetRoutesQuery
 
         var routes = await db.DeliveryRoutes
             .Include(r => r.Driver)
+            .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .Where(r => r.Date == date)
             .ToListAsync(ct);
@@ -47,7 +48,7 @@ public class GetRoutesHandler(IAppDbContext db) : IRequestHandler<GetRoutesQuery
 /* ---------- Assign orders to a driver ---------- */
 
 public record AssignRouteCommand(string Date, Guid DriverId, IReadOnlyList<Guid> OrderIds)
-    : IRequest<DeliveryRouteDto>;
+    : IRequest<IReadOnlyList<DeliveryRouteDto>>;
 
 /// <summary>
 /// Računa redoslijed i upisuje ga na stanice. Zatvorene stanice se ne diraju i
@@ -126,9 +127,18 @@ internal static class Optimizacija
 }
 
 public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
-    : IRequestHandler<AssignRouteCommand, DeliveryRouteDto>
+    : IRequestHandler<AssignRouteCommand, IReadOnlyList<DeliveryRouteDto>>
 {
-    public async Task<DeliveryRouteDto> Handle(AssignRouteCommand cmd, CancellationToken ct)
+    /// <summary>Google Maps prima najviše ovoliko koordinata po linku — tvrda granica
+    /// spoljnog alata (isto ograničenje koje je NavigacijaLink.MaxStanica već kodirao u
+    /// aplikaciji vozača), ne estetika.</summary>
+    private const int MaxStanicaPoRuti = 10;
+    private const string NazivBezZone = "Bez zone";
+
+    private static readonly HashSet<OrderStatus> Zatvoreni =
+        [OrderStatus.Delivered, OrderStatus.FailedDelivery, OrderStatus.Cancelled];
+
+    public async Task<IReadOnlyList<DeliveryRouteDto>> Handle(AssignRouteCommand cmd, CancellationToken ct)
     {
         if (!DateOnly.TryParse(cmd.Date, out var date))
             throw new DomainException("Neispravan datum.", "invalid_date");
@@ -136,55 +146,113 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
         var driver = await db.Drivers.FirstOrDefaultAsync(d => d.Id == cmd.DriverId, ct)
             ?? throw new NotFoundException("Vozač nije pronađen.");
 
-        var validOrderIds = await db.Orders
-            .Where(o => cmd.OrderIds.Contains(o.Id))
-            .Select(o => o.Id)
+        // Distinct: dupli Id u zahtjevu ne smije napraviti dvije stanice za istu narudžbu.
+        var trazeneIds = cmd.OrderIds.Distinct().ToList();
+        var narudzbe = await db.Orders
+            .Include(o => o.DeliveryZone)
+            .Where(o => trazeneIds.Contains(o.Id))
+            // Stabilan redoslijed sječenja na komade od najviše 10 — bez ovoga bi dva
+            // uzastopna poziva mogla razdvojiti iste narudžbe drugačije. Id kao tie-breaker
+            // jer CreatedAt teoretski može biti isti za dvije narudžbe.
+            .OrderBy(o => o.CreatedAt).ThenBy(o => o.Id)
             .ToListAsync(ct);
 
-        // Replace any existing route for the same driver + date.
-        var existing = await db.DeliveryRoutes
-            .Include(r => r.Stops)
+        // Postojeće rute ovog vozača za ovaj dan. Zatvorene stanice (Delivered,
+        // FailedDelivery, Cancelled) se NE premještaju ni brišu — istorija mora ostati
+        // tačna. Otvorene stanice se brišu jer se ruta gradi iznova iz zahtjeva; ruta koja
+        // poslije toga ostane bez ijedne stanice se briše — prazna ruta nema smisla. Ruta
+        // koja zadrži bar jednu zatvorenu stanicu ostaje u bazi netaknuta.
+        var postojece = await db.DeliveryRoutes
+            .Include(r => r.Stops).ThenInclude(s => s.Order)
             .Where(r => r.DriverId == driver.Id && r.Date == date)
             .ToListAsync(ct);
-        db.DeliveryRoutes.RemoveRange(existing);
 
-        var route = new DeliveryRoute
+        var zatvoreneOrderIds = new HashSet<Guid>();
+        foreach (var ruta in postojece)
         {
-            Date = date,
-            DriverId = driver.Id,
-            Status = RouteStatus.Planned,
-            // Distinct: dupli OrderId u zahtjevu bi inače stvorio dvije stanice sa istim
-            // OrderId-jem, koje se PrimijeniAsync ne bi mogao pouzdano razlikovati.
-            Stops = cmd.OrderIds
-                .Distinct()
-                .Where(validOrderIds.Contains)
-                .Select((orderId, i) => new RouteStop { OrderId = orderId, Sequence = i + 1 })
-                .ToList(),
-        };
+            var otvoreneStanice = ruta.Stops.Where(s => !Zatvoreni.Contains(s.Order!.Status)).ToList();
+            foreach (var s in ruta.Stops.Where(s => Zatvoreni.Contains(s.Order!.Status)))
+                zatvoreneOrderIds.Add(s.OrderId);
 
-        db.DeliveryRoutes.Add(route);
+            foreach (var s in otvoreneStanice)
+                db.RouteStops.Remove(s);
+
+            if (otvoreneStanice.Count == ruta.Stops.Count)
+                db.DeliveryRoutes.Remove(ruta); // ništa zatvoreno nije ostalo — prazna ruta ide
+        }
+
+        // Narudžba koja već ima zatvorenu stanicu negdje ovog dana ne dobija novu — istorija
+        // je već napisana za nju, dupliranje bi je pomjerilo iz prošlosti u novu rutu.
+        var zaRasporedjivanje = narudzbe.Where(o => !zatvoreneOrderIds.Contains(o.Id)).ToList();
+
+        var noveRute = new List<DeliveryRoute>();
+        foreach (var grupa in zaRasporedjivanje.GroupBy(o => o.DeliveryZoneId))
+        {
+            // DeliveryZoneId je non-nullable na Order u trenutnim pravilima, pa "Bez zone"
+            // u praksi ne nastaje — grana ostaje kao odbrana za stariju bazu bez tog pravila.
+            var bazniNaziv = grupa.First().DeliveryZone?.Name ?? NazivBezZone;
+            var komadi = grupa.Chunk(MaxStanicaPoRuti).ToList();
+
+            for (var i = 0; i < komadi.Count; i++)
+            {
+                noveRute.Add(new DeliveryRoute
+                {
+                    Date = date,
+                    DriverId = driver.Id,
+                    DeliveryZoneId = grupa.Key,
+                    // Redni broj samo kad je zona podijeljena na više komada.
+                    Naziv = komadi.Count > 1 ? $"{bazniNaziv} {i + 1}" : bazniNaziv,
+                    Status = RouteStatus.Planned,
+                    Stops = komadi[i]
+                        .Select((o, idx) => new RouteStop { OrderId = o.Id, Sequence = idx + 1 })
+                        .ToList(),
+                });
+            }
+        }
+
+        db.DeliveryRoutes.AddRange(noveRute);
         await db.SaveChangesAsync(ct);
 
-        // Ponovo učitaj sa narudžbama, jer optimizacija treba koordinate i statuse.
+        // Optimizacija radi po ruti, svaka iz magacina — ponovo učitaj sa narudžbama, jer
+        // AddRange gore nije učitao koordinate i statuse potrebne optimizatoru.
+        var noviIds = noveRute.Select(r => r.Id).ToList();
         var saStavkama = await db.DeliveryRoutes
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
-            .FirstAsync(r => r.Id == route.Id, ct);
+            .Where(r => noviIds.Contains(r.Id))
+            .ToListAsync(ct);
 
         var magacin = await MagacinCitac.UcitajAsync(db, ct);
-        await Optimizacija.PrimijeniAsync(
-            saStavkama, magacin.Latitude, magacin.Longitude, optimizer, ct);
+        foreach (var ruta in saStavkama)
+            await Optimizacija.PrimijeniAsync(
+                ruta, magacin.Latitude, magacin.Longitude, optimizer, ct);
         await db.SaveChangesAsync(ct);
 
-        return await LoadRouteDtoAsync(db, route.Id, ct);
+        return await LoadDriverDateRoutesAsync(db, driver.Id, date, ct);
     }
 
     internal static async Task<DeliveryRouteDto> LoadRouteDtoAsync(IAppDbContext db, Guid routeId, CancellationToken ct)
     {
         var route = await db.DeliveryRoutes
             .Include(r => r.Driver)
+            .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .FirstAsync(r => r.Id == routeId, ct);
         return route.ToDto();
+    }
+
+    /// <summary>Sve rute vozača za dati dan, poređane po nazivu — isti redoslijed kao
+    /// GET /driver/routes, da odgovor dodjele odmah pokaže konačno stanje.</summary>
+    internal static async Task<IReadOnlyList<DeliveryRouteDto>> LoadDriverDateRoutesAsync(
+        IAppDbContext db, Guid driverId, DateOnly date, CancellationToken ct)
+    {
+        var rute = await db.DeliveryRoutes
+            .Include(r => r.Driver)
+            .Include(r => r.DeliveryZone)
+            .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
+            .Where(r => r.DriverId == driverId && r.Date == date)
+            .OrderBy(r => r.Naziv)
+            .ToListAsync(ct);
+        return rute.Select(r => r.ToDto()).ToList();
     }
 }
 

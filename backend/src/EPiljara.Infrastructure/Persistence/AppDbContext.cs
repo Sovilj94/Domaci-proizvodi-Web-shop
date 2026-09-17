@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<DeliveryZone> DeliveryZones => Set<DeliveryZone>();
     public DbSet<DeliverySlot> DeliverySlots => Set<DeliverySlot>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Address> Addresses => Set<Address>();
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
@@ -74,10 +75,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(x => x.Email).IsUnique();
         });
 
+        b.Entity<Address>(e =>
+        {
+            e.Property(x => x.Label).HasMaxLength(60);
+            // 400 je isto kao Order.DeliveryAddress — adresa putuje odavde u narudžbu,
+            // pa kraće polje ovdje bi značilo da se nešto što je stalo u narudžbu
+            // ne može sačuvati u adresar.
+            e.Property(x => x.FullAddress).HasMaxLength(400).IsRequired();
+            e.HasIndex(x => x.UserId);
+            e.HasOne(x => x.User).WithMany()
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.DeliveryZone).WithMany()
+                .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
+        });
+
         b.Entity<Driver>(e =>
         {
             e.Property(x => x.Name).HasMaxLength(160).IsRequired();
             e.Property(x => x.Phone).HasMaxLength(40);
+            e.Property(x => x.Vozilo).HasMaxLength(80);
+            e.Property(x => x.Registracija).HasMaxLength(20);
+            // Podrazumijevano true, pa postojeći redovi migracijom postaju aktivni vozači —
+            // bez toga bi svi nestali sa dispečerskog ekrana čim migracija prođe.
+            e.Property(x => x.Aktivan).HasDefaultValue(true);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
@@ -111,9 +131,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<DeliveryRoute>(e =>
         {
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
-            e.HasIndex(x => new { x.DriverId, x.Date });
+            e.Property(x => x.Naziv).HasMaxLength(100).IsRequired();
+            // Namjerno BEZ indeksa na (DriverId, Date) — više ruta po danu je sad
+            // očekivano stanje otkad se dodjela dijeli po zonama; stari indeks je
+            // implicirao "jedan red po vozaču i danu" i zato je uklonjen.
             e.HasOne(x => x.Driver).WithMany(d => d.Routes)
                 .HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DeliveryZone).WithMany()
+                .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Stops).WithOne(s => s.Route!)
                 .HasForeignKey(s => s.RouteId).OnDelete(DeleteBehavior.Cascade);
         });

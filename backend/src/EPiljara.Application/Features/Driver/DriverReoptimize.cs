@@ -30,10 +30,15 @@ public class ReoptimizeRouteHandler(IAppDbContext db, ICurrentUser current, IRou
             ?? throw new ForbiddenException("Niste registrovani kao vozač.");
 
         var danas = DateOnly.FromDateTime(DateTime.UtcNow);
+        // Isti poredak kao GET /driver/route — "prva" ruta mora biti determinisana otkad
+        // jedan dan može imati više ruta (po zoni).
         var route = await db.DeliveryRoutes
             .Include(r => r.Driver)
+            .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
-            .FirstOrDefaultAsync(r => r.DriverId == driver.Id && r.Date == danas, ct)
+            .Where(r => r.DriverId == driver.Id && r.Date == danas)
+            .OrderBy(r => r.Naziv)
+            .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Nemate rutu za danas.");
 
         await Optimizacija.PrimijeniAsync(route, cmd.Latitude, cmd.Longitude, optimizer, ct);

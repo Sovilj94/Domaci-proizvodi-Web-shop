@@ -23,7 +23,7 @@ export function QuantityStepper({
   const width = size === "sm" ? "w-8 text-sm" : "w-11 text-sm";
 
   return (
-    <div className="inline-flex items-center rounded-full bg-white ring-1 ring-black/10">
+    <div className="inline-flex items-center rounded-full bg-surface ring-1 ring-line">
       <button
         type="button"
         onClick={dec}

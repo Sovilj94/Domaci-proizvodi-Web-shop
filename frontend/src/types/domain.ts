@@ -126,6 +126,9 @@ export interface RouteStop {
   customerPhone?: string;
   latitude?: number;
   longitude?: number;
+  totalAmount?: number;
+  /** Kad je vozač zatvorio stanicu (ISO, UTC); null dok je otvorena. */
+  zatvorenaU?: string | null;
 }
 
 export interface DeliveryRoute {
@@ -135,6 +138,12 @@ export interface DeliveryRoute {
   driverName?: string;
   status: RouteStatus;
   stops: RouteStop[];
+  /** Naziv koji vidi vozač — naziv zone, uz redni broj kad zona ima više ruta ("Centar 1"). */
+  naziv?: string;
+  deliveryZoneId?: string | null;
+  /** Rezultat optimizacije; null kad nije računata — 0 bi lagalo da je ruta duga 0 km. */
+  duzinaMetara?: number | null;
+  trajanjeSekundi?: number | null;
 }
 
 export interface Customer {

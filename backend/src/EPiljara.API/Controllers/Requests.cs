@@ -18,3 +18,17 @@ public record SetCoordinatesRequest(double? Latitude, double? Longitude);
 /// nema tihog upisa pogrešne pozicije, samo 400.
 /// </summary>
 public record ReoptimizeRequest(double Latitude, double Longitude);
+
+/// <summary>
+/// Tijelo za dodjelu vozača narudžbi. <c>Date</c> je ISO "yyyy-MM-dd" — dan rute, ne dan
+/// kreiranja narudžbe. Prazan ili neispravan datum handler odbija sa <c>invalid_date</c>;
+/// prazan <c>DriverId</c> (Guid.Empty pri nepotpunom tijelu) padne na „Vozač nije pronađen".
+/// </summary>
+public record AssignDriverRequest(Guid DriverId, string Date);
+
+/// <summary>
+/// Tijelo za grupnu dodjelu — dispečer šalje cijelo naselje jednom vozaču. Ista pravila za
+/// <c>Date</c> i <c>DriverId</c> kao kod <see cref="AssignDriverRequest"/>; prazan
+/// <c>OrderIds</c> handler odbija sa <c>no_orders</c>.
+/// </summary>
+public record AssignOrdersBulkRequest(IReadOnlyList<Guid> OrderIds, Guid DriverId, string Date);

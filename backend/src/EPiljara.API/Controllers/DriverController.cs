@@ -12,6 +12,10 @@ public class DriverController : ApiControllerBase
     public async Task<IActionResult> MyRoute([FromQuery] string? date) =>
         Envelope(await Mediator.Send(new GetDriverRouteQuery(date)));
 
+    [HttpGet("driver/routes")]
+    public async Task<IActionResult> MyRoutes([FromQuery] string? date) =>
+        EnvelopeList(await Mediator.Send(new GetDriverRoutesQuery(date)));
+
     [HttpPatch("driver/orders/{id:guid}/status")]
     public async Task<IActionResult> UpdateStop(Guid id, [FromBody] UpdateStatusRequest body) =>
         Envelope(await Mediator.Send(new UpdateStopStatusCommand(id, body.Status)));
@@ -19,4 +23,12 @@ public class DriverController : ApiControllerBase
     [HttpPost("driver/route/reoptimize")]
     public async Task<IActionResult> Reoptimize([FromBody] ReoptimizeRequest body) =>
         Envelope(await Mediator.Send(new ReoptimizeRouteCommand(body.Latitude, body.Longitude)));
+
+    [HttpGet("driver/routes/history")]
+    public async Task<IActionResult> RouteHistory() =>
+        Envelope(await Mediator.Send(new GetDriverRouteHistoryQuery()));
+
+    [HttpGet("driver/profile")]
+    public async Task<IActionResult> Profile() =>
+        Envelope(await Mediator.Send(new GetDriverProfileQuery()));
 }

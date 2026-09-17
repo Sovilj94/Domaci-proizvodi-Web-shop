@@ -112,6 +112,8 @@ public static class MappingExtensions
         Id = d.Id,
         Name = d.Name,
         Phone = d.Phone,
+        Aktivan = d.Aktivan,
+        MaxStanica = Driver.MaxStanicaPoDanu,
     };
 
     public static WarehouseDto ToDto(this Magacin m) => new()
@@ -145,7 +147,28 @@ public static class MappingExtensions
         Latitude = s.Order?.Latitude,
         Longitude = s.Order?.Longitude,
         TotalAmount = s.Order?.TotalAmount ?? 0m,
+        ZatvorenaU = s.Order?.ZatvorenaU,
     };
+
+    public static RouteHistoryEntryDto ToHistoryDto(this DeliveryRoute r)
+    {
+        var zatvorene = r.Stops
+            .Select(s => s.Order?.ZatvorenaU)
+            .Where(z => z.HasValue)
+            .Select(z => z!.Value)
+            .ToList();
+
+        return new RouteHistoryEntryDto
+        {
+            Id = r.Id,
+            Datum = r.Date.ToString("yyyy-MM-dd"),
+            UkupnoStanica = r.Stops.Count,
+            Isporuceno = r.Stops.Count(s => s.Order!.Status == OrderStatus.Delivered),
+            Neuspjelo = r.Stops.Count(s => s.Order!.Status == OrderStatus.FailedDelivery),
+            PrvaZatvorenaU = zatvorene.Count == 0 ? null : zatvorene.Min(),
+            PosljednjaZatvorenaU = zatvorene.Count == 0 ? null : zatvorene.Max(),
+        };
+    }
 
     public static DeliveryRouteDto ToDto(this DeliveryRoute r) => new()
     {
@@ -158,5 +181,20 @@ public static class MappingExtensions
         TrajanjeSekundi = r.TrajanjeSekundi,
         Geometrija = r.Geometrija,
         Stops = r.Stops.OrderBy(x => x.Sequence).Select(x => x.ToDto()).ToList(),
+        Naziv = r.Naziv,
+        ZonaNaziv = r.DeliveryZone?.Name,
+    };
+
+    public static AddressDto ToDto(this Address a) => new()
+    {
+        Id = a.Id,
+        Label = a.Label,
+        FullAddress = a.FullAddress,
+        Latitude = a.Latitude,
+        Longitude = a.Longitude,
+        DeliveryZoneId = a.DeliveryZoneId,
+        DeliveryZoneName = a.DeliveryZone?.Name,
+        DeliveryZoneActive = a.DeliveryZone?.IsActive ?? false,
+        IsDefault = a.IsDefault,
     };
 }

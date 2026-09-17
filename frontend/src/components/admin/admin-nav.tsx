@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   LogOut,
@@ -13,17 +14,28 @@ import {
   Tractor,
   Truck,
   Warehouse,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { adminApi } from "@/lib/api/endpoints";
+import { narudzbeRijec } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 
-const ITEMS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Nosi badge sa brojem narudžbi koje čekaju potvrdu. */
+  badge?: boolean;
+}
+
+const ITEMS: NavItem[] = [
   { href: "/admin/dashboard", label: "Pregled", icon: LayoutDashboard },
-  { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag },
+  { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag, badge: true },
   { href: "/admin/products", label: "Proizvodi", icon: Package },
   { href: "/admin/categories", label: "Kategorije", icon: Tags },
   { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
-  { href: "/admin/routes", label: "Rute dostave", icon: Truck },
+  { href: "/admin/dostava", label: "Dostava", icon: Truck },
   { href: "/admin/settings", label: "Magacin", icon: Warehouse },
 ];
 
@@ -32,9 +44,40 @@ function useActive() {
   return (href: string) => pathname === href || pathname.startsWith(href + "/");
 }
 
+/**
+ * Broj narudžbi u statusu Pending. Dijeli queryKey sa admin dashboardom, pa ih
+ * TanStack Query spaja u jedan zahtjev; `refetchInterval` drži badge svježim dok
+ * je admin panel otvoren (pauzira se sam kad je tab u pozadini). Promjena statusa
+ * narudžbe već invalidira ovaj ključ, pa badge padne odmah, bez čekanja intervala.
+ */
+function usePendingOrdersCount() {
+  const { data } = useQuery({
+    queryKey: ["admin", "dashboard"],
+    queryFn: () => adminApi.dashboard(),
+    refetchInterval: 30_000,
+  });
+  return data?.pendingOrders ?? 0;
+}
+
+function PendingBadge({ count, className }: { count: number; className?: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={`${count} ${narudzbeRijec(count)} na čekanju`}
+      className={cn(
+        "grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white",
+        className,
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export function AdminSidebar() {
   const isActive = useActive();
   const { user, logout } = useAuth();
+  const pending = usePendingOrdersCount();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink text-white lg:flex">
@@ -62,16 +105,22 @@ export function AdminSidebar() {
           >
             <item.icon className="h-4 w-4" />
             {item.label}
+            {item.badge && <PendingBadge count={pending} className="ml-auto" />}
           </Link>
         ))}
       </nav>
 
       <div className="border-t border-white/10 p-3">
+        {/*
+          Izlaz iz panela je dugme sa obrubom, ne još jedan prigušeni red menija.
+          Ranije je stajao u istoj sivoj kao stavke iznad i čitao se kao dio navigacije,
+          pa se previđao — a jedina je stavka ovdje koja vodi van admina.
+        */}
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
+          className="flex items-center justify-center gap-2 rounded-full border border-white/25 px-3 py-2.5 text-sm font-medium text-white transition hover:border-white/50 hover:bg-white/10"
         >
-          <Store className="h-4 w-4" /> Web shop
+          <Store className="h-4 w-4" /> Nazad u shop
         </Link>
         <div className="mt-2 flex items-center justify-between px-3">
           <span className="truncate text-xs text-white/50">{user?.email}</span>
@@ -91,16 +140,35 @@ export function AdminSidebar() {
 export function AdminMobileBar() {
   const isActive = useActive();
   const { logout } = useAuth();
+  const pending = usePendingOrdersCount();
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
-        <span className="font-display font-extrabold">
+        <span className="font-display font-bold">
           E piljara <span className="text-xs font-medium text-white/50">admin</span>
         </span>
-        <button onClick={logout} aria-label="Odjava" className="text-white/70">
-          <LogOut className="h-4 w-4" />
-        </button>
+        {/*
+          Na telefonu izlaza u shop nije ni bilo — sidebar sa tim linkom je skriven
+          ispod `lg`, pa se iz panela moglo izaći samo ručnim kucanjem adrese.
+          U traci nema mjesta za natpis, zato ikona sa aria-label.
+        */}
+        <div className="flex items-center gap-1">
+          <Link
+            href="/"
+            aria-label="Nazad u shop"
+            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+          >
+            <Store className="h-4 w-4" />
+          </Link>
+          <button
+            onClick={logout}
+            aria-label="Odjava"
+            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
       <nav className="no-scrollbar flex gap-1 overflow-x-auto px-2 pb-2">
         {ITEMS.map((item) => (
@@ -114,6 +182,7 @@ export function AdminMobileBar() {
           >
             <item.icon className="h-4 w-4" />
             {item.label}
+            {item.badge && <PendingBadge count={pending} />}
           </Link>
         ))}
       </nav>

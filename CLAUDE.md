@@ -42,6 +42,9 @@ docker compose up -d postgres              # Postgres 16 on :5432
 docker compose up -d osrm                  # self-hosted routing on :5000 (see below)
 docker compose up -d nominatim             # self-hosted geocoding on :8080 (see below)
 dotnet run --project src/EPiljara.API      # http://localhost:5080, Swagger at /swagger
+# For the Android driver app (../EPiljaraVozac) the API must be reachable from the emulator
+# via 10.0.2.2, and the default binds localhost only — use:
+dotnet run --project src/EPiljara.API --urls http://0.0.0.0:5080
 docker compose up -d                       # or run the whole stack together (API on :5080)
 docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit   # email catcher, NOT in compose
 ```
@@ -71,8 +74,14 @@ dotnet dotnet-ef migrations add <Name> -p src/EPiljara.Infrastructure -s src/EPi
 dotnet dotnet-ef database update       -p src/EPiljara.Infrastructure -s src/EPiljara.Infrastructure
 ```
 
-**There is no automated test suite** (no test projects, no `test` script). Verify changes by running the
-stack and exercising the affected flow end-to-end.
+**Backend ima testove** (`backend/tests/EPiljara.Application.Tests`, xUnit + SQLite in-memory):
+```bash
+dotnet test          # iz backend/
+```
+Pokriveno je domensko pravilo `GeoBounds`, infrastruktura za testiranje handlera (`TestDb`,
+`FakeCurrentUser`) nad SQLite in-memory bazom sa stvarno enforsovanim stranim ključevima, i prvi
+handler testovi (`AddressCommandsTests`). **Frontend nema test setup** — provjerava se sa
+`npx tsc --noEmit`, `npm run lint` i prolaskom kroz tok uz pokrenut stek.
 
 Demo accounts: `admin@epiljara.ba` / `admin123` · `mujo@example.com` / `mujo123` · `vozac@epiljara.ba` / `vozac123`.
 
@@ -84,19 +93,22 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   backend produces it (`ApiControllerBase` helpers + `ExceptionHandlingMiddleware`); the frontend
   unwraps it (`apiFetch` returns `data` or throws `ApiRequestError`).
 - **Single frontend API surface.** Screens never call `fetch` directly — they call
-  `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` chooses the
-  target from `NEXT_PUBLIC_API_BASE_URL`: **unset** → the app's own built-in mock (route handlers under
-  `frontend/src/app/api/**` backed by `frontend/src/server/mock/`, data in `store.ts`); **set** (e.g.
-  `http://localhost:5080`) → the real backend. `frontend/.env.local` is git-ignored and **does not exist on a
-  fresh clone**, so `npm run dev` talks to the mock until you create it with
+  `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` derives
+  `API_BASE` as `NEXT_PUBLIC_API_BASE_URL || "/api"`: **unset/empty** → the app's own built-in mock (route
+  handlers under `frontend/src/app/api/**` backed by `frontend/src/server/mock/`, data in `store.ts`);
+  **set** (e.g. `http://localhost:5080`) → the real backend. `frontend/.env.local` is git-ignored and
+  **does not exist on a fresh clone**, so `npm run dev` talks to the mock until you create it with
   `NEXT_PUBLIC_API_BASE_URL=http://localhost:5080`. If data looks "fake" or a backend change has no effect,
-  check this first.
+  check this first. `:5080` **matches** what `dotnet run` serves — the older `:5081` mismatch this file
+  used to warn about is gone; do not "fix" it back. To demo purely against the mock (no backend/DB), run
+  `NEXT_PUBLIC_API_BASE_URL= npm run dev`.
 - **Two implementations of the same contract.** The real ASP.NET API and the Next.js mock both serve the
   same paths/shapes. When you change an endpoint's contract, keep the mock in sync (or accept that the
   mock is the deletable dev-only path). `frontend/src/types/domain.ts` mirrors the backend DTOs 1:1.
   The mock is **already incomplete**: it has no `admin/categories`, `admin/producers`,
-  `admin/orders/geocode-missing`, `admin/orders/{id}/coordinates` or any `driver/*` route, so those screens
-  only work against the real backend.
+  `admin/orders/geocode-missing`, `admin/orders/{id}/coordinates`, the dispatch routes
+  (`admin/orders/{id}/driver`, `admin/orders/assign-bulk`), `account/*` or any `driver/*` route, so those
+  screens (Dostava, Moj nalog included) only work against the real backend.
 - **Validation error keys are camelCased full property paths** (`Customer.Name` → `customer.name`; a
   nested `Input.Name` → `input.name`). Frontend forms read `err.fieldErrors["input.name"]` etc. to show
   inline errors — match this casing exactly.
@@ -152,6 +164,55 @@ the (always present) phone; failures never block the order — wrapped in try/ca
 :1025, viewable at http://localhost:8025 — start it with the command above). Viber is a **stub**:
 `LoggingViberService` only logs the message; `PRODUCTION.md` describes swapping in a real provider.
 
+**Know what "never blocks" costs before you rely on it:** the failure is swallowed *twice*.
+`SmtpEmailService.SendHtmlAsync` catches every transport exception and logs it, and `CreateOrder`'s own
+`catch` around the call is **empty — it does not even log**. So a customer's confirmation can vanish
+leaving nothing that tells anyone to react, and the Viber fallback does not rescue it: the `if/else` picks
+email *or* Viber by whether an address exists, so a failed email never falls through to Viber.
+Registration's confirmation mail (`AuthCommands`, `EmailConfirmationCommands`) has the same shape. The
+sibling SeloPlatform project replaced exactly this pattern with a durable outbox; if reliable delivery is
+ever required here, that is the precedent to follow rather than adding more try/catch. Note also that
+`SmtpEmailService` uses `System.Net.Mail.SmtpClient`, which Microsoft no longer recommends (SeloPlatform
+uses MailKit).
+
+## Two ways to put an order on a route — pick the right one
+
+Both live under `Features/Admin` and both end up writing `RouteStop` rows, but they answer different
+questions and are not interchangeable.
+
+- **`AssignRouteCommand`** (`AdminRoutes.cs`, `POST /admin/routes`) is **declarative**: "these are all of
+  this driver's orders for this day." It deletes every open stop the driver has that day, rebuilds the
+  routes from the request, and runs OSRM for each one. Closed stops (`Delivered`/`FailedDelivery`/
+  `Cancelled`) are never touched — history must stay true. Use it for bulk planning; it returns an
+  **array**, since one assignment produces one route per zone.
+- **`AssignOrderDriverCommand` / `RemoveOrderDriverCommand`** (`AdminDispatch.cs`,
+  `POST`/`DELETE /admin/orders/{id}/driver`) are **pointwise**: one order moves, nothing else changes.
+  The POST also *is* the transfer — it lifts the order off whatever route holds it that day first.
+  Use these for anything driven by a single click.
+
+Do not emulate one with the other. Driving a per-click UI through `AssignRouteCommand` means tearing down
+and rebuilding the driver's whole day plus one OSRM call per route on every click, and a transfer becomes
+two requests with the order unassigned in between — nothing left to roll back to if the second fails.
+
+**`AdminDispatch` deliberately does not re-optimize.** The route keeps its existing `DuzinaMetara` /
+`TrajanjeSekundi` until someone optimizes it. That is honest — those numbers no longer describe the
+changed route — and writing new ones without OSRM would mean inventing them.
+
+**Both dispatch handlers load every route for the day in one query, mutate in memory, and save once.**
+Do not split that into several queries: an entity marked for deletion is still in the database until
+`SaveChanges`, so a re-query pulls it back into the navigation collection and stop counts come out wrong.
+This was hit and fixed; the single-query shape is the fix.
+
+Stops go into the route for the order's zone, a new route is created when that zone has none or the
+existing one is full at **10** (`MaxStanicaPoRuti`, the Google Maps link limit). Emptied routes are
+deleted, open stops are renumbered *above* the closed ones (closed keep their `Sequence`; a collision now
+fails on the deferred `UQ_RouteStops_RouteId_Sequence` at `SaveChanges` — see Route optimization), and
+route names follow the same convention `AssignRouteHandler` uses (`Centar`, or `Centar 1`/`Centar 2`).
+
+`Driver.Aktivan` gates assignment: an inactive driver takes no new orders. `Driver.MaxStanicaPoDanu` (30)
+is a **per-driver daily capacity** and has nothing to do with `MaxStanicaPoRuti` (10) — do not conflate
+them. It is a constant surfaced through `DriverDto.MaxStanica` so the frontend does not hardcode it.
+
 ## Route optimization
 
 `IRouteOptimizer` computes the visiting order for a day's deliveries. Two implementations:
@@ -185,6 +246,14 @@ under a `User-Agent` naming us — and its usage policy limits it to development
 
 ### Traps that have already bitten
 
+- **Keep `Microsoft.EntityFrameworkCore.Relational` pinned to the same version as
+  `Microsoft.EntityFrameworkCore`** in `EPiljara.Infrastructure.csproj`. Relational also arrives
+  transitively through `Npgsql.EntityFrameworkCore.PostgreSQL`, which pulls an *older* one; the code then
+  compiles against the newer version while the older one is copied to `bin`. That mismatch is the
+  long-standing `MSB3277` warning, and it sleeps until the first Relational-only call in `OnModelCreating`
+  (e.g. `HasDefaultValue`) — at which point **every** request dies, `/auth/login` included, with a
+  `FileNotFoundException` naming an assembly version, an error that looks nothing like its cause. A build
+  with zero warnings is the signal that the versions still line up.
 - **The `/trip` parameter combination is load-bearing.** `source=first&destination=last&roundtrip=false`,
   with the warehouse appended as the final coordinate. `roundtrip=false` with only `source=first` returns
   HTTP 400 `NotImplemented` — the code sent exactly that for weeks, every optimization silently fell back
@@ -212,14 +281,6 @@ under a `User-Agent` naming us — and its usage policy limits it to development
   `Program.cs` re-checks `GeoBounds` after migrating and **refuses to start** on a missing row or a point
   outside Bosnia and Herzegovina (the old `ValidateOnStart` guard, moved); it still cannot catch a *wrong*
   point inside the country. An unreachable database is still only logged, as before.
-- **`Microsoft.EntityFrameworkCore.Relational` is referenced explicitly in `EPiljara.Infrastructure.csproj`
-  — keep it, and keep it on the same version as `Microsoft.EntityFrameworkCore`.** Without it, Relational
-  reached the API only transitively through `Npgsql.EntityFrameworkCore.PostgreSQL` (which pulls
-  Relational 9.0.1) while
-  Infrastructure compiled against 9.0.11 pulled in by `EntityFrameworkCore.Design` — which is
-  `PrivateAssets=all`, so it never flowed to the API. Any call into Relational (`ToTable` included) then
-  compiled fine and died at startup with `FileNotFoundException`, with an `MSB3277` build warning as the
-  only hint. If those warnings ever come back, this is what they mean.
 
 ### Geocoding
 
@@ -276,8 +337,37 @@ using OSM tiles.
 - **Order management (admin):** the orders list uses expandable cards (`components/admin/order-card.tsx`) with a
   status dropdown of valid state-machine transitions. Admins create orders via the same public create-order
   endpoint (`orderApi.create`) the customer checkout uses.
+- **Dispatch lives on `/admin/dostava`** ("Dostava" in the nav): a tab per active driver plus a
+  "Nedodijeljeno" tab, assignment through the pointwise endpoints above, optimistic updates that snapshot
+  both lists and restore them on failure. The active tab is kept in the URL (`?vozac=`) so a reload does
+  not lose it. `components/admin/dispatch-tabs.tsx` is a hand-rolled tab strip — the project has no tab
+  component and this did not justify a dependency.
+- **`/admin/routes` is still there, out of the nav**, reachable from a button on the dispatch screen. It
+  owns route optimization, `geocode-missing`, and the manual stop-location drawer — none of which the
+  dispatch screen replaces. **Its own assignable list still filters on `ASSIGNABLE` and omits `Pending`**,
+  which is the bug fixed on the dispatch screen; if you touch that page, fix it there too.
+- **Unassigned orders come from `GET /admin/orders?unassigned=true&date=`, and that flag changes what
+  `date` means** — with it, `date` is the *delivery* day (is this order on any route that day), without it
+  it is the order's creation day. An order placed yesterday is still driven today, so filtering the
+  dispatch list by `CreatedAt` would hide it. The unassigned set deliberately includes `Pending`: the shop
+  creates every order as `Pending`, and omitting it made new orders invisible to the dispatcher.
 - **Admin data mutations** follow a consistent pattern: a TanStack `useMutation` calling `adminApi.*`,
   then `queryClient.invalidateQueries` for the affected keys and a toast. Admin CRUD forms are drawer
   components in `src/components/admin/*-form.tsx`.
+- **Visual design system (Wolt-clean).** Design tokens live in `src/app/globals.css` (`@theme`): white
+  page bg, cool neutrals (`sand`/`ink`/`muted`/`line`), a **green** brand accent, soft
+  `shadow-card`/`shadow-md`/`shadow-lg` and `border-line` hairlines. **Honey is label-only** (badges like
+  *Izdvojeno*) — never a CTA; CTAs are green `primary`, or white `secondary` on a colored hero. Prefer
+  `shadow-card` / `border border-line` over `ring-1 ring-black/5`, and `font-bold` over `font-extrabold`
+  (except the logo wordmark). Animations use the **`motion`** package (Framer Motion for React 19,
+  `import { motion } from "motion/react"`) wrapped globally by `<MotionConfig reducedMotion="user">` in
+  `providers.tsx`; reusable `components/ui/reveal.tsx` (scroll fade-in) and `lib/cart/fly-to-cart.ts`
+  (add-to-cart dot + badge bump). Everything must honor `prefers-reduced-motion`.
+- **Catalog imagery is self-hosted, not remote.** Product/category/producer photos live in
+  `public/products/<slug>.jpg`, `public/categories/<slug>.jpg`, `public/producers/<name>.jpg`, and
+  `DbSeeder` seeds those root-relative paths (`/products/<slug>.jpg`, …). `SmartImage`
+  (`components/ui/smart-image.tsx`) renders them via `next/image` (`unoptimized`) and falls back to a leaf
+  placeholder on a missing/failed load — so a wrong path degrades gracefully rather than breaking. Any
+  *remote* image host must be whitelisted in `next.config.ts` `images.remotePatterns`.
 
 @frontend/AGENTS.md

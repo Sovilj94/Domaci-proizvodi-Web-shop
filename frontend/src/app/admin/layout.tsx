@@ -9,7 +9,16 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminGuard>
-      <div className="flex min-h-screen bg-sand/40">
+      {/*
+        Admin nasljeđuje paletu shopa — ista je firma — ali ne i serif display font.
+        Playfair je za naslove brošure; u gustom radnom alatu sa tabelama, filterima i
+        dugmadima od 12px samo usporava čitanje. Override stoji ovdje, na jednom mjestu,
+        umjesto `font-sans` posutog po svakom adminskom naslovu.
+      */}
+      <div
+        className="flex min-h-screen bg-sand/40"
+        style={{ "--font-display": "var(--font-dm-sans)" } as React.CSSProperties}
+      >
         <AdminSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminMobileBar />

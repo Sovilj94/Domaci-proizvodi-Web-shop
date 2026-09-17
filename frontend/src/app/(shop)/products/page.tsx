@@ -45,7 +45,7 @@ export default function ProductsPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Traži proizvod…"
-            className="w-full rounded-full border-none bg-white py-2.5 pl-10 pr-4 text-sm ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-brand-400"
+            className="w-full rounded-full border-none bg-surface py-2.5 pl-10 pr-4 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         {categories.data && (

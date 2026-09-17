@@ -1,47 +1,77 @@
 @import "tailwindcss";
 
 /*
- * E piljara design tokens — Wolt-čista paleta.
+ * E piljara design tokens — „domaći" izgled: krem podloge, duboka zelena, amber.
  * Tailwind v4 čita ove iz @theme i generiše utilitije
  * (bg-brand-500, text-muted, rounded-card, shadow-card, font-display, ...).
+ *
+ * Imena tokena su namjerno ostala ista (brand-*, sand, ink…) — 33 fajla ih koristi,
+ * pa se cijeli izgled mijenja ovdje umjesto kroz stotine izmjena po komponentama.
+ * Posljedica: brand-* od sada znači ZELENU, ne narandžastu. Ime je i dalje tačno
+ * („boja brenda"), ali ko čita samo ime očekivaće narandžastu.
  */
 @theme {
-  /* Brand — domaća maslinasto zelena (akcenat) */
-  --color-brand-50: #f0f9f1;
-  --color-brand-100: #dcf0df;
-  --color-brand-200: #bce3c2;
-  --color-brand-300: #8fce9a;
-  --color-brand-400: #5bb06b;
-  --color-brand-500: #379548;
-  --color-brand-600: #2a7a3a;
-  --color-brand-700: #246330;
-  --color-brand-800: #204f2a;
-  --color-brand-900: #1c4125;
+  /*
+   * Brand — duboka zelena. Skala je izvedena oko 600, koji nosi ispunu dugmadi:
+   * bijelo na #2d5016 daje 9.25:1. 700 je hover, 500 ide na ikone i tanke linije.
+   */
+  --color-brand-50: #f2f6ee;
+  --color-brand-100: #e0ebd7;
+  --color-brand-200: #c2d7b1;
+  --color-brand-300: #9dbd85;
+  --color-brand-400: #74a058;
+  --color-brand-500: #4a7230;
+  --color-brand-600: #2d5016;
+  --color-brand-700: #24400f;
+  --color-brand-800: #1b300b;
+  --color-brand-900: #132207;
 
-  /* Med — SAMO za istaknuto ("Izdvojeno"), ne za CTA */
-  --color-honey-100: #fdf1d6;
-  --color-honey-300: #f8cf7a;
-  --color-honey-400: #f6b545;
-  --color-honey-500: #ef9d1f;
-  --color-honey-600: #d98209;
+  /*
+   * Amber — akcenat. Kontrast dijeli skalu na dvoje i to se ne krši:
+   *   500 (#c17f2a) = ukras, i tekst SAMO na tamnoj (4.91:1 na #232018).
+   *                   Na kremu daje 2.97:1 i pada AA — nikad sitan tekst tamo.
+   *   700 (#8f5d1b) = nadnaslovi i linkovi na kremu (5.02:1).
+   */
+  --color-honey-100: #f7ead6;
+  --color-honey-300: #e8be85;
+  --color-honey-400: #d99a45;
+  --color-honey-500: #c17f2a;
+  --color-honey-600: #a86d22;
+  --color-honey-700: #8f5d1b;
 
-  /* Neutrali — čisti, hladni (Wolt) */
-  --color-cream: #ffffff;   /* pozadina stranice */
-  --color-sand: #f4f5f7;    /* prigušena površina / hover */
-  --color-ink: #16181d;     /* skoro-crn tekst */
-  --color-muted: #8a9099;   /* sekundarni tekst */
-  --color-line: #ececef;    /* hairline granice */
+  /* Neutrali — topli. Naizmjenične sekcije krem / pijesak, sa tamnim upadima. */
+  --color-cream: #f7f2e9;   /* pozadina stranice */
+  --color-sand: #efe8da;    /* prigušena površina / naizmjenična sekcija */
+  --color-ink: #1a1710;     /* skoro-crn tekst — 16.04:1 na kremu */
+  --color-muted: #5a5244;   /* sekundarni tekst na svijetloj — 6.91:1 */
+  --color-line: #e2d9c8;    /* hairline granice */
+  /*
+   * Uzdignuta površina (kartice korpe, checkouta, formi). Čista bijela na kremu
+   * čita kao nalijepljena — ovo je topao ton koji se od podloge odvaja jedva
+   * primjetno, tek toliko da se vidi da je kartica iznad.
+   */
+  --color-surface: #fffdf8;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, sans-serif;
+  /*
+   * Tamne površine. Sekcija izdvojenih proizvoda i footer stoje na `night`;
+   * kartice na njoj su `night-card` da se odvoje bez okvira.
+   */
+  --color-night: #232018;
+  --color-night-card: #2e2b23;
+  /* Sekundarni tekst NA tamnoj. `muted` tamo daje 4.03:1 i pada AA. */
+  --color-muted-dark: #a79c86;
+  --color-sage: #8da876;
 
-  --radius-card: 0.875rem; /* 14px, Wolt-tijesno */
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
 
-  /* Elevacije — mekane, hladne sjenke */
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 6px 20px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 14px 36px rgba(16, 24, 40, 0.12);
+  --radius-card: 1rem; /* 16px */
+
+  /* Elevacije — tople, jer sjede na kremu a ne na bijeloj. */
+  --shadow-sm: 0 1px 3px rgba(42, 33, 16, 0.06);
+  --shadow-card: 0 1px 3px rgba(42, 33, 16, 0.06);
+  --shadow-md: 0 4px 16px rgba(42, 33, 16, 0.1);
+  --shadow-lg: 0 24px 48px rgba(42, 33, 16, 0.16);
 
   /* Animacije */
   --animate-shimmer: shimmer 1.5s linear infinite;
@@ -59,6 +89,23 @@
 }
 .animate-bump { animation: bump 0.35s ease; }
 
+/*
+ * Traka kategorija ispod heroja. Pomjera se za pola širine jer se sadržaj
+ * renderuje dva puta zaredom — na pola puta je druga kopija tačno tamo gdje je
+ * prva krenula, pa je povratak na 0 neprimjetan i traka izgleda beskonačno.
+ */
+@keyframes traka {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-traka {
+  animation: traka 40s linear infinite;
+}
+/* Bez ovoga traka nastavi da se vrti i kad korisnik traži mirovanje. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-traka { animation: none; }
+}
+
 html,
 body {
   height: 100%;
@@ -69,6 +116,15 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Blagi tracking na display naslovima. Playfair je serif — zbijanje koje je
+ * odgovaralo Inter Tightu ovdje zatvara kontraforme, pa je upola manje nego prije.
+ * Vrijednost je u `em` da bi se skalirala sa veličinom slova.
+ */
+.font-display {
+  letter-spacing: -0.01em;
 }
 
 /* Hide scrollbars on horizontal rails (category chips, etc.) */
@@ -82,7 +138,7 @@ body {
 
 /* Shimmer skeleton površina */
 .skeleton {
-  background: linear-gradient(90deg, #eef0f3 25%, #f6f7f9 37%, #eef0f3 63%);
+  background: linear-gradient(90deg, #e8dfcd 25%, #f2ece0 37%, #e8dfcd 63%);
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
 }

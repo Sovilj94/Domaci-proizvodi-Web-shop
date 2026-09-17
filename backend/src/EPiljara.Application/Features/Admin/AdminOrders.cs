@@ -10,11 +10,30 @@ namespace EPiljara.Application.Features.Admin;
 
 /* ---------- List ---------- */
 
-public record GetAdminOrdersQuery(string? Status, DateTime? Date) : IRequest<IReadOnlyList<OrderDto>>;
+/// <param name="Unassigned">
+/// Kad je true, vraća samo narudžbe koje čekaju vozača za <paramref name="Date"/>: one bez
+/// ijedne stanice na ruti tog dana i u statusu koji se još može voziti. Dispečerski ekran
+/// puni tab „Nedodijeljeno" iz ovoga. Mijenja i značenje <paramref name="Date"/> — vidi dolje.
+/// </param>
+public record GetAdminOrdersQuery(string? Status, DateTime? Date, bool Unassigned = false)
+    : IRequest<IReadOnlyList<OrderDto>>;
 
 public class GetAdminOrdersHandler(IAppDbContext db)
     : IRequestHandler<GetAdminOrdersQuery, IReadOnlyList<OrderDto>>
 {
+    /// <summary>
+    /// Statusi u kojima narudžba još čeka vožnju. <see cref="OrderStatus.Pending"/> je
+    /// NAMJERNO unutra: web shop pravi svaku narudžbu kao Pending, pa ju je izostavljanje
+    /// činilo nevidljivom dispečeru dok je neko ručno ne potvrdi — to je bio prijavljen bug.
+    /// </summary>
+    private static readonly OrderStatus[] ZaDostavu =
+    [
+        OrderStatus.Pending,
+        OrderStatus.Confirmed,
+        OrderStatus.Packing,
+        OrderStatus.OutForDelivery,
+    ];
+
     public async Task<IReadOnlyList<OrderDto>> Handle(GetAdminOrdersQuery q, CancellationToken ct)
     {
         var query = db.Orders
@@ -27,6 +46,21 @@ public class GetAdminOrdersHandler(IAppDbContext db)
             Enum.TryParse<OrderStatus>(q.Status, ignoreCase: true, out var status))
         {
             query = query.Where(o => o.Status == status);
+        }
+
+        if (q.Unassigned)
+        {
+            // Datum je ovdje dan DOSTAVE (dan rute), ne dan kreiranja — narudžba napravljena
+            // juče se danas i dalje vozi, pa filtriranje po CreatedAt bi je sakrilo.
+            var datum = DateOnly.FromDateTime(q.Date?.Date ?? DateTime.UtcNow.Date);
+
+            query = query
+                .Where(o => ZaDostavu.Contains(o.Status))
+                .Where(o => !db.RouteStops.Any(s => s.OrderId == o.Id && s.Route!.Date == datum));
+
+            // Najstarije prvo: dispečer raspoređuje redom kojim su narudžbe stigle.
+            var cekaju = await query.OrderBy(o => o.CreatedAt).ThenBy(o => o.Id).ToListAsync(ct);
+            return cekaju.Select(o => o.ToDto()).ToList();
         }
 
         if (q.Date is { } date)

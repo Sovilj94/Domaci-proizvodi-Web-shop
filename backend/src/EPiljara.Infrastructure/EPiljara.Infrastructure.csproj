@@ -13,13 +13,13 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <!--
-      Relational mora biti eksplicitan i NE PrivateAssets. Inače ga u runtime dovlači
-      samo Npgsql.EntityFrameworkCore.PostgreSQL (9.0.1), dok se ovaj projekat
-      kompajlira prema 9.0.11 koji dolazi kroz EntityFrameworkCore.Design — a Design je
-      PrivateAssets=all, pa do API-ja ne stiže. Zbog toga je svaki poziv iz Relational
-      (npr. ToTable) prolazio build i padao na startu sa FileNotFoundException, uz
-      MSB3277 warning kao jedini nagovještaj. Držati u istoj verziji kao
-      Microsoft.EntityFrameworkCore.
+      Relational mora biti eksplicitan i NE PrivateAssets, iako dolazi i tranzitivno preko
+      Npgsql-a: Npgsql 9.0.4 povlači Relational 9.0.1, a EntityFrameworkCore je gore prikovan
+      na 9.0.11 (kroz EntityFrameworkCore.Design, koji je PrivateAssets=all i do API-ja ne
+      stiže). Kod se onda kompajlira prema 9.0.11 dok se u bin kopira 9.0.1 (MSB3277), pa
+      svaki poziv Relational API-ja — npr. ToTable ili HasDefaultValue — prođe build i pukne
+      tek na startu sa FileNotFoundException. Držati ovu verziju jednakom verziji
+      EntityFrameworkCore.
     -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.11" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.11" />

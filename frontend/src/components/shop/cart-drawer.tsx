@@ -74,7 +74,7 @@ export function CartDrawer() {
                   {items.map((item) => (
                     <li
                       key={item.productId}
-                      className="flex gap-3 rounded-card bg-white p-3 border border-line"
+                      className="flex gap-3 rounded-card bg-surface p-3 border border-line"
                     >
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-sand">
                         <SmartImage src={item.imageUrl} alt={item.name} sizes="64px" />
@@ -108,7 +108,7 @@ export function CartDrawer() {
                   ))}
                 </ul>
 
-                <div className="border-t border-line bg-white p-4">
+                <div className="border-t border-line bg-surface p-4">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">Ukupno (bez dostave)</span>
                     <span className="font-display text-xl font-bold">{formatPrice(subtotal)}</span>
