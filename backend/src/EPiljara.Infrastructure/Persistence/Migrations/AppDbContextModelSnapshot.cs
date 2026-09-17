@@ -59,7 +59,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DeliveryZoneId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex(new[] { "UserId" }, "IX_Addresses_UserId");
+
+                    b.HasIndex(new[] { "UserId" }, "IX_Addresses_UserId_IsDefault")
+                        .IsUnique()
+                        .HasFilter("\"IsDefault\"");
 
                     b.ToTable("Addresses");
                 });

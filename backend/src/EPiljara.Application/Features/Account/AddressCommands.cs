@@ -112,6 +112,14 @@ public class CreateAddressHandler(IAppDbContext db, ICurrentUser current)
             throw new DomainException(
                 $"Možete sačuvati najviše {MaxAdresa} adresa.", "address_limit");
 
+        // Isti razlog kao u CreateOrderHandler: FK je Restrict, pa bi proizvoljan GUID
+        // bez ove provjere pao na SaveChanges kao DbUpdateException -> 500, umjesto
+        // tačnog 400. Neaktivna zona ostaje dozvoljena — DeliveryZoneActive u DTO-u
+        // postoji baš zato što klijent smije sačuvati adresu sa ugašenom zonom.
+        if (cmd.DeliveryZoneId is not null &&
+            !await db.DeliveryZones.AnyAsync(z => z.Id == cmd.DeliveryZoneId.Value, ct))
+            throw new DomainException("Nepoznata zona dostave.", "invalid_zone");
+
         var address = new Address
         {
             UserId = current.Id!.Value,
@@ -148,6 +156,11 @@ public class UpdateAddressHandler(IAppDbContext db, ICurrentUser current)
         if (address.UserId != current.Id)
             throw new ForbiddenException("Ova adresa nije vaša.");
 
+        // Isti razlog kao u CreateAddressHandler — vidi komentar tamo.
+        if (cmd.DeliveryZoneId is not null &&
+            !await db.DeliveryZones.AnyAsync(z => z.Id == cmd.DeliveryZoneId.Value, ct))
+            throw new DomainException("Nepoznata zona dostave.", "invalid_zone");
+
         address.Label = string.IsNullOrWhiteSpace(cmd.Label) ? null : cmd.Label.Trim();
         address.FullAddress = cmd.FullAddress.Trim();
         address.Latitude = cmd.Latitude;
@@ -155,6 +168,10 @@ public class UpdateAddressHandler(IAppDbContext db, ICurrentUser current)
         address.DeliveryZoneId = cmd.DeliveryZoneId;
 
         await db.SaveChangesAsync(ct);
+        // Include gore je učitao staru zonu (ili null); FK iznad se promijenio, pa EF-ova
+        // relaciona fixup logika resetuje IsLoaded na navigaciji — LoadAsync ovdje stvarno
+        // ide u bazu po NOVU zonu, ne vraća staru iz keša. Provjereno testom i curl-om
+        // (task-3-report.md, I1): DeliveryZoneName u odgovoru prati DeliveryZoneId.
         await db.Addresses.Entry(address).Reference(a => a.DeliveryZone).LoadAsync(ct);
         return address.ToDto();
     }
