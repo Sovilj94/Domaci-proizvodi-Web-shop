@@ -1,5 +1,6 @@
 using EPiljara.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace EPiljara.Application.Common.Interfaces;
 
@@ -21,6 +22,9 @@ public interface IAppDbContext
 
     /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
     DbSet<Magacin> Magacin { get; }
+
+    /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
+    DatabaseFacade Database { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -182,7 +182,7 @@ public class DeleteAddressHandler(IAppDbContext db, ICurrentUser current)
 {
     public async Task<Unit> Handle(DeleteAddressCommand cmd, CancellationToken ct)
     {
-        // Sve korisnikove adrese u JEDNOM upitu, izmjena u memoriji, jedan SaveChanges.
+        // Sve korisnikove adrese u JEDNOM upitu, izmjena u memoriji (bez ponovnog upita).
         // Isti razlog kao kod admin dispečovanja: entitet označen za brisanje je u bazi
         // sve do SaveChanges, pa bi ponovni upit vratio red koji upravo brišemo.
         var moje = await db.Addresses.Where(a => a.UserId == current.Id!.Value).ToListAsync(ct);
@@ -196,7 +196,12 @@ public class DeleteAddressHandler(IAppDbContext db, ICurrentUser current)
             throw new NotFoundException("Adresa nije pronađena.");
         }
 
+        // Dva SaveChanges u transakciji: prvo brisanje, pa tek onda nova glavna. U jednom
+        // SaveChanges EF redoslijed naredbi bira po ključu, pa bi UPDATE nove glavne mogao
+        // ići prije DELETE stare i pasti na IX_Addresses_UserId_IsDefault.
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         db.Addresses.Remove(address);
+        await db.SaveChangesAsync(ct);
 
         // Ako je obrisana bila glavna, oznaka ide na najskorije dodanu preostalu.
         if (address.IsDefault)
@@ -204,10 +209,14 @@ public class DeleteAddressHandler(IAppDbContext db, ICurrentUser current)
             var sljedeca = moje.Where(a => a.Id != address.Id)
                 .OrderByDescending(a => a.CreatedAt)
                 .FirstOrDefault();
-            if (sljedeca is not null) sljedeca.IsDefault = true;
+            if (sljedeca is not null)
+            {
+                sljedeca.IsDefault = true;
+                await db.SaveChangesAsync(ct);
+            }
         }
 
-        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Unit.Value;
     }
 }
@@ -230,10 +239,17 @@ public class SetDefaultAddressHandler(IAppDbContext db, ICurrentUser current)
             throw new NotFoundException("Adresa nije pronađena.");
         }
 
-        // Gašenje stare i paljenje nove u istom SaveChanges — nikad dva reda sa IsDefault.
-        foreach (var a in moje) a.IsDefault = a.Id == address.Id;
-
+        // Prvo gašenje stare, pa paljenje nove — dva SaveChanges u jednoj transakciji.
+        // U jednom SaveChanges EF bira redoslijed UPDATE-a po ključu (GUID), pa je paljenje
+        // ponekad išlo prvo i padalo na IX_Addresses_UserId_IsDefault, koji se provjerava
+        // po naredbi, ne na kraju transakcije.
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        foreach (var a in moje.Where(a => a.IsDefault && a.Id != address.Id)) a.IsDefault = false;
         await db.SaveChangesAsync(ct);
+
+        address.IsDefault = true;
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return address.ToDto();
     }
 }

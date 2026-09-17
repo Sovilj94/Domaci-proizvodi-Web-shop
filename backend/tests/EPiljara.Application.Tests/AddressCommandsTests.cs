@@ -64,6 +64,37 @@ public class AddressCommandsTests
         sve.Single().IsDefault.Should().BeTrue("kupac ne smije ostati bez glavne adrese");
     }
 
+    // Redoslijed UPDATE-a unutar jednog SaveChanges zavisi od (nasumičnih) GUID ključeva,
+    // pa je greška sa filtriranim unique indeksom ispadala samo ponekad. Mnogo prebacivanja
+    // i brisanja na istom korisniku je čini praktično sigurnom ako se vrati.
+    [Fact]
+    public async Task Glavna_adresa_se_moze_prebacivati_i_brisati_bez_sudara_indeksa()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "e@test.local");
+        var kupac = new FakeCurrentUser(u.Id);
+        var create = new CreateAddressHandler(t.Db, kupac);
+        var setDefault = new SetDefaultAddressHandler(t.Db, kupac);
+        var delete = new DeleteAddressHandler(t.Db, kupac);
+
+        var ids = new List<Guid>();
+        for (var i = 1; i <= CreateAddressHandler.MaxAdresa; i++)
+            ids.Add((await create.Handle(new CreateAddressCommand(null, $"Ulica {i}", null, null, null), default)).Id);
+
+        for (var krug = 0; krug < 3; krug++)
+            foreach (var id in ids)
+                await setDefault.Handle(new SetDefaultAddressCommand(id), default);
+
+        // Brisanje glavne svaki put prebacuje oznaku na neku od preostalih.
+        while (ids.Count > 1)
+        {
+            var glavna = t.Db.Addresses.Single(a => a.UserId == u.Id && a.IsDefault).Id;
+            await delete.Handle(new DeleteAddressCommand(glavna), default);
+            ids.Remove(glavna);
+            t.Db.Addresses.Count(a => a.UserId == u.Id && a.IsDefault).Should().Be(1);
+        }
+    }
+
     [Fact]
     public async Task Tudja_adresa_se_ne_moze_obrisati()
     {
