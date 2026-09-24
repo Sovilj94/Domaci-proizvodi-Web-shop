@@ -90,11 +90,18 @@ builder.Services.AddRateLimiter(options =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 300, Window = TimeSpan.FromMinutes(1) }));
-    options.AddFixedWindowLimiter("auth", o =>
-    {
-        o.PermitLimit = 10;
-        o.Window = TimeSpan.FromMinutes(1);
-    });
+    // AddFixedWindowLimiter registers ONE shared limiter for every request carrying this
+    // policy, unlike the global limiter above which is partitioned per IP. AuthController
+    // applies "auth" at class level (login, register, /auth/me on every page load) and this
+    // branch added guest-request/confirm/track to the same policy, so an unpartitioned
+    // limiter would mean 10 requests/min for the entire site combined — a handful of
+    // concurrent visitors would 429 each other on login and on "Naruči". Partition by IP,
+    // mirroring the global limiter's shape (including its "anonymous" fallback for a null
+    // RemoteIpAddress) so the limit is per visitor, as PRODUCTION.md claims.
+    options.AddPolicy("auth", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
     // /geocode je anoniman (checkout rade i gosti), pa ga ovo drži da ne postane otvoren
     // relej ka Nominatimu. Granica je iznad stvarne upotrebe — picker je debounce-ovan na
     // 800 ms, pa jedan čovjek koji popunjava adresu napravi svega nekoliko poziva — ali
