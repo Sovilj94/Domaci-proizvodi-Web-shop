@@ -38,6 +38,10 @@ onaj ko naručuje bar ima pristup adresi koju je upisao.
 - **Autocomplete ulica.** Već imamo `AddressChooser` sa mapom i geokodiranjem; on
   ostaje za ulicu.
 - **Plaćanje karticom.** Ostaje pouzeće.
+- **Naknada za plaćanje pouzećem i podaci za slanje računa.** Ananas ih ima jer naplaćuje
+  pouzeće i izdaje račun; kod nas je dostava jedini trošak.
+- **Pretraga narudžbe po broju i e-mailu.** Praćenje ide isključivo preko trajnog linka
+  iz mejla; forma za pretragu bi bila način da se pogađaju tuđe narudžbe.
 - **Nalog za gosta poslije narudžbe.** Ananas na ekranu zahvale nudi „unesi lozinku i
   sačuvaćemo podatke". Zaseban posao.
 - **Slanje novog linka.** Istekao zahtjev se briše; kupac šalje formu ponovo.
@@ -90,6 +94,14 @@ Dvije nove tabele. Nijedna ne dira `Orders`.
 **`GuestOrderRequestItem`** — `Id`, `RequestId` (FK, cascade delete), `ProductId`,
 `ProductName`, `Unit`, `UnitPrice`, `Quantity`.
 
+**`Orders` dobija `PublicToken`** — text, unique, `Guid.NewGuid().ToString("N")`, upisuje
+se svakoj novoj narudžbi. To je trajni ključ za praćenje narudžbe bez naloga; ne ističe
+i ne briše se. Razlikuj ga od tokena zahtjeva: onaj živi 15 minuta i služi da narudžba
+uopšte nastane, ovaj živi zauvijek i služi samo da se narudžba pogleda.
+
+Migracija mora popuniti `PublicToken` i **postojećim** narudžbama, inače kolona ne može
+biti unique i not-null.
+
 Stavke nose **snimljenu cijenu, naziv i jedinicu**. To je isti princip po kojem
 `OrderItem` ionako snima podatke u trenutku naručivanja — ovdje samo pomjeren unazad,
 na trenutak slanja forme. Kupac plaća ono što je vidio, i ako cijena u međuvremenu
@@ -113,6 +125,16 @@ put je `POST /orders`.
 `OrderItems` po snimljenim cijenama, obriše zahtjev, pošalje mejl sa detaljima
 narudžbe i terminom. Vraća `OrderDto` — isti oblik koji `POST /orders` već vraća, pa
 frontend prikaže postojeći ekran potvrde bez ijedne izmjene.
+
+**`GET /orders/track/{publicToken}`** — anoniman. Vraća `OrderDto` za narudžbu sa tim
+tokenom, ili 404 ako ga nema. Ovo je naš „Status narudžbe": gost otvara link iz mejla i
+vidi gdje mu je narudžba, bez naloga i bez isteka.
+
+Token je jedina zaštita, pa mora biti nepogodiv — `Guid.NewGuid().ToString("N")` je 32
+heksadecimalna znaka i to zadovoljava. Endpoint ide pod **stroži rate limit** (`auth`
+particija), da se ne može gruba sila po tokenima. Odgovor nosi isto što i narudžba sama,
+dakle ime, telefon i adresu kupca — zato token i ne smije nikad završiti u URL-u koji se
+dijeli dalje; u mejlu je i tu ostaje.
 
 Greške:
 
@@ -147,7 +169,8 @@ Dva šablona, oba kroz postojeći `IEmailService`:
    do tada ne postoji. Sažetak stavki i iznos.
 2. **Obavještenje o narudžbi** — postojeći `OrderEmailTemplate`, dopunjen **terminom
    dostave** (dan i vremenski prozor iz `DeliverySlot`) jer to je ono „kad očekuje da
-   će doći". Ide i prijavljenom kupcu odmah, i gostu nakon potvrde.
+   će doći", i **trajnim linkom** `{App:BaseUrl}/narudzba/{publicToken}` za praćenje.
+   Ide i prijavljenom kupcu odmah, i gostu nakon potvrde.
 
 Slanje mejla za potvrdu gosta **nije** best-effort. Ako mejl ne prođe, kupac nema kako
 potvrditi, pa `guest-request` vraća 500 i zahtjev se ne upisuje — suprotno od
@@ -184,7 +207,8 @@ Novi raspored, u dvije kolone:
 *Lijevo:*
 - „Hvala ti!" sa brojem narudžbe i rečenicom da je potvrda poslana na e-poštu, sa
   ispisanom adresom
-- **Narudžba** — stavke sa slikom, količinom i cijenom po stavci
+- **Narudžba** — u zaglavlju **kad se očekuje dostava** (dan i vremenski prozor iz
+  termina), pa stavke sa slikom, količinom i cijenom po stavci
 - **Podaci o dostavi** — ime, telefon, adresa, napomena dostavljaču
 - **Način plaćanja** — pouzećem pri dostavi
 
@@ -192,8 +216,14 @@ Novi raspored, u dvije kolone:
 - **Ukupna cijena** — iznos stavki, trošak dostave, ukupno
 - dugmad „Nastavi kupovinu" i, za prijavljenog, „Moje narudžbe"
 
-Isti ekran vidi i prijavljeni kupac odmah po slanju, i gost poslije potvrde mejlom —
-jedna komponenta, jedan izgled.
+Isti ekran vidi i prijavljeni kupac odmah po slanju, i gost poslije potvrde mejlom, i
+svako ko kasnije otvori trajni link — jedna komponenta, tri ulaza. Na trajnom linku se
+umjesto „Hvala ti!" prikazuje **trenutni status** narudžbe (`StatusBadge`), jer tada to
+više nije trenutak zahvale nego praćenje.
+
+**`/narudzba/[token]`** — ruta za trajni link iz mejla. Zove `GET /orders/track/{token}`
+i crta isti ekran. Nema `clear()` korpe i nema odbrojavanja; 404 daje poruku da narudžba
+ne postoji ili da je link pogrešan.
 
 `OrderDto` dobija **`CustomerEmail`**. Sve ostalo što ekran traži — stavke, iznosi,
 telefon, adresa, napomena, termin — DTO već nosi. Bez toga gost poslije potvrde ne bi
@@ -227,6 +257,8 @@ Handler testovi (`backend/tests/EPiljara.Application.Tests`, SQLite in-memory):
 - potvrda pada ako je proizvod u međuvremenu ugašen
 - prijavljeni kupac ne može kroz `guest-request`
 - čistač briše istekle, a netaknute ostavlja
+- svaka nova narudžba dobija `PublicToken`, i dvije narudžbe nikad ne dijele isti
+- praćenje po tokenu vraća narudžbu, a pogrešan token 404
 
 Frontend se provjerava sa `npx tsc --noEmit`, `npm run lint` i prolaskom kroz oba toka
 uz pokrenut stek — gost do potvrde mejlom preko Mailpita (`:8025`), i prijavljen kupac.
