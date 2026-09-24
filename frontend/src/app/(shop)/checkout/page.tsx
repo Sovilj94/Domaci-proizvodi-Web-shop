@@ -16,6 +16,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { AddressChooser } from "@/components/shop/address-chooser";
+import { CheckEmail } from "@/components/shop/check-email";
 import { OrderSummaryPanel } from "@/components/shop/order-summary-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -83,6 +84,7 @@ export default function CheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [placed, setPlaced] = useState<Order | null>(null);
+  const [sentTo, setSentTo] = useState<{ email: string; expiresAt: string } | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   // Prefill from the logged-in customer's profile. `user.name` is one string on the
@@ -178,6 +180,7 @@ export default function CheckoutPage() {
     !!form.ime && !!form.prezime && !!form.phone && (!gost || !!form.email);
   const canOrder = step1Valid && step2Valid && !belowMin && items.length > 0;
 
+  // Logged-in customer: order is created immediately, as before.
   const mutation = useMutation({
     mutationFn: (body: CreateOrderRequest) => orderApi.create(body),
     onSuccess: (order) => {
@@ -190,10 +193,27 @@ export default function CheckoutPage() {
     },
   });
 
+  // Gost: nema naloga, pa nema kome pripisati narudžbu bez potvrde da je mejl zaista
+  // njihov — backend samo rezerviše zahtjev i vraća rok za potvrdu, ne narudžbu.
+  const guestMutation = useMutation({
+    mutationFn: (body: CreateOrderRequest) => orderApi.guestRequest(body),
+    onSuccess: (res) => {
+      // Korpa se NE čisti — narudžba još ne postoji, a ako potvrda istekne
+      // kupac mora imati čemu da se vrati.
+      setSentTo({ email: form.email, expiresAt: res.expiresAt });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    onError: (err) => {
+      if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
+    },
+  });
+
+  const activeMutation = gost ? guestMutation : mutation;
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
-    mutation.mutate({
+    const body: CreateOrderRequest = {
       customer: { name: punoIme, email: form.email, phone: telefon },
       deliveryZoneId: form.zoneId,
       deliverySlotId: form.slotId,
@@ -202,10 +222,17 @@ export default function CheckoutPage() {
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       latitude: coords?.lat,
       longitude: coords?.lon,
-    });
+    };
+    if (gost) {
+      guestMutation.mutate(body);
+    } else {
+      mutation.mutate(body);
+    }
   }
 
   if (!hydrated) return <LoadingBlock />;
+
+  if (sentTo) return <CheckEmail email={sentTo.email} expiresAt={sentTo.expiresAt} />;
 
   if (placed) return <Confirmation order={placed} loggedIn={!!user} />;
 
@@ -427,11 +454,11 @@ export default function CheckoutPage() {
                   {formatPrice(selectedZone.minOrderAmount)}.
                 </p>
               )}
-              {mutation.isError &&
-                mutation.error instanceof ApiRequestError &&
-                Object.keys(mutation.error.fieldErrors).length === 0 && (
+              {activeMutation.isError &&
+                activeMutation.error instanceof ApiRequestError &&
+                Object.keys(activeMutation.error.fieldErrors).length === 0 && (
                   <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                    {mutation.error.message}
+                    {activeMutation.error.message}
                   </p>
                 )}
             </section>
@@ -474,8 +501,8 @@ export default function CheckoutPage() {
                   Nastavi <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={!canOrder || mutation.isPending}>
-                  {mutation.isPending ? "Šaljem…" : "Naruči"}
+                <Button type="submit" disabled={!canOrder || activeMutation.isPending}>
+                  {activeMutation.isPending ? "Šaljem…" : "Naruči"}
                 </Button>
               )}
             </div>
