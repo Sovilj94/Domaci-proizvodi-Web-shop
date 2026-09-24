@@ -11,6 +11,7 @@ export const queryKeys = {
   slots: () => ["delivery", "slots"] as const,
   myOrders: () => ["orders", "mine"] as const,
   order: (id: string) => ["order", id] as const,
+  trackOrder: (token: string) => ["order", "track", token] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {
@@ -73,5 +74,16 @@ export function useMyAddresses(enabled: boolean) {
     queryKey: ["orders", "addresses"],
     queryFn: () => orderApi.addresses(),
     enabled,
+  });
+}
+
+/** Permanent tracking link from the order email — no retry loop on a 404, the token
+ * either resolves to an order or it doesn't. */
+export function useTrackOrder(token: string) {
+  return useQuery({
+    queryKey: queryKeys.trackOrder(token),
+    queryFn: () => orderApi.track(token),
+    enabled: !!token,
+    retry: false,
   });
 }

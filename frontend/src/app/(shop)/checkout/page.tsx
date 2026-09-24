@@ -6,9 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   ClipboardCheck,
-  Mail,
   MapPin,
   ShoppingBasket,
   User,
@@ -17,10 +15,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { AddressChooser } from "@/components/shop/address-chooser";
 import { CheckEmail } from "@/components/shop/check-email";
+import { OrderReceipt } from "@/components/shop/order-receipt";
 import { OrderSummaryPanel } from "@/components/shop/order-summary-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { StatusBadge } from "@/components/ui/status-badge";
 import {
   useDeliverySlots,
   useDeliveryZones,
@@ -234,7 +232,7 @@ export default function CheckoutPage() {
 
   if (sentTo) return <CheckEmail email={sentTo.email} expiresAt={sentTo.expiresAt} />;
 
-  if (placed) return <Confirmation order={placed} loggedIn={!!user} />;
+  if (placed) return <OrderReceipt order={placed} mode="zahvala" />;
 
   if (items.length === 0) {
     return (
@@ -521,57 +519,6 @@ export default function CheckoutPage() {
       </div>
 
       <p className="mt-3 text-center text-xs text-muted">Plaćanje pouzećem pri dostavi.</p>
-    </div>
-  );
-}
-
-function Confirmation({ order, loggedIn }: { order: Order; loggedIn: boolean }) {
-  return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      <div className="rounded-card bg-surface p-8 text-center shadow-card">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-brand-100 text-brand-600">
-          <CheckCircle2 className="h-9 w-9" />
-        </div>
-        <h1 className="mt-5 font-display text-2xl font-bold">Narudžba primljena!</h1>
-        <p className="mt-1 text-muted">
-          Broj narudžbe <span className="font-semibold text-ink">{order.code}</span>
-        </p>
-        <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-honey-100 px-4 py-2 text-sm">
-          <Mail className="h-4 w-4 text-honey-600" /> Potvrda je poslana na email.
-        </p>
-
-        <div className="mt-6 space-y-2 rounded-xl bg-cream p-4 text-left text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted">Status</span>
-            <StatusBadge status={order.status} />
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted">Dostava</span>
-            <span className="font-medium">
-              {order.deliverySlot?.label} · {order.deliveryZoneName}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted">Adresa</span>
-            <span className="max-w-[60%] text-right font-medium">{order.deliveryAddress}</span>
-          </div>
-          <div className="flex justify-between border-t border-line pt-2">
-            <span className="font-semibold">Ukupno</span>
-            <span className="font-bold">{formatPrice(order.totalAmount)}</span>
-          </div>
-        </div>
-
-        <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <Link href="/products" className={cn(buttonVariants({ variant: "secondary" }))}>
-            Nastavi kupovinu
-          </Link>
-          {loggedIn && (
-            <Link href="/orders" className={cn(buttonVariants())}>
-              Moje narudžbe
-            </Link>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
