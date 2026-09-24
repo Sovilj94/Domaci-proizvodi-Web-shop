@@ -113,6 +113,8 @@ public static class MappingExtensions
         Name = d.Name,
         Phone = d.Phone,
         Aktivan = d.Aktivan,
+        Vozilo = d.Vozilo,
+        Registracija = d.Registracija,
         MaxStanica = Driver.MaxStanicaPoDanu,
     };
 

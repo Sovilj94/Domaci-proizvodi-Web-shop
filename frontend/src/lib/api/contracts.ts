@@ -94,6 +94,19 @@ export interface Driver {
   aktivan: boolean;
   /** Dnevni kapacitet u stanicama; dolazi sa servera da ga front ne bi zakucao kod sebe. */
   maxStanica: number;
+  /** Vozilo kojim vozač obično dostavlja, npr. „Kombi 1". */
+  vozilo?: string | null;
+  /** Registarska oznaka vozila. */
+  registracija?: string | null;
+}
+
+/** Tijelo za unos i izmjenu vozača. Nalog za mobilnu aplikaciju se ne dira odavde. */
+export interface DriverInput {
+  name: string;
+  phone: string;
+  vozilo?: string | null;
+  registracija?: string | null;
+  aktivan: boolean;
 }
 
 /** Tijelo za dodjelu/prebacivanje vozača; `date` je ISO "yyyy-MM-dd" — dan rute. */

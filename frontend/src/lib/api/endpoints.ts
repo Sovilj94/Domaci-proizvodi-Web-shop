@@ -21,6 +21,7 @@ import type {
   CreateOrderRequest,
   DashboardStats,
   Driver,
+  DriverInput,
   LoginRequest,
   ProducerInput,
   ProductInput,
@@ -171,7 +172,17 @@ export const adminApi = {
   deleteProducer: (id: string) =>
     apiFetch<string>(`/admin/producers/${id}`, { method: "DELETE" }).then(() => id),
 
+  /* Drivers */
   drivers: () => apiFetch<Driver[]>("/admin/drivers").then((r) => r.data),
+
+  createDriver: (body: DriverInput) =>
+    apiFetch<Driver>("/admin/drivers", { method: "POST", body }).then((r) => r.data),
+
+  updateDriver: (id: string, body: DriverInput) =>
+    apiFetch<Driver>(`/admin/drivers/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deleteDriver: (id: string) =>
+    apiFetch<string>(`/admin/drivers/${id}`, { method: "DELETE" }).then(() => id),
 
   routes: (date: string) =>
     apiFetch<DeliveryRoute[]>("/admin/routes", { query: { date } }).then((r) => r.data),

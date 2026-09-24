@@ -10,19 +10,6 @@ using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Admin;
 
-/* ---------- Drivers ---------- */
-
-public record GetDriversQuery : IRequest<IReadOnlyList<DriverDto>>;
-
-public class GetDriversHandler(IAppDbContext db) : IRequestHandler<GetDriversQuery, IReadOnlyList<DriverDto>>
-{
-    public async Task<IReadOnlyList<DriverDto>> Handle(GetDriversQuery q, CancellationToken ct)
-    {
-        var drivers = await db.Drivers.OrderBy(d => d.Name).ToListAsync(ct);
-        return drivers.Select(d => d.ToDto()).ToList();
-    }
-}
-
 /* ---------- Routes for a date ---------- */
 
 public record GetRoutesQuery(string Date) : IRequest<IReadOnlyList<DeliveryRouteDto>>;

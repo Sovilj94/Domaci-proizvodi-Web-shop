@@ -70,6 +70,18 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Drivers() =>
         EnvelopeList(await Mediator.Send(new GetDriversQuery()));
 
+    [HttpPost("admin/drivers")]
+    public async Task<IActionResult> CreateDriver([FromBody] DriverInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreateDriverCommand(input)));
+
+    [HttpPut("admin/drivers/{id:guid}")]
+    public async Task<IActionResult> UpdateDriver(Guid id, [FromBody] DriverInput input) =>
+        Envelope(await Mediator.Send(new UpdateDriverCommand(id, input)));
+
+    [HttpDelete("admin/drivers/{id:guid}")]
+    public async Task<IActionResult> DeleteDriver(Guid id) =>
+        Envelope(await Mediator.Send(new DeleteDriverCommand(id)));
+
     [HttpGet("admin/routes")]
     public async Task<IActionResult> Routes([FromQuery] string date) =>
         EnvelopeList(await Mediator.Send(new GetRoutesQuery(date)));

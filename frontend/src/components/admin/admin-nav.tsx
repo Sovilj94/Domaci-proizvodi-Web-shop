@@ -13,6 +13,7 @@ import {
   Tags,
   Tractor,
   Truck,
+  Users,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/products", label: "Proizvodi", icon: Package },
   { href: "/admin/categories", label: "Kategorije", icon: Tags },
   { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
+  { href: "/admin/drivers", label: "Vozači", icon: Users },
   { href: "/admin/dostava", label: "Dostava", icon: Truck },
   { href: "/admin/settings", label: "Magacin", icon: Warehouse },
 ];
