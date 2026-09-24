@@ -179,6 +179,7 @@ public static class DbSeeder
         return new Order
         {
             Code = $"EP-{now:yyMM}-{seq++:D4}",
+            PublicToken = Guid.NewGuid().ToString("N"),
             CustomerId = customer.Id,
             CustomerName = customer.Name,
             CustomerPhone = customer.Phone,
