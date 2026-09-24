@@ -112,8 +112,10 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **Validation error keys are camelCased full property paths** (`Customer.Name` → `customer.name`; a
   nested `Input.Name` → `input.name`). Frontend forms read `err.fieldErrors["input.name"]` etc. to show
   inline errors — match this casing exactly.
-- **A guest checkout is two calls, not one.** `POST /orders` is for an authenticated customer only in
-  practice — a guest instead calls `POST /orders/guest-request`, which stores a `GuestOrderRequest` with
+- **A guest checkout is two calls, not one.** `POST /orders` is `[Authorize]`-only — an anonymous caller
+  is rejected outright, not merely discouraged, because the whole confirmation-email mechanism below would
+  otherwise be bypassable with one POST. A guest instead calls `POST /orders/guest-request`, which stores a
+  `GuestOrderRequest` with
   prices snapshotted at submit time and a 15-minute `ExpiresAt` (`GuestOrderRequest.TrajanjeMinuta`) and
   creates **no `Order`**. The order is created only when the guest clicks the emailed link, hitting
   `POST /orders/confirm`; that call creates the `Order`, decrements stock, and deletes the request row, all

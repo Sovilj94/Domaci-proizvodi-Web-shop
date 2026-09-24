@@ -7,7 +7,13 @@ namespace EPiljara.API.Controllers;
 
 public class OrdersController : ApiControllerBase
 {
-    /// <summary>Guest checkout is allowed; a logged-in customer's order is linked to their account.</summary>
+    /// <summary>
+    /// A logged-in customer's order, linked to their account. Guests never reach this action —
+    /// they go through <see cref="GuestRequest"/>/<see cref="ConfirmGuest"/> so an order only
+    /// exists once the emailed link is clicked. Without this attribute the whole confirmation
+    /// mechanism was bypassable with one anonymous POST here.
+    /// </summary>
+    [Authorize]
     [HttpPost("orders")]
     public async Task<IActionResult> Create([FromBody] CreateOrderCommand command) =>
         EnvelopeCreated(await Mediator.Send(command));
