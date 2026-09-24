@@ -7,6 +7,7 @@ namespace EPiljara.Application.Tests;
 internal sealed class FakeEmail : IEmailService
 {
     public List<Order> Narudzbe { get; } = [];
+    public List<GuestOrderRequest> ZahtjeviGosta { get; } = [];
 
     public Task SendOrderConfirmationAsync(Order order, CancellationToken ct = default)
     {
@@ -16,6 +17,12 @@ internal sealed class FakeEmail : IEmailService
 
     public Task SendEmailConfirmationAsync(User user, string token, CancellationToken ct = default) =>
         Task.CompletedTask;
+
+    public Task SendGuestOrderRequestAsync(GuestOrderRequest request, CancellationToken ct = default)
+    {
+        ZahtjeviGosta.Add(request);
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeViber : IViberService

@@ -31,6 +31,9 @@ public interface IEmailService
 
     /// <summary>Sends the address-confirmation email at registration. The full link is built from the token.</summary>
     Task SendEmailConfirmationAsync(User user, string token, CancellationToken cancellationToken = default);
+
+    /// <summary>Šalje gostu link za potvrdu narudžbe. Link se gradi iz tokena zahtjeva.</summary>
+    Task SendGuestOrderRequestAsync(GuestOrderRequest request, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Input for route optimization — one entry per delivery stop.</summary>
