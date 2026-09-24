@@ -120,6 +120,30 @@ public class GuestOrderTests
     }
 
     [Fact]
+    public async Task Potvrda_dodjeljuje_token_i_prenosi_koordinate_belesku_i_adresu()
+    {
+        using var t = new TestDb();
+        var scena = await Scena.NapraviAsync(t);
+        var napomena = "Zvono ne radi, pozvati po dolasku.";
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+            .Handle(scena.ZahtjevGosta(napomena), default);
+        var zahtjev = t.Db.GuestOrderRequests.Single();
+        var token = zahtjev.Token;
+
+        var rezultat = await new ConfirmGuestOrderHandler(t.Db, new FakeEmail(), new FakeViber())
+            .Handle(new ConfirmGuestOrderCommand(token), default);
+
+        // Vozačka aplikacija navigira po ovim koordinatama — polovičan ili izgubljen
+        // prenos iz zahtjeva u narudžbu bi se otkrio tek na terenu.
+        var narudzba = t.Db.Orders.Single(o => o.Id == rezultat.Id);
+        narudzba.PublicToken.Should().NotBeNullOrWhiteSpace("i narudžba gosta mora biti sljediva bez naloga");
+        narudzba.Latitude.Should().Be(zahtjev.Latitude);
+        narudzba.Longitude.Should().Be(zahtjev.Longitude);
+        narudzba.Note.Should().Be(napomena);
+        narudzba.DeliveryAddress.Should().Be(zahtjev.DeliveryAddress);
+    }
+
+    [Fact]
     public async Task Potvrda_skida_zalihe()
     {
         using var t = new TestDb();

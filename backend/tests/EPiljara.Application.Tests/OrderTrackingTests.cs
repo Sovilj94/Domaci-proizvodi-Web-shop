@@ -111,8 +111,8 @@ internal sealed class Scena
         _zoneId, _slotId, "Kralja Petra 12", null,
         [new OrderItemInput(_productId, 1)], 44.77, 17.19);
 
-    public CreateGuestOrderRequestCommand ZahtjevGosta() => new(
+    public CreateGuestOrderRequestCommand ZahtjevGosta(string? napomena = null) => new(
         new CustomerInput("Mujo Mujić", "mujo@test.local", "065 111 222"),
-        _zoneId, _slotId, "Kralja Petra 12", null,
+        _zoneId, _slotId, "Kralja Petra 12", napomena,
         [new OrderItemInput(_productId, 1)], 44.77, 17.19);
 }
