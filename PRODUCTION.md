@@ -75,8 +75,8 @@ driver's app. It cannot catch a *wrong* point inside the country, so confirm it 
 - **Rate limiting** — auth endpoints 10/min per IP, global 300/min.
 - **HSTS** in non-development. **Terminate TLS** (HTTPS) at your host/reverse proxy.
 - **`GET /orders/track/{token}` is intentionally anonymous** — a guest has no account to authenticate with,
-  so the permanent `PublicToken` in the URL *is* the credential, and it returns the customer's name, phone
-  and delivery address to whoever holds it. Treat that link like a bearer token: it must not end up
+  so the permanent `PublicToken` in the URL *is* the credential, and it returns the customer's name, phone,
+  email and delivery address to whoever holds it. Treat that link like a bearer token: it must not end up
   anywhere that logs full request URLs (reverse proxy access logs, error trackers, analytics) — the same
   goes for the guest confirmation link (`/potvrda/{token}`) before it's used.
 

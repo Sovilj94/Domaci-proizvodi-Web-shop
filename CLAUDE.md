@@ -188,11 +188,11 @@ uses MailKit).
 **One mail in this system is deliberately not best-effort.** Every send above is wrapped in a swallowing
 try/catch because the order it's about already exists — losing the email loses a notification, not the
 order. `CreateGuestOrderRequestHandler`'s call to `SendGuestOrderRequestAsync` (the "click this to confirm"
-link) is the one exception: it's called with no try/catch around it, on purpose, because without that email
-the guest has no way to ever confirm and no `Order` will ever exist. A throw from the SMTP call propagates
-out of the handler; the handler's own catch only deletes the just-inserted `GuestOrderRequest` row before
-rethrowing, so a bad send doesn't even leave litter behind — it fails the request instead of quietly
-producing an order nobody can complete. `ExpiredGuestRequestsCleaner` (the project's first
+link) is the one exception: it's wrapped in a try/catch that does not swallow — the catch compensates by
+deleting the just-inserted `GuestOrderRequest` row, then rethrows the original exception (bare `throw;`),
+on purpose, because without that email the guest has no way to ever confirm and no `Order` will ever exist.
+So the failure still propagates out of the handler, but without leaving litter behind — it fails the
+request instead of quietly producing an order nobody can complete. `ExpiredGuestRequestsCleaner` (the project's first
 `BackgroundService`, sweeping every 5 minutes) would eventually delete an orphaned request anyway, but
 confirmation never depends on it — `ConfirmGuestOrderHandler` checks `GuestOrderRequest.Istekao` itself.
 
