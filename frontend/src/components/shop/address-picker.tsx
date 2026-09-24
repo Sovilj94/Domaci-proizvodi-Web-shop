@@ -46,6 +46,7 @@ export function AddressPicker({
   onCoordinates,
   initialCoordinates,
   id = "address",
+  querySuffix = "",
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -65,6 +66,15 @@ export function AddressPicker({
    */
   initialCoordinates?: { lat: number; lon: number };
   id?: string;
+  /**
+   * Tekst koji se dodaje SAMO geokodirajućem upitu (npr. kućni broj iz posebnog polja u
+   * checkoutu) — nikad prikazanoj vrijednosti polja niti onChange-u. Namjerno odvojeno
+   * od `value`: kad bi input prikazivao "ulica broj" i onChange upisivao taj cijeli
+   * tekst nazad, svaka izmjena ulice bi ponovo zalijepila stari broj na kraj (dvosmjerno
+   * vezivanje koje samo sebe truje). Ovako input ostaje vezan isključivo za ulicu, a broj
+   * utiče samo na to gdje se traži pin.
+   */
+  querySuffix?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LType.Map | null>(null);
@@ -181,7 +191,10 @@ export function AddressPicker({
     // missing coordinate is recoverable (admin can set it); a wrong one is invisible.
     onCoordinatesRef.current?.(null);
 
-    const q = value.trim();
+    // `querySuffix` (e.g. the house number, typed in its own field) only ever widens the
+    // geocoding query — it never touches `value`/`onChange`, so it can't round-trip back
+    // into the street text the way baking it into `value` did.
+    const q = [value.trim(), querySuffix.trim()].filter(Boolean).join(" ");
     if (q.length < 4) {
       setFound(null);
       setStatus("idle");
@@ -217,7 +230,7 @@ export function AddressPicker({
       stale = true;
       clearTimeout(t);
     };
-  }, [value]);
+  }, [value, querySuffix]);
 
   return (
     <div className="space-y-2">

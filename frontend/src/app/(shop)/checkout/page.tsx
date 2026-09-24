@@ -112,12 +112,14 @@ export default function CheckoutPage() {
   const set = (key: keyof typeof form) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  // AddressChooser's onChange fires both for free typing and for picking one of the
-  // customer's past full addresses. The latter already has the house number baked in,
-  // so a stale `broj`/`stan` left over from an earlier "Nova adresa" attempt must not
-  // get appended to it — that would silently move the pin off the selected address.
+  // AddressChooser's onChange fires for free typing, for picking one of the customer's
+  // past full addresses, and (via its own "Nova adresa" button, or the field being
+  // cleared by hand) for resetting to a blank slate. Whenever the address *source*
+  // changes away from "user is editing this specific street", a stale `broj`/`stan`
+  // left over from before must not survive — either would silently graft an old house
+  // number onto whatever comes next.
   const handleUlicaChange = (value: string) => {
-    if (savedAddresses.includes(value)) {
+    if (savedAddresses.includes(value) || value === "") {
       setForm((f) => ({ ...f, ulica: value, broj: "", stan: "" }));
     } else {
       set("ulica")(value);
@@ -159,10 +161,15 @@ export default function CheckoutPage() {
   const telefon = form.phone.trim() ? `+387 ${form.phone.trim()}` : "";
 
   // `ulica` je već potpuna adresa (kućni broj uključen) kad dolazi iz istorije narudžbi
-  // ili sa profila — tražiti od korisnika da opet upiše broj bi ga blokiralo na koraku
-  // 1 iako je adresa već ispravna i geokodirana.
+  // ili sa profila — tražiti od korisnika da opet upiše broj bi ga blokiralo na koraku 1
+  // iako je adresa već ispravna i geokodirana. Ali "potpuna" znači samo da je NEPRAZNA
+  // ("required" na registraciji), ne da sadrži broj — zato ovdje dodatno provjeravamo da
+  // tekst ima bar jednu cifru; bez toga bi adresa bez broja (npr. samo naziv ulice sa
+  // profila) prošla korak 1 a da broj kuće nikad nije prikupljen.
   const adresaVecPotpuna =
-    !!form.ulica && (savedAddresses.includes(form.ulica) || form.ulica === user?.address);
+    !!form.ulica &&
+    (savedAddresses.includes(form.ulica) || form.ulica === user?.address) &&
+    /\d/.test(form.ulica);
 
   const gost = !user;
   const step1Valid =
@@ -266,30 +273,37 @@ export default function CheckoutPage() {
 
               <Field label="Ulica" required error={errors.deliveryAddress?.[0]}>
                 <AddressChooser
-                  value={ulicaIBroj}
+                  value={form.ulica}
                   onChange={handleUlicaChange}
                   savedAddresses={savedAddresses}
                   onLocalities={applyZoneHint}
                   onCoordinates={setCoords}
+                  querySuffix={form.broj}
                 />
               </Field>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Kućni broj" required={!adresaVecPotpuna}>
-                  <Input
-                    value={form.broj}
-                    onChange={(e) => set("broj")(e.target.value)}
-                    placeholder="npr. 12"
-                  />
-                </Field>
-                <Field label="Stan (opcionalno)">
-                  <Input
-                    value={form.stan}
-                    onChange={(e) => set("stan")(e.target.value)}
-                    placeholder="npr. 3"
-                  />
-                </Field>
-              </div>
+              {adresaVecPotpuna ? (
+                <p className="text-xs text-muted">
+                  Kućni broj i stan su već dio odabrane adrese.
+                </p>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Kućni broj" required>
+                    <Input
+                      value={form.broj}
+                      onChange={(e) => set("broj")(e.target.value)}
+                      placeholder="npr. 12"
+                    />
+                  </Field>
+                  <Field label="Stan (opcionalno)">
+                    <Input
+                      value={form.stan}
+                      onChange={(e) => set("stan")(e.target.value)}
+                      placeholder="npr. 3"
+                    />
+                  </Field>
+                </div>
+              )}
 
               <Field label="Zona dostave" required error={errors.deliveryZoneId?.[0]}>
                 <Select value={form.zoneId} onChange={(e) => set("zoneId")(e.target.value)}>

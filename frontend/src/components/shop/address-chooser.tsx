@@ -17,6 +17,7 @@ export function AddressChooser({
   savedAddresses,
   onLocalities,
   onCoordinates,
+  querySuffix,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -24,6 +25,8 @@ export function AddressChooser({
   onLocalities?: (localities: string[]) => void;
   /** `null` clears the parent's point — a saved address carries no pin of its own. */
   onCoordinates?: (coords: { lat: number; lon: number } | null) => void;
+  /** Passed straight through to `AddressPicker` — see its own doc comment. */
+  querySuffix?: string;
 }) {
   const [addingNew, setAddingNew] = useState(false);
   const showMap = addingNew || savedAddresses.length === 0;
@@ -36,6 +39,7 @@ export function AddressChooser({
           onChange={onChange}
           onLocalities={onLocalities}
           onCoordinates={onCoordinates}
+          querySuffix={querySuffix}
         />
         {savedAddresses.length > 0 && (
           <button
