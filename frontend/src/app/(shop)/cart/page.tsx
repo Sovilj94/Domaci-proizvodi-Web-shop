@@ -98,7 +98,7 @@ export default function CartPage() {
             <span className="font-semibold">Ukupno (bez dostave)</span>
             <span className="font-display text-xl font-bold">{formatPrice(subtotal)}</span>
           </div>
-          <Link href="/checkout" className="mt-5 block">
+          <Link href="/checkout/nalog" className="mt-5 block">
             <Button className="w-full" size="lg">
               Nastavi na dostavu
             </Button>

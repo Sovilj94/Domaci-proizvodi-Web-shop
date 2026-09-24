@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,14 @@ import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
+
+  // Only an internal path is a safe redirect target — an open `next` is an invitation
+  // to bounce a customer to another site right after they type their password.
+  const next = searchParams.get("next");
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+  const registerHref = safeNext ? `/register?next=${encodeURIComponent(safeNext)}` : "/register";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -34,7 +41,7 @@ export default function LoginPage() {
     setResent(false);
     try {
       const user = await login({ email, password });
-      router.push(user.role === "admin" ? "/admin/dashboard" : "/orders");
+      router.push(safeNext ?? (user.role === "admin" ? "/admin/dashboard" : "/orders"));
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setError(err.message);
@@ -67,7 +74,7 @@ export default function LoginPage() {
           <h1 className="mt-6 text-center font-display text-2xl font-bold">Dobrodošli nazad!</h1>
           <p className="mt-1 text-center text-sm text-muted">
             Nemate nalog?{" "}
-            <Link href="/register" className="font-semibold text-brand-700 hover:underline">
+            <Link href={registerHref} className="font-semibold text-brand-700 hover:underline">
               Registrujte se
             </Link>
           </p>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,15 @@ import { ApiRequestError } from "@/lib/api/client";
 export default function RegisterPage() {
   const { register } = useAuth();
   const zones = useDeliveryZones();
+  const searchParams = useSearchParams();
+
+  // Only an internal path is a safe redirect target — an open `next` is an invitation
+  // to bounce a customer to another site. Registration itself doesn't log anyone in (email
+  // confirmation is required first), so `next` rides along on the links back to login instead
+  // of an immediate redirect.
+  const next = searchParams.get("next");
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+  const loginHref = safeNext ? `/login?next=${encodeURIComponent(safeNext)}` : "/login";
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -100,7 +110,7 @@ export default function RegisterPage() {
           )}
 
           <Link
-            href="/login"
+            href={loginHref}
             className="mt-6 inline-block text-sm font-semibold text-brand-700 hover:underline"
           >
             Nazad na prijavu
@@ -162,7 +172,7 @@ export default function RegisterPage() {
 
         <p className="mt-5 text-center text-sm text-muted">
           Već imate nalog?{" "}
-          <Link href="/login" className="font-semibold text-brand-700 hover:underline">
+          <Link href={loginHref} className="font-semibold text-brand-700 hover:underline">
             Prijavite se
           </Link>
         </p>
