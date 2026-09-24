@@ -1,6 +1,7 @@
 using EPiljara.Application.Features.Orders;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
+using EPiljara.Infrastructure.BackgroundJobs;
 using FluentAssertions;
 using Xunit;
 
@@ -187,5 +188,25 @@ public class GuestOrderTests
         var greska = (await radnja.Should().ThrowAsync<DomainException>()).Which;
         greska.Code.Should().Be("product_unavailable");
         greska.Message.Should().Contain("Med", "kupcu treba reći koji proizvod je sporan");
+    }
+
+    [Fact]
+    public async Task Cistac_brise_samo_istekle()
+    {
+        using var t = new TestDb();
+        var scena = await Scena.NapraviAsync(t);
+        var handler = new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail());
+        await handler.Handle(scena.ZahtjevGosta(), default);
+        await handler.Handle(scena.ZahtjevGosta(), default);
+
+        var stari = t.Db.GuestOrderRequests.First();
+        stari.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        t.Db.SaveChanges();
+
+        var obrisano = await ExpiredGuestRequestsCleaner.ObrisiIstekleAsync(t.Db, DateTime.UtcNow, default);
+
+        obrisano.Should().Be(1);
+        t.Db.GuestOrderRequests.Should().ContainSingle();
+        t.Db.GuestOrderRequestItems.Should().ContainSingle("stavke odlaze sa zahtjevom");
     }
 }

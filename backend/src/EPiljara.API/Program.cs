@@ -11,6 +11,7 @@ using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.Common.Models;
 using EPiljara.Application.Features.Admin;
 using EPiljara.Infrastructure;
+using EPiljara.Infrastructure.BackgroundJobs;
 using EPiljara.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
@@ -39,6 +40,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddHostedService<ExpiredGuestRequestsCleaner>();
 
 // ----- Controllers + JSON envelope -----
 builder.Services
