@@ -140,15 +140,19 @@ Greške:
 
 | Slučaj | Odgovor |
 |---|---|
-| token ne postoji ili je istekao i obrisan | 410 `guest_request_expired` |
-| proizvod je u međuvremenu ugašen ili obrisan | 409 `product_unavailable`, sa nazivom proizvoda u poruci |
-| token je već iskorišten | 410 `guest_request_expired` — zahtjev je obrisan pri potvrdi, pa se ne razlikuje od isteklog |
+| token ne postoji ili je istekao i obrisan | 409 `guest_request_expired` |
+| proizvod je u međuvremenu ugašen ili obrisan | 400 `product_unavailable`, sa nazivom proizvoda u poruci |
+| token je već iskorišten | 409 `guest_request_expired` — zahtjev je obrisan pri potvrdi, pa se ne razlikuje od isteklog |
 
-Dvoklik na link u mejlu tako ne pravi dvije narudžbe: prvi klik obriše zahtjev, drugi
-dobije 410. Ali kupac koji dvaput klikne vidi „potvrda je istekla" iako je narudžba
-uredno prošla, pa ekran isteka mora reći i to — da je narudžba možda već primljena i da
-provjeri mejl prije nego šalje ponovo. Bez te rečenice bi isti ekran značio dvije
-suprotne stvari.
+Statusi prate ono što `ExceptionHandlingMiddleware` već zna: `ConflictException`→409,
+`DomainException`→400. 410 bi bio tačniji za istekao token, ali bi tražio novi tip
+izuzetka i novu granu u middlewareu radi jedne rute — frontend ionako grana po `code`,
+ne po statusu.
+
+Dvoklik na link u mejlu ne pravi dvije narudžbe: prvi klik obriše zahtjev, drugi dobije
+409. Ali kupac koji dvaput klikne vidi „potvrda je istekla" iako je narudžba uredno
+prošla, pa ekran isteka mora reći i to — da je narudžba možda već primljena i da provjeri
+mejl prije nego šalje ponovo. Bez te rečenice bi isti ekran značio dvije suprotne stvari.
 
 ## Čišćenje
 
