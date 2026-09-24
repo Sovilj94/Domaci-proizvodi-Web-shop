@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
+import { LoadingBlock } from "@/components/ui/spinner";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useDeliveryZones } from "@/lib/api/hooks";
 import { authApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 
+// useSearchParams() opts the page out of static generation unless it sits below a Suspense
+// boundary — without this wrapper `next build` fails at the prerender step for /register.
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<LoadingBlock />}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const { register } = useAuth();
   const zones = useDeliveryZones();
   const searchParams = useSearchParams();

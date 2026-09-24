@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,7 +22,17 @@ const NEDODIJELJENO = "nedodijeljeno";
 /** Statusi u kojima je stanica završena — prigušuje se i gubi dugmad. */
 const ZATVORENI = new Set(["Delivered", "FailedDelivery", "Cancelled"]);
 
+// Pre-existing gap, not introduced by the checkout-nalog gate: useSearchParams() here also
+// opts the page out of static generation without a Suspense boundary below it.
 export default function AdminDostavaPage() {
+  return (
+    <Suspense fallback={<LoadingBlock />}>
+      <AdminDostavaContent />
+    </Suspense>
+  );
+}
+
+function AdminDostavaContent() {
   const qc = useQueryClient();
   const { show } = useToast();
   const router = useRouter();

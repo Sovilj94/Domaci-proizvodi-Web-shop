@@ -1,19 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/components/ui/field";
+import { LoadingBlock } from "@/components/ui/spinner";
 import { SocialLogin } from "@/components/auth/social-login";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
+// useSearchParams() opts the page out of static generation unless it sits below a Suspense
+// boundary — without this wrapper `next build` fails at the prerender step for /login.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoadingBlock />}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
