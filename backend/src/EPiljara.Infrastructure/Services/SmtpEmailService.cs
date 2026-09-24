@@ -101,7 +101,11 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
         };
         message.To.Add(to);
 
-        using var client = new SmtpClient(host, port) { EnableSsl = useSsl };
+        // 10s, not the 100s default: this runs behind a public anonymous endpoint
+        // (guest checkout) and behind flows whose failures are swallowed, so a hanging
+        // mail server must fail fast rather than tie up a request (and, for the guest
+        // request, a pooled DB connection) for a minute and a half.
+        using var client = new SmtpClient(host, port) { EnableSsl = useSsl, Timeout = 10_000 };
         if (!string.IsNullOrWhiteSpace(username))
             client.Credentials = new NetworkCredential(username, password);
 

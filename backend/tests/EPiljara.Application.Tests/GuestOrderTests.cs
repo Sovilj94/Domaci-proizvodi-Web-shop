@@ -80,4 +80,19 @@ public class GuestOrderTests
 
         (await radnja.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("below_minimum");
     }
+
+    [Fact]
+    public async Task Neuspjelo_slanje_mejla_brise_upisan_zahtjev()
+    {
+        using var t = new TestDb();
+        var scena = await Scena.NapraviAsync(t);
+        var mejl = new FakeEmail { BaciGresku = true };
+
+        var radnja = () => new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), mejl)
+            .Handle(scena.ZahtjevGosta(), default);
+
+        await radnja.Should().ThrowAsync<InvalidOperationException>();
+        t.Db.GuestOrderRequests.Should().BeEmpty(
+            "gost bez uspješno poslanog linka nema kako potvrditi zahtjev, pa red ne smije ostati");
+    }
 }

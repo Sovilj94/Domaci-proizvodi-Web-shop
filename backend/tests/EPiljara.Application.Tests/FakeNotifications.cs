@@ -9,6 +9,9 @@ internal sealed class FakeEmail : IEmailService
     public List<Order> Narudzbe { get; } = [];
     public List<GuestOrderRequest> ZahtjeviGosta { get; } = [];
 
+    /// <summary>Simulira pad SMTP slanja, npr. za testiranje kompenzacionog brisanja zahtjeva gosta.</summary>
+    public bool BaciGresku { get; set; }
+
     public Task SendOrderConfirmationAsync(Order order, CancellationToken ct = default)
     {
         Narudzbe.Add(order);
@@ -20,6 +23,9 @@ internal sealed class FakeEmail : IEmailService
 
     public Task SendGuestOrderRequestAsync(GuestOrderRequest request, CancellationToken ct = default)
     {
+        if (BaciGresku)
+            throw new InvalidOperationException("Simulirani pad slanja mejla.");
+
         ZahtjeviGosta.Add(request);
         return Task.CompletedTask;
     }
