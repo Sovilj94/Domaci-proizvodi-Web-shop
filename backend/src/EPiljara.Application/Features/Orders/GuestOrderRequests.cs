@@ -37,16 +37,28 @@ public class CreateGuestOrderRequestValidator : AbstractValidator<CreateGuestOrd
         When(x => x.Customer is not null, () =>
         {
             RuleFor(x => x.Customer.Name).NotEmpty().WithMessage("Ime je obavezno.");
+            RuleFor(x => x.Customer.Name).MaximumLength(160).WithMessage("Ime je predugačko.");
             RuleFor(x => x.Customer.Phone).NotEmpty().WithMessage("Telefon je obavezan.");
+            RuleFor(x => x.Customer.Phone).MaximumLength(40).WithMessage("Telefon je predugačak.");
             // Gost bez e-maila nema kako potvrditi — zato je ovdje obavezan, a kod
             // prijavljenog kupca nije.
             RuleFor(x => x.Customer.Email).NotEmpty().WithMessage("E-mail je obavezan za naručivanje bez naloga.");
             RuleFor(x => x.Customer.Email).EmailAddress().WithMessage("Neispravna e-mail adresa.")
                 .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email));
+            // Isti razlog kao MaximumLength ispod za adresu: predug unos bi bez ove provjere
+            // prošao u GuestOrderRequest (nesputano text polje) i pao tek na Orders insert
+            // nakon klika na link, kad gost više nema kako da ispravi grešku.
+            RuleFor(x => x.Customer.Email).MaximumLength(256)
+                .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
+                .WithMessage("E-mail je predugačak.");
         });
         RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
+        // GuestOrderRequest.DeliveryAddress je text bez granice u bazi — bez ove provjere
+        // dug unos bi se upisao, mejl bi otišao, a klik na link bi pao tek na Orders insert
+        // (kolona ograničena na 400) kad je za popravku već kasno.
+        RuleFor(x => x.DeliveryAddress).MaximumLength(400).WithMessage("Adresa je predugačka.");
         // Iste geo provjere kao CreateOrderValidator — gost prolazi kroz isti mapski
         // picker, a nepotvrđena tačka danas postaje prava Order.Latitude/Longitude čim
         // sljedeći task potvrdi zahtjev, pa driver aplikacija ne smije dobiti polovičnu
@@ -75,6 +87,11 @@ public class CreateGuestOrderRequestValidator : AbstractValidator<CreateGuestOrd
             .When(x => x.Latitude is >= -90 and <= 90 && x.Longitude is >= -180 and <= 180)
             .OverridePropertyName("deliveryAddress")
             .WithMessage(GeoBounds.OutsideMessage);
+        // Note je nullable i, kao i adresa, ide u nesputano text polje — ista provjera
+        // kao CreateOrderValidator da predug unos ne stigne do potvrde pa tek tamo pukne.
+        RuleFor(x => x.Note).MaximumLength(1000)
+            .When(x => x.Note is not null)
+            .WithMessage("Napomena je predugačka.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
         RuleForEach(x => x.Items).Must(i => i.Quantity > 0).WithMessage("Neispravna količina.");
     }
@@ -196,6 +213,12 @@ public class ConfirmGuestOrderHandler(IAppDbContext db, IEmailService email, IVi
 {
     public async Task<OrderDto> Handle(ConfirmGuestOrderCommand cmd, CancellationToken ct)
     {
+        // Za razliku od CreateOrderHandler-a, ovdje se zona NE provjerava na IsActive (niti
+        // se uopšte ponovo čita van onoga što nosi sam zahtjev) — namjerno, ne propust.
+        // DeliveryFee i TotalAmount su već snimljeni u GuestOrderRequest u trenutku slanja
+        // forme, pa ako admin ugasi zonu unutar prozora od TrajanjeMinuta, potvrda i dalje
+        // treba da prizna cijenu koju je gost vidio. Provjera IsActive bi samo sprečavala
+        // NOVE zahtjeve (to već radi CreateGuestOrderRequestHandler), ne i potvrdu postojećeg.
         var zahtjev = await db.GuestOrderRequests
             .Include(r => r.Items)
             .Include(r => r.DeliveryZone)

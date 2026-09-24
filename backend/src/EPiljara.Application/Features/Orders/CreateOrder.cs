@@ -33,11 +33,23 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
         When(x => x.Customer is not null, () =>
         {
             RuleFor(x => x.Customer.Name).NotEmpty().WithMessage("Ime je obavezno.");
+            RuleFor(x => x.Customer.Name).MaximumLength(160).WithMessage("Ime je predugačko.");
             RuleFor(x => x.Customer.Phone).NotEmpty().WithMessage("Telefon je obavezan.");
+            RuleFor(x => x.Customer.Phone).MaximumLength(40).WithMessage("Telefon je predugačak.");
+            // Email je opcionalan za prijavljenog kupca (Viber je zamjena), pa se dužina
+            // provjerava samo kad je unesen — Orders.CustomerEmail je nullable(256).
+            RuleFor(x => x.Customer.Email).MaximumLength(256)
+                .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
+                .WithMessage("E-mail je predugačak.");
         });
         RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
+        RuleFor(x => x.DeliveryAddress).MaximumLength(400).WithMessage("Adresa je predugačka.");
+        // Note je nullable — dužina se provjerava samo kad je unesena.
+        RuleFor(x => x.Note).MaximumLength(1000)
+            .When(x => x.Note is not null)
+            .WithMessage("Napomena je predugačka.");
         // Sve greške oko tačke idu pod ključ adrese — obje forme prikazuju
         // errors.deliveryAddress ispod polja s mapom, pa poruka pod "latitude"/"longitude"
         // ne bi imala gdje da se pojavi i narudžba bi nečujno pala.
