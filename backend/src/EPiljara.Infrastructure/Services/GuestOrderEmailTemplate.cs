@@ -36,7 +36,9 @@ public static class GuestOrderEmailTemplate
         }
 
         return $$"""
-            <!doctype html><html><body style="margin:0;background:#f6f7f5">
+            <!doctype html>
+            <html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;background:#f6f7f5">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7f5;padding:24px 0">
                 <tr><td align="center">
                   <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;padding:32px">

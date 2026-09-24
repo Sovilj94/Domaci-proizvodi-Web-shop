@@ -24,10 +24,14 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
             logger.LogInformation("Order {Code}: nema email adrese — preskačem slanje.", order.Code);
             return Task.CompletedTask;
         }
+        var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var trackUrl = string.IsNullOrWhiteSpace(order.PublicToken)
+            ? null
+            : $"{baseUrl}/narudzba/{order.PublicToken}";
         return SendHtmlAsync(
             order.CustomerEmail,
             $"Potvrda narudžbe {order.Code} — E piljara",
-            OrderEmailTemplate.Build(order),
+            OrderEmailTemplate.Build(order, trackUrl),
             $"potvrda narudžbe {order.Code}",
             cancellationToken);
     }

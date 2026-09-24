@@ -18,6 +18,10 @@ public static class OrderEmailTemplate
     private const string Line = "#eceeeb";
     private const string Panel = "#f6f7f5";
 
+    // DeliverySlot.DayOfWeek follows the same 0=Sunday convention as System.DayOfWeek.
+    private static readonly string[] DaniUSedmici =
+        ["nedjelja", "ponedjeljak", "utorak", "srijeda", "četvrtak", "petak", "subota"];
+
     private static string Money(decimal v) =>
         "KM " + v.ToString("0.00", CultureInfo.InvariantCulture).Replace('.', ',');
 
@@ -27,7 +31,20 @@ public static class OrderEmailTemplate
     private static string Enc(string? s) =>
         System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
 
-    public static string Build(Order order)
+    // Label is set by admins for the common slots; the fallback covers any slot without
+    // one (or a slot whose navigation property wasn't loaded at all) so the email never
+    // shows raw indices or blank text for something the customer specifically asked about.
+    private static string? DeliveryWindow(DeliverySlot? slot)
+    {
+        if (slot is null) return null;
+        if (!string.IsNullOrWhiteSpace(slot.Label)) return slot.Label;
+
+        var dan = slot.DayOfWeek is >= 0 and < 7 ? DaniUSedmici[slot.DayOfWeek] : "";
+        var nazivDana = dan.Length > 0 ? char.ToUpper(dan[0], CultureInfo.InvariantCulture) + dan[1..] : "";
+        return $"{nazivDana} {slot.TimeFrom}–{slot.TimeTo}h".Trim();
+    }
+
+    public static string Build(Order order, string? trackUrl = null)
     {
         var sb = new StringBuilder();
 
@@ -46,6 +63,16 @@ public static class OrderEmailTemplate
         var noteRow = string.IsNullOrWhiteSpace(order.Note)
             ? ""
             : $"""<p style="margin:6px 0 0;font:400 13px Arial,sans-serif;color:{Muted}">Napomena: {Enc(order.Note)}</p>""";
+
+        var deliveryWindow = DeliveryWindow(order.DeliverySlot);
+
+        var trackRow = string.IsNullOrWhiteSpace(trackUrl)
+            ? ""
+            : $"""
+                <tr><td style="padding:20px 28px 0;text-align:center">
+                  <a href="{Enc(trackUrl)}" style="display:inline-block;background:{Green};color:#ffffff;text-decoration:none;font:700 14px Arial,sans-serif;padding:12px 22px;border-radius:10px">Prati svoju narudžbu</a>
+                </td></tr>
+                """;
 
         sb.Append($$"""
             <!doctype html>
@@ -83,15 +110,24 @@ public static class OrderEmailTemplate
                 <tr><td style="padding:18px 28px 0">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{Panel}};border-radius:12px">
                     <tr><td style="padding:16px 18px">
+                      <div style="font:700 13px Arial,sans-serif;color:{{Muted}};text-transform:uppercase;letter-spacing:.04em">Kad stiže dostava</div>
+                      <p style="margin:6px 0 0;font:700 16px Arial,sans-serif;color:{{Green}}">{{Enc(deliveryWindow ?? "Termin ćemo potvrditi naknadno")}}</p>
+                    </td></tr>
+                  </table>
+                </td></tr>
+
+                <tr><td style="padding:12px 28px 0">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{Panel}};border-radius:12px">
+                    <tr><td style="padding:16px 18px">
                       <div style="font:700 13px Arial,sans-serif;color:{{Muted}};text-transform:uppercase;letter-spacing:.04em">Detalji dostave</div>
                       <p style="margin:10px 0 0;font:600 15px Arial,sans-serif;color:{{Ink}}">{{Enc(order.DeliveryAddress)}}</p>
-                      <p style="margin:2px 0 0;font:400 13px Arial,sans-serif;color:{{Muted}}">Termin: {{Enc(order.DeliverySlot?.Label ?? "-")}}</p>
                       <p style="margin:2px 0 0;font:400 13px Arial,sans-serif;color:{{Muted}}">Kupac: {{Enc(order.CustomerName)}}{{(string.IsNullOrWhiteSpace(order.CustomerPhone) ? "" : " · " + Enc(order.CustomerPhone))}}</p>
                       {{noteRow}}
                       <p style="margin:12px 0 0;padding-top:12px;border-top:1px solid {{Line}};font:600 14px Arial,sans-serif;color:{{Green}}">Plaćanje pouzećem pri dostavi</p>
                     </td></tr>
                   </table>
                 </td></tr>
+                {{trackRow}}
 
                 <tr><td style="padding:24px 28px 28px">
                   <div style="border-top:1px solid {{Line}};padding-top:16px;font:400 12px Arial,sans-serif;color:{{Muted}};line-height:1.5">
