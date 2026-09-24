@@ -117,7 +117,8 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUser current, IEmailSe
 
         var order = new Order
         {
-            Code = await GenerateCodeAsync(ct),
+            Code = await OrderCode.GenerateAsync(db, ct),
+            PublicToken = Guid.NewGuid().ToString("N"),
             CustomerId = customerId,
             CustomerName = cmd.Customer.Name,
             CustomerPhone = cmd.Customer.Phone,
@@ -154,12 +155,5 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUser current, IEmailSe
         }
 
         return order.ToDto();
-    }
-
-    private async Task<string> GenerateCodeAsync(CancellationToken ct)
-    {
-        var count = await db.Orders.CountAsync(ct);
-        var now = DateTime.UtcNow;
-        return $"EP-{now:yyMM}-{count + 41:D4}";
     }
 }

@@ -7,6 +7,13 @@ public class Order : Entity
 {
     public string Code { get; set; } = string.Empty; // e.g. "EP-2607-0042"
 
+    /// <summary>
+    /// Trajni ključ za praćenje narudžbe bez naloga. Ne ističe i ne briše se —
+    /// razlikuj ga od tokena zahtjeva gosta, koji živi 15 minuta i služi da
+    /// narudžba uopšte nastane. Ide u mejl i nigdje drugdje.
+    /// </summary>
+    public string PublicToken { get; set; } = string.Empty;
+
     /// <summary>Set when a registered customer placed the order; null for guest checkout.</summary>
     public Guid? CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;

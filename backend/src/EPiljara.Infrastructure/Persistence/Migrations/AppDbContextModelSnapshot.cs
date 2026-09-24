@@ -318,6 +318,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("PublicToken")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -344,6 +349,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.HasIndex("DeliverySlotId");
 
                     b.HasIndex("DeliveryZoneId");
+
+                    b.HasIndex("PublicToken")
+                        .IsUnique();
 
                     b.ToTable("Orders");
                 });
