@@ -101,6 +101,7 @@ export interface Order {
   customerId: string;
   customerName: string;
   customerPhone?: string;
+  customerEmail?: string;
   status: OrderStatus;
   items: OrderItem[];
   subtotal: number;

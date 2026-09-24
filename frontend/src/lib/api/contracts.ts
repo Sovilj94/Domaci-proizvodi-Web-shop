@@ -122,3 +122,8 @@ export interface AssignOrdersBulkRequest {
   driverId: string;
   date: string;
 }
+
+/** Odgovor na poslatu narudžbu gosta — narudžba još ne postoji, samo zahtjev sa rokom. */
+export interface GuestOrderRequestResult {
+  expiresAt: string;
+}

@@ -22,6 +22,7 @@ import type {
   DashboardStats,
   Driver,
   DriverInput,
+  GuestOrderRequestResult,
   LoginRequest,
   ProducerInput,
   ProductInput,
@@ -74,6 +75,18 @@ export const orderApi = {
   mine: () => apiFetch<Order[]>("/orders/mine").then((r) => r.data),
   addresses: () => apiFetch<string[]>("/orders/addresses").then((r) => r.data),
   byId: (id: string) => apiFetch<Order>(`/orders/${id}`).then((r) => r.data),
+
+  /* Gost: narudžba nastaje tek na potvrdu iz mejla. */
+  guestRequest: (body: CreateOrderRequest) =>
+    apiFetch<GuestOrderRequestResult>("/orders/guest-request", { method: "POST", body }).then(
+      (r) => r.data,
+    ),
+
+  confirmGuest: (token: string) =>
+    apiFetch<Order>("/orders/confirm", { method: "POST", body: { token } }).then((r) => r.data),
+
+  track: (token: string) =>
+    apiFetch<Order>(`/orders/track/${token}`).then((r) => r.data),
 };
 
 /* ---------- Auth ---------- */
