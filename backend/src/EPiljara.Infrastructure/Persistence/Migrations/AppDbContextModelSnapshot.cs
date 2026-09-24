@@ -238,6 +238,119 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Drivers");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.GuestOrderRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeliveryAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("DeliveryFee")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<Guid>("DeliverySlotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeliveryZoneId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliverySlotId");
+
+                    b.HasIndex("DeliveryZoneId");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("GuestOrderRequests");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.GuestOrderRequestItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestId");
+
+                    b.ToTable("GuestOrderRequestItems");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Magacin", b =>
                 {
                     b.Property<Guid>("Id")
@@ -625,6 +738,36 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.GuestOrderRequest", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.DeliverySlot", "DeliverySlot")
+                        .WithMany()
+                        .HasForeignKey("DeliverySlotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.DeliveryZone", "DeliveryZone")
+                        .WithMany()
+                        .HasForeignKey("DeliveryZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DeliverySlot");
+
+                    b.Navigation("DeliveryZone");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.GuestOrderRequestItem", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.GuestOrderRequest", "Request")
+                        .WithMany("Items")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Request");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Order", b =>
                 {
                     b.HasOne("EPiljara.Domain.Entities.DeliverySlot", "DeliverySlot")
@@ -706,6 +849,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EPiljara.Domain.Entities.Driver", b =>
                 {
                     b.Navigation("Routes");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.GuestOrderRequest", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Order", b =>

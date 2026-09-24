@@ -19,6 +19,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<DeliveryRoute> DeliveryRoutes => Set<DeliveryRoute>();
     public DbSet<RouteStop> RouteStops => Set<RouteStop>();
+    public DbSet<GuestOrderRequest> GuestOrderRequests => Set<GuestOrderRequest>();
+    public DbSet<GuestOrderRequestItem> GuestOrderRequestItems => Set<GuestOrderRequestItem>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -164,6 +166,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // of numbers, and a per-statement check would reject every re-optimization.
         });
 
+        b.Entity<GuestOrderRequest>(b =>
+        {
+            b.Property(r => r.Token).HasMaxLength(32).IsRequired();
+            b.HasIndex(r => r.Token).IsUnique();
+            b.HasIndex(r => r.ExpiresAt);
+            b.Property(r => r.CustomerEmail).IsRequired();
+            b.Property(r => r.Subtotal).HasPrecision(10, 2);
+            b.Property(r => r.DeliveryFee).HasPrecision(10, 2);
+            b.Property(r => r.TotalAmount).HasPrecision(10, 2);
+            b.HasOne(r => r.DeliveryZone).WithMany()
+                .HasForeignKey(r => r.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(r => r.DeliverySlot).WithMany()
+                .HasForeignKey(r => r.DeliverySlotId).OnDelete(DeleteBehavior.Restrict);
+            b.HasMany(r => r.Items)
+                .WithOne(i => i.Request!)
+                .HasForeignKey(i => i.RequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<GuestOrderRequestItem>(b =>
+        {
+            b.Property(i => i.Unit).HasConversion<string>().HasMaxLength(8);
+            b.Property(i => i.UnitPrice).HasPrecision(10, 2);
+            b.Property(i => i.Quantity).HasPrecision(10, 3);
+        });
+
         b.Entity<Magacin>(e =>
         {
             // Ime u jednini, jer ovo nije zbirka nego jedna vrijednost — i CHECK koji to
@@ -178,8 +206,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                      .SelectMany(t => t.GetProperties())
                      .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
         {
-            property.SetPrecision(12);
-            property.SetScale(2);
+            if (property.GetPrecision() == null)
+            {
+                property.SetPrecision(12);
+                property.SetScale(2);
+            }
         }
     }
 }

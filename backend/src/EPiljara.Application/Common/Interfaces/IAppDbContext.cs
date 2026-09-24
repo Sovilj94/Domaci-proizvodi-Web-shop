@@ -19,6 +19,8 @@ public interface IAppDbContext
     DbSet<OrderItem> OrderItems { get; }
     DbSet<DeliveryRoute> DeliveryRoutes { get; }
     DbSet<RouteStop> RouteStops { get; }
+    DbSet<GuestOrderRequest> GuestOrderRequests { get; }
+    DbSet<GuestOrderRequestItem> GuestOrderRequestItems { get; }
 
     /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
     DbSet<Magacin> Magacin { get; }
