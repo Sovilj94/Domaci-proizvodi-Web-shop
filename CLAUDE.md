@@ -112,6 +112,16 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **Validation error keys are camelCased full property paths** (`Customer.Name` → `customer.name`; a
   nested `Input.Name` → `input.name`). Frontend forms read `err.fieldErrors["input.name"]` etc. to show
   inline errors — match this casing exactly.
+- **A guest checkout is two calls, not one.** `POST /orders` is for an authenticated customer only in
+  practice — a guest instead calls `POST /orders/guest-request`, which stores a `GuestOrderRequest` with
+  prices snapshotted at submit time and a 15-minute `ExpiresAt` (`GuestOrderRequest.TrajanjeMinuta`) and
+  creates **no `Order`**. The order is created only when the guest clicks the emailed link, hitting
+  `POST /orders/confirm`; that call creates the `Order`, decrements stock, and deletes the request row, all
+  in one `SaveChangesAsync`. An expired or already-consumed token there is a 409 `guest_request_expired`,
+  not a 404 — the request already existed. `guest-request` itself rejects a logged-in caller with
+  `already_authenticated`: an authenticated customer's order must go through `POST /orders` so it shows up
+  under `orders/mine`. Every `Order` (guest or account) also carries a permanent `PublicToken`, unrelated to
+  the request's 15-minute one, that `GET /orders/track/{token}` resolves with no auth at all.
 
 ## Backend (Clean Architecture + CQRS)
 
@@ -174,6 +184,17 @@ sibling SeloPlatform project replaced exactly this pattern with a durable outbox
 ever required here, that is the precedent to follow rather than adding more try/catch. Note also that
 `SmtpEmailService` uses `System.Net.Mail.SmtpClient`, which Microsoft no longer recommends (SeloPlatform
 uses MailKit).
+
+**One mail in this system is deliberately not best-effort.** Every send above is wrapped in a swallowing
+try/catch because the order it's about already exists — losing the email loses a notification, not the
+order. `CreateGuestOrderRequestHandler`'s call to `SendGuestOrderRequestAsync` (the "click this to confirm"
+link) is the one exception: it's called with no try/catch around it, on purpose, because without that email
+the guest has no way to ever confirm and no `Order` will ever exist. A throw from the SMTP call propagates
+out of the handler; the handler's own catch only deletes the just-inserted `GuestOrderRequest` row before
+rethrowing, so a bad send doesn't even leave litter behind — it fails the request instead of quietly
+producing an order nobody can complete. `ExpiredGuestRequestsCleaner` (the project's first
+`BackgroundService`, sweeping every 5 minutes) would eventually delete an orphaned request anyway, but
+confirmation never depends on it — `ConfirmGuestOrderHandler` checks `GuestOrderRequest.Istekao` itself.
 
 ## Two ways to put an order on a route — pick the right one
 

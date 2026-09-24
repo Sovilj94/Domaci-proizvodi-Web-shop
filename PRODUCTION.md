@@ -13,6 +13,7 @@ Secrets are read from environment variables (ASP.NET uses `__` for nested keys, 
 | `ConnectionStrings__DefaultConnection` | Production PostgreSQL connection string. |
 | `Cors__Origins__0` | Your real frontend origin, e.g. `https://epiljara.ba`. Without it the browser blocks API calls. |
 | `Email__SmtpHost` / `Email__SmtpPort` / `Email__UseSsl` / `Email__Username` / `Email__Password` / `Email__From` | Real SMTP (e.g. Gmail 587 + app password, SendGrid, Resend) so order confirmations actually send. Dev uses a local Mailpit catcher. |
+| `App__BaseUrl` | Public URL of the frontend. Builds every link the backend emails: the email-confirmation link, the guest order's confirm link (`/potvrda/{token}`), and the order tracking link (`/narudzba/{token}`). Defaults to `http://localhost:3000` if unset — wrong or missing in production and a guest's confirmation link points nowhere real, so they can never confirm and no order is ever created. |
 | `Auth__Google__ClientId` | Only if Google login is enabled. |
 | `Auth__Facebook__AppId` / `Auth__Facebook__AppSecret` | Only if Facebook login is enabled (both required — the secret backs the `debug_token` app check). |
 
@@ -73,6 +74,11 @@ driver's app. It cannot catch a *wrong* point inside the country, so confirm it 
 - **Social login** — Google: verified-email only; Facebook: `debug_token` proves the token was issued for this app.
 - **Rate limiting** — auth endpoints 10/min per IP, global 300/min.
 - **HSTS** in non-development. **Terminate TLS** (HTTPS) at your host/reverse proxy.
+- **`GET /orders/track/{token}` is intentionally anonymous** — a guest has no account to authenticate with,
+  so the permanent `PublicToken` in the URL *is* the credential, and it returns the customer's name, phone
+  and delivery address to whoever holds it. Treat that link like a bearer token: it must not end up
+  anywhere that logs full request URLs (reverse proxy access logs, error trackers, analytics) — the same
+  goes for the guest confirmation link (`/potvrda/{token}`) before it's used.
 
 ## Viber notifications (order confirmation fallback)
 
