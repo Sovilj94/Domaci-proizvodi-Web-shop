@@ -1,6 +1,7 @@
 using EPiljara.Application.Features.Orders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace EPiljara.API.Controllers;
 
@@ -25,4 +26,10 @@ public class OrdersController : ApiControllerBase
     [HttpGet("orders/{id:guid}")]
     public async Task<IActionResult> ById(Guid id) =>
         Envelope(await Mediator.Send(new GetOrderByIdQuery(id)));
+
+    /// <summary>Praćenje narudžbe bez naloga. Token je jedina zaštita, pa ide pod stroži limit.</summary>
+    [HttpGet("orders/track/{token}")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Track(string token) =>
+        Envelope(await Mediator.Send(new TrackOrderQuery(token)));
 }

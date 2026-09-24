@@ -93,6 +93,7 @@ public static class MappingExtensions
         CustomerId = o.CustomerId,
         CustomerName = o.CustomerName,
         CustomerPhone = o.CustomerPhone,
+        CustomerEmail = o.CustomerEmail,
         Status = o.Status.ToString(),
         Items = o.Items.Select(x => x.ToDto()).ToList(),
         Subtotal = o.Subtotal,

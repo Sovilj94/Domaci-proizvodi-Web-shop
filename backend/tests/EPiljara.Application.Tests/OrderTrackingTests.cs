@@ -1,5 +1,6 @@
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Orders;
+using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
 using FluentAssertions;
 using Xunit;
@@ -35,6 +36,32 @@ public class OrderTrackingTests
             .Select(o => o.PublicToken)
             .ToList();
         tokeni.Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public async Task Pracenje_po_tokenu_vraca_narudzbu()
+    {
+        using var t = new TestDb();
+        var scena = await Scena.NapraviAsync(t);
+        var narucena = await scena.Naruci();
+        var token = t.Db.Orders.Single(o => o.Id == narucena.Id).PublicToken;
+
+        var rezultat = await new TrackOrderHandler(t.Db).Handle(new TrackOrderQuery(token), default);
+
+        rezultat.Id.Should().Be(narucena.Id);
+        rezultat.CustomerEmail.Should().Be("mujo@test.local");
+        rezultat.Items.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task Pracenje_sa_pogresnim_tokenom_baca_not_found()
+    {
+        using var t = new TestDb();
+
+        var radnja = () => new TrackOrderHandler(t.Db)
+            .Handle(new TrackOrderQuery("nepostojeci"), default);
+
+        await radnja.Should().ThrowAsync<NotFoundException>();
     }
 }
 

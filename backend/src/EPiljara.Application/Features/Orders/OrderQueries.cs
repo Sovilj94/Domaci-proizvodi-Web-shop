@@ -74,3 +74,22 @@ public class GetOrderByIdHandler(IAppDbContext db, ICurrentUser current)
         return order.ToDto();
     }
 }
+
+/* ---------- Praćenje narudžbe bez naloga ---------- */
+
+public record TrackOrderQuery(string Token) : IRequest<OrderDto>;
+
+public class TrackOrderHandler(IAppDbContext db) : IRequestHandler<TrackOrderQuery, OrderDto>
+{
+    public async Task<OrderDto> Handle(TrackOrderQuery q, CancellationToken ct)
+    {
+        var order = await db.Orders
+            .Include(o => o.Items)
+            .Include(o => o.DeliverySlot)
+            .Include(o => o.DeliveryZone)
+            .FirstOrDefaultAsync(o => o.PublicToken == q.Token, ct)
+            ?? throw new NotFoundException("Narudžba nije pronađena.");
+
+        return order.ToDto();
+    }
+}

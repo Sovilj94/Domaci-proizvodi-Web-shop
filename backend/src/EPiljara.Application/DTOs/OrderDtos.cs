@@ -18,6 +18,8 @@ public record OrderDto
     public Guid? CustomerId { get; init; }
     public string CustomerName { get; init; } = string.Empty;
     public string? CustomerPhone { get; init; }
+    /// <summary>Adresa na koju je poslana potvrda. Ekran zahvale je ispisuje.</summary>
+    public string? CustomerEmail { get; init; }
     public string Status { get; init; } = "Pending";
     public IReadOnlyList<OrderItemDto> Items { get; init; } = [];
     public decimal Subtotal { get; init; }
