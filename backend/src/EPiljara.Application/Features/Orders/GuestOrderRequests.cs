@@ -1,7 +1,10 @@
 using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
+using EPiljara.Application.DTOs;
+using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
+using EPiljara.Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -178,5 +181,116 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
         }
 
         return new GuestOrderRequestDto(request.ExpiresAt);
+    }
+}
+
+public record ConfirmGuestOrderCommand(string Token) : IRequest<OrderDto>;
+
+/// <summary>
+/// Klik na link iz mejla. Ovo je jedino mjesto gdje narudžba gosta stvarno nastaje —
+/// do sada je postojao samo <see cref="GuestOrderRequest"/>, koji ovim postaje stvaran
+/// <see cref="Order"/> i nestaje.
+/// </summary>
+public class ConfirmGuestOrderHandler(IAppDbContext db, IEmailService email, IViberService viber)
+    : IRequestHandler<ConfirmGuestOrderCommand, OrderDto>
+{
+    public async Task<OrderDto> Handle(ConfirmGuestOrderCommand cmd, CancellationToken ct)
+    {
+        var zahtjev = await db.GuestOrderRequests
+            .Include(r => r.Items)
+            .Include(r => r.DeliveryZone)
+            .Include(r => r.DeliverySlot)
+            .FirstOrDefaultAsync(r => r.Token == cmd.Token, ct);
+
+        if (zahtjev is null || zahtjev.Istekao(DateTime.UtcNow))
+        {
+            // Zahtjev koji je istekao ovdje ga i brišemo — čim ga neko zatekne istekloga,
+            // nema razloga čekati pozadinskog čistača da to uradi kasnije.
+            if (zahtjev is not null)
+            {
+                db.GuestOrderRequests.Remove(zahtjev);
+                await db.SaveChangesAsync(ct);
+            }
+
+            // 410 je bio prvobitni plan (vidi dizajn dokument), ali ExceptionHandlingMiddleware
+            // mapira samo 400/403/404/409, a frontend grana po `code`, ne po statusu — zato
+            // ConflictException (409), čiji je Code i dalje "guest_request_expired".
+            throw new ConflictException(
+                "Potvrda je istekla ili je narudžba već primljena.", "guest_request_expired");
+        }
+
+        var items = new List<OrderItem>();
+        foreach (var stavka in zahtjev.Items)
+        {
+            var product = await db.Products.FirstOrDefaultAsync(p => p.Id == stavka.ProductId, ct);
+            if (product is null || !product.IsAvailable)
+                throw new DomainException(
+                    $"Proizvod nije dostupan ({stavka.ProductName}).", "product_unavailable");
+
+            items.Add(new OrderItem
+            {
+                ProductId = stavka.ProductId,
+                ProductName = stavka.ProductName,
+                Unit = stavka.Unit,
+                Quantity = stavka.Quantity,
+                UnitPrice = stavka.UnitPrice, // cijena iz zahtjeva — kupac plaća ono što je vidio, ne trenutnu cijenu
+                ImageUrl = stavka.ImageUrl,
+            });
+
+            // Zalihe se skidaju tek sada — CreateGuestOrderRequestHandler ih namjerno
+            // nije dirao dok je zahtjev bio samo nepotvrđena namjera.
+            product.Stock = Math.Max(0, product.Stock - stavka.Quantity);
+        }
+
+        var order = new Order
+        {
+            Code = await OrderCode.GenerateAsync(db, ct),
+            PublicToken = Guid.NewGuid().ToString("N"),
+            CustomerId = null, // gost nema nalog
+            CustomerName = zahtjev.CustomerName,
+            CustomerPhone = zahtjev.CustomerPhone,
+            CustomerEmail = zahtjev.CustomerEmail,
+            Status = OrderStatus.Pending,
+            Items = items,
+            // Iznosi dolaze iz zahtjeva, ne preračunati — kupac je odobrio baš ove brojeve
+            // kad je poslao formu, to je i smisao snimka.
+            Subtotal = zahtjev.Subtotal,
+            DeliveryFee = zahtjev.DeliveryFee,
+            TotalAmount = zahtjev.TotalAmount,
+            DeliverySlotId = zahtjev.DeliverySlotId,
+            DeliverySlot = zahtjev.DeliverySlot,
+            DeliveryZoneId = zahtjev.DeliveryZoneId,
+            DeliveryZone = zahtjev.DeliveryZone,
+            DeliveryAddress = zahtjev.DeliveryAddress,
+            Note = zahtjev.Note,
+            Latitude = zahtjev.Latitude,
+            Longitude = zahtjev.Longitude,
+        };
+
+        db.Orders.Add(order);
+        db.GuestOrderRequests.Remove(zahtjev);
+        // Jedan SaveChangesAsync za narudžbu, njene stavke, skidanje zaliha i brisanje
+        // zahtjeva — potvrda prođe cijela ili nikako, pa drugi klik na isti link ne može
+        // zateći posao napola urađen (ni "narudžba postoji, zahtjev još nije obrisan" niti
+        // obrnuto).
+        await db.SaveChangesAsync(ct);
+
+        try
+        {
+            // Suprotno od CreateGuestOrderRequestHandler-a, gdje pad slanja mejla mora da
+            // sruši cijelu operaciju (bez linka gost nema kako da potvrdi zahtjev): ovdje
+            // narudžba već postoji (upisana je gore) i njen opstanak ne smije zavisiti od
+            // toga da li je mejl uspio, isto kao u CreateOrderHandler-u.
+            if (!string.IsNullOrWhiteSpace(order.CustomerEmail))
+                await email.SendOrderConfirmationAsync(order, ct);
+            else
+                await viber.SendOrderConfirmationAsync(order, ct);
+        }
+        catch
+        {
+            // Notification failures never block a confirmed order.
+        }
+
+        return order.ToDto();
     }
 }
