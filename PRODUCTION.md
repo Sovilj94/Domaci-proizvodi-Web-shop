@@ -74,6 +74,10 @@ driver's app. It cannot catch a *wrong* point inside the country, so confirm it 
 - **Social login** — Google: verified-email only; Facebook: `debug_token` proves the token was issued for this app.
 - **Rate limiting** — the `auth` policy (login/register/`/auth/me`, plus the guest checkout endpoints
   `orders/guest-request`, `orders/confirm`, `orders/track/{token}`) is 10/min **per IP**; global 300/min per IP.
+  The `geocode` policy on `/geocode` and `/geocode/reverse` is 30/min but **not** partitioned — it is one
+  limiter shared by everyone, i.e. a sitewide ceiling on relaying to Nominatim rather than a per-visitor
+  limit. It stops the endpoints becoming an open relay; it does not stop one visitor from exhausting the
+  quota for the rest. Partition it by IP (as `auth` is) before any campaign-sized traffic.
 - **HSTS** in non-development. **Terminate TLS** (HTTPS) at your host/reverse proxy.
 - **`GET /orders/track/{token}` is intentionally anonymous** — a guest has no account to authenticate with,
   so the permanent `PublicToken` in the URL *is* the credential, and it returns the customer's name, phone,

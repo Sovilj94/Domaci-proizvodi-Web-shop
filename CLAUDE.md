@@ -79,9 +79,16 @@ dotnet dotnet-ef database update       -p src/EPiljara.Infrastructure -s src/EPi
 dotnet test          # iz backend/
 ```
 Pokriveno je domensko pravilo `GeoBounds`, infrastruktura za testiranje handlera (`TestDb`,
-`FakeCurrentUser`) nad SQLite in-memory bazom sa stvarno enforsovanim stranim ključevima, i prvi
-handler testovi (`AddressCommandsTests`). **Frontend nema test setup** — provjerava se sa
-`npx tsc --noEmit`, `npm run lint` i prolaskom kroz tok uz pokrenut stek.
+`FakeCurrentUser`, `FakeNotifications`) nad SQLite in-memory bazom sa stvarno enforsovanim stranim
+ključevima, i handler testovi: `AddressCommandsTests`, `DriverCommandsTests`, `GuestOrderTests`,
+`OrderTrackingTests`.
+
+**Frontend nema test setup** — provjerava se sa `npx tsc --noEmit`, `npm run lint`, **`npm run build`**
+i prolaskom kroz tok uz pokrenut stek. `npm run build` nije opcion: `tsc` i `eslint` ne vide greške koje
+nastaju tek u Next-ovom prerender prolazu. Konkretno, `useSearchParams()` bez `<Suspense>` omotača obara
+build (`/login`, `/register` i `/admin/dostava` su zato izvučene u internu komponentu uvijenu u
+`<Suspense fallback={<LoadingBlock />}>`) — a oba prethodna alata su prolazila čisto. Zeleni `tsc` +
+`lint` nisu dokaz da se frontend može isporučiti.
 
 Demo accounts: `admin@epiljara.ba` / `admin123` · `mujo@example.com` / `mujo123` · `vozac@epiljara.ba` / `vozac123`.
 
@@ -104,11 +111,17 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `NEXT_PUBLIC_API_BASE_URL= npm run dev`.
 - **Two implementations of the same contract.** The real ASP.NET API and the Next.js mock both serve the
   same paths/shapes. When you change an endpoint's contract, keep the mock in sync (or accept that the
-  mock is the deletable dev-only path). `frontend/src/types/domain.ts` mirrors the backend DTOs 1:1.
+  mock is the deletable dev-only path). `frontend/src/types/domain.ts` mirrors the backend DTOs 1:1;
+  payloads that are not domain entities (`CreateOrderRequest`, `RegisterRequest`, …) live beside it in
+  `frontend/src/lib/api/contracts.ts` — put a new request/response shape there, not in `domain.ts`.
   The mock is **already incomplete**: it has no `admin/categories`, `admin/producers`,
   `admin/orders/geocode-missing`, `admin/orders/{id}/coordinates`, the dispatch routes
-  (`admin/orders/{id}/driver`, `admin/orders/assign-bulk`), `account/*` or any `driver/*` route, so those
-  screens (Dostava, Moj nalog included) only work against the real backend.
+  (`admin/orders/{id}/driver`, `admin/orders/assign-bulk`), none of the guest-checkout routes
+  (`orders/guest-request`, `orders/confirm`, `orders/track/{token}`), `account/*` or any `driver/*` route;
+  `admin/drivers` exists as **GET only**, so the Vozači screen reads but cannot write against it. Dostava,
+  Vozači, Kategorije, Proizvođači and the whole guest-checkout flow therefore only work against the real
+  backend. The gap widens with every feature — treat the mock as a catalog/login demo, not as a second
+  runtime you can develop a delivery feature on.
 - **Validation error keys are camelCased full property paths** (`Customer.Name` → `customer.name`; a
   nested `Input.Name` → `input.name`). Frontend forms read `err.fieldErrors["input.name"]` etc. to show
   inline errors — match this casing exactly.
@@ -124,6 +137,18 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `already_authenticated`: an authenticated customer's order must go through `POST /orders` so it shows up
   under `orders/mine`. Every `Order` (guest or account) also carries a permanent `PublicToken`, unrelated to
   the request's 15-minute one, that `GET /orders/track/{token}` resolves with no auth at all.
+- **There are two unrelated "address lists" and mixing them up is easy.** `GET /orders/addresses`
+  (`GetMyAddressesQuery`) returns **plain strings** — the addresses of the caller's *delivered* orders,
+  de-duplicated, most recent first. That is what checkout shows: `AddressChooser` lists them and falls back
+  to the map picker for a guest or a customer with no history. `GET|POST|PUT|DELETE /account/addresses`
+  (`Features/Account`) is the real **Adresar**: an `Address` entity per row, with label, pin, zone and a
+  default flag. Both are `[Authorize]`, both are about "where this customer lives", and they share nothing.
+  A saved checkout string carries **no coordinates** — `AddressChooser` explicitly pushes `null` upward when
+  one is picked, so the order is geocoded later rather than inheriting some other address's pin.
+- **The Adresar has no frontend.** Nothing under `frontend/src/` calls `/account/addresses` — there is no
+  `accountApi` in `endpoints.ts` and no "Moj nalog" screen. The backend (handlers, validators, tests,
+  migration) is complete and reachable over HTTP; the UI is the part that is missing. An earlier version of
+  this file described a "Moj nalog" screen as existing — it does not.
 
 ## Backend (Clean Architecture + CQRS)
 
@@ -150,6 +175,32 @@ DI registration**. Validation runs automatically in the MediatR pipeline (`Valid
 - `Product` uses **soft delete** (`IsDeleted` + global query filter) so order history stays intact.
   Deleting a product is soft. Deleting a Category/Producer is a *hard* delete and is blocked with 409 if
   any product (including soft-deleted ones — check via `IgnoreQueryFilters()`) still references it.
+- A **`Driver` is a dispatch record, not an account.** `CreateDriverHandler` leaves `UserId` null on
+  purpose — the row exists so the dispatcher can plan a day; the login for the Android app is attached
+  separately. A driver who has ever driven cannot be deleted: `DeleteDriverHandler` throws 409
+  `driver_in_use` when any `DeliveryRoute` points at them, because routes are the day's history. Retiring
+  is `Aktivan = false`, which also stops new assignments (see `MaxStanicaPoDanu` below).
+- **At most one default address per user, enforced by the database.** `IX_Addresses_UserId_IsDefault` is
+  unique on `UserId` with `HasFilter("\"IsDefault\"")`; the filter is load-bearing — without it the index
+  would demand a unique `UserId` across *all* rows and cap every customer at one address. Because Postgres
+  checks it **per statement**, `SetDefaultAddressHandler` and `DeleteAddressHandler` each run **two
+  `SaveChangesAsync` calls inside one explicit transaction** (clear the old flag / delete the row first,
+  set the new flag second). One `SaveChanges` lets EF order the `UPDATE`s by key, and a GUID ordering that
+  happened to turn the new default on first hit the index. This is the opposite trade from
+  `UQ_RouteStops_RouteId_Sequence`, which solves the same class of problem by being `DEFERRABLE` — know
+  which one you are touching. `IAppDbContext` exposes `DatabaseFacade Database` only so handlers can open
+  that transaction.
+- **A customer keeps at most 10 addresses** (`CreateAddressHandler.MaxAdresa`), counted in the handler —
+  validators do not see the database. Create/Update also verify `DeliveryZoneId` exists, because the FK is
+  `Restrict` and an unknown GUID would surface as a 500 instead of a 400 `invalid_zone`. An **inactive**
+  zone stays allowed on purpose; `AddressDto.DeliveryZoneActive` is how the client learns to stop
+  suggesting it.
+- **`Order.Code` (`EP-yyMM-NNNN`) is generated from `Orders.Count() + 41`** (`Features/Orders/OrderCode.cs`,
+  shared by `CreateOrder` and guest confirmation), while `Code` carries a **unique index**. So the counter
+  is a running total, not a monthly one — the `yyMM` part rolls over but `NNNN` does not reset — and two
+  orders created in the same instant compute the same number and the second one dies on the unique index
+  with no retry anywhere. Low-traffic shop, so it has not bitten yet; do not build anything on the number
+  being sequential-per-month, and if concurrency ever becomes real, replace it with a sequence.
 
 **Enums are stored as strings** (`HasConversion<string>()` for `Role`, `Status`, `Unit`), so raw SQL
 compares text: `WHERE "Role" = 'Admin'`, not a number.
@@ -158,9 +209,20 @@ compares text: `WHERE "Role" = 'Admin'`, not a number.
 the driver app is a first-class consumer with its own endpoints — `GET /driver/route`,
 `PATCH /driver/orders/{id}/status` (accepts only `Delivered` or `FailedDelivery`), and
 `POST /driver/route/reoptimize`. That last one takes the driver's live position as a parameter, uses it for
-one computation, and **never stores or logs it**; see the logging notes under Route optimization. Rate
-limiting is global plus a tighter `auth` partition. Swappable services live behind interfaces
-(`IEmailService`, `IRouteOptimizer`, `IGeocodingService`, `IViberService`, `ISocialAuthVerifier`).
+one computation, and **never stores or logs it**; see the logging notes under Route optimization.
+Swappable services live behind interfaces (`IEmailService`, `IRouteOptimizer`, `IGeocodingService`,
+`IViberService`, `ISocialAuthVerifier`).
+
+**Rate limiting: three limiters, and only two of them are per visitor.** The global limiter is 300/min
+**partitioned by `RemoteIpAddress`**. The `auth` policy is 10/min, also partitioned by IP — it is applied
+at class level on `AuthController` (so `/auth/me`, which every page load hits, spends from it) and on
+`orders/guest-request`, `orders/confirm` and `orders/track/{token}`. It was **not** partitioned at first,
+which meant 10 requests/min for the whole site combined; a couple of simultaneous visitors 429'd each
+other on login. The `geocode` policy is 30/min and is registered with `AddFixedWindowLimiter`, which
+creates **one limiter shared by every caller** — despite what this file used to say, it is *not* per IP.
+It is the sitewide ceiling on relaying to Nominatim, so a handful of customers typing
+addresses at once can 429 each other. If you want it per visitor, it has to be rewritten as
+`AddPolicy(... RateLimitPartition.GetFixedWindowLimiter(ip, ...))` the way `auth` was.
 
 **Email confirmation is mandatory for password accounts.** `register` does **not** log in — it emails a
 link (`ConfirmEmailTemplate`, built from `App:BaseUrl`) and login throws `email_not_confirmed` until
@@ -315,7 +377,8 @@ the admin's *Nova narudžba* screen sent someone else's address the same way. It
 do not put a `fetch` to `nominatim.openstreetmap.org` back into any client component.
 
 The endpoints are **anonymous** — guests check out without an account, so they must be — and protected by
-the `geocode` rate-limit partition (30/min per IP) so they cannot become an open relay to Nominatim.
+the `geocode` rate-limit policy (30/min, **shared across all callers, not per IP** — see Auth above) so
+they cannot become an open relay to Nominatim.
 A miss returns `200` with no `data`; because responses serialize with `WhenWritingNull`, that arrives as
 `{}`, which is why `geocodeApi` coerces with `?? null`.
 
@@ -348,6 +411,22 @@ using OSM tiles.
 - **Cart stores product IDs**, so after a catalog change / DB re-seed a stale cart makes checkout fail with
   `product_unavailable`. `useCart().reconcile(products)` prunes items no longer in the live catalog; the
   checkout page calls it against `useProducts()` so orders can't submit phantom items.
+- **The shop's route list**: `/` `/products` `/products/[slug]` `/cart` `/checkout` `/checkout/nalog`
+  (prijava / registracija / bez naloga, before the form) `/potvrda/[token]` (guest clicks the emailed
+  link — this is what creates the order) `/narudzba/[token]` (permanent tracking page, no login)
+  `/orders` `/login` `/register` `/confirm-email`. The admin panel's nav (`components/admin/admin-nav.tsx`)
+  is Pregled · Narudžbe · Proizvodi · Kategorije · Proizvođači · **Vozači** (`/admin/drivers`, full CRUD
+  through `adminApi`) · Dostava · Magacin (`/admin/settings`); `/admin/routes` stays out of it, see below.
+- **Checkout's address field is `AddressChooser`, not `AddressPicker`.** It shows a logged-in customer
+  their previously delivered addresses (from `GET /orders/addresses`) with "Nova adresa" revealing the map;
+  guests get the map straight away. Admin *Nova narudžba* still uses `AddressPicker` directly.
+  **House number and flat reach the geocoder through `querySuffix`, never through the input's value.**
+  Both components take that optional prop, append it **only to the query sent to `/geocode`**, and leave
+  the displayed value and `onChange` bound to `form.ulica` alone. Concatenating "ulica broj" into the value
+  was self-poisoning: every keystroke in the street field re-appended the old number, so it grew without
+  bound. Editing the number still moves the pin because the geocoding effect depends on `querySuffix`.
+  Picking a saved address pushes `onCoordinates(null)` — a history string has no pin of its own, and the
+  abandoned one must not travel with it.
 - **Address entry** (customer checkout and admin *Nova narudžba* at `admin/orders/new`) uses a keyless
   **OpenStreetMap + Leaflet** map picker (`components/shop/address-picker.tsx`): type → `geocodeApi`
   (our `/geocode`, see Geocoding) → draggable pin → reverse-geocode via `/geocode/reverse`. No Google Maps key. **Coordinates are persisted** alongside the address
@@ -358,8 +437,10 @@ using OSM tiles.
   without coordinates are fixed by admins via `POST /admin/orders/geocode-missing` (batch retry) and
   `PUT /admin/orders/{id}/coordinates` (manual pin).
 - **Order management (admin):** the orders list uses expandable cards (`components/admin/order-card.tsx`) with a
-  status dropdown of valid state-machine transitions. Admins create orders via the same public create-order
-  endpoint (`orderApi.create`) the customer checkout uses.
+  status dropdown of valid state-machine transitions. Admins create orders via `orderApi.create` — the same
+  endpoint a **logged-in** customer's checkout uses. Checkout branches: it calls `orderApi.create` when
+  there is a session and `orderApi.guestRequest` when there is not, so the admin screen never touches the
+  guest path (it has a session, and `guest-request` would reject it with `already_authenticated`).
 - **Dispatch lives on `/admin/dostava`** ("Dostava" in the nav): a tab per active driver plus a
   "Nedodijeljeno" tab, assignment through the pointwise endpoints above, optimistic updates that snapshot
   both lists and restore them on failure. The active tab is kept in the URL (`?vozac=`) so a reload does
