@@ -564,9 +564,21 @@ function DodajKartica({
 /* ---------- Tab „Nedodijeljeno" ---------- */
 
 /**
- * Grupiše narudžbe po naselju (zoni dostave). Redoslijed je po veličini opadajuće — dispečer
- * prvo rješava najveće naselje, jer ono nosi najviše posla i najlakše puni jednog vozača.
+ * Grupiše narudžbe po naselju (zoni dostave). Redoslijed je abecedni po nazivu naselja.
+ *
+ * Ranije je bio po veličini opadajuće, da dispečer prvo vidi najveće naselje. To se u radu
+ * pokazalo kao smetnja: svaka dodjela smanji grupu, grupa padne niže, i lista se premetne
+ * pod rukom dok se klika. Abecedni redoslijed se ne mijenja dok se radi, pa naselje ostaje
+ * tamo gdje ga je dispečer zadnji put vidio.
+ *
+ * Poređenje ide kroz `localeCompare` sa srpskim lokalitetom — obično `<` bi Č, Ć, Š, Ž i Đ
+ * poslalo iza Z, po redoslijedu Unicode tačaka, umjesto na njihovo mjesto u azbučnom nizu.
+ *
  * Narudžbe bez zone padaju u „Bez naselja" i idu na kraj, isto kao `NazivBezZone` na serveru.
+ *
+ * NAPOMENA: ovo je redoslijed liste za dispečera, ne redoslijed vožnje. Stanice unutar
+ * vozačevog taba ostaju poredane po `sequence`, koji dolazi iz OSRM optimizacije — abecedno
+ * tamo bi zamijenilo najkraću rutu nasumičnom.
  */
 const BEZ_NASELJA = "Bez naselja";
 
@@ -581,7 +593,7 @@ function grupisiPoNaselju(narudzbe: Order[]): { naselje: string; narudzbe: Order
     .sort((a, b) => {
       if (a.naselje === BEZ_NASELJA) return 1;
       if (b.naselje === BEZ_NASELJA) return -1;
-      return b.narudzbe.length - a.narudzbe.length;
+      return a.naselje.localeCompare(b.naselje, "sr");
     });
 }
 
