@@ -519,11 +519,15 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   `Category` ima `{ id, name, slug, imageUrl?, sortOrder, productCount? }`
 - Produces: `<CategoryRail />` — bez propova, sam čita kategorije
 
-- [ ] **Step 1: Provjeriti ko koristi `category-chips.tsx`**
+- [ ] **Step 1: Potvrditi da je `category-chips.tsx` mrtav kod**
 
 Run: `grep -rn "category-chips\|CategoryChips" src --include="*.tsx"`
-Expected: pogodci samo u `(shop)/products/page.tsx` i/ili `(shop)/page.tsx`.
-**Ako ga koristi neki fajl van ta dva, ne brisati ga** — zabilježiti i preskočiti Step 6.
+
+Očekivano (provjereno 2026-10-02): **jedini pogodak je sama definicija** u
+`src/components/shop/category-chips.tsx`. Komponentu ne uvozi nijedan fajl — već je mrtav
+kod. Brisanje je zato bez posljedica i ne traži čišćenje importa nigdje.
+
+**Ako grep pokaže pozivaoca**, ne brisati fajl — zabilježiti i preskočiti Step 7.
 
 - [ ] **Step 2: Napisati `category-rail.tsx`**
 
@@ -821,14 +825,14 @@ Expected: **nijedan pogodak**.
 
 - [ ] **Step 6: Obrisati `category-chips.tsx`**
 
-Samo ako je Step 1 potvrdio da ga koriste isključivo stranice koje se prepravljaju.
+Samo ako je Step 1 potvrdio da ga ne uvozi nijedan fajl.
 
 ```bash
 rm frontend/src/components/shop/category-chips.tsx
 ```
 
-Zatim obrisati njegov import i upotrebu iz `(shop)/products/page.tsx` (zamjena dolazi u
-Fazi 2; za sada je dovoljno da se ne uvozi obrisan fajl).
+**Ništa drugo se ne dira** — nema importa koji treba čistiti. Ulogu te komponente od sada
+nosi `CategoryRail`.
 
 - [ ] **Step 7: Provjera**
 
@@ -856,7 +860,7 @@ bez vidljivog scrollbara i **stranica se ne pomjera vodoravno**.
 - [ ] **Step 10: Commit**
 
 ```bash
-git add frontend/src/components/layout/ frontend/src/components/shop/ "frontend/src/app/(shop)/products/page.tsx" docs/superpowers/plans/2026-10-02-redizajn-opcija3-dnevnik.md
+git add -A frontend/src/components/layout/ frontend/src/components/shop/ docs/superpowers/plans/2026-10-02-redizajn-opcija3-dnevnik.md
 git commit -m "feat: header sa trakom kategorija po mockupu
 
 Header prestaje da pluta providan nad herojem — na mockupu je svijetao i
