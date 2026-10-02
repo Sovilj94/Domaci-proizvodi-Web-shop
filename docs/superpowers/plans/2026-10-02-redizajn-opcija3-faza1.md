@@ -26,6 +26,19 @@ bez `tailwind.config`), TanStack Query, lucide-react.
 - **Sav tekst vidljiv korisniku je na srpskom.**
 - **`npm run build` je obavezan** poslije svake task grupe. `tsc` i `eslint` u ovom repozitoriju
   prolaze čisto na greškama koje se pojave tek u Next-ovom prerender prolazu.
+- **`npm run build` obara dev server i to se mora računati.** `next build` prepisuje isti
+  `.next` direktorij koji koristi `next dev --turbopack`, pa dev server poslije build-a
+  servira `500 Internal Server Error` na svakoj ruti i **ne oporavlja se sam**. Zato je
+  redoslijed u svakom tasku:
+
+  ```
+  npx tsc --noEmit  →  npm run lint  →  npm run build  →  RESTART dev servera  →  provjera u browseru
+  ```
+
+  Restart radi **kontrolor**, ne implementer — implementeri nemaju dozvolu da gase tuđe
+  procese. Implementer koji dođe do koraka „pogledaj u browseru" i dobije 500 neka to
+  prijavi kao `DONE_WITH_CONCERNS`, bez pokušaja da sam restartuje server.
+- **`npm run build` ne pokretati paralelno sa drugim buildom** istog direktorija.
 - **Ne ostavljati neiskorištene importe** — `eslint` ih prijavljuje kao greške.
 - **Kontrast:** svaki par teksta i podloge mora proći WCAG AA (4.5:1). Bijeli tekst na `sand`
   (`#eef5ee`) **pada** i ne smije se koristiti.
