@@ -171,3 +171,10 @@ Riješeno u sekciji 2:
 - **Task 3 gotov.** Kartica proizvoda po mockupu: bijela sa borderom, slika 1:1, badge
   gore lijevo, dugme pune širine. **`tone` prop uklonjen** — mockup nema tamnu karticu.
   Gornji desni ugao ostavljen prazan za srce iz Faze 5.
+
+### 2026-10-02 (nastavak) — Task 4 (header i traka kategorija) gotov
+
+- **Task 4 gotov.** Nova `layout/category-rail.tsx` (okrugle slike, naše stvarne kategorije,
+  aktivna iz `?category=`). Header više ne pluta nad herojem — svijetao i sticky svuda;
+  obrisani `skrolovano`, `nadHerojem`, gradijent i `locationChip`. `ShopNavbar` je sada
+  omotan `<Suspense>` jer traka čita `useSearchParams()`. Obrisana `shop/category-chips.tsx`.
