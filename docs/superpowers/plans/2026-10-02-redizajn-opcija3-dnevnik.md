@@ -155,3 +155,8 @@ Riješeno u sekciji 2:
   (sad je cio fajl ispisan), `MREZA` u `product-grid.tsx` ima `gap-8` uz komentar koji
   tvrdi da kartica nema okvir — a nova ga ima, pa se i razmak i komentar mijenjaju;
   mreža na početnoj se razilazila sa skeletonom; pobrkana numeracija stepova u Tasku 3.
+
+### 2026-10-02 (nastavak) — Task 1 (tokeni) gotov
+
+- **Task 1 (tokeni) gotov.** `globals.css` na novoj paleti; obrisana `.animate-traka`.
+  Tamne sekcije na početnoj još stoje — one su Task 7.
