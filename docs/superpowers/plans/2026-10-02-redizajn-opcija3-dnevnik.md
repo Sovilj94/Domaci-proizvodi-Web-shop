@@ -128,3 +128,14 @@ Riješeno u sekciji 2:
 - **Omiljeni**: novi entitet `Favorite` (`UserId`, `ProductId`, `CreatedAt`), jedinstveni
   indeks na par, kaskadno uz korisnika. `GET /account/favorites`,
   `POST|DELETE /account/favorites/{productId}`, svi `[Authorize]`.
+
+### 2026-10-02 (nastavak) — spec napisan
+
+- Napravljena grana `redizajn-opcija3` od `main`.
+- **Sekcija 3 dizajna odobrena** (komponente, granice, provjera).
+- Napisan spec: `docs/superpowers/specs/2026-10-02-redizajn-opcija3-design.md`.
+- Samopregled speca našao i ispravio: pogrešna imena kategorija u skici headera
+  (bila mockupova umjesto naših), nedostajao opis početne i korpe, nedefinisan sadržaj
+  `/o-nama` i `/kontakt` (sad `{{ZAMIJENITI}}`), i nerazriješen sudar faza — srce se
+  gradi u Fazi 1 a radi tek od Faze 5.
+- Commit `40bf8dd`. **Čeka se korisnikov pregled speca prije pisanja plana.**
