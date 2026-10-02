@@ -2,9 +2,9 @@ import type { Product } from "@/types/domain";
 import { Reveal } from "@/components/ui/reveal";
 import { ProductCard } from "./product-card";
 
-/* Razmak je veći nego prije (gap-8): kartica više nema okvir ni sjenku, pa razmak je
-   jedino što razdvaja dvije susjedne — na gap-4 su se stapale u jedan blok. */
-const MREZA = "grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-4 lg:gap-8";
+/* Kartica nosi vlastiti border, pa razmak više ne mora da je razdvaja — gap-8 je
+   ostao iz izgleda u kojem kartica nije imala okvir. Mockup drži kartice blizu. */
+const MREZA = "grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4";
 
 export function ProductGrid({ products }: { products: Product[] }) {
   return (

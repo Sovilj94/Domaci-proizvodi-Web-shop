@@ -165,3 +165,9 @@ Riješeno u sekciji 2:
 
 - **Task 2 gotov.** Dugmad na 10px radijusu umjesto pilule, logo „piljara" iz amber u
   brand zelenu, nov `ui/section-header.tsx`.
+
+### 2026-10-02 (nastavak) — Task 3 (kartica proizvoda) gotov
+
+- **Task 3 gotov.** Kartica proizvoda po mockupu: bijela sa borderom, slika 1:1, badge
+  gore lijevo, dugme pune širine. **`tone` prop uklonjen** — mockup nema tamnu karticu.
+  Gornji desni ugao ostavljen prazan za srce iz Faze 5.

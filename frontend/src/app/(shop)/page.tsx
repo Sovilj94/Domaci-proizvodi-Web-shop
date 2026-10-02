@@ -282,13 +282,13 @@ export default function HomePage() {
               <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:hidden">
                 {prikazani.slice(0, 10).map((p) => (
                   <div key={p.id} className="w-44 shrink-0">
-                    <ProductCard product={p} tone="dark" />
+                    <ProductCard product={p} />
                   </div>
                 ))}
               </div>
               <div className="hidden gap-6 sm:grid sm:grid-cols-2 lg:grid-cols-3">
                 {prikazani.slice(0, 9).map((p) => (
-                  <ProductCard key={p.id} product={p} tone="dark" />
+                  <ProductCard key={p.id} product={p} />
                 ))}
               </div>
             </>
