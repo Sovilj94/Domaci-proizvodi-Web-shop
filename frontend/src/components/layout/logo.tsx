@@ -29,11 +29,10 @@ export function Logo({
       >
         E{" "}
         {/*
-          Amber mora da se mijenja sa podlogom: honey-500 na kremu daje 2.97:1 i pada
-          i prag za krupan tekst (3:1), a honey-700 na tamnoj je pretaman. Zato 600
-          na svijetloj (3.86:1) i 500 na tamnoj (4.91:1).
+          Na svijetloj podlozi riječ nosi brand-600 (8.28:1 na cream). Na tamnoj bi
+          brand-600 pao, pa ide brand-300 (#8dbda2) koji na night daje 7.2:1.
         */}
-        <span className={tone === "dark" ? "text-honey-500" : "text-honey-600"}>
+        <span className={tone === "dark" ? "text-brand-300" : "text-brand-600"}>
           piljara
         </span>
       </span>

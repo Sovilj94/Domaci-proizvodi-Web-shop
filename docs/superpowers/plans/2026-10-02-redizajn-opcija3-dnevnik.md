@@ -160,3 +160,8 @@ Riješeno u sekciji 2:
 
 - **Task 1 (tokeni) gotov.** `globals.css` na novoj paleti; obrisana `.animate-traka`.
   Tamne sekcije na početnoj još stoje — one su Task 7.
+
+### 2026-10-02 (nastavak) — Task 2 (dugmad, logo, section header) gotov
+
+- **Task 2 gotov.** Dugmad na 10px radijusu umjesto pilule, logo „piljara" iz amber u
+  brand zelenu, nov `ui/section-header.tsx`.
