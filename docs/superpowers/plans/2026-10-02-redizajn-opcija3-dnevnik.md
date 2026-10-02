@@ -139,3 +139,19 @@ Riješeno u sekciji 2:
   `/o-nama` i `/kontakt` (sad `{{ZAMIJENITI}}`), i nerazriješen sudar faza — srce se
   gradi u Fazi 1 a radi tek od Faze 5.
 - Commit `40bf8dd`. **Čeka se korisnikov pregled speca prije pisanja plana.**
+
+### 2026-10-02 (nastavak) — plan Faze 1 napisan
+
+- Spec odobren bez izmjena.
+- Odluka: **plan po fazi**, ne jedan plan za svih pet — svaka faza daje nešto što radi,
+  a detalji kasnijih faza zavise od ishoda Faze 1.
+- Napisan `docs/superpowers/plans/2026-10-02-redizajn-opcija3-faza1.md` — 8 taskova:
+  tokeni → dugmad/logo/section-header → kartica → header+traka → donja navigacija →
+  benefiti/pločice → početna → provjera.
+- Provjereno u kodu prije pisanja (da plan ne sadrži pretpostavke): `ProductGridSkeleton`
+  prima `count?`, lucide 1.23 ima `Grid2x2`/`Leaf`/`ShieldCheck`/`Truck`/`User`,
+  `tone="dark"` se šalje na tačno dva mjesta u `(shop)/page.tsx` (285, 291).
+- Samopregled plana našao i ispravio: Task 4 je navbar opisivao riječima umjesto kodom
+  (sad je cio fajl ispisan), `MREZA` u `product-grid.tsx` ima `gap-8` uz komentar koji
+  tvrdi da kartica nema okvir — a nova ga ima, pa se i razmak i komentar mijenjaju;
+  mreža na početnoj se razilazila sa skeletonom; pobrkana numeracija stepova u Tasku 3.
