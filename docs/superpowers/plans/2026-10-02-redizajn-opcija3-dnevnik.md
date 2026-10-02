@@ -74,8 +74,8 @@ imena/telefona nema endpoint. Task 5–7 (stranica `/account`, `AddressChooser` 
 
 | Faza | Sadržaj | Status |
 |---|---|---|
-| 0 | Brainstorming, spec, plan | **u toku** |
-| 1 | Tokeni, header, bottom nav, product card, dugmad, section header, početna | nije počela |
+| 0 | Brainstorming, spec, plan | **gotova** |
+| 1 | Tokeni, header, bottom nav, product card, dugmad, section header, početna | **u toku — 4/8 taskova** |
 | 2 | Proizvodi (sidebar filteri, klijentsko sortiranje/paginacija), detalj proizvoda | nije počela |
 | 3 | Korpa, checkout | nije počela |
 | 4 | Kategorije, Moj nalog + Adresar, mobile drawer | nije počela |
@@ -178,3 +178,90 @@ Riješeno u sekciji 2:
   aktivna iz `?category=`). Header više ne pluta nad herojem — svijetao i sticky svuda;
   obrisani `skrolovano`, `nadHerojem`, gradijent i `locationChip`. `ShopNavbar` je sada
   omotan `<Suspense>` jer traka čita `useSearchParams()`. Obrisana `shop/category-chips.tsx`.
+
+---
+
+# ⏸ GDJE SMO STALI — 2026-10-02
+
+Rad **pauziran na korisnikov zahtjev** usred Faze 1. Radno stablo je **čisto**, sve je
+commitovano, ništa nije u pola koraka.
+
+## Stanje
+
+**Grana:** `redizajn-opcija3`, HEAD = `38865e2`, 8 commita ispred `main`.
+**Faza 1: taskovi 1–4 od 8 su urađeni i commitovani.**
+
+| Task | Šta | Commit | Recenzija |
+|---|---|---|---|
+| 1 | Tokeni u `globals.css` | `e7b5bc8` + fix `23f266a` | ✅ čista nakon 1 fix runde |
+| 2 | Dugmad, logo, `section-header.tsx` | `c57d036` | ✅ čista iz prve |
+| 3 | Kartica proizvoda, `MREZA`, uklonjen `tone` | `934fb6e` | ✅ čista iz prve |
+| 4 | Header + `category-rail.tsx`, obrisan `category-chips.tsx` | `38865e2` | ⏸ **NIJE RECENZIRAN** |
+| 5 | Donja navigacija na 5 tabova | — | nije počeo |
+| 6 | `benefit-cards.tsx`, `category-tile.tsx` | — | nije počeo |
+| 7 | Početna stranica | — | nije počeo |
+| 8 | Provjera cijele faze | — | nije počeo |
+
+## PRVI KORAK PRI NASTAVKU
+
+**Task 4 je implementiran ali recenzija je prekinuta u pola.** Ne preskakati je.
+
+```
+BASE = 52e00cf   HEAD = 38865e2
+diff paket: .superpowers/sdd/2026-10-02-redizajn-opcija3-faza1/review-52e00cf..38865e2.diff
+brief:      .superpowers/sdd/2026-10-02-redizajn-opcija3-faza1/task-4-brief.md
+report:     .superpowers/sdd/2026-10-02-redizajn-opcija3-faza1/task-4-report.md
+```
+
+Implementer je prijavio `DONE_WITH_CONCERNS`: tsc/lint/build sve zeleno (build 47/47 strana,
+**bez `Suspense` greške**), a jedino što nije uradio je provjera u browseru — jer `npm run
+build` obori dev server, a njemu nije dozvoljeno da gasi procese.
+
+**Što na Tasku 4 treba posebno provjeriti:** da `<Suspense>` stvarno obuhvata komponentu
+koja čita `useSearchParams()`; da nije ostao nijedan trag `nadHerojem` / `skrolovano` /
+`MapPin` / `locationChip`; da `cn` import nije ostao neiskorišten; i da imena kategorija
+dolaze iz `useCategories()` a nisu hardkodovana.
+
+**Vizuelna provjera Task 4 takođe nije urađena** — dev server je restartovan poslije
+build-a i treba pogledati izgleda li header kao na mockupu (logo, search, ikone, ispod
+traka sa 7 okruglih kategorija, sticky, bez plutanja nad herojem).
+
+## Okruženje
+
+- Dev server je restartovan i radi u pozadini; log: `%TEMP%\epiljara-dev.log`.
+  **Napomena:** `npm run build` ga svaki put obori (dijele `.next`) — vidi Global
+  Constraints u planu Faze 1. Poslije svakog build-a treba restart.
+- Backend `EPiljara.API` na :5080, Postgres i OSRM u Dockeru — svi su radili.
+
+## Otvoreno, za finalnu fix rundu Faze 1
+
+Minor nalazi skupljeni dosad (nijedan ne blokira):
+
+1. `logo.tsx` — komentar tvrdi `brand-300` na `night` daje **7.2:1**; stvarno je **7.69:1**.
+   Moja greška u planu, ne implementerova.
+2. `product-card.tsx` — `justify-between` na divu koji obavija samo jedno dijete (cijenu);
+   mrtva klasa. Takođe greška u planu.
+3. `section-header.tsx` — koristi globalni `React.ReactNode` bez `import type`.
+4. `product-card.tsx` — badge se renderuje bezuslovno, bez stare `categoryName &&` straže
+   (u praksi bezopasno, polje je obavezno).
+5. Dva `Link`-a na isto odredište u kartici → duplirani linkovi za čitače ekrana
+   (zatečeno, nije regresija).
+6. Task 4 commit trailer kaže „Claude Sonnet 5" umjesto „Claude Opus 5" — implementer je
+   slijedio svoj session reminder. Bezopasno.
+
+## Poznata ograničenja
+
+- **Mobilni raspored nije provjeren i ne smije se tvrditi da jeste.** `resize_window`
+  vraća „Successfully resized" ali `window.innerWidth` ostaje 1920 (probano na 375 i 390),
+  pa screenshot pokazuje desktop. Izmjereno je samo da na 1920px nema vodoravnog skrola
+  (`scrollWidth` 1905 = `clientWidth` 1905). Task 8 treba naći metod koji radi ili tražiti
+  od korisnika da pogleda u devtools-u.
+- Tabovi „Kategorije" i „Profil" u donjoj navigaciji (Task 5) vodiće na rute koje postoje
+  tek u Fazi 4 — namjerno, zapisano u planu.
+
+## Dokumenti
+
+- Spec: `docs/superpowers/specs/2026-10-02-redizajn-opcija3-design.md`
+- Plan Faze 1: `docs/superpowers/plans/2026-10-02-redizajn-opcija3-faza1.md`
+- SDD ledger (git-ignored, detaljniji): `.superpowers/sdd/2026-10-02-redizajn-opcija3-faza1/progress.md`
+- Vizuelni izvor istine: `C:\Users\soviljn\Desktop\E-piljara Grocery UI Showcase complete.png`
