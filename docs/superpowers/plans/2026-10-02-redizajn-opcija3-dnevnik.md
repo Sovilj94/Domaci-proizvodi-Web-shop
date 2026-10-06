@@ -210,9 +210,96 @@ Riješeno u sekciji 2:
   stanje) i prazno/grešno stanje `Podaci o domaćinima trenutno nisu dostupni.`
 - `npx tsc --noEmit`, `npm run lint`, `npm run build` — sve zeleno.
 
+### 2026-10-06 (nastavak) — Task 8 (provjera cijele faze) gotov — **Faza 1 završena**
+
+**Komandna linija i statička provjera** (bez pisanja koda, bez restarta servera):
+
+- `npx tsc --noEmit` — čisto, bez izlaza, exit 0.
+- `npm run lint` — čisto, `eslint` bez grešaka/upozorenja, exit 0.
+- `npm run build` — čisto, `Compiled successfully in 6.5s`, 47/47 statičkih strana,
+  exit 0.
+- `grep -rn "night-card\|muted-dark\|animate-traka" src --include="*.tsx"
+  --include="*.css"`: `night-card` 2 pogotka u `globals.css` (definicija tokena,
+  ne upotreba) — očekivano; `muted-dark` 6 pogodaka (1 definicija +
+  5 u `shop-footer.tsx`, koji ova faza nije dirala) — očekivano. `animate-traka`
+  1 pogodak — `category-rail.tsx:12`, unutar komentara koji **imenuje** obrisanu
+  klasu da objasni šta je zamijenila; nema CSS pravila ni `className` upotrebe.
+  **Provjera prolazi** — pravilo iz plana ("nijedan pogodak") bilo je prestrogo
+  formulisano (to je greška plana, ne koda); komentar koji dokumentuje obrisanu
+  klasu nije "ostatak u upotrebi".
+- **Statička provjera širina** (čitanje klasa, bez renderovanja — automatska
+  emulacija viewporta nije radila, vidi dolje): `grid-cols-2` bez breakpoint
+  prefiksa potvrđuje **2 proizvoda po redu na telefonu**, i na `product-grid.tsx`
+  i na početnoj ("Izdvojeni proizvodi"). Tap targeti uglavnom `h-10`/`h-11`
+  (40–44px). `.no-scrollbar` u `globals.css` sakriva scrollbar na traci kategorija
+  (webkit/IE/Firefox). Dva konkretna nalaza (vidi "Otvoreno" dolje): `text-[10px]`
+  na badge-u broja u korpi (ispod ~11px praga), i `main`-ov `pb-20` (80px) koji ne
+  uključuje `env(safe-area-inset-bottom)` dok donja traka to radi.
+
+**Browser provjera (kontroler, na živom steku, API + dev server up):**
+
+- Nema vodoravnog skrola: `/products` na 1905px, `scrollWidth` = `clientWidth` = 1905.
+- Tok korpe radi end-to-end: dodavanje sa početne → toast → `localStorage` (`epiljara.cart`)
+  → `/cart` prikazuje stavku, Međuzbir, **"Dostava — računa se na naplati"** (prava
+  fraza, ne izmišljena 0.00 KM), Ukupno. (Prvi klik nije upalio jer je stigao prije
+  hidracije — artefakt testa, ne regresija.)
+- Error stanja rade: API zaustavljen, početna prikazala sva tri fallback teksta
+  ("Kategorije trenutno nisu dostupne.", "Trenutno nema izdvojenih proizvoda.",
+  "Podaci o domaćinima trenutno nisu dostupni."), naslovi sekcija ostali.
+- Početna odgovara mockupu end-to-end (svijetli hero, četiri benefita, šest
+  pločica kategorija **jednake visine**, svijetla sekcija proizvoda, domaćini,
+  tamni promo baner, footer — tamno samo na baneru i footeru).
+- Header geometrija stabilna (header 164px, traka 98px, svaka stavka trake 78px);
+  aktivno stanje trake i donje navigacije ispravno na `/products?category=povrce`,
+  `/cart`, `/login`.
+- Donja traka: pet tabova, ispravni nazivi.
+
+**Report:** `.superpowers/sdd/2026-10-02-redizajn-opcija3-faza1/task-8-report.md`
+(puni izlaz sve tri komande, kompletan grep, po-fajl statička analiza širina sa
+citiranim klasama, i dodatak sa browser nalazima kontrolera).
+
+#### Otvoreno za Fazu 2 (i dalje)
+
+1. **Donja traka vs. safe-area-inset — potvrđeno, nije samo statička pretpostavka.**
+   Izmjereno: traka 56px, `main`-ov `padding-bottom` 80px. Na desktopu
+   `env(safe-area-inset-bottom)` je 0 (24px rezerve), ali traka raste za inset
+   (`pb-[env(safe-area-inset-bottom)]`) dok je `main`-ov `pb-20` statičan. Na
+   telefonu sa ~34px insetom traka postaje ~90px naspram 80px rezerve — zadnjih
+   ~10px sadržaja može biti ispod trake. **Popravka (nije urađena ovdje, ide u
+   finalnu fix rundu cijele grane):** `pb-[calc(5rem+env(safe-area-inset-bottom))]`
+   na `<main>` u `frontend/src/app/(shop)/layout.tsx`.
+2. **`/products` trenutno ima dvije trake kategorija.** Header je dobio
+   `CategoryRail` (Task 4), a `/products` i dalje crta svoje stare chipove ispod
+   nje — samo header-ova nosi `nav[aria-label="Kategorije"]`, dvije stvarno
+   različite komponente. Faza 2 prepisuje `/products` i uklanja stare chipove, pa
+   se ovo samo razrješava — ali je vidljivo sada i zapisano da se ne otkriva
+   iznova.
+3. **Badge broja u korpi (donja traka) koristi `text-[10px]`** — ispod ~11px
+   praga iz provjere. Mala je numerička oznaka, ne tijelo teksta, ali je
+   konkretan pogodak koji treba riješiti ili svjesno prihvatiti u finalnoj rundi.
+4. **Mobilni raspored nije vizuelno provjeren — ni sada, ni u prethodnoj sesiji.**
+   Tri pristupa nisu radila za kontrolera: `resize_window` javlja uspjeh ali
+   `window.innerWidth` ostaje 1920; sized popup je blokiran; Playwright/Puppeteer
+   nisu instalirani. Jedina provjera koju je mobilni raspored dobio je statičko
+   čitanje klasa (vidi report, Task 8). Dodatno: Chrome prozor se dvaput skupio na
+   0×0 i morao biti ponovo otvoren, jedna JS evaluacija je timeout-ovala — browser
+   alat u ovom okruženju je nepouzdan, vrijedi znati za Fazu 2.
+5. (Prethodno poznato, stoji i dalje) `/kategorije` i `/account` ne postoje —
+   rješava Faza 4. `(shop)/products/page.tsx` čeka puni redizajn u Fazi 2. Srce za
+   omiljene stiže u Fazi 5. `shop-footer.tsx` ostaje tamni (nije diran, mockup i
+   ima tamni footer).
+
+**Faza 1 (Taskovi 1–8) je završena.** Sve tri komande (`tsc`, `lint`, `build`)
+čiste; grep provjera prolazi; tok korpe i prijave radi na pravom steku; jedino
+mobilni raspored ostaje nepotvrđen zbog ograničenja alata, ne zbog koda.
+
 ---
 
 # ⏸ GDJE SMO STALI — 2026-10-02
+
+> **Prevaziđeno.** Ovaj odjeljak je snimak stanja usred Faze 1 (poslije Taska 4).
+> Rad je od tada nastavljen i **Faza 1 je u cijelosti završena** (Task 8, zapis gore,
+> 2026-10-06). Odjeljak je ostavljen kao istorijski trag, ne kao trenutno stanje.
 
 Rad **pauziran na korisnikov zahtjev** usred Faze 1. Radno stablo je **čisto**, sve je
 commitovano, ništa nije u pola koraka.
