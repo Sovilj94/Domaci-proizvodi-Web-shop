@@ -8,8 +8,8 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
 
 /**
- * App-style bottom tab bar (Glovo/Wolt) shown only on phones. Desktop keeps the
- * top navbar. The cart tab carries a live item-count badge.
+ * Donja traka u stilu aplikacije (Glovo/Wolt), samo na telefonima — desktop zadržava
+ * gornji navbar. Tab korpe nosi živi broj artikala i otvara korpu umjesto da navigira.
  */
 interface Tab {
   href: string;
@@ -36,11 +36,19 @@ export function MobileTabBar() {
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <ul className="mx-auto flex max-w-md items-stretch">
         {TABS.map((t) => {
+          /* /account stiže u Fazi 4; do tada Profil vodi na prijavu ili narudžbe. */
+          const href =
+            t.href === "/account" ? (user ? "/orders" : "/login") : t.href;
+          /*
+           * Aktivno stanje se računa iz `href`, ne iz `t.href`: Profil vodi na
+           * izvedeno odredište, pa bi poređenje sa "/account" — rute koja još ne
+           * postoji — značilo da se taj tab nikad ne istakne.
+           */
           const active = t.cart
             ? isOpen
             : t.exact
-              ? pathname === t.href
-              : pathname === t.href || pathname.startsWith(t.href + "/");
+              ? pathname === href
+              : pathname === href || pathname.startsWith(href + "/");
           const cls = cn(
             "flex w-full flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition",
             active ? "text-brand-600" : "text-muted",
@@ -61,9 +69,6 @@ export function MobileTabBar() {
               {t.label}
             </>
           );
-          /* /account stiže u Fazi 4; do tada Profil vodi na prijavu ili narudžbe. */
-          const href =
-            t.href === "/account" ? (user ? "/orders" : "/login") : t.href;
           return (
             <li key={t.href} className="flex-1">
               {t.cart ? (
