@@ -35,7 +35,7 @@ export function ProductCard({ product }: { product: Product }) {
           className="transition duration-500 group-hover:scale-105"
         />
         <span className="absolute left-2.5 top-2.5 rounded-full bg-surface/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur">
-          {product.isFeatured && !soldOut ? "Izdvojeno" : product.categoryName}
+          {product.isFeatured ? "Izdvojeno" : product.categoryName}
         </span>
         {soldOut && (
           <div className="absolute inset-0 flex items-center justify-center bg-surface/80 text-sm font-medium text-ink">
@@ -56,13 +56,11 @@ export function ProductCard({ product }: { product: Product }) {
           {product.producer?.village ? `, ${product.producer.village}` : ""}
         </p>
 
-        <div className="mt-3 flex items-end justify-between gap-2">
-          <div className="flex items-baseline gap-0.5">
-            <span className="text-base font-bold text-ink sm:text-lg">
-              {formatPrice(product.price)}
-            </span>
-            <span className="text-xs text-muted">{unitSuffix(product.unit)}</span>
-          </div>
+        <div className="mt-3 flex items-baseline gap-0.5">
+          <span className="text-base font-bold text-ink sm:text-lg">
+            {formatPrice(product.price)}
+          </span>
+          <span className="text-xs text-muted">{unitSuffix(product.unit)}</span>
         </div>
 
         <button
@@ -82,7 +80,7 @@ export function ProductCard({ product }: { product: Product }) {
             Na telefonu je kartica ~160px i natpis bi se prelomio, pa ostaje samo „+".
             Dugme je i dalje puna širina — tap target je cijela donja ivica kartice.
           */}
-          <span className="hidden sm:inline">Dodaj u korpu</span>
+          <span className="hidden sm:inline">{soldOut ? "Nema na stanju" : "Dodaj u korpu"}</span>
         </button>
       </div>
     </div>

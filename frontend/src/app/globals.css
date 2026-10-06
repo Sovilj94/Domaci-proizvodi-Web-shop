@@ -14,7 +14,7 @@
 @theme {
   /*
    * Brand — tamno zelena iz mockupa „Opcija 3". Skala je izvedena oko 600, koji nosi
-   * ispunu dugmadi: bijelo na #0e5b38 daje 8.28:1. 700 je hover, 500 ide na ikone.
+   * ispunu dugmadi: bijelo na #0e5b38 daje 8.16:1. 700 je hover, 500 ide na ikone.
    */
   --color-brand-50: #f1f7f3;
   --color-brand-100: #dcebe2;
@@ -31,7 +31,9 @@
    * Amber — akcenat. Kontrast dijeli skalu na dvoje i to se ne krši:
    *   500 (#c17f2a) = ukras, i tekst SAMO na tamnoj (4.91:1 na #232018).
    *                   Na kremu daje 2.97:1 i pada AA — nikad sitan tekst tamo.
-   *   700 (#8f5d1b) = nadnaslovi i linkovi na kremu (5.02:1).
+   * Skala je ostala zbog footera i starijih ekrana (honey-500, honey-600); ostali
+   * stepeni (uključujući 700, nekad za nadnaslove i linkove na kremu — komponenta
+   * `Nadnaslov` je obrisana na ovoj grani) trenutno nemaju korisnika.
    */
   --color-honey-100: #f7ead6;
   --color-honey-300: #e8be85;
@@ -42,19 +44,20 @@
 
   /* Neutrali — svijetli i skoro neutralni. Mockup nema tople krem tonove starog izgleda. */
   --color-cream: #f8f5ed;   /* pozadina stranice */
-  --color-sand: #eef5ee;    /* svijetlo zelena površina — ikone benefita, čipovi */
+  --color-sand: #eef5ee;    /* svijetlo zelena površina — ikone benefita, traka kategorija */
   --color-ink: #171914;     /* tekst — 16.3:1 na cream */
-  --color-muted: #5f6459;   /* sekundarni tekst — 5.66:1 na cream */
+  --color-muted: #5f6459;   /* sekundarni tekst — 5.58:1 na cream */
   --color-line: #e5e1d7;    /* hairline granice */
   --color-surface: #ffffff; /* kartice */
 
   /*
-   * Tamne površine. Sekcija izdvojenih proizvoda i footer stoje na `night`;
-   * kartice na njoj su `night-card` da se odvoje bez okvira.
+   * Tamne površine. Na ovoj grani je ostao samo footer — sekcija izdvojenih
+   * proizvoda je postala svijetla. Kartice na `night` su `night-card` da se
+   * odvoje bez okvira.
    */
   --color-night: #232018;
   --color-night-card: #2e2b23;
-  /* Sekundarni tekst NA tamnoj. `muted` tamo daje 4.03:1 i pada AA. */
+  /* Sekundarni tekst NA tamnoj. `muted` tamo daje 2.67:1 i pada AA. */
   --color-muted-dark: #a79c86;
   --color-sage: #8da876;
 

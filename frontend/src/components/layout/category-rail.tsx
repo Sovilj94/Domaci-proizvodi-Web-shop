@@ -22,6 +22,14 @@ export function CategoryRail() {
   const naProizvodima = pathname === "/products";
   const aktivna = naProizvodima ? searchParams.get("category") : null;
 
+  /*
+   * Na /products se traka ne prikazuje. Ta stranica čita `?category` samo na mount, pa
+   * klik iz trake promijeni URL ali ne i mrežu proizvoda — a ona ima svoje čipove koji
+   * bi pokazivali staro stanje. Navbar isto zaobilazi (`hideSearch`). Faza 2 prepisuje
+   * tu stranicu, i tada traka može preuzeti filtriranje.
+   */
+  if (pathname === "/products") return null;
+
   if (isLoading) {
     return <CategoryRailSkeleton />;
   }
@@ -34,7 +42,10 @@ export function CategoryRail() {
   ];
 
   return (
-    <nav aria-label="Kategorije" className="no-scrollbar overflow-x-auto">
+    <nav
+      aria-label="Kategorije"
+      className="no-scrollbar overflow-x-auto border-b border-line bg-cream"
+    >
       <ul className="mx-auto flex max-w-6xl items-start gap-5 px-4 py-2.5">
         {stavke.map((s) => {
           const active = naProizvodima && s.slug === aktivna;
@@ -42,6 +53,7 @@ export function CategoryRail() {
             <li key={s.slug ?? "sve"} className="shrink-0">
               <Link
                 href={s.slug ? `/products?category=${s.slug}` : "/products"}
+                aria-current={active ? "page" : undefined}
                 className="flex w-16 flex-col items-center gap-1.5"
               >
                 <span
@@ -75,12 +87,13 @@ export function CategoryRail() {
 
 /**
  * Oblik trake prije podataka. Postoji kao zasebna komponenta jer ga koriste dva
- * mjesta — `isLoading` grana ispod i <Suspense fallback> u headeru. Dvije kopije
- * bi se razišle i stranica bi skakala pri hidraciji.
+ * mjesta — `isLoading` grana ispod i <Suspense fallback> u layout.tsx. Dvije kopije
+ * bi se razišle i stranica bi skakala pri hidraciji. Nosi isti `border-b` kao
+ * `CategoryRail` da povratak na `/products` (koji vraća `null`) ne ostavi liniju.
  */
 export function CategoryRailSkeleton() {
   return (
-    <div className="no-scrollbar overflow-x-auto">
+    <div className="no-scrollbar overflow-x-auto border-b border-line bg-cream">
       <div className="mx-auto flex max-w-6xl items-start gap-5 px-4 py-2.5">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex w-16 shrink-0 flex-col items-center gap-1.5">

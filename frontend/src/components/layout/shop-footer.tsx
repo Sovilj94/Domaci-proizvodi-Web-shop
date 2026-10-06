@@ -4,11 +4,18 @@ import { Logo } from "@/components/layout/logo";
 
 /**
  * Footer je taman, kao zadnji od naizmjeničnih pojaseva stranice. Sekundarni tekst
- * ide u `muted-dark`, ne `muted` — ovaj drugi na `night` daje 4.03:1 i pada AA.
+ * ide u `muted-dark`, ne `muted` — ovaj drugi na `night` daje 2.67:1 i pada AA.
  */
 export function ShopFooter() {
   return (
-    <footer className="bg-night text-cream">
+    <footer
+      className="bg-night text-cream pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0"
+    >
+      {/*
+       * Rezervacija za fiksnu donju traku (56px) ide ovdje, ne na <main>: traka je
+       * fiksirana na dno VIEWPORT-a, pa pokriva dno onoga što je zadnje u toku — a to
+       * je footer, poslije <main>. Na telefonima sa zarezom raste za safe-area inset.
+       */}
       {/* Brend stupac je širi od ostala tri — nosi opis, a ne spisak linkova. */}
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
         <div className="space-y-4">

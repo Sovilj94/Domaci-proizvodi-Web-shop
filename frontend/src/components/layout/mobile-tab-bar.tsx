@@ -36,13 +36,22 @@ export function MobileTabBar() {
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <ul className="mx-auto flex max-w-md items-stretch">
         {TABS.map((t) => {
-          /* /account stiže u Fazi 4; do tada Profil vodi na prijavu ili narudžbe. */
-          const href =
-            t.href === "/account" ? (user ? "/orders" : "/login") : t.href;
           /*
-           * Aktivno stanje se računa iz `href`, ne iz `t.href`: Profil vodi na
-           * izvedeno odredište, pa bi poređenje sa "/account" — rute koja još ne
-           * postoji — značilo da se taj tab nikad ne istakne.
+           * /account i /kategorije stižu u Fazi 4. Dok ih nema, tabovi vode na postojeće
+           * stranice umjesto na 404 — spec izričito traži da nema mrtvih stavki u meniju.
+           */
+          const href =
+            t.href === "/account"
+              ? user
+                ? "/orders"
+                : "/login"
+              : t.href === "/kategorije"
+                ? "/products"
+                : t.href;
+          /*
+           * Aktivno stanje se računa iz `href`, ne iz `t.href`: Profil i Kategorije vode
+           * na izvedena odredišta, pa bi poređenje sa rutama koje još ne postoje značilo
+           * da se ti tabovi nikad ne istaknu.
            */
           const active = t.cart
             ? isOpen
@@ -60,7 +69,8 @@ export function MobileTabBar() {
                 {t.cart && count > 0 && (
                   <span
                     id="cart-target-mobile"
-                    className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white"
+                    aria-hidden="true"
+                    className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[11px] font-bold text-white"
                   >
                     {count}
                   </span>
@@ -72,11 +82,16 @@ export function MobileTabBar() {
           return (
             <li key={t.href} className="flex-1">
               {t.cart ? (
-                <button type="button" onClick={openCart} className={cls}>
+                <button
+                  type="button"
+                  onClick={openCart}
+                  aria-label={`Korpa, ${count} ${count === 1 ? "artikal" : "artikala"}`}
+                  className={cls}
+                >
                   {inner}
                 </button>
               ) : (
-                <Link href={href} className={cls}>
+                <Link href={href} aria-current={active ? "page" : undefined} className={cls}>
                   {inner}
                 </Link>
               )}

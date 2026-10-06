@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, LogOut, Menu, Search, User, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
-import { CategoryRail, CategoryRailSkeleton } from "@/components/layout/category-rail";
 import { CartButton } from "@/components/shop/cart-button";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -108,18 +107,6 @@ export function ShopNavbar() {
             />
           </form>
         )}
-      </div>
-
-      {/*
-        Traka kategorija — puna širina, sama se skroluje. Samo ona čita
-        `useSearchParams()`, pa samo ona ide u <Suspense>; gornji red se prerenderuje
-        normalno. Fallback je ista komponenta kao `isLoading` grana u CategoryRail —
-        jedan oblik umjesto dvije kopije koje bi se razišle i stranica bi skakala.
-      */}
-      <div className="border-t border-line">
-        <Suspense fallback={<CategoryRailSkeleton />}>
-          <CategoryRail />
-        </Suspense>
       </div>
 
       {/*

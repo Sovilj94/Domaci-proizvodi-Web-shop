@@ -44,7 +44,7 @@ export default function HomePage() {
   return (
     <div>
       {/* ---------- Hero ---------- */}
-      <Section className="pt-6">
+      <Section className="pt-6 sm:pt-6">
         <div className="relative overflow-hidden rounded-card border border-line bg-surface">
           <div className="grid items-center gap-6 md:grid-cols-2">
             <div className="order-2 p-6 sm:p-10 md:order-1">
@@ -82,13 +82,13 @@ export default function HomePage() {
       </Section>
 
       {/* ---------- Benefiti ---------- */}
-      <Section className="py-2">
+      <Section className="py-2 sm:py-2">
         <BenefitCards />
       </Section>
 
       {/* ---------- Popularne kategorije ---------- */}
       <Section>
-        <SectionHeader naslov="Popularne kategorije" link="/kategorije" />
+        <SectionHeader naslov="Popularne kategorije" />
         {categories.isLoading ? (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -169,7 +169,7 @@ export default function HomePage() {
       </Section>
 
       {/* ---------- Promo baner ---------- */}
-      <Section className="pb-14">
+      <Section className="pb-14 sm:pb-14">
         <div className="relative overflow-hidden rounded-card">
           <Image
             src="/hero/hero-domacinstvo.jpg"

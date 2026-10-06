@@ -29,8 +29,8 @@ export function Logo({
       >
         E{" "}
         {/*
-          Na svijetloj podlozi riječ nosi brand-600 (8.28:1 na cream). Na tamnoj bi
-          brand-600 pao, pa ide brand-300 (#8dbda2) koji na night daje 7.2:1.
+          Na svijetloj podlozi riječ nosi brand-600 (8.16:1 na cream). Na tamnoj bi
+          brand-600 pao, pa ide brand-300 (#8dbda2) koji na night daje 7.69:1.
         */}
         <span className={tone === "dark" ? "text-brand-300" : "text-brand-600"}>
           piljara

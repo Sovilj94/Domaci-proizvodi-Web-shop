@@ -9,7 +9,7 @@ export function CartButton() {
     <button
       onClick={openCart}
       aria-label="Korpa"
-      className="relative grid h-10 w-10 place-items-center rounded-full text-ink transition hover:bg-sand"
+      className="relative grid h-10 w-10 place-items-center rounded-[10px] text-ink transition hover:bg-sand"
     >
       <ShoppingBasket className="h-5 w-5" />
       {hydrated && count > 0 && (

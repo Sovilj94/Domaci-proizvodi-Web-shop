@@ -28,7 +28,7 @@ export function BenefitCards() {
           </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-ink">{b.naslov}</p>
-            <p className="truncate text-xs text-muted">{b.opis}</p>
+            <p className="text-xs text-muted">{b.opis}</p>
           </div>
         </li>
       ))}
