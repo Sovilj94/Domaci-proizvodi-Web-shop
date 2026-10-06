@@ -186,6 +186,11 @@ Riješeno u sekciji 2:
   **Otvoreno:** tab „Kategorije" vodi na `/kategorije` koja postoji tek od Faze 4 — do
   tada daje 404. „Profil" privremeno vodi na `/orders` (prijavljen) ili `/login` (gost).
 
+### 2026-10-02 (nastavak) — Task 6 (komponente benefita i pločica) gotov
+
+- **Task 6 gotov.** Nove `shop/benefit-cards.tsx` (četiri benefita, tekstovi na jednom
+  mjestu) i `shop/category-tile.tsx`. Koristi ih Task 7.
+
 ---
 
 # ⏸ GDJE SMO STALI — 2026-10-02
