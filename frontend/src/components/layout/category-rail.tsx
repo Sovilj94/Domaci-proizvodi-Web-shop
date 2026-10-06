@@ -19,19 +19,11 @@ export function CategoryRail() {
   const { data, isLoading } = useCategories();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const aktivna = pathname === "/products" ? searchParams.get("category") : null;
+  const naProizvodima = pathname === "/products";
+  const aktivna = naProizvodima ? searchParams.get("category") : null;
 
   if (isLoading) {
-    return (
-      <div className="flex gap-5 overflow-hidden px-4 py-2.5">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex shrink-0 flex-col items-center gap-1.5">
-            <div className="skeleton h-11 w-11 rounded-full" />
-            <div className="skeleton h-2.5 w-12 rounded" />
-          </div>
-        ))}
-      </div>
-    );
+    return <CategoryRailSkeleton />;
   }
 
   if (!data?.length) return null;
@@ -45,7 +37,7 @@ export function CategoryRail() {
     <nav aria-label="Kategorije" className="no-scrollbar overflow-x-auto">
       <ul className="mx-auto flex max-w-6xl items-start gap-5 px-4 py-2.5">
         {stavke.map((s) => {
-          const active = s.slug === aktivna;
+          const active = naProizvodima && s.slug === aktivna;
           return (
             <li key={s.slug ?? "sve"} className="shrink-0">
               <Link
@@ -66,7 +58,7 @@ export function CategoryRail() {
                 </span>
                 <span
                   className={cn(
-                    "line-clamp-2 text-center text-[11px] leading-tight",
+                    "line-clamp-2 min-h-7 text-center text-[11px] leading-tight",
                     active ? "font-semibold text-brand-700" : "text-muted",
                   )}
                 >
@@ -78,5 +70,25 @@ export function CategoryRail() {
         })}
       </ul>
     </nav>
+  );
+}
+
+/**
+ * Oblik trake prije podataka. Postoji kao zasebna komponenta jer ga koriste dva
+ * mjesta — `isLoading` grana ispod i <Suspense fallback> u headeru. Dvije kopije
+ * bi se razišle i stranica bi skakala pri hidraciji.
+ */
+export function CategoryRailSkeleton() {
+  return (
+    <div className="no-scrollbar overflow-x-auto">
+      <div className="mx-auto flex max-w-6xl items-start gap-5 px-4 py-2.5">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex w-16 shrink-0 flex-col items-center gap-1.5">
+            <div className="skeleton h-11 w-11 rounded-full" />
+            <div className="skeleton h-7 w-full rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

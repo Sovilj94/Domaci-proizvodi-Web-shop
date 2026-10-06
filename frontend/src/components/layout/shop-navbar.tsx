@@ -5,11 +5,11 @@ import { Suspense, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, LogOut, Menu, Search, User, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
-import { CategoryRail } from "@/components/layout/category-rail";
+import { CategoryRail, CategoryRailSkeleton } from "@/components/layout/category-rail";
 import { CartButton } from "@/components/shop/cart-button";
 import { useAuth } from "@/lib/auth/auth-context";
 
-function ShopNavbarInner() {
+export function ShopNavbar() {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const { user, isAdmin, logout, loading } = useAuth();
@@ -110,9 +110,16 @@ function ShopNavbarInner() {
         )}
       </div>
 
-      {/* Traka kategorija — puna širina, sama se skroluje */}
+      {/*
+        Traka kategorija — puna širina, sama se skroluje. Samo ona čita
+        `useSearchParams()`, pa samo ona ide u <Suspense>; gornji red se prerenderuje
+        normalno. Fallback je ista komponenta kao `isLoading` grana u CategoryRail —
+        jedan oblik umjesto dvije kopije koje bi se razišle i stranica bi skakala.
+      */}
       <div className="border-t border-line">
-        <CategoryRail />
+        <Suspense fallback={<CategoryRailSkeleton />}>
+          <CategoryRail />
+        </Suspense>
       </div>
 
       {/*
@@ -163,23 +170,5 @@ function ShopNavbarInner() {
         </div>
       )}
     </header>
-  );
-}
-
-/*
- * CategoryRail čita `useSearchParams()`. Bez <Suspense> oko njega `npm run build` pada
- * u prerender prolazu, dok tsc i eslint prolaze čisto — u ovom repozitoriju je to već
- * oborilo /login, /register i /admin/dostava.
- *
- * Visina fallbacka drži 64px gornjeg reda + ~42px trake; bez nje stranica skoči pri
- * hidraciji.
- */
-export function ShopNavbar() {
-  return (
-    <Suspense
-      fallback={<div className="sticky top-0 z-40 h-[106px] border-b border-line bg-cream" />}
-    >
-      <ShopNavbarInner />
-    </Suspense>
   );
 }
