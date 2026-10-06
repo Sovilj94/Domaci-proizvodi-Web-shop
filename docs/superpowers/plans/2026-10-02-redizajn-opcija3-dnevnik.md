@@ -197,6 +197,19 @@ Riješeno u sekciji 2:
   uklonjene obje tamne sekcije (hero i izdvojeni proizvodi). Tamno je ostalo samo na
   promo baneru i u footeru.
 
+### 2026-10-06 (nastavak) — Task 7, fix runda 1
+
+- Recenzija je potvrdila stranicu kao ispravnu osim jedne regresije iz briefa:
+  Step-2 kod je ispustio prazno/grešno stanje koje je stara stranica imala za
+  "Popularne kategorije" i "Izdvojeni proizvodi" — bez njega bi naslov sekcije
+  lebdio iznad praznog prostora ako zahtjev padne ili vrati praznu listu.
+  Dodata treća grana (`categories.data?.length ? … : <p>Kategorije trenutno nisu
+  dostupne.</p>`, analogno za proizvode: `Trenutno nema izdvojenih proizvoda.`).
+- Dodatno (minor), sekcija domaćina nije imala `isLoading` skeleton kao
+  kategorije i proizvodi — dodat skeleton (4 kartice, ista mreža kao učitano
+  stanje) i prazno/grešno stanje `Podaci o domaćinima trenutno nisu dostupni.`
+- `npx tsc --noEmit`, `npm run lint`, `npm run build` — sve zeleno.
+
 ---
 
 # ⏸ GDJE SMO STALI — 2026-10-02
