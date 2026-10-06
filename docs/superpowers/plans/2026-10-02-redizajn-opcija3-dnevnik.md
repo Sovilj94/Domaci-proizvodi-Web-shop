@@ -75,8 +75,8 @@ imena/telefona nema endpoint. Task 5–7 (stranica `/account`, `AddressChooser` 
 | Faza | Sadržaj | Status |
 |---|---|---|
 | 0 | Brainstorming, spec, plan | **gotova** |
-| 1 | Tokeni, header, bottom nav, product card, dugmad, section header, početna | **u toku — 4/8 taskova** |
-| 2 | Proizvodi (sidebar filteri, klijentsko sortiranje/paginacija), detalj proizvoda | nije počela |
+| 1 | Tokeni, header, bottom nav, product card, dugmad, section header, početna | **gotova** |
+| 2 | Proizvodi (sidebar filteri, klijentsko sortiranje/paginacija), detalj proizvoda | **na redu** |
 | 3 | Korpa, checkout | nije počela |
 | 4 | Kategorije, Moj nalog + Adresar, mobile drawer | nije počela |
 | 5 | Backend za omiljene + srce na kartici | nije počela |
@@ -190,6 +190,12 @@ Riješeno u sekciji 2:
 
 - **Task 6 gotov.** Nove `shop/benefit-cards.tsx` (četiri benefita, tekstovi na jednom
   mjestu) i `shop/category-tile.tsx`. Koristi ih Task 7.
+
+### 2026-10-06 — Task 7 (početna stranica) gotov — Faza 1 završena
+
+- **Task 7 gotov — Faza 1 završena.** Početna prepisana na sedam svijetlih sekcija;
+  uklonjene obje tamne sekcije (hero i izdvojeni proizvodi). Tamno je ostalo samo na
+  promo baneru i u footeru.
 
 ---
 
