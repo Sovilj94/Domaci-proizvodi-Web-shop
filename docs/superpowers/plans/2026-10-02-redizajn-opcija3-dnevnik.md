@@ -179,6 +179,13 @@ Riješeno u sekciji 2:
   obrisani `skrolovano`, `nadHerojem`, gradijent i `locationChip`. `ShopNavbar` je sada
   omotan `<Suspense>` jer traka čita `useSearchParams()`. Obrisana `shop/category-chips.tsx`.
 
+### 2026-10-02 (nastavak) — Task 5 (peti tab) gotov
+
+- **Task 5 gotov.** Donja navigacija ima pet tabova (Početna, Proizvodi, Kategorije,
+  Korpa, Profil), safe-area i bijelu podlogu. Layout `pb-16` → `pb-20`.
+  **Otvoreno:** tab „Kategorije" vodi na `/kategorije` koja postoji tek od Faze 4 — do
+  tada daje 404. „Profil" privremeno vodi na `/orders` (prijavljen) ili `/login` (gost).
+
 ---
 
 # ⏸ GDJE SMO STALI — 2026-10-02

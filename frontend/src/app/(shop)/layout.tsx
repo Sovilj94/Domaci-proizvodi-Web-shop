@@ -8,7 +8,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     <>
       <ShopNavbar />
       {/* Bottom padding on phones so content clears the fixed tab bar. */}
-      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+      <main className="flex-1 pb-20 md:pb-0">{children}</main>
       <ShopFooter />
       <MobileTabBar />
       <CartDrawer />
