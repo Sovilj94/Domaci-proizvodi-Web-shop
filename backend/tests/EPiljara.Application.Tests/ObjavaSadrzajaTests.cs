@@ -46,12 +46,22 @@ public class ObjavaSadrzajaTests
         Postavi(t, cijenaArtikla: 4m);
         var id = await t.Db.SedmicniSadrzaji.Select(s => s.Id).SingleAsync();
 
-        await new ObjaviSadrzajHandler(t.Db).Handle(new ObjaviSadrzajCommand(id), default);
+        // Bez ovoga, EF Core-ov change tracker bi "besplatno" popunio Producer navigaciju
+        // iz već pratih entiteta nastalih u Postavi() (relationship fixup), pa bismo
+        // testirali grešku koju handler-ova Include lanac ne pravi — radi se o svježem
+        // DbContext-u po zahtjevu u produkciji, isto kao što simuliramo ovdje.
+        t.Db.ChangeTracker.Clear();
+
+        var dto = await new ObjaviSadrzajHandler(t.Db).Handle(new ObjaviSadrzajCommand(id), default);
 
         var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
         Assert.Equal(StatusSadrzaja.Objavljen, s.Status);
         Assert.Equal(8m, s.CiljnaVrijednost);          // 2 kg × 4
         Assert.NotNull(s.ObjavljenU);
+
+        var stavka = Assert.Single(dto.Stavke);
+        Assert.Equal("Mujo Mujić", stavka.ProizvodjacNaziv);
+        Assert.Equal("Stričići", stavka.ProizvodjacSelo);
     }
 
     [Fact]

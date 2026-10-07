@@ -18,7 +18,7 @@ public class ObjaviSadrzajHandler(IAppDbContext db) : IRequestHandler<ObjaviSadr
     public async Task<SadrzajDto> Handle(ObjaviSadrzajCommand c, CancellationToken ct)
     {
         var sadrzaj = await db.SedmicniSadrzaji
-            .Include(s => s.Stavke).ThenInclude(st => st.Product)
+            .Include(s => s.Stavke).ThenInclude(st => st.Product).ThenInclude(p => p!.Producer)
             .FirstOrDefaultAsync(s => s.Id == c.SadrzajId, ct)
             ?? throw new NotFoundException("Sadržaj korpice nije pronađen.");
 
