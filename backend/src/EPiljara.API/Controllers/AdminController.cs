@@ -1,4 +1,5 @@
 using EPiljara.Application.Features.Admin;
+using EPiljara.Application.Features.Korpice;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -133,4 +134,31 @@ public class AdminController : ApiControllerBase
         await Mediator.Send(new SetOrderCoordinatesCommand(id, body.Latitude, body.Longitude));
         return Envelope(new { message = "Koordinate su sačuvane." });
     }
+
+    /* ---------- Korpice: pregled sedmice, izmjena nacrta, pakerska lista ---------- */
+
+    [HttpGet("admin/korpice/sadrzaj")]
+    public async Task<IActionResult> SadrzajPregled([FromQuery] int godina, [FromQuery] int sedmica) =>
+        EnvelopeList(await Mediator.Send(new GetSadrzajPregledQuery(godina, sedmica)));
+
+    [HttpPost("admin/korpice/sadrzaj/generisi")]
+    public async Task<IActionResult> GenerisiSadrzaj([FromBody] GenerisiSadrzajRequest body) =>
+        EnvelopeList(await Mediator.Send(
+            new GenerisiSedmicniSadrzajCommand(body.Godina, body.Sedmica, body.KorpicaId)));
+
+    [HttpGet("admin/korpice/sadrzaj/{id:guid}")]
+    public async Task<IActionResult> SadrzajZaIzmjenu(Guid id) =>
+        Envelope(await Mediator.Send(new GetSadrzajZaIzmjenuQuery(id)));
+
+    [HttpPut("admin/korpice/sadrzaj/{id:guid}")]
+    public async Task<IActionResult> IzmijeniNacrt(Guid id, [FromBody] IzmijeniNacrtRequest body) =>
+        Envelope(await Mediator.Send(new IzmijeniNacrtCommand(id, body.Stavke)));
+
+    [HttpPost("admin/korpice/sadrzaj/{id:guid}/objavi")]
+    public async Task<IActionResult> ObjaviSadrzaj(Guid id) =>
+        Envelope(await Mediator.Send(new ObjaviSadrzajCommand(id)));
+
+    [HttpGet("admin/korpice/pakerska-lista")]
+    public async Task<IActionResult> PakerskaLista([FromQuery] int godina, [FromQuery] int sedmica) =>
+        EnvelopeList(await Mediator.Send(new GetPakerskaListaQuery(godina, sedmica)));
 }

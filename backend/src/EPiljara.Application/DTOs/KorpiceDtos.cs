@@ -46,3 +46,27 @@ public record SedmicaDto
     public DateTime RokNarucivanja { get; init; }
     public bool RokIstekao { get; init; }
 }
+
+public record SadrzajPregledDto
+{
+    /// <summary>null kad korpica za tu sedmicu još nema sadržaj.</summary>
+    public Guid? SadrzajId { get; init; }
+    public Guid KorpicaId { get; init; }
+    public string KorpicaNaziv { get; init; } = string.Empty;
+    public string Tip { get; init; } = string.Empty;
+    public string Velicina { get; init; } = string.Empty;
+    /// <summary>Nacrt | Objavljen | Zakljucan | Nema</summary>
+    public string Status { get; init; } = "Nema";
+    public int BrojArtikala { get; init; }
+    public decimal Vrijednost { get; init; }
+    public decimal CiljGenerisanja { get; init; }
+}
+
+public record StavkaPakerskeDto
+{
+    public string Artikal { get; init; } = string.Empty;
+    public decimal Kolicina { get; init; }
+    public string Jedinica { get; init; } = "kom";
+    public string Proizvodjac { get; init; } = string.Empty;
+    public string Selo { get; init; } = string.Empty;
+}
