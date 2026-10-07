@@ -300,21 +300,6 @@ function AdminKorpiceSadrzaj() {
 
                     {r.status === "Nacrt" && r.sadrzajId && (
                       <>
-                        <button
-                          type="button"
-                          title="Generiši ponovo (zamjenjuje trenutni nacrt)"
-                          aria-label={`Generiši ponovo nacrt za ${r.korpicaNaziv}`}
-                          onClick={() => generisi.mutate(r.korpicaId)}
-                          disabled={generisi.isPending}
-                          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-sand hover:text-ink disabled:pointer-events-none disabled:opacity-50"
-                        >
-                          <RefreshCw
-                            className={cn(
-                              "h-4 w-4",
-                              generisi.isPending && generisi.variables === r.korpicaId && "animate-spin",
-                            )}
-                          />
-                        </button>
                         <Button
                           size="sm"
                           variant="secondary"
