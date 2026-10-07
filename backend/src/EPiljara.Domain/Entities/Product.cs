@@ -48,4 +48,24 @@ public class Product : Entity
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Provjerava invarijantu korpice: kad je <see cref="Vrsta"/> == Korpica, mora imati
+    /// <see cref="TipKorpice"/> i <see cref="Velicina"/>, i ne smije sama ući u sadržaj
+    /// druge korpice (<see cref="MozeUKorpicu"/> == false). Običnu robu (Vrsta == Obican)
+    /// ne dotiče, bez obzira na vrijednosti ostalih polja. Nije ožičeno u SaveChanges ni u
+    /// handlere — poziva ga seeder i kasniji validatori.
+    /// </summary>
+    public void ProvjeriInvarijantuKorpice()
+    {
+        if (Vrsta != VrstaProizvoda.Korpica) return;
+
+        if (TipKorpice is null)
+            throw new DomainException("Korpica mora imati tip korpice.", "korpica_bez_tipa");
+        if (Velicina is null)
+            throw new DomainException("Korpica mora imati veličinu.", "korpica_bez_velicine");
+        if (MozeUKorpicu)
+            throw new DomainException(
+                "Korpica ne može ući u sadržaj druge korpice.", "korpica_u_korpici");
+    }
 }

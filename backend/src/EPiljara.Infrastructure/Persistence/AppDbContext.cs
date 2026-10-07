@@ -1,5 +1,6 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Domain.Entities;
+using EPiljara.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
@@ -22,6 +23,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<RouteStop> RouteStops => Set<RouteStop>();
     public DbSet<GuestOrderRequest> GuestOrderRequests => Set<GuestOrderRequest>();
     public DbSet<GuestOrderRequestItem> GuestOrderRequestItems => Set<GuestOrderRequestItem>();
+    public DbSet<KorpicaKategorija> KorpicaKategorije => Set<KorpicaKategorija>();
+    public DbSet<SedmicniSadrzaj> SedmicniSadrzaji => Set<SedmicniSadrzaj>();
+    public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -55,7 +59,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne(x => x.Producer).WithMany(p => p.Products)
                 .HasForeignKey(x => x.ProducerId).OnDelete(DeleteBehavior.Restrict);
 
-            e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(16);
+            // Bez eksplicitnog HasDefaultValue, EF za NOT NULL string kolonu bez
+            // konfigurisanog defaulta generiše migraciju sa DEFAULT '' — a '' nije
+            // ispravan naziv enum vrijednosti, pa bi EnumToStringConverter pucao pri
+            // čitanju postojećih redova čim migracija dodijeli tu vrijednost. Obican je
+            // ispravno stanje za sve postojeće redove (nijedan još nije korpica).
+            e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(16)
+                .HasDefaultValue(VrstaProizvoda.Obican);
             e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.Velicina).HasConversion<string>().HasMaxLength(16);
 
@@ -78,6 +88,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
             // Soft delete: removed products are hidden from every query.
             e.HasQueryFilter(x => !x.IsDeleted);
+        });
+
+        b.Entity<KorpicaKategorija>(e =>
+        {
+            e.HasKey(x => new { x.TipKorpice, x.CategoryId });
+            e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);
+            e.HasOne(x => x.Category).WithMany()
+                .HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<SedmicniSadrzaj>(e =>
+        {
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.CiljnaVrijednost).HasPrecision(12, 2);
+            e.HasIndex(x => new { x.KorpicaId, x.Godina, x.Sedmica }).IsUnique();
+            e.HasIndex(x => new { x.Godina, x.Sedmica });
+            e.HasOne(x => x.Korpica).WithMany()
+                .HasForeignKey(x => x.KorpicaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<StavkaSadrzaja>(e =>
+        {
+            e.Property(x => x.Kolicina).HasPrecision(10, 3);
+            e.Property(x => x.JedinicnaCijena).HasPrecision(12, 2);
+            e.HasOne(x => x.SedmicniSadrzaj).WithMany(s => s.Stavke)
+                .HasForeignKey(x => x.SedmicniSadrzajId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<DeliveryZone>(e =>
