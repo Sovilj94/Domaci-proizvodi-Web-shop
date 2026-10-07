@@ -9,7 +9,10 @@ import { ApiRequestError } from "@/lib/api/client";
 import { SmartImage } from "@/components/ui/smart-image";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
-import { unitSuffix } from "@/lib/utils";
+
+/** Selektor za elemente koje fokus-trap u dijalogu smatra "fokusabilnim". */
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Centrirani dijalog sa sadržajem korpice za tekuću sedmicu — ko je šta uzgojio
@@ -22,6 +25,12 @@ import { unitSuffix } from "@/lib/utils";
  */
 export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Element koji je imao fokus prije otvaranja dijaloga (dugme "Pogledaj
+  // sadržaj korpice" koje ga je otvorilo) — fokus se vraća na njega kad se
+  // dijalog zatvori, umjesto da ostane na <body>.
+  const triggerRef = useRef<HTMLElement | null>(
+    typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null,
+  );
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: ["korpice", slug, "sadrzaj"],
@@ -37,10 +46,49 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
     error.status === 404 &&
     error.message === "sadrzaj_nije_objavljen";
 
+  // Fokus na dijalog pri otvaranju, povratak na trigger pri zatvaranju. Zasebno
+  // od listenera ispod — mora se desiti tačno jednom, pri montiranju/demontiranju,
+  // ne pri svakom rerenderu koji mijenja identitet `onClose`.
   useEffect(() => {
     panelRef.current?.focus();
+    const trigger = triggerRef.current;
+    return () => {
+      trigger?.focus();
+    };
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      // Fokus-trap: aria-modal="true" obećava da je sve izvan dijaloga inertno,
+      // pa Tab ne smije pobjeći iza njega. Fokusabilne elemente tražimo iz panela
+      // u trenutku kad se Tab pritisne (ne keširamo pri montiranju), jer se lista
+      // mijenja kad stanje prelazi iz učitavanja u sadržaj.
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusables.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const currentIndex = focusables.indexOf(document.activeElement as HTMLElement);
+
+      if (e.shiftKey && (currentIndex === 0 || currentIndex === -1)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (currentIndex === focusables.length - 1 || currentIndex === -1)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -51,6 +99,7 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
       <motion.button
         type="button"
         aria-label="Zatvori"
+        tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 bg-black/40"
         initial={{ opacity: 0 }}
@@ -114,8 +163,7 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
                       <p className="truncate font-medium text-ink">
                         {s.naziv}{" "}
                         <span className="font-normal text-muted">
-                          {s.kolicina}
-                          {unitSuffix(s.jedinica)}
+                          {s.kolicina} {s.jedinica}
                         </span>
                       </p>
                       <p className="truncate text-sm font-medium text-brand-700">
