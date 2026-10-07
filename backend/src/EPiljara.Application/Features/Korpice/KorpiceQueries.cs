@@ -20,9 +20,32 @@ public static class SedmicaHelper
         return (ISOWeek.GetYear(d), ISOWeek.GetWeekOfYear(d));
     }
 
-    /// <summary>Petak zadate ISO sedmice — dogovoreni dan isporuke korpica.</summary>
-    public static DateTime DatumIsporuke(int godina, int sedmica) =>
-        ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Friday);
+    /// <summary>
+    /// Datum isporuke za zadatu ISO sedmicu, za dan koji pozivalac prosljeđuje. Ciklus
+    /// je vezan za <see cref="DeliverySlot"/>, ne za zakucan dan — pozivalac dan
+    /// dobija preko <see cref="UcitajRokAsync"/>.
+    /// </summary>
+    public static DateTime DatumIsporuke(int godina, int sedmica, DayOfWeek danIsporuke) =>
+        ISOWeek.ToDateTime(godina, sedmica, danIsporuke);
+
+    /// <summary>
+    /// Dan isporuke i rok naručivanja (u satima prije isporuke), izvedeni iz
+    /// <see cref="DeliverySlot"/>-a sa najnižim <see cref="DeliverySlot.DayOfWeek"/> —
+    /// prvog dana isporuke u sedmici. Kad u bazi ne postoji nijedan DeliverySlot
+    /// (prazna baza, ili test kojem ovo nije bitno), koristi se
+    /// <see cref="KorpiceOpcije"/> kao rezerva — vidi tamo.
+    /// </summary>
+    public static async Task<(DayOfWeek Dan, int CutoffSati)> UcitajRokAsync(
+        IAppDbContext db, KorpiceOpcije opcije, CancellationToken ct)
+    {
+        var slot = await db.DeliverySlots
+            .OrderBy(s => s.DayOfWeek)
+            .FirstOrDefaultAsync(ct);
+
+        return slot is null
+            ? (opcije.DanIsporukeRezerva, opcije.RokSati)
+            : ((DayOfWeek)slot.DayOfWeek, slot.CutoffHours);
+    }
 
     public static string Slug(TipKorpice t) => t switch
     {
@@ -150,22 +173,23 @@ public class GetSadrzajKorpiceHandler(IAppDbContext db)
 
 public record GetTekucaSedmicaQuery : IRequest<SedmicaDto>;
 
-public class GetTekucaSedmicaHandler(IOptions<KorpiceOpcije> opcije)
+public class GetTekucaSedmicaHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
     : IRequestHandler<GetTekucaSedmicaQuery, SedmicaDto>
 {
-    public Task<SedmicaDto> Handle(GetTekucaSedmicaQuery q, CancellationToken ct)
+    public async Task<SedmicaDto> Handle(GetTekucaSedmicaQuery q, CancellationToken ct)
     {
         var (godina, sedmica) = SedmicaHelper.Tekuca();
-        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica);
-        var rok = isporuka.AddHours(-opcije.Value.RokSati);
+        var (dan, cutoffSati) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan);
+        var rok = isporuka.AddHours(-cutoffSati);
 
-        return Task.FromResult(new SedmicaDto
+        return new SedmicaDto
         {
             Godina = godina,
             Sedmica = sedmica,
             DatumIsporuke = isporuka,
             RokNarucivanja = rok,
             RokIstekao = DateTime.UtcNow > rok,
-        });
+        };
     }
 }

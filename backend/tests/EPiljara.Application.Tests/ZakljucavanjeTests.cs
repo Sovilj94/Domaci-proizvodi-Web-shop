@@ -10,6 +10,16 @@ public class ZakljucavanjeTests
 {
     private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
 
+    /// <summary>Dodaje DeliverySlot u bazu — pozivaocu bira dan i rok, baš kao u produkciji.</summary>
+    private static void SeedSlot(TestDb t, int dayOfWeek, int cutoffHours)
+    {
+        t.Db.DeliverySlots.Add(new DeliverySlot
+        {
+            DayOfWeek = dayOfWeek, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = cutoffHours,
+        });
+        t.Db.SaveChanges();
+    }
+
     private static SedmicniSadrzaj Sadrzaj(TestDb t, StatusSadrzaja status, int godina, int sedmica)
     {
         var kat = new Category { Name = "Povrće", Slug = $"povrce-{Guid.NewGuid():N}" };
@@ -82,11 +92,14 @@ public class ZakljucavanjeTests
     {
         using var t = new TestDb();
         Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
+        // Rok dolazi iz slota (petak, 48h), ne iz konfiguracije — granica se ovdje
+        // testira na tačnu sekundu, pa mora ići kroz pravi (slot) put.
+        SeedSlot(t, dayOfWeek: 5, cutoffHours: 48);
 
         // Rok je petak - 48h; testiramo tačno 1 sekund nakon roka.
         var rok = System.Globalization.ISOWeek
             .ToDateTime(2026, 41, DayOfWeek.Friday)
-            .AddHours(-Opcije.Value.RokSati)
+            .AddHours(-48)
             .AddSeconds(1);
 
         var broj = await new ZakljucajSadrzajeHandler(t.Db, Opcije)
@@ -102,11 +115,14 @@ public class ZakljucavanjeTests
     {
         using var t = new TestDb();
         Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
+        // Rok dolazi iz slota (petak, 48h), ne iz konfiguracije — granica se ovdje
+        // testira na tačnu sekundu, pa mora ići kroz pravi (slot) put.
+        SeedSlot(t, dayOfWeek: 5, cutoffHours: 48);
 
         // Rok je petak - 48h; testiramo tačno 1 sekund prije roka.
         var rok = System.Globalization.ISOWeek
             .ToDateTime(2026, 41, DayOfWeek.Friday)
-            .AddHours(-Opcije.Value.RokSati)
+            .AddHours(-48)
             .AddSeconds(-1);
 
         var broj = await new ZakljucajSadrzajeHandler(t.Db, Opcije)
@@ -118,29 +134,68 @@ public class ZakljucavanjeTests
     }
 
     [Fact]
-    public async Task Citava_RokSati_iz_konfiguracije()
+    public async Task Citava_rok_iz_slota_ne_iz_konfiguracije()
     {
         using var t = new TestDb();
         Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
 
-        // Koristimo RokSati = 24h (umjesto defaultnog 48h).
-        // Rok se pomjera sa srijede (Friday - 48h) na četvrtak (Friday - 24h).
-        var opcije24 = Options.Create(new KorpiceOpcije { RokSati = 24 });
+        // Slot kaže CutoffHours = 24h — namjerno drugačije od KorpiceOpcije.RokSati
+        // default-a (48h) koji ostaje nepromijenjen u Opcije. Dan iz slota je petak,
+        // isto kao default rezerva, da izoliramo samo cutoff-osu u ovom testu.
+        SeedSlot(t, dayOfWeek: 5, cutoffHours: 24);
 
-        // Vrijeme: srijeda podne — nakon defaultnog roka (48h)
-        // ali prije configuriranog roka (24h).
+        // Vrijeme: srijeda podne — nakon roka po KorpiceOpcije.RokSati (petak - 48h =
+        // srijeda podne... dakle TAČNO na granici), pa biramo malo kasnije da budemo
+        // jasno nakon "48h" granice, ali jasno PRIJE "24h" granice (četvrtak - 24h).
         var srijeda = System.Globalization.ISOWeek
             .ToDateTime(2026, 41, DayOfWeek.Friday)
             .AddHours(-48)
             .AddHours(12); // Srijeda podne
 
-        // Sa RokSati=48 (default): srijeda podne > srijeda (Friday - 48h), dakle ZATVARAJ.
-        // Sa RokSati=24: srijeda podne < četvrtak (Friday - 24h), dakle NE zatvaraj.
-        var broj = await new ZakljucajSadrzajeHandler(t.Db, opcije24)
+        // Sa CutoffHours=48 (ono što bi dao Opcije.RokSati ako bi handler pogrešno
+        // čitao konfiguraciju umjesto slota): srijeda podne > petak-48h, dakle ZATVARAJ
+        // (broj=1) — POGREŠNO, test bi propao.
+        // Sa CutoffHours=24 (iz seed-ovanog slota, ono što handler TREBA koristiti):
+        // srijeda podne < petak-24h (četvrtak podne), dakle NE zatvaraj (broj=0) — ISPRAVNO.
+        // Ova dva ishoda se razlikuju, pa test razlikuje "čita slot" od "čita konfiguraciju".
+        var broj = await new ZakljucajSadrzajeHandler(t.Db, Opcije)
             .Handle(new ZakljucajSadrzajeCommand(srijeda), default);
 
         Assert.Equal(0, broj);
         var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
         Assert.Equal(StatusSadrzaja.Objavljen, s.Status);
+    }
+
+    [Fact]
+    public async Task Dan_isporuke_dolazi_iz_slota_sa_najnizim_DayOfWeek()
+    {
+        using var t = new TestDb();
+        Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
+
+        // Dva slota — ponedjeljak i petak — oba sa istim CutoffHours=48, da izoliramo
+        // samo dan-osu. Ponedjeljak ima niži DayOfWeek, pa je on "prvi dan isporuke
+        // u sedmici" i handler treba njega da uzme, ne petak (stari hardkod) ni
+        // "bilo koji" slot.
+        SeedSlot(t, dayOfWeek: 1, cutoffHours: 48); // ponedjeljak
+        SeedSlot(t, dayOfWeek: 5, cutoffHours: 48); // petak
+
+        var rokPonedjeljak = System.Globalization.ISOWeek
+            .ToDateTime(2026, 41, DayOfWeek.Monday).AddHours(-48);
+        var rokPetak = System.Globalization.ISOWeek
+            .ToDateTime(2026, 41, DayOfWeek.Friday).AddHours(-48);
+
+        // Vrijeme je tačno 1h nakon roka za ponedjeljak, ali danima prije roka za petak.
+        // Ispravno (dan = ponedjeljak): rok je prošao, ZATVARAJ (broj=1).
+        // Pogrešno (dan = petak, stari hardkod): rok nije prošao, NE zatvaraj (broj=0).
+        // Ishodi se razlikuju, pa test razlikuje "uzima najniži DayOfWeek" od "uzima petak".
+        Assert.True(rokPonedjeljak < rokPetak);
+        var sada = rokPonedjeljak.AddHours(1);
+
+        var broj = await new ZakljucajSadrzajeHandler(t.Db, Opcije)
+            .Handle(new ZakljucajSadrzajeCommand(sada), default);
+
+        Assert.Equal(1, broj);
+        var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
+        Assert.Equal(StatusSadrzaja.Zakljucan, s.Status);
     }
 }
