@@ -192,3 +192,59 @@ export interface GeocodeHit {
   displayName: string;
   localities: string[];
 }
+
+export const TIPOVI_KORPICE = [
+  "povrce",
+  "voce",
+  "mlijecna",
+  "suhomesnata",
+  "domacinska",
+] as const;
+export type TipKorpice = (typeof TIPOVI_KORPICE)[number];
+
+export type VelicinaKorpice = "mala" | "srednja" | "velika";
+
+/** Nema = korpica za tu sedmicu još nema sadržaj. */
+export type StatusSadrzaja = "Nacrt" | "Objavljen" | "Zakljucan" | "Nema";
+
+export interface Korpica {
+  id: string;
+  naziv: string;
+  slug: string;
+  tip: TipKorpice;
+  velicina: VelicinaKorpice;
+  cijena: number;
+  imageUrl?: string;
+  opis: string;
+  stock: number;
+  dostupna: boolean;
+}
+
+export interface StavkaSadrzaja {
+  productId: string;
+  naziv: string;
+  kolicina: number;
+  jedinica: Unit;
+  imageUrl?: string;
+  proizvodjacNaziv: string;
+  proizvodjacSelo: string;
+}
+
+export interface SadrzajKorpice {
+  id: string;
+  korpicaId: string;
+  godina: number;
+  sedmica: number;
+  status: StatusSadrzaja;
+  ciljnaVrijednost: number;
+  stavke: StavkaSadrzaja[];
+}
+
+export interface Sedmica {
+  godina: number;
+  sedmica: number;
+  /** ISO 8601, UTC. */
+  datumIsporuke: string;
+  rokNarucivanja: string;
+  rokIstekao: boolean;
+}

@@ -1,4 +1,4 @@
-import type { OrderStatus, Unit } from "@/types/domain";
+import type { OrderStatus, StatusSadrzaja, TipKorpice, Unit, VelicinaKorpice } from "@/types/domain";
 
 /** Request/response payloads that are not plain domain entities. */
 
@@ -126,4 +126,44 @@ export interface AssignOrdersBulkRequest {
 /** Odgovor na poslatu narudžbu gosta — narudžba još ne postoji, samo zahtjev sa rokom. */
 export interface GuestOrderRequestResult {
   expiresAt: string;
+}
+
+export interface SadrzajPregled {
+  sadrzajId: string | null;
+  korpicaId: string;
+  korpicaNaziv: string;
+  tip: TipKorpice;
+  velicina: VelicinaKorpice;
+  status: StatusSadrzaja;
+  brojArtikala: number;
+  vrijednost: number;
+  ciljGenerisanja: number;
+}
+
+export interface StavkaPakerske {
+  artikal: string;
+  kolicina: number;
+  jedinica: string;
+  proizvodjac: string;
+  selo: string;
+}
+
+export interface GenerisiSadrzajRequest {
+  godina: number;
+  sedmica: number;
+  korpicaId?: string;
+}
+
+export interface IzmijeniNacrtRequest {
+  stavke: { productId: string; kolicina: number }[];
+}
+
+export interface RezultatGenerisanja {
+  sadrzajId: string;
+  korpicaId: string;
+  korpicaNaziv: string;
+  brojArtikala: number;
+  vrijednost: number;
+  ciljGenerisanja: number;
+  upozorenje: string | null;
 }
