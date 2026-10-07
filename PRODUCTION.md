@@ -97,6 +97,24 @@ To enable real sending: implement `IViberService` against your BSP's API (reuse
 `Viber__ApiKey` env var), and swap the DI registration in `DependencyInjection.cs` — nothing
 else in the order flow changes.
 
+## Korpice (curated weekly produce boxes)
+
+Config section `Korpice` (`appsettings.json`, override via `Korpice__*` env vars):
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Korpice:KoeficijentVrijednosti` | `1.15` | How many times the content's value exceeds the box's price — the generator's target per box, and what `ciljGenerisanja` on the admin overview reflects. Always in effect. |
+| `Korpice:MinimalanBrojArtikala` | `{Mala: 5, Srednja: 7, Velika: 9}` | Minimum item count the generator aims for, per box size. Always in effect; under-filled pools return a warning for the admin to fix by hand, not an error. |
+| `Korpice:RokSati` | `48` | Ordering-cutoff hours before delivery. **Fallback only** — used only when the database has no `DeliverySlot` row at all. While any `DeliverySlot` exists, its own `CutoffHours` (on the slot with the lowest `DayOfWeek`) is the sole source of truth and this key is not read. |
+| `Korpice:DanIsporukeRezerva` | `Friday` | Delivery day. Same fallback-only caveat as `RokSati` — superseded by the lowest-`DayOfWeek` `DeliverySlot` whenever one exists. |
+
+`ZakljucavanjeSadrzajaService` (a `BackgroundService`) runs every **15 minutes** and closes
+(`Zakljucan`) every published (`Objavljen`) weekly content whose ordering cutoff has passed. If it is not
+running, a content stays editable past its deadline, so the packing list (`GET
+/admin/korpice/pakerska-lista`) can still shift after the warehouse already has the printed list in hand —
+the failure mode is silent (nothing errors; the content just never locks), so confirm the service is
+registered and running rather than inferring it from the absence of complaints.
+
 ## Still your call (operational)
 
 - **Migrations** run automatically on startup. For multi-instance deploys, consider applying them
