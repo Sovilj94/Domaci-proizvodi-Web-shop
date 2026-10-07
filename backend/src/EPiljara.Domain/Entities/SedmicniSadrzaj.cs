@@ -28,4 +28,27 @@ public class SedmicniSadrzaj : Entity
     public DateTime? ZakljucanU { get; set; }
 
     public ICollection<StavkaSadrzaja> Stavke { get; set; } = new List<StavkaSadrzaja>();
+
+    /// <summary>Dozvoljeni prelazi. Nazad se ne ide — objavljen sadržaj su kupci već vidjeli.</summary>
+    public static readonly IReadOnlyDictionary<StatusSadrzaja, StatusSadrzaja[]> Prelazi =
+        new Dictionary<StatusSadrzaja, StatusSadrzaja[]>
+        {
+            [StatusSadrzaja.Nacrt] = [StatusSadrzaja.Objavljen],
+            [StatusSadrzaja.Objavljen] = [StatusSadrzaja.Zakljucan],
+            [StatusSadrzaja.Zakljucan] = [],
+        };
+
+    public bool MozePreci(StatusSadrzaja u) =>
+        Prelazi.TryGetValue(Status, out var dozvoljeni) && dozvoljeni.Contains(u);
+
+    /// <summary>Mijenja status uz provjeru. Baca ConflictException na nedozvoljen prelaz.</summary>
+    public void Predji(StatusSadrzaja u)
+    {
+        if (!MozePreci(u))
+            throw new ConflictException($"nedozvoljen_prelaz_sadrzaja: {Status} → {u}");
+
+        Status = u;
+        if (u == StatusSadrzaja.Objavljen) ObjavljenU = DateTime.UtcNow;
+        if (u == StatusSadrzaja.Zakljucan) ZakljucanU = DateTime.UtcNow;
+    }
 }
