@@ -21,11 +21,14 @@ public class StatusSadrzajaTests
     [InlineData(StatusSadrzaja.Zakljucan, StatusSadrzaja.Objavljen)]
     [InlineData(StatusSadrzaja.Nacrt, StatusSadrzaja.Zakljucan)]
     [InlineData(StatusSadrzaja.Nacrt, StatusSadrzaja.Nacrt)]
+    [InlineData(StatusSadrzaja.Objavljen, StatusSadrzaja.Objavljen)]
+    [InlineData(StatusSadrzaja.Zakljucan, StatusSadrzaja.Nacrt)]
+    [InlineData(StatusSadrzaja.Zakljucan, StatusSadrzaja.Zakljucan)]
     public void Nedozvoljeni_prelazi_bacaju(StatusSadrzaja iz, StatusSadrzaja u)
     {
         var s = new SedmicniSadrzaj { Status = iz };
         var ex = Assert.Throws<ConflictException>(() => s.Predji(u));
-        Assert.Contains("nedozvoljen_prelaz_sadrzaja", ex.Message);
+        Assert.Equal("nedozvoljen_prelaz_sadrzaja", ex.Code);
         Assert.Equal(iz, s.Status);
     }
 }

@@ -45,7 +45,8 @@ public class SedmicniSadrzaj : Entity
     public void Predji(StatusSadrzaja u)
     {
         if (!MozePreci(u))
-            throw new ConflictException($"nedozvoljen_prelaz_sadrzaja: {Status} → {u}");
+            throw new ConflictException(
+                $"Prelaz statusa {Status} → {u} nije dozvoljen.", "nedozvoljen_prelaz_sadrzaja");
 
         Status = u;
         if (u == StatusSadrzaja.Objavljen) ObjavljenU = DateTime.UtcNow;
