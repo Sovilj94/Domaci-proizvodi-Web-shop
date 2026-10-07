@@ -12,6 +12,28 @@ public class Product : Entity
     public decimal Stock { get; set; }
     public bool IsAvailable { get; set; } = true;
     public bool IsFeatured { get; set; }
+
+    /// <summary>Obična roba ili korpica. Korpica ne smije ući u sadržaj druge korpice.</summary>
+    public VrstaProizvoda Vrsta { get; set; } = VrstaProizvoda.Obican;
+
+    /// <summary>Postavljeno samo kad je <see cref="Vrsta"/> == Korpica.</summary>
+    public TipKorpice? TipKorpice { get; set; }
+
+    /// <summary>Postavljeno samo kad je <see cref="Vrsta"/> == Korpica.</summary>
+    public VelicinaKorpice? Velicina { get; set; }
+
+    /// <summary>Smije li obična roba ući u sadržaj korpice.</summary>
+    public bool MozeUKorpicu { get; set; }
+
+    /// <summary>0 = osnovni artikal (ide skoro uvijek), veći broj = dopuna.</summary>
+    public int PrioritetUKorpici { get; set; }
+
+    /// <summary>
+    /// Mjeseci (1–12) u kojima je artikal dostupan. <b>Prazan niz znači cijele godine</b> —
+    /// mliječno i suhomesnato nemaju sezonu. U bazi stoji kao CSV string, jer SQLite
+    /// (testovi) nema tip niza; vidi AppDbContext.
+    /// </summary>
+    public int[] Mjeseci { get; set; } = [];
     public string Description { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
 

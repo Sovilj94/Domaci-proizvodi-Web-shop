@@ -34,6 +34,37 @@ public enum UserRole
     Driver,
 }
 
+/// <summary>Da li je artikal obična roba ili korpica (pakovanje sa sedmičnim sadržajem).</summary>
+public enum VrstaProizvoda
+{
+    Obican,
+    Korpica,
+}
+
+public enum TipKorpice
+{
+    Povrce,
+    Voce,
+    Mlijecna,
+    Suhomesnata,
+    Domacinska,
+}
+
+public enum VelicinaKorpice
+{
+    Mala,
+    Srednja,
+    Velika,
+}
+
+/// <summary>Stanje sedmičnog sadržaja. Prelazi idu samo naprijed — vidi SedmicniSadrzaj.Prelazi.</summary>
+public enum StatusSadrzaja
+{
+    Nacrt,
+    Objavljen,
+    Zakljucan,
+}
+
 public static class UnitExtensions
 {
     public static string ToApi(this Unit unit) => unit switch

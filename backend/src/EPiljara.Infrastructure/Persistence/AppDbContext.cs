@@ -1,6 +1,7 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace EPiljara.Infrastructure.Persistence;
 
@@ -53,6 +54,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Producer).WithMany(p => p.Products)
                 .HasForeignKey(x => x.ProducerId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Velicina).HasConversion<string>().HasMaxLength(16);
+
+            // Mjeseci kao CSV: Postgres integer[] bi bio prirodniji, ali testovi rade na
+            // SQLite koji nema tip niza. Jedan oblik koji radi na oba providera.
+            e.Property(x => x.Mjeseci)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => string.IsNullOrWhiteSpace(v)
+                        ? Array.Empty<int>()
+                        : v.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray(),
+                    new ValueComparer<int[]>(
+                        (a, c) => a!.SequenceEqual(c!),
+                        v => v.Aggregate(0, (h, x) => HashCode.Combine(h, x)),
+                        v => v.ToArray()))
+                .HasMaxLength(60)
+                .HasDefaultValue(Array.Empty<int>());
+
+            e.HasIndex(x => x.Vrsta);
+
             // Soft delete: removed products are hidden from every query.
             e.HasQueryFilter(x => !x.IsDeleted);
         });
