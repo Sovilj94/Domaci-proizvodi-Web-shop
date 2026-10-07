@@ -1,4 +1,5 @@
 using EPiljara.Application.Common.Interfaces;
+using EPiljara.Application.DTOs;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Enums;
 using MediatR;
@@ -10,11 +11,11 @@ namespace EPiljara.Application.Features.Korpice;
 /// Nacrt → Objavljen. Ponovo snima jedinične cijene i zamrzava CiljnuVrijednost,
 /// koja je od tog trenutka budžet kupčevog editora (P2).
 /// </summary>
-public record ObjaviSadrzajCommand(Guid SadrzajId) : IRequest<Guid>;
+public record ObjaviSadrzajCommand(Guid SadrzajId) : IRequest<SadrzajDto>;
 
-public class ObjaviSadrzajHandler(IAppDbContext db) : IRequestHandler<ObjaviSadrzajCommand, Guid>
+public class ObjaviSadrzajHandler(IAppDbContext db) : IRequestHandler<ObjaviSadrzajCommand, SadrzajDto>
 {
-    public async Task<Guid> Handle(ObjaviSadrzajCommand c, CancellationToken ct)
+    public async Task<SadrzajDto> Handle(ObjaviSadrzajCommand c, CancellationToken ct)
     {
         var sadrzaj = await db.SedmicniSadrzaji
             .Include(s => s.Stavke).ThenInclude(st => st.Product)
@@ -31,6 +32,6 @@ public class ObjaviSadrzajHandler(IAppDbContext db) : IRequestHandler<ObjaviSadr
         sadrzaj.Predji(StatusSadrzaja.Objavljen);
 
         await db.SaveChangesAsync(ct);
-        return sadrzaj.Id;
+        return sadrzaj.ToDto();
     }
 }
