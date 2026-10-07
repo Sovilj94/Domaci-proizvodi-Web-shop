@@ -5,7 +5,9 @@ import { Apple, Carrot, Ham, Milk, Package, type LucideIcon } from "lucide-react
 import { TIPOVI_KORPICE, type TipKorpice } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
-const NAZIVI: Record<TipKorpice, { label: string; icon: LucideIcon }> = {
+// Exportovano radi ponovne upotrebe u admin ekranu sedmice (/admin/korpice), koji
+// treba isti naziv tipa korpice bez dupliranja mape.
+export const NAZIVI: Record<TipKorpice, { label: string; icon: LucideIcon }> = {
   povrce: { label: "Povrće", icon: Carrot },
   voce: { label: "Voće", icon: Apple },
   mlijecna: { label: "Mliječna", icon: Milk },
