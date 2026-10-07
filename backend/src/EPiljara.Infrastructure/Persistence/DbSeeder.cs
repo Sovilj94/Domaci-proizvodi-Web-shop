@@ -76,7 +76,91 @@ public static class DbSeeder
             Prod("Džem od šljive", 7.0m, Unit.Kom, 40, zimnica, jovanovic, "Tegla 720ml, kuhan bez konzervansa, 60% voća."),
             Prod("Domaći ajvar", 9.0m, Unit.Kom, 45, zimnica, kovacevic, "Pečena paprika, blagi, tegla 500ml.", available: false),
         };
+        // Obična roba je podobna za sedmične korpice; korpice same (ispod) ostaju MozeUKorpicu = false.
+        foreach (var p in products)
+        {
+            p.MozeUKorpicu = true;
+            p.Mjeseci = [];
+        }
         db.Products.AddRange(products);
+
+        // ----- Korpice -----
+        // Kategorije su već unesene iznad. "Meso i suhomesnato" (slug "meso") već pokriva
+        // suhomesnato (suha slanina, domaća kobasica), pa nema potrebe za zasebnom
+        // "suhomesnati-proizvodi" kategorijom. Ista kategorija smije u više tipova —
+        // mliječno i suhomesnato idu i u svoj tip i u Domaćinsku.
+        var vezeKorpica = new (TipKorpice Tip, string KategorijaSlug)[]
+        {
+            (TipKorpice.Povrce, "povrce"),
+            (TipKorpice.Voce, "voce"),
+            (TipKorpice.Mlijecna, "mlijecni-proizvodi"),
+            (TipKorpice.Suhomesnata, "meso"),
+            (TipKorpice.Domacinska, "mlijecni-proizvodi"),
+            (TipKorpice.Domacinska, "meso"),
+        };
+
+        foreach (var (tip, slug) in vezeKorpica)
+        {
+            var kat = categories.FirstOrDefault(k => k.Slug == slug);
+            if (kat is null) continue;
+            db.KorpicaKategorije.Add(new KorpicaKategorija { TipKorpice = tip, CategoryId = kat.Id });
+        }
+
+        var definicije = new (TipKorpice Tip, string Naziv, string Opis)[]
+        {
+            (TipKorpice.Povrce, "korpica povrća", "Sezonsko povrće sa Manjače, ubrano istog jutra."),
+            (TipKorpice.Voce, "korpica voća", "Sezonsko voće sa domaćih gazdinstava."),
+            (TipKorpice.Mlijecna, "mliječna korpica", "Sir, kajmak, mlijeko i pavlaka sa Manjače."),
+            (TipKorpice.Suhomesnata, "suhomesnata korpica", "Pečenica, slanina, kobasica i suvo meso."),
+            (TipKorpice.Domacinska, "domaćinska korpica", "Miješano: komad pečenice, slanina, mlijeko i sir."),
+        };
+
+        var velicine = new (VelicinaKorpice V, string Prefiks, decimal Faktor, string Clanovi)[]
+        {
+            (VelicinaKorpice.Mala, "Mala", 1.0m, "Za 1 do 2 člana"),
+            (VelicinaKorpice.Srednja, "Srednja", 1.4m, "Za 2 do 4 člana"),
+            (VelicinaKorpice.Velika, "Velika", 1.8m, "Za 5 i više članova"),
+        };
+
+        var osnovneCijene = new Dictionary<TipKorpice, decimal>
+        {
+            [TipKorpice.Povrce] = 25m,
+            [TipKorpice.Voce] = 28m,
+            [TipKorpice.Mlijecna] = 32m,
+            [TipKorpice.Suhomesnata] = 45m,
+            [TipKorpice.Domacinska] = 48m,
+        };
+
+        // Korpice i same moraju imati kategoriju/proizvođača (strani ključ), iako se
+        // ni jedno ni drugo ne prikazuje za korpicu (vidi KorpiceQueries.ToKorpicaDto) —
+        // Povrće/Kovačević su samo neškodljiv placeholder.
+        var prvaKategorija = povrce;
+        var prviProizvodjac = kovacevic;
+
+        foreach (var (tip, naziv, opis) in definicije)
+        foreach (var (v, prefiks, faktor, clanovi) in velicine)
+        {
+            var punNaziv = $"{prefiks} {naziv}";
+            var slug = Slug.From(punNaziv);
+            var korpica = new Product
+            {
+                Name = punNaziv,
+                Slug = slug,
+                Price = Math.Round(osnovneCijene[tip] * faktor, 0),
+                Unit = Unit.Kom,
+                Stock = 40,
+                IsAvailable = true,
+                Description = $"{opis} {clanovi}.",
+                ImageUrl = Img(slug),
+                Category = prvaKategorija,
+                Producer = prviProizvodjac,
+                Vrsta = VrstaProizvoda.Korpica,
+                TipKorpice = tip,
+                Velicina = v,
+            };
+            korpica.ProvjeriInvarijantuKorpice();
+            db.Products.Add(korpica);
+        }
 
         // ----- Delivery zones & slots -----
         var centar = Zone("Centar", 20, 3);
