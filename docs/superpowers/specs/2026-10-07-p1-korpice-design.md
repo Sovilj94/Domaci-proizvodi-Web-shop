@@ -92,8 +92,13 @@ public enum StatusSadrzaja  { Nacrt, Objavljen, Zakljucan }
 | `PrioritetUKorpici` | `int` | `0` = osnovni (ide skoro uvijek), veći broj = dopuna; default `0` |
 | `Mjeseci` | `int[]` | mjeseci u kojima je dostupan; **prazno = cijele godine** |
 
-`Mjeseci` je `int[]` mapiran na Postgres `integer[]` — EF Core i Npgsql to podržavaju izvorno,
-nema potrebe za tabelom veze ni za bitmaskom.
+`Mjeseci` je u C#-u `int[]`, ali se u bazu upisuje kao **CSV string** (`"5,6,7,8,9,10"`) preko
+EF `ValueConverter`-a. Postgres `integer[]` bi bio prirodniji, ali testovi rade na **SQLite**
+(`TestDb`), koji nema tip niza — konverzija u string je jedini oblik koji radi na oba providera.
+Isto rješenje ima i uzor (`months` + `monthsString`). Kolona je `varchar(60)`.
+
+Pretraga „koji proizvodi su u mjesecu N" se zato **ne radi u SQL-u** nego u memoriji, nakon
+učitavanja bazena. Bazen je po korpici reda veličine desetina redova, pa to nije problem.
 
 Mliječno i suhomesnato ostavljaju `Mjeseci` prazno jer nemaju sezonu. Povrće i voće ga koriste.
 Jedan kod, različito ponašanje po kategoriji, bez `if`-a po tipu korpice.
