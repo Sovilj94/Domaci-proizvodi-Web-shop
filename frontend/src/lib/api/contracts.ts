@@ -128,13 +128,17 @@ export interface GuestOrderRequestResult {
   expiresAt: string;
 }
 
+/** Status admin pregleda — širi `StatusSadrzaja` sa "Nema" za korpicu bez sadržaja te sedmice. */
+export type StatusPregleda = StatusSadrzaja | "Nema";
+
 export interface SadrzajPregled {
-  sadrzajId: string | null;
+  /** Odsutno na žici kad korpica te sedmice nema sadržaj (status "Nema"). */
+  sadrzajId?: string;
   korpicaId: string;
   korpicaNaziv: string;
   tip: TipKorpice;
   velicina: VelicinaKorpice;
-  status: StatusSadrzaja;
+  status: StatusPregleda;
   brojArtikala: number;
   vrijednost: number;
   ciljGenerisanja: number;
@@ -165,5 +169,6 @@ export interface RezultatGenerisanja {
   brojArtikala: number;
   vrijednost: number;
   ciljGenerisanja: number;
-  upozorenje: string | null;
+  /** Odsutno na žici kad nema upozorenja — ne stiže kao `null`. */
+  upozorenje?: string;
 }

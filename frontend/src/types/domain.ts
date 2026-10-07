@@ -204,8 +204,11 @@ export type TipKorpice = (typeof TIPOVI_KORPICE)[number];
 
 export type VelicinaKorpice = "mala" | "srednja" | "velika";
 
-/** Nema = korpica za tu sedmicu još nema sadržaj. */
-export type StatusSadrzaja = "Nacrt" | "Objavljen" | "Zakljucan" | "Nema";
+/**
+ * Status stvarnog sadržaja — `SadrzajKorpice` postoji samo kad sadržaj postoji,
+ * pa ovdje nema "Nema" (to je samo stanje admin pregleda; vidi `StatusPregleda`).
+ */
+export type StatusSadrzaja = "Nacrt" | "Objavljen" | "Zakljucan";
 
 export interface Korpica {
   id: string;
