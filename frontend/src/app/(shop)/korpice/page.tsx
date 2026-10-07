@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { korpiceApi } from "@/lib/api/endpoints";
 import { TIPOVI_KORPICE, type TipKorpice } from "@/types/domain";
 import { KorpicaCard } from "@/components/korpice/korpica-card";
+import { SadrzajModal } from "@/components/korpice/sadrzaj-modal";
 import { TipoviTabovi } from "@/components/korpice/tipovi-tabovi";
 import { RokTraka } from "@/components/korpice/rok-traka";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -28,8 +29,7 @@ function KorpiceSadrzaj() {
   const tip: TipKorpice =
     tipIzUrla && TIPOVI_KORPICE.includes(tipIzUrla) ? tipIzUrla : "povrce";
 
-  // Slug korpice čiji sadržaj je otvoren — modal dolazi u Tasku 12, ovdje samo
-  // čuvamo koji je slug trenutno izabran.
+  // Slug korpice čiji sadržaj je otvoren u modalu (SadrzajModal ispod).
   const [slugZaModal, setSlugZaModal] = useState<string | null>(null);
 
   const { data: korpice, isLoading, isError } = useQuery({
@@ -84,8 +84,9 @@ function KorpiceSadrzaj() {
         </div>
       </div>
 
-      {/* Modal sa sadržajem korpice dolazi u Tasku 12. */}
-      {slugZaModal && null}
+      {slugZaModal && (
+        <SadrzajModal slug={slugZaModal} onClose={() => setSlugZaModal(null)} />
+      )}
     </>
   );
 }
