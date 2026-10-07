@@ -11,7 +11,10 @@ public class AdminKorpiceTests
 {
     private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
 
-    private sealed record Postavka(Product Korpica1, Product Korpica2, Product Artikal, Producer Proizvodjac);
+    private sealed record Postavka(
+        Product Korpica1, Product Korpica2,
+        Product Artikal, Product Artikal2, Product Artikal3,
+        Producer Proizvodjac);
 
     private static Postavka Postavi(TestDb t)
     {
@@ -27,16 +30,20 @@ public class AdminKorpiceTests
             Vrsta = VrstaProizvoda.Korpica, TipKorpice = TipKorpice.Povrce, Velicina = v,
         };
 
-        var k1 = Korpica("mala-povrce", VelicinaKorpice.Mala, 25m);
-        var k2 = Korpica("srednja-povrce", VelicinaKorpice.Srednja, 35m);
-        var artikal = new Product
+        Product Artikal(string naziv, string slug, decimal cijena) => new()
         {
-            Name = "Paradajz", Slug = "paradajz", Price = 4m, Unit = Unit.Kg,
+            Name = naziv, Slug = slug, Price = cijena, Unit = Unit.Kg,
             CategoryId = kat.Id, ProducerId = proiz.Id, Stock = 50, MozeUKorpicu = true,
         };
-        t.Db.Products.AddRange(k1, k2, artikal);
+
+        var k1 = Korpica("mala-povrce", VelicinaKorpice.Mala, 25m);
+        var k2 = Korpica("srednja-povrce", VelicinaKorpice.Srednja, 35m);
+        var artikal = Artikal("Paradajz", "paradajz", 4m);
+        var artikal2 = Artikal("Krompir", "krompir", 2m);
+        var artikal3 = Artikal("Luk", "luk", 1.5m);
+        t.Db.Products.AddRange(k1, k2, artikal, artikal2, artikal3);
         t.Db.SaveChanges();
-        return new Postavka(k1, k2, artikal, proiz);
+        return new Postavka(k1, k2, artikal, artikal2, artikal3, proiz);
     }
 
     private static SedmicniSadrzaj Sadrzaj(TestDb t, Product korpica, Product artikal, decimal kolicina, StatusSadrzaja status)
@@ -92,13 +99,32 @@ public class AdminKorpiceTests
     {
         using var t = new TestDb();
         var p = Postavi(t);
-        var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
+
+        // Dva artikla u nacrtu, pa zamjena TREĆIM, potpuno drugim artiklom — tako da
+        // "update u mjestu" postojećeg reda (isti ProductId, samo nova količina) ne može
+        // slučajno proći kao ispravno "zamijeni u cjelosti". Vidi Task 7, nalaz review-a:
+        // test sa istim ProductId ne razlikuje "wholesale replace" od "mutate in place".
+        var s = new SedmicniSadrzaj
+        {
+            KorpicaId = p.Korpica1.Id, Godina = 2026, Sedmica = 41, Status = StatusSadrzaja.Nacrt,
+        };
+        s.Stavke.Add(new StavkaSadrzaja { ProductId = p.Artikal.Id, Kolicina = 2m, JedinicnaCijena = p.Artikal.Price });
+        s.Stavke.Add(new StavkaSadrzaja { ProductId = p.Artikal2.Id, Kolicina = 1m, JedinicnaCijena = p.Artikal2.Price });
+        t.Db.SedmicniSadrzaji.Add(s);
+        t.Db.SaveChanges();
+        var stareStavkeIdjevi = s.Stavke.Select(x => x.Id).ToList();
 
         await new IzmijeniNacrtHandler(t.Db).Handle(
-            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 5m)]), default);
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal3.Id, 5m)]), default);
 
-        var stavka = Assert.Single(await t.Db.StavkeSadrzaja.AsNoTracking().ToListAsync());
+        var preostale = await t.Db.StavkeSadrzaja.AsNoTracking().ToListAsync();
+        var stavka = Assert.Single(preostale);
+        Assert.Equal(p.Artikal3.Id, stavka.ProductId);
         Assert.Equal(5m, stavka.Kolicina);
+        Assert.DoesNotContain(preostale, x => x.ProductId == p.Artikal.Id || x.ProductId == p.Artikal2.Id);
+        // Red je nov, ne recikliran: pravo "zamijeni u cjelosti" briše stare redove i
+        // pravi nove, ne prepisuje polja postojećeg reda u mjestu.
+        Assert.DoesNotContain(stavka.Id, stareStavkeIdjevi);
     }
 
     [Fact]
