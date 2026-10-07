@@ -168,8 +168,8 @@ public static class DbSeeder
                 {
                     TipKorpice.Povrce => "/categories/povrce.jpg",
                     TipKorpice.Voce => "/categories/voce.jpg",
-                    TipKorpice.Mlijecna => "/categories/mlijecni-proizvodi.jpg",
-                    TipKorpice.Suhomesnata => "/categories/meso.jpg",
+                    TipKorpice.Mlijecna => "/products/mladi-kravlji-sir.jpg",
+                    TipKorpice.Suhomesnata => "/products/suha-slanina.jpg",
                     TipKorpice.Domacinska => "/hero/hero-domacinstvo.jpg",
                     _ => throw new InvalidOperationException($"Nepoznat tip korpice: {tip}"),
                 },
