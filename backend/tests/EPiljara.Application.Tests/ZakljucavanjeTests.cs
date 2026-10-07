@@ -76,4 +76,71 @@ public class ZakljucavanjeTests
         Assert.Equal(0, await new ZakljucajSadrzajeHandler(t.Db, Opcije)
             .Handle(new ZakljucajSadrzajeCommand(poslijeRoka), default));
     }
+
+    [Fact]
+    public async Task Zakljucava_sadrzaj_nakon_tocnog_roka()
+    {
+        using var t = new TestDb();
+        Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
+
+        // Rok je petak - 48h; testiramo tačno 1 sekund nakon roka.
+        var rok = System.Globalization.ISOWeek
+            .ToDateTime(2026, 41, DayOfWeek.Friday)
+            .AddHours(-Opcije.Value.RokSati)
+            .AddSeconds(1);
+
+        var broj = await new ZakljucajSadrzajeHandler(t.Db, Opcije)
+            .Handle(new ZakljucajSadrzajeCommand(rok), default);
+
+        Assert.Equal(1, broj);
+        var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
+        Assert.Equal(StatusSadrzaja.Zakljucan, s.Status);
+    }
+
+    [Fact]
+    public async Task Ne_zakljucava_sadrzaj_prije_tocnog_roka()
+    {
+        using var t = new TestDb();
+        Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
+
+        // Rok je petak - 48h; testiramo tačno 1 sekund prije roka.
+        var rok = System.Globalization.ISOWeek
+            .ToDateTime(2026, 41, DayOfWeek.Friday)
+            .AddHours(-Opcije.Value.RokSati)
+            .AddSeconds(-1);
+
+        var broj = await new ZakljucajSadrzajeHandler(t.Db, Opcije)
+            .Handle(new ZakljucajSadrzajeCommand(rok), default);
+
+        Assert.Equal(0, broj);
+        var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
+        Assert.Equal(StatusSadrzaja.Objavljen, s.Status);
+    }
+
+    [Fact]
+    public async Task Citava_RokSati_iz_konfiguracije()
+    {
+        using var t = new TestDb();
+        Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
+
+        // Koristimo RokSati = 24h (umjesto defaultnog 48h).
+        // Rok se pomjera sa srijede (Friday - 48h) na četvrtak (Friday - 24h).
+        var opcije24 = Options.Create(new KorpiceOpcije { RokSati = 24 });
+
+        // Vrijeme: srijeda podne — nakon defaultnog roka (48h)
+        // ali prije configuriranog roka (24h).
+        var srijeda = System.Globalization.ISOWeek
+            .ToDateTime(2026, 41, DayOfWeek.Friday)
+            .AddHours(-48)
+            .AddHours(12); // Srijeda podne
+
+        // Sa RokSati=48 (default): srijeda podne > srijeda (Friday - 48h), dakle ZATVARAJ.
+        // Sa RokSati=24: srijeda podne < četvrtak (Friday - 24h), dakle NE zatvaraj.
+        var broj = await new ZakljucajSadrzajeHandler(t.Db, opcije24)
+            .Handle(new ZakljucajSadrzajeCommand(srijeda), default);
+
+        Assert.Equal(0, broj);
+        var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
+        Assert.Equal(StatusSadrzaja.Objavljen, s.Status);
+    }
 }
