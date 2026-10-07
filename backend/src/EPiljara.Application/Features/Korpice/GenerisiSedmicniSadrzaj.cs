@@ -101,7 +101,19 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
 
                 var kolicina = Zaokruzi(budzet / artikal.Price, artikal.Unit);
                 if (kolicina > artikal.Stock) kolicina = Zaokruzi(artikal.Stock, artikal.Unit);
-                if (kolicina <= 0) continue;
+
+                if (kolicina <= 0)
+                {
+                    // Budžet po stavci je zaokružen na 0 — tipično skup artikal po komadu
+                    // (suhomesnato, mliječno) naspram malog poStavci. Umjesto da ga trajno
+                    // preskočimo, probamo tačno jednu minimalnu jedinicu, ali samo ako staje
+                    // i u preostatak cilja i u zalihu; inače ostaje preskočen kao i do sada.
+                    var minimalnaKolicina = KoracZaokruzivanja(artikal.Unit);
+                    if (minimalnaKolicina * artikal.Price <= preostalo && minimalnaKolicina <= artikal.Stock)
+                        kolicina = minimalnaKolicina;
+                    else
+                        continue;
+                }
 
                 sadrzaj.Stavke.Add(new StavkaSadrzaja
                 {
@@ -133,13 +145,17 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
     }
 
     /// <summary>
-    /// Korak je 0.1 za težinu i zapreminu, 1 za komade. Tip parametra je kvalifikovan jer se
-    /// <c>Unit</c> inače sudara sa <c>MediatR.Unit</c> (oba imena su importovana u ovom fajlu).
+    /// Korak zaokruživanja (i najmanja smislena količina): 1 za komade, 0.1 za težinu i
+    /// zapreminu. Tip parametra je kvalifikovan jer se <c>Unit</c> inače sudara sa
+    /// <c>MediatR.Unit</c> (oba imena su importovana u ovom fajlu).
     /// </summary>
+    private static decimal KoracZaokruzivanja(EPiljara.Domain.Enums.Unit jedinica) =>
+        jedinica == EPiljara.Domain.Enums.Unit.Kom ? 1m : 0.1m;
+
     private static decimal Zaokruzi(decimal kolicina, EPiljara.Domain.Enums.Unit jedinica)
     {
-        if (jedinica == EPiljara.Domain.Enums.Unit.Kom) return Math.Floor(kolicina);
-        return Math.Floor(kolicina * 10m) / 10m;
+        var korak = KoracZaokruzivanja(jedinica);
+        return Math.Floor(kolicina / korak) * korak;
     }
 
     /// <summary>Mjesec u koji pada četvrtak zadate ISO sedmice — četvrtak je uvijek u „pravom" mjesecu.</summary>

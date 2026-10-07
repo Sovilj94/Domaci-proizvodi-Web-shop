@@ -41,6 +41,39 @@ public class GeneratorSadrzajaTests
         return korpica;
     }
 
+    /// <summary>
+    /// Korpica + kategorija + proizvođač + N artikala po komadu, skupljih od budžeta po
+    /// stavci (ali jeftinijih od ukupnog cilja) — suhomesnato/mliječno scenario.
+    /// </summary>
+    private static Product PostaviSkupeKomade(TestDb t, decimal cijenaArtikla, int brojArtikala = 10)
+    {
+        var kat = new Category { Name = "Suhomesnato", Slug = "suhomesnato" };
+        var proiz = new Producer { Name = "Mujo Mujić", Village = "Stričići" };
+        t.Db.Categories.Add(kat);
+        t.Db.Producers.Add(proiz);
+
+        var korpica = new Product
+        {
+            Name = "Mala korpica suhomesnatog", Slug = "mala-korpica-suhomesnatog", Price = 25m,
+            Unit = Unit.Kom, CategoryId = kat.Id, ProducerId = proiz.Id, Stock = 50,
+            Vrsta = VrstaProizvoda.Korpica, TipKorpice = TipKorpice.Suhomesnata,
+            Velicina = VelicinaKorpice.Mala,
+        };
+        t.Db.Products.Add(korpica);
+        t.Db.KorpicaKategorije.Add(new KorpicaKategorija { TipKorpice = TipKorpice.Suhomesnata, CategoryId = kat.Id });
+
+        for (var i = 0; i < brojArtikala; i++)
+            t.Db.Products.Add(new Product
+            {
+                Name = $"Pečenica {i}", Slug = $"pecenica-{i}", Price = cijenaArtikla, Unit = Unit.Kom,
+                CategoryId = kat.Id, ProducerId = proiz.Id, Stock = 100m,
+                MozeUKorpicu = true, Mjeseci = [],
+            });
+
+        t.Db.SaveChanges();
+        return korpica;
+    }
+
     private static GenerisiSedmicniSadrzajHandler Handler(TestDb t) => new(t.Db, Opcije);
 
     [Fact]
@@ -121,6 +154,21 @@ public class GeneratorSadrzajaTests
 
         Assert.Empty(drugi);
         Assert.Equal(1, await t.Db.SedmicniSadrzaji.CountAsync());
+    }
+
+    [Fact]
+    public async Task Uzima_minimalnu_kolicinu_kad_artikal_po_komadu_premasuje_budzet_po_stavci()
+    {
+        // Korpica od 25 KM → cilj 28.75, minimum 5 → budžet po stavci 5.75. Pečenica od
+        // 10 KM/kom ne staje u 5.75 (Floor(5.75/10) = 0) ali staje u ukupan cilj od 28.75 —
+        // generator ne smije vratiti praznu korpicu samo zato što je artikal skup po komadu.
+        using var t = new TestDb();
+        PostaviSkupeKomade(t, cijenaArtikla: 10m);
+
+        var rez = await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default);
+
+        var r = Assert.Single(rez);
+        Assert.True(r.BrojArtikala >= 1, $"očekivano >= 1, dobijeno {r.BrojArtikala}");
     }
 
     [Fact]
