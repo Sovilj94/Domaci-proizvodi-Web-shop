@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,13 +25,14 @@ import {
   useMyAddresses,
   useProducts,
 } from "@/lib/api/hooks";
-import { orderApi } from "@/lib/api/endpoints";
+import { orderApi, korpiceApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import { useCart } from "@/lib/cart/cart-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useToast } from "@/components/ui/toast";
 import { ApiRequestError } from "@/lib/api/client";
 import type { Order } from "@/types/domain";
+import { korpicaKaoProizvod } from "@/lib/korpice";
 import { cn, formatPrice, weekdayName } from "@/lib/utils";
 
 /** Strip a "+387" a saved profile phone may already carry — the field below only holds
@@ -53,19 +54,36 @@ export default function CheckoutPage() {
   const zones = useDeliveryZones();
   const slots = useDeliverySlots();
   const products = useProducts();
+  // Korpice su Product redovi (Vrsta == Korpica), ali se javni katalog (/products) od
+  // njih čisti (vidi backend GetProductsHandler) — bez ovoga bi reconcile ispod, koji
+  // briše iz korpe sve što nije u listi koju dobije, obrisao svaku korpicu iz korpe
+  // čim kupac stigne na checkout. Zato se ovdje dovlače posebno i spajaju s products.
+  const korpice = useQuery({
+    queryKey: ["korpice", undefined],
+    queryFn: () => korpiceApi.lista(),
+  });
   const addresses = useMyAddresses(!!user);
   const savedAddresses = useMemo(() => addresses.data ?? [], [addresses.data]);
 
   // Drop cart items whose product no longer exists / isn't available (e.g. after a
   // catalog change) so checkout can't fail with "proizvod nije dostupan".
+  //
+  // Namjerno se čeka da i korpice uspješno stignu pre nego što se reconcile pozove:
+  // reconcile ne razlikuje korpicu od običnog proizvoda (CartItem ne nosi Vrsta), pa bez
+  // liste korpica ne postoji ispravan skup na koji bi se korpice iz korpe mogle
+  // provjeriti. Ako zahtjev za korpice padne, radije se preskače ovo (korpa ostaje
+  // nepromijenjena do uspješnog ponovnog pokušaja) nego da se korpice nestvarno obrišu —
+  // dostupnost se svakako ponovo provjerava na serveru pri slanju narudžbe.
   useEffect(() => {
     const list = products.data;
     if (!list?.length) return;
-    const available = new Set(list.filter((p) => p.isAvailable).map((p) => p.id));
+    if (!korpice.isSuccess) return;
+    const katalog = [...list, ...korpice.data.map(korpicaKaoProizvod)];
+    const available = new Set(katalog.filter((p) => p.isAvailable).map((p) => p.id));
     const removed = items.filter((i) => !available.has(i.productId)).length;
-    reconcile(list);
+    reconcile(katalog);
     if (removed > 0) show(`Uklonjeno ${removed} nedostupnih proizvoda iz korpe.`);
-  }, [products.data, items, reconcile, show]);
+  }, [products.data, korpice.isSuccess, korpice.data, items, reconcile, show]);
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
