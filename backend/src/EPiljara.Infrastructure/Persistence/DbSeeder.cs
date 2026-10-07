@@ -9,8 +9,6 @@ namespace EPiljara.Infrastructure.Persistence;
 /// <summary>Idempotent demo seed: Manjača producers, catalog, zones, users, sample orders.</summary>
 public static class DbSeeder
 {
-    private static string Img(string seed) => $"https://picsum.photos/seed/{seed}/700/700";
-
     public static async Task SeedAsync(AppDbContext db, IPasswordHasher hasher, CancellationToken ct = default)
     {
         if (await db.Categories.AnyAsync(ct))
@@ -166,7 +164,15 @@ public static class DbSeeder
                 Stock = 40,
                 IsAvailable = true,
                 Description = $"{opis} {clanovi}.",
-                ImageUrl = Img(slug),
+                ImageUrl = tip switch
+                {
+                    TipKorpice.Povrce => "/categories/povrce.jpg",
+                    TipKorpice.Voce => "/categories/voce.jpg",
+                    TipKorpice.Mlijecna => "/categories/mlijecni-proizvodi.jpg",
+                    TipKorpice.Suhomesnata => "/categories/meso.jpg",
+                    TipKorpice.Domacinska => "/hero/hero-domacinstvo.jpg",
+                    _ => throw new InvalidOperationException($"Nepoznat tip korpice: {tip}"),
+                },
                 Category = prvaKategorija,
                 Producer = prviProizvodjac,
                 Vrsta = VrstaProizvoda.Korpica,
