@@ -4,7 +4,10 @@ import { Truck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { korpiceApi } from "@/lib/api/endpoints";
 
-const DANI = ["nedjelju", "ponedjeljak", "utorak", "srijedu", "četvrtak", "petak", "subotu"];
+// Dva padeža za dane u sedmici — "u" traži akuzativ, "do" traži genitiv, i nisu isti
+// oblik (npr. "petak" → "petka", ne "petaku"). Indeks je JS Date.getDay() (0 = nedjelja).
+const DANI_AKUZATIV = ["nedjelju", "ponedjeljak", "utorak", "srijedu", "četvrtak", "petak", "subotu"];
+const DANI_GENITIV = ["nedjelje", "ponedjeljka", "utorka", "srijede", "četvrtka", "petka", "subote"];
 
 /**
  * Traka sa rokom za naručivanje, iznad naslova stranice. Sedmica se generiše i
@@ -31,8 +34,8 @@ export function RokTraka() {
           "Naručivanje za ovu sedmicu je zatvoreno. Sljedeća isporuka je u petak."
         ) : (
           <>
-            Poruči do {DANI[rok.getDay()]} u {rok.getHours()}h i korpica stiže u{" "}
-            {DANI[isporuka.getDay()]} {isporuka.getDate()}.{isporuka.getMonth() + 1}.
+            Poruči do {DANI_GENITIV[rok.getDay()]} u {rok.getHours()}h i korpica stiže u{" "}
+            {DANI_AKUZATIV[isporuka.getDay()]} {isporuka.getDate()}.{isporuka.getMonth() + 1}.
           </>
         )}
       </span>
