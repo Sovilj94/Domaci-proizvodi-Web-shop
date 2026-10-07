@@ -77,6 +77,12 @@ public class KorpiceQueriesTests
         var (g, s) = Sada();
         Postavi(t, StatusSadrzaja.Objavljen, g, s);
 
+        // Bez ovoga, EF Core-ov change tracker bi "besplatno" popunio Product i Producer
+        // navigacije iz već praćenih entiteta nastalih u Postavi() (relationship fixup), pa
+        // bi test prošao i bez ThenInclude lanca u handleru. Svježi DbContext po zahtjevu u
+        // produkciji nema taj efekat — ovim ga simuliramo.
+        t.Db.ChangeTracker.Clear();
+
         var dto = await new GetSadrzajKorpiceHandler(t.Db)
             .Handle(new GetSadrzajKorpiceQuery("mala-korpica-povrca"), default);
 
