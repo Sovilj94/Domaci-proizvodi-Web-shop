@@ -4,13 +4,16 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { korpiceApi } from "@/lib/api/endpoints";
-import { TIPOVI_KORPICE, type TipKorpice } from "@/types/domain";
+import { korpicaKaoProizvod } from "@/lib/korpice";
+import { TIPOVI_KORPICE, type Korpica, type TipKorpice } from "@/types/domain";
 import { KorpicaCard } from "@/components/korpice/korpica-card";
 import { SadrzajModal } from "@/components/korpice/sadrzaj-modal";
 import { TipoviTabovi } from "@/components/korpice/tipovi-tabovi";
 import { RokTraka } from "@/components/korpice/rok-traka";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useCart } from "@/lib/cart/cart-context";
+import { useToast } from "@/components/ui/toast";
 
 // useSearchParams() izbacuje stranicu iz statičke generacije osim ako ne stoji ispod
 // <Suspense> granice — isti razlog zbog kojeg su /login, /register i /admin/dostava
@@ -36,6 +39,17 @@ function KorpiceSadrzaj() {
     queryKey: ["korpice", tip],
     queryFn: () => korpiceApi.lista(tip),
   });
+
+  const { add } = useCart();
+  const { show } = useToast();
+
+  // Korpica u korpu ide kao običan proizvod — vidi korpicaKaoProizvod. Isti poziv
+  // koristi i stranica detalja (/korpice/[slug]).
+  function dodajUKorpu(korpica: Korpica) {
+    if (!korpica.dostupna) return;
+    add(korpicaKaoProizvod(korpica));
+    show(`${korpica.naziv} dodana u korpu`);
+  }
 
   return (
     <>
@@ -69,9 +83,7 @@ function KorpiceSadrzaj() {
                   korpica={k}
                   istaknuta={k.velicina === "srednja"}
                   onPogledajSadrzaj={setSlugZaModal}
-                  onDodaj={() => {
-                    /* Task 13 veže ovo na korpu. */
-                  }}
+                  onDodaj={dodajUKorpu}
                 />
               ))}
             </div>

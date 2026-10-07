@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Scale, Sparkles, Sprout, Truck } from "lucide-react";
 import type { Korpica } from "@/types/domain";
 import { SmartImage } from "@/components/ui/smart-image";
@@ -17,7 +18,8 @@ const TEZINA: Record<Korpica["velicina"], string> = {
  * članova upisanim u tekst (npr. "Srednja korpica povrća" / "...Za 2 do 4 člana."),
  * zato kartica ne dupira taj podatak u zasebnoj oznaci.
  *
- * `onDodaj` je namjerno prazno — Task 13 ga vezuje na korpu.
+ * `onDodaj` dodaje korpicu u postojeću korpu — vidi `korpicaKaoProizvod` u
+ * `lib/korpice.ts` za mapiranje na oblik koji korpa očekuje.
  */
 export function KorpicaCard({
   korpica,
@@ -43,17 +45,21 @@ export function KorpicaCard({
         </span>
       )}
 
-      <div className="relative aspect-[4/3] bg-sand">
+      <Link href={`/korpice/${korpica.slug}`} className="relative block aspect-[4/3] bg-sand">
         <SmartImage
           src={korpica.imageUrl}
           alt={korpica.naziv}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
-      </div>
+      </Link>
 
       <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
         <div>
-          <h3 className="text-base font-semibold text-ink sm:text-lg">{korpica.naziv}</h3>
+          <Link href={`/korpice/${korpica.slug}`}>
+            <h3 className="text-base font-semibold text-ink transition hover:text-brand-700 sm:text-lg">
+              {korpica.naziv}
+            </h3>
+          </Link>
           <p className="mt-1 text-sm text-muted">{korpica.opis}</p>
         </div>
 
