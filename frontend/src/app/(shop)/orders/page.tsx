@@ -1,101 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import Link from "next/link";
-import { CalendarClock, MapPin, PackageOpen } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingBlock } from "@/components/ui/spinner";
-import { useAuth } from "@/lib/auth/auth-context";
-import { useMyOrders } from "@/lib/api/hooks";
-import { cn, formatDateTime, formatPrice, unitSuffix } from "@/lib/utils";
-
+/**
+ * Narudžbe su se preselile pod /moj-nalog/narudzbe. Ova ruta ostaje samo da
+ * stari linkovi i markeri ne puknu — preusmjerenje je serversko (nema
+ * "use client", nema useEffect), pa skok ne košta ništa na klijentu.
+ */
 export default function OrdersPage() {
-  const { user, loading } = useAuth();
-  const orders = useMyOrders(!!user);
-
-  if (loading) return <LoadingBlock />;
-
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <EmptyState
-          title="Prijavite se da vidite narudžbe"
-          description="Vaša istorija narudžbi je vezana za vaš nalog."
-          action={
-            <Link href="/login" className={cn(buttonVariants())}>
-              Prijava
-            </Link>
-          }
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="font-display text-2xl font-bold md:text-3xl">Moje narudžbe</h1>
-
-      <div className="mt-6">
-        {orders.isLoading ? (
-          <LoadingBlock />
-        ) : orders.data && orders.data.length > 0 ? (
-          <ul className="space-y-4">
-            {orders.data.map((o) => (
-              <li key={o.id} className="rounded-card bg-surface p-5 shadow-card">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-display font-semibold">{o.code}</p>
-                    <p className="text-xs text-muted">{formatDateTime(o.createdAt)}</p>
-                  </div>
-                  <StatusBadge status={o.status} />
-                </div>
-
-                <ul className="mt-4 space-y-1 text-sm">
-                  {o.items.map((it) => (
-                    <li key={it.id} className="flex justify-between gap-2">
-                      <span className="text-muted">
-                        {it.productName} × {it.quantity}
-                        {unitSuffix(it.unit)}
-                      </span>
-                      <span className="font-medium">
-                        {formatPrice(it.unitPrice * it.quantity)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-line pt-3 text-xs text-muted">
-                  <span className="flex items-center gap-1">
-                    <CalendarClock className="h-3.5 w-3.5" /> {o.deliverySlot?.label}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" /> {o.deliveryZoneName} · {o.deliveryAddress}
-                  </span>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm text-muted">Ukupno</span>
-                  <span className="font-display text-lg font-bold">
-                    {formatPrice(o.totalAmount)}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            icon={<PackageOpen className="h-7 w-7" />}
-            title="Još nemate narudžbi"
-            description="Kada naručite, ovdje ćete pratiti status dostave."
-            action={
-              <Link href="/products">
-                <Button>Pogledaj proizvode</Button>
-              </Link>
-            }
-          />
-        )}
-      </div>
-    </div>
-  );
+  redirect("/moj-nalog/narudzbe");
 }

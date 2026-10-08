@@ -141,7 +141,7 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
               Nastavi kupovinu
             </Link>
             {user && (
-              <Link href="/orders" className={cn(buttonVariants())}>
+              <Link href="/moj-nalog/narudzbe" className={cn(buttonVariants())}>
                 Moje narudžbe
               </Link>
             )}

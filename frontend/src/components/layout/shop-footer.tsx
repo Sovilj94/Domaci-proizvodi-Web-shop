@@ -42,7 +42,7 @@ export function ShopFooter() {
               </Link>
             </li>
             <li>
-              <Link href="/orders" className="transition hover:text-cream">
+              <Link href="/moj-nalog/narudzbe" className="transition hover:text-cream">
                 Moje narudžbe
               </Link>
             </li>

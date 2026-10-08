@@ -28,7 +28,7 @@ export default function ConfirmEmailPage() {
     confirmEmail(token)
       .then(() => {
         setStatus("ok");
-        setTimeout(() => router.push("/orders"), 1400);
+        setTimeout(() => router.push("/moj-nalog/narudzbe"), 1400);
       })
       .catch((e) => {
         setStatus("error");

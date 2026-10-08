@@ -66,7 +66,7 @@ export function SocialLogin() {
   const [busy, setBusy] = useState(false);
 
   const goHome = useCallback(
-    (role: UserRole) => router.push(role === "admin" ? "/admin/dashboard" : "/orders"),
+    (role: UserRole) => router.push(role === "admin" ? "/admin/dashboard" : "/moj-nalog/narudzbe"),
     [router],
   );
 

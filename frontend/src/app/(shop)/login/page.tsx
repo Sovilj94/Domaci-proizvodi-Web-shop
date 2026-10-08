@@ -52,7 +52,7 @@ function LoginForm() {
     setResent(false);
     try {
       const user = await login({ email, password });
-      router.push(safeNext ?? (user.role === "admin" ? "/admin/dashboard" : "/orders"));
+      router.push(safeNext ?? (user.role === "admin" ? "/admin/dashboard" : "/moj-nalog/narudzbe"));
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setError(err.message);

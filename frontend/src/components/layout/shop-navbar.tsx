@@ -62,7 +62,7 @@ export function ShopNavbar() {
               (user ? (
                 <div className="hidden items-center gap-1 sm:flex">
                   <Link
-                    href="/orders"
+                    href="/moj-nalog"
                     className="flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-medium text-ink transition hover:bg-sand"
                   >
                     <User className="h-4 w-4" />
@@ -128,7 +128,7 @@ export function ShopNavbar() {
                   </Link>
                 )}
                 <Link
-                  href="/orders"
+                  href="/moj-nalog/narudzbe"
                   onClick={() => setOpen(false)}
                   className="rounded-[10px] px-3 py-2.5 text-sm font-medium text-ink hover:bg-sand"
                 >

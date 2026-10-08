@@ -37,13 +37,14 @@ export function MobileTabBar() {
       <ul className="mx-auto flex max-w-md items-stretch">
         {TABS.map((t) => {
           /*
-           * /account i /kategorije stižu u Fazi 4. Dok ih nema, tabovi vode na postojeće
-           * stranice umjesto na 404 — spec izričito traži da nema mrtvih stavki u meniju.
+           * Profil vodi na nalog mušterije: /moj-nalog kad je prijavljena, /login kad nije.
+           * /kategorije stiže u Fazi 4 — dok ga nema, tab vodi na /products umjesto na
+           * 404, jer spec izričito traži da nema mrtvih stavki u meniju.
            */
           const href =
             t.href === "/account"
               ? user
-                ? "/orders"
+                ? "/moj-nalog"
                 : "/login"
               : t.href === "/kategorije"
                 ? "/products"
