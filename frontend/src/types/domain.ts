@@ -178,6 +178,23 @@ export interface AuthResult {
 }
 
 /**
+ * Preslikava `AddressDto` (backend `DTOs/AccountDtos.cs`) 1:1. Nullable backend
+ * polja su na žici odsutna kad su null (`WhenWritingNull`), pa `?:`, nikad `| null`.
+ */
+export interface Address {
+  id: string;
+  label?: string;
+  fullAddress: string;
+  latitude?: number;
+  longitude?: number;
+  deliveryZoneId?: string;
+  deliveryZoneName?: string;
+  /** Zona se može ugasiti nakon što je adresa sačuvana — klijent to mora znati. */
+  deliveryZoneActive: boolean;
+  isDefault: boolean;
+}
+
+/**
  * Polazište i krajnja tačka svake ture, jedna vrijednost za cijelu piljaru.
  * Koordinate nisu opcione — bez njih se ruta ne bi mogla računati, pa ih backend
  * odbija i na `PUT`-u i na startu.

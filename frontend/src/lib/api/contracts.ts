@@ -42,6 +42,21 @@ export interface RegisterResponse {
   confirmationRequired: boolean;
 }
 
+/** Tijelo za POST/PUT na `/account/addresses` — engleski ključevi (backend kontrakt). */
+export interface AddressInput {
+  label?: string;
+  fullAddress: string;
+  latitude?: number;
+  longitude?: number;
+  deliveryZoneId?: string;
+}
+
+/** Tijelo za PUT `/account/profile` — srpski ključevi, jer dolazi iz `AzurirajProfilCommand`. */
+export interface ProfileInput {
+  ime: string;
+  telefon: string;
+}
+
 export interface ProductInput {
   name: string;
   price: number;

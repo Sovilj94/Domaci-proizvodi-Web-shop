@@ -10,8 +10,13 @@ import {
 } from "react";
 import type { AuthUser } from "@/types/domain";
 import { getToken, setToken } from "@/lib/api/client";
-import { authApi } from "@/lib/api/endpoints";
-import type { LoginRequest, RegisterRequest, RegisterResponse } from "@/lib/api/contracts";
+import { accountApi, authApi } from "@/lib/api/endpoints";
+import type {
+  LoginRequest,
+  ProfileInput,
+  RegisterRequest,
+  RegisterResponse,
+} from "@/lib/api/contracts";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -25,6 +30,8 @@ interface AuthContextValue {
   loginWithGoogle: (idToken: string) => Promise<AuthUser>;
   loginWithFacebook: (accessToken: string) => Promise<AuthUser>;
   logout: () => void;
+  /** Mijenja ime i telefon i odmah osvježava kontekst, da zaglavlje ne pokazuje staro ime. */
+  azurirajProfil: (body: ProfileInput) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -85,6 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const azurirajProfil = useCallback(async (body: ProfileInput) => {
+    const azuriran = await accountApi.azurirajProfil(body);
+    setUser(azuriran);
+    return azuriran;
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -96,8 +109,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loginWithGoogle,
       loginWithFacebook,
       logout,
+      azurirajProfil,
     }),
-    [user, loading, login, register, confirmEmail, loginWithGoogle, loginWithFacebook, logout],
+    [
+      user,
+      loading,
+      login,
+      register,
+      confirmEmail,
+      loginWithGoogle,
+      loginWithFacebook,
+      logout,
+      azurirajProfil,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

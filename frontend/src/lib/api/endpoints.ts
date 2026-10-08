@@ -1,4 +1,5 @@
 import type {
+  Address,
   AuthResult,
   AuthUser,
   Category,
@@ -16,8 +17,9 @@ import type {
   TipKorpice,
   Warehouse,
 } from "@/types/domain";
-import { apiFetch } from "./client";
+import { ApiRequestError, apiFetch } from "./client";
 import type {
+  AddressInput,
   AssignDriverRequest,
   AssignOrdersBulkRequest,
   AssignRouteRequest,
@@ -32,6 +34,7 @@ import type {
   LoginRequest,
   ProducerInput,
   ProductInput,
+  ProfileInput,
   RegisterRequest,
   RegisterResponse,
   RezultatGenerisanja,
@@ -185,6 +188,40 @@ export const authApi = {
       auth: false,
     }).then((r) => r.data),
   me: () => apiFetch<AuthUser>("/auth/me").then((r) => r.data),
+};
+
+/* ---------- Nalog ---------- */
+
+export const accountApi = {
+  adrese: () => apiFetch<Address[]>("/account/addresses").then((r) => r.data),
+
+  dodajAdresu: (body: AddressInput) =>
+    apiFetch<Address>("/account/addresses", { method: "POST", body }).then((r) => r.data),
+
+  izmijeniAdresu: (id: string, body: AddressInput) =>
+    apiFetch<Address>(`/account/addresses/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  /**
+   * Backend vraća čisto 204 bez tijela (nema envelope) — `apiFetch` pokušava da
+   * parsira JSON i na uspjeh, `res.json()` baci na praznom tijelu, pa `apiFetch`
+   * zavrsi u grani za grešku sa `status === 204`. Ovdje je to jedini legitiman
+   * ishod uspjeha, pa ga gutamo; svaki drugi status (404, 403...) se i dalje baca.
+   */
+  obrisiAdresu: (id: string): Promise<void> =>
+    apiFetch<void>(`/account/addresses/${id}`, { method: "DELETE" })
+      .then(() => undefined)
+      .catch((err: unknown) => {
+        if (err instanceof ApiRequestError && err.status === 204) return undefined;
+        throw err;
+      }),
+
+  postaviGlavnu: (id: string) =>
+    apiFetch<Address>(`/account/addresses/${id}/default`, { method: "POST" }).then(
+      (r) => r.data,
+    ),
+
+  azurirajProfil: (body: ProfileInput) =>
+    apiFetch<AuthUser>("/account/profile", { method: "PUT", body }).then((r) => r.data),
 };
 
 /* ---------- Admin ---------- */
