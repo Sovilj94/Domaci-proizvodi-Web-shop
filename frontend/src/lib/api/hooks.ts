@@ -10,6 +10,7 @@ export const queryKeys = {
   zones: () => ["delivery", "zones"] as const,
   slots: () => ["delivery", "slots"] as const,
   myOrders: () => ["orders", "mine"] as const,
+  adrese: () => ["account", "adrese"] as const,
   order: (id: string) => ["order", id] as const,
   trackOrder: (token: string) => ["order", "track", token] as const,
   korpiceLista: () => ["korpice", "lista", undefined] as const,
