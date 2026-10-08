@@ -157,10 +157,43 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   default flag. Both are `[Authorize]`, both are about "where this customer lives", and they share nothing.
   A saved checkout string carries **no coordinates** — `AddressChooser` explicitly pushes `null` upward when
   one is picked, so the order is geocoded later rather than inheriting some other address's pin.
-- **The Adresar has no frontend.** Nothing under `frontend/src/` calls `/account/addresses` — there is no
-  `accountApi` in `endpoints.ts` and no "Moj nalog" screen. The backend (handlers, validators, tests,
-  migration) is complete and reachable over HTTP; the UI is the part that is missing. An earlier version of
-  this file described a "Moj nalog" screen as existing — it does not.
+- **The Adresar's only frontend is `/moj-nalog/adrese`,** added in P2a — before that the backend had been
+  complete and unreachable from any screen since September. `accountApi` in `endpoints.ts` is its single
+  surface; nothing else under `frontend/src/` calls `/account/addresses`. The screen **reflects** the three
+  backend rules rather than re-implementing them: at ten addresses the add tile is disabled with an
+  explanation, the default is marked rather than chosen client-side, and a saved address whose zone was later
+  switched off carries a visible warning because checkout will reject it. Client-side copies of those rules
+  would drift from the server's, and the server is the one that decides.
+- **The backend owns which address is the default, in both directions.** The first address on an empty
+  account comes back `isDefault: true`; setting another as default flips the previous one off; and deleting
+  the default **promotes another address automatically**. UI code that picks a replacement after a delete is
+  fighting the server, not helping it. The default also always sorts first in `GET /account/addresses`.
+
+## Moj nalog (P2a)
+
+- **`/moj-nalog` is a nested route whose guard lives in `layout.tsx`, once.** The sections do not repeat it;
+  the shape follows `app/admin/layout.tsx`. The guard shows an invitation to log in rather than redirecting,
+  because a redirect throws away where the customer was headed. It is deliberately **not** `?sekcija=`:
+  `useSearchParams()` without a `<Suspense>` boundary passes `tsc` and `eslint` cleanly and then breaks
+  `npm run build` in the prerender pass — which happened twice in P1.
+- **`/moj-nalog` is a literal prefix of every section route,** so the admin panel's active-state helper
+  (`pathname === href || pathname.startsWith(href + "/")`) would light up "Pregled" on every subpage
+  alongside the real item. `nalog-nav.tsx` exempts the root href from the prefix branch.
+- **`PUT /account/profile` changes name and phone only** and returns the same `AuthUserDto` that `auth/me`
+  returns, so the client refreshes its context from the response instead of making a second call. E-mail,
+  password and account deletion are deliberately outside it — each is its own piece of work, and the P2a spec
+  says why.
+- **`useAuth().azurirajProfil` is the only path that changes `user` in the context outside login.** It calls
+  the endpoint and then `setUser` with the server's echo; the navbar's name and any "is this form dirty"
+  comparison depend on that. A second writer added later needs to go through it too.
+- **The orders screen lives at `/moj-nalog/narudzbe`; `/orders` is a server-side `redirect()`** kept only so
+  old links and bookmarks survive. Internal links were repointed by meaning, not mechanically: the navbar's
+  user chip and the mobile "Profil" tab mean *my account* and go to `/moj-nalog`, while the footer, the mobile
+  menu item, the post-order button and the post-login destinations mean *my orders* and go to
+  `/moj-nalog/narudzbe`.
+- **`DELETE /account/addresses/{id}` is the only endpoint in the API that returns a bodiless `204`.**
+  `apiFetch` returns early on that status; without it `res.json()` throws on the empty body and a *successful*
+  delete surfaces as `ApiRequestError(204)`.
 
 ## Backend (Clean Architecture + CQRS)
 
