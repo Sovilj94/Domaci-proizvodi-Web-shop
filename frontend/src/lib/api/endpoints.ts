@@ -17,7 +17,7 @@ import type {
   TipKorpice,
   Warehouse,
 } from "@/types/domain";
-import { ApiRequestError, apiFetch } from "./client";
+import { apiFetch } from "./client";
 import type {
   AddressInput,
   AssignDriverRequest,
@@ -201,19 +201,9 @@ export const accountApi = {
   izmijeniAdresu: (id: string, body: AddressInput) =>
     apiFetch<Address>(`/account/addresses/${id}`, { method: "PUT", body }).then((r) => r.data),
 
-  /**
-   * Backend vraća čisto 204 bez tijela (nema envelope) — `apiFetch` pokušava da
-   * parsira JSON i na uspjeh, `res.json()` baci na praznom tijelu, pa `apiFetch`
-   * zavrsi u grani za grešku sa `status === 204`. Ovdje je to jedini legitiman
-   * ishod uspjeha, pa ga gutamo; svaki drugi status (404, 403...) se i dalje baca.
-   */
+  /** Backend vraća 204 bez tijela; `apiFetch` to prepoznaje kao uspjeh (vidi client.ts). */
   obrisiAdresu: (id: string): Promise<void> =>
-    apiFetch<void>(`/account/addresses/${id}`, { method: "DELETE" })
-      .then(() => undefined)
-      .catch((err: unknown) => {
-        if (err instanceof ApiRequestError && err.status === 204) return undefined;
-        throw err;
-      }),
+    apiFetch<void>(`/account/addresses/${id}`, { method: "DELETE" }).then(() => undefined),
 
   postaviGlavnu: (id: string) =>
     apiFetch<Address>(`/account/addresses/${id}/default`, { method: "POST" }).then(

@@ -95,6 +95,15 @@ export async function apiFetch<T>(
     });
   }
 
+  /*
+    204 No Content je uspjeh bez tijela, ne greška. Bez ove grane `res.json()` pukne na
+    praznom tijelu, `payload` ostane null, pa uspješno brisanje izleti kao
+    ApiRequestError(204) — što je upravo zbunilo poziv za brisanje adrese.
+    Danas je `DELETE /account/addresses/{id}` jedini takav endpoint; svi ostali DELETE-ovi
+    vraćaju omotnicu, pa ih ova grana ne dira.
+  */
+  if (res.status === 204) return { data: undefined as T, meta: null };
+
   let payload: ApiResponse<T> | null = null;
   try {
     payload = (await res.json()) as ApiResponse<T>;
