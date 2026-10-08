@@ -8,6 +8,10 @@ namespace EPiljara.API.Controllers;
 [Authorize]
 public class AccountController : ApiControllerBase
 {
+    [HttpPut("account/profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] AzurirajProfilCommand command) =>
+        Envelope(await Mediator.Send(command));
+
     [HttpGet("account/addresses")]
     public async Task<IActionResult> Addresses() =>
         EnvelopeList(await Mediator.Send(new GetAccountAddressesQuery()));
