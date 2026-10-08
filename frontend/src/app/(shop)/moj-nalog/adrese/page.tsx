@@ -85,6 +85,17 @@ export default function MojNalogAdresePage() {
 
       {adrese.isLoading ? (
         <LoadingBlock />
+      ) : adrese.isError ? (
+        /*
+          Bez ove grane neuspjelo učitavanje padne u prazno stanje ispod, pa kupac sa deset
+          adresa pročita „Nemaš sačuvanih adresa" — izgleda kao da su mu podaci nestali.
+        */
+        <EmptyState
+          title="Ne mogu da učitam adrese"
+          description="Provjeri konekciju pa pokušaj ponovo."
+          icon={<MapPin className="h-7 w-7" />}
+          action={<Button onClick={() => adrese.refetch()}>Pokušaj ponovo</Button>}
+        />
       ) : lista.length === 0 ? (
         <EmptyState
           title="Nemaš sačuvanih adresa"
@@ -172,11 +183,24 @@ function AdresaKartica({
 
       {adresa.deliveryZoneName && <p className="text-xs text-muted">Zona: {adresa.deliveryZoneName}</p>}
 
-      {!adresa.deliveryZoneActive && (
-        <p className="flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+      {/*
+        `deliveryZoneActive` je `a.DeliveryZone?.IsActive ?? false` (MappingExtensions.cs:203),
+        pa je `false` i kad zone uopšte NEMA. Zona je u formi opciona, tako da bi adresa
+        sačuvana bez zone inače odmah dobila crveno „zona je ugašena" — što nije istina.
+        Dva su to različita stanja i čitaju se različito.
+      */}
+      {!adresa.deliveryZoneId ? (
+        <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Zona dostave je ugašena — checkout će odbiti ovu adresu dok je ne promijeniš.
+          Bez zone dostave — izaberi zonu da checkout prihvati ovu adresu.
         </p>
+      ) : (
+        !adresa.deliveryZoneActive && (
+          <p className="flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Zona dostave je ugašena — checkout će odbiti ovu adresu dok je ne promijeniš.
+          </p>
+        )
       )}
 
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-3">

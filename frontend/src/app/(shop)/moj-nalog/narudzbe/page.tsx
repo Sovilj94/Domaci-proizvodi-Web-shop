@@ -14,9 +14,14 @@ export default function OrdersPage() {
   const { user } = useAuth();
   const orders = useMyOrders(!!user);
 
+  /*
+    Ekran je prenesen iz `/orders` bez redizajna, ali je tamo bio samostalna stranica i nosio
+    je svoj `mx-auto max-w-3xl px-4 py-8`. Unutar ljuske naloga, koja već daje okvir i razmak,
+    to je značilo dupli padding i užu kolonu pomjerenu u odnosu na ostale tri sekcije.
+  */
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="font-display text-2xl font-bold md:text-3xl">Moje narudžbe</h1>
+    <div>
+      <h1 className="font-display text-2xl font-bold text-ink md:text-3xl">Moje narudžbe</h1>
 
       <div className="mt-6">
         {orders.isLoading ? (

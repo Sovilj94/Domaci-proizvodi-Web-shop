@@ -22,7 +22,9 @@ const PLOCICE: Plocica[] = [
   {
     href: "/moj-nalog/podaci",
     label: "Izmijeni podatke",
-    description: "Ime, kontakt i lozinka na jednom mjestu.",
+    // Lozinka se u P2a NE mijenja — `podaci` je prikazuje sivo, sa objašnjenjem zašto.
+    // Obećati je ovdje znači poslati kupca po nešto što tamo ne postoji.
+    description: "Ime i broj telefona na kojem te traži vozač.",
     icon: User,
   },
   {
