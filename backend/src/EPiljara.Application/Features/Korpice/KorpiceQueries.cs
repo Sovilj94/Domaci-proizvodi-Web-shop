@@ -21,21 +21,51 @@ public static class SedmicaHelper
     }
 
     /// <summary>
-    /// Datum isporuke za zadatu ISO sedmicu, za dan koji pozivalac prosljeđuje. Ciklus
-    /// je vezan za <see cref="DeliverySlot"/>, ne za zakucan dan — pozivalac dan
-    /// dobija preko <see cref="UcitajRokAsync"/>.
+    /// Datum i VRIJEME isporuke za zadatu ISO sedmicu, za dan i vrijeme koje pozivalac
+    /// prosljeđuje. Ciklus je vezan za <see cref="DeliverySlot"/>, ne za zakucan dan/sat —
+    /// pozivalac ih dobija preko <see cref="UcitajRokAsync"/>.
+    ///
+    /// <see cref="ISOWeek.ToDateTime"/> vraća PONOĆ tog dana sa <see cref="DateTimeKind.Unspecified"/>.
+    /// Prije ovog popravka se ponoć koristila direktno kao "vrijeme isporuke", pa je rok
+    /// (ponoć - CutoffHours) ispadao do 24h ranije od stvarnog operativnog roka —
+    /// DeliverySlot.TimeFrom se nikad nije čitao. Ovdje se <paramref name="vrijemeOd"/>
+    /// dodaje na ponoć, a rezultat se eksplicitno obilježava kao UTC: backend ovo
+    /// poredi sa DateTime.UtcNow (vidi GetTekucaSedmicaHandler, ZakljucajSadrzajeHandler),
+    /// a frontend parsira ISO string sa "Z" kao UTC (vidi types/domain.ts) — bez
+    /// eksplicitnog Kind-a se ta dva tumačenja razilaze za tačno UTC offset.
     /// </summary>
-    public static DateTime DatumIsporuke(int godina, int sedmica, DayOfWeek danIsporuke) =>
-        ISOWeek.ToDateTime(godina, sedmica, danIsporuke);
+    public static DateTime DatumIsporuke(int godina, int sedmica, DayOfWeek danIsporuke, string vrijemeOd)
+    {
+        var ponoc = ISOWeek.ToDateTime(godina, sedmica, danIsporuke);
+        var (sati, minuti) = ParsirajVrijeme(vrijemeOd);
+        return DateTime.SpecifyKind(ponoc.AddHours(sati).AddMinutes(minuti), DateTimeKind.Utc);
+    }
 
     /// <summary>
-    /// Dan isporuke i rok naručivanja (u satima prije isporuke), izvedeni iz
-    /// <see cref="DeliverySlot"/>-a sa najnižim <see cref="DeliverySlot.DayOfWeek"/> —
+    /// TimeFrom na DeliverySlot-u je slobodan tekstualni unos ("16:00"), bez validacije
+    /// na modelu. Ako je neparsabilan ili van opsega 00:00–23:59, NE rušimo zahtjev —
+    /// to bi oborilo javnu stranicu /korpice zbog loše unesenog podatka u admin ekranu
+    /// koji P1 još nema (vidi Important I4 u finalnom review-u). Biramo ponoć (00:00) kao
+    /// neutralnu vrijednost — isto ponašanje kao prije ovog popravka, samo sada
+    /// namjerno, a ne kao posljedica da se TimeFrom nikad nije čitao.
+    /// </summary>
+    private static (int Sati, int Minuti) ParsirajVrijeme(string vrijemeOd)
+    {
+        if (TimeSpan.TryParse(vrijemeOd, System.Globalization.CultureInfo.InvariantCulture, out var t)
+            && t >= TimeSpan.Zero && t < TimeSpan.FromDays(1))
+            return (t.Hours, t.Minutes);
+
+        return (0, 0);
+    }
+
+    /// <summary>
+    /// Dan isporuke, vrijeme isporuke i rok naručivanja (u satima prije isporuke),
+    /// izvedeni iz <see cref="DeliverySlot"/>-a sa najnižim <see cref="DeliverySlot.DayOfWeek"/> —
     /// prvog dana isporuke u sedmici. Kad u bazi ne postoji nijedan DeliverySlot
     /// (prazna baza, ili test kojem ovo nije bitno), koristi se
     /// <see cref="KorpiceOpcije"/> kao rezerva — vidi tamo.
     /// </summary>
-    public static async Task<(DayOfWeek Dan, int CutoffSati)> UcitajRokAsync(
+    public static async Task<(DayOfWeek Dan, string VrijemeOd, int CutoffSati)> UcitajRokAsync(
         IAppDbContext db, KorpiceOpcije opcije, CancellationToken ct)
     {
         var slot = await db.DeliverySlots
@@ -43,8 +73,8 @@ public static class SedmicaHelper
             .FirstOrDefaultAsync(ct);
 
         return slot is null
-            ? (opcije.DanIsporukeRezerva, opcije.RokSati)
-            : ((DayOfWeek)slot.DayOfWeek, slot.CutoffHours);
+            ? (opcije.DanIsporukeRezerva, opcije.VrijemeIsporukeRezerva, opcije.RokSati)
+            : ((DayOfWeek)slot.DayOfWeek, slot.TimeFrom, slot.CutoffHours);
     }
 
     public static string Slug(TipKorpice t) => t switch
@@ -179,8 +209,8 @@ public class GetTekucaSedmicaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
     public async Task<SedmicaDto> Handle(GetTekucaSedmicaQuery q, CancellationToken ct)
     {
         var (godina, sedmica) = SedmicaHelper.Tekuca();
-        var (dan, cutoffSati) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
-        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan);
+        var (dan, vrijemeOd, cutoffSati) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd);
         var rok = isporuka.AddHours(-cutoffSati);
 
         return new SedmicaDto

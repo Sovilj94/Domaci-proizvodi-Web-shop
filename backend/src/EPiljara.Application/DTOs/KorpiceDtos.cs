@@ -69,4 +69,9 @@ public record StavkaPakerskeDto
     public string Jedinica { get; init; } = "kom";
     public string Proizvodjac { get; init; } = string.Empty;
     public string Selo { get; init; } = string.Empty;
+    /// <summary>Artikal je soft-obrisan (ili trajno nestao) poslije objave sadržaja koji
+    /// ga sadrži. Red se i dalje prikazuje sa stvarnom količinom — pakerska lista je
+    /// procurement istina i ne smije praviti prazne redove — ali ga operater mora
+    /// posebno provjeriti umjesto da naruči "nepoznato".</summary>
+    public bool ArtikalObrisan { get; init; }
 }

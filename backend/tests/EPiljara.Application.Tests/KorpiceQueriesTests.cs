@@ -3,11 +3,14 @@ using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Tests;
 
 public class KorpiceQueriesTests
 {
+    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
+
     private static SedmicniSadrzaj Postavi(TestDb t, StatusSadrzaja status, int godina, int sedmica)
     {
         var kat = new Category { Name = "Povrće", Slug = "povrce" };
@@ -104,5 +107,60 @@ public class KorpiceQueriesTests
             new GetSadrzajKorpiceHandler(t.Db)
                 .Handle(new GetSadrzajKorpiceQuery("mala-korpica-povrca"), default));
         Assert.Contains("sadrzaj_nije_objavljen", ex.Message);
+    }
+
+    /// <summary>
+    /// Regresioni test za bag: rok se računao od PONOĆI dana isporuke (ISOWeek.ToDateTime
+    /// vraća ponoć), ignorišući DeliverySlot.TimeFrom. Sa TimeFrom="16:00" i CutoffHours=48,
+    /// ponoćni računa rok "srijeda 00:00" umjesto tačnog "srijeda 16:00" — razlika od 16h,
+    /// baš dovoljna da ispravna i pogrešna implementacija dadnu različite odgovore. Prije
+    /// popravke ovaj test CRVENO puca na obje asertacije (vrijeme i Kind).
+    /// </summary>
+    [Fact]
+    public async Task Rok_i_isporuka_racunaju_se_sa_vremenom_slota_ne_sa_ponocu()
+    {
+        using var t = new TestDb();
+        t.Db.DeliverySlots.Add(new DeliverySlot
+        {
+            DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48,
+        });
+        t.Db.SaveChanges();
+
+        var dto = await new GetTekucaSedmicaHandler(t.Db, Opcije)
+            .Handle(new GetTekucaSedmicaQuery(), default);
+
+        var (godina, sedmica) = Sada();
+        var ocekivanaIsporuka = System.Globalization.ISOWeek
+            .ToDateTime(godina, sedmica, DayOfWeek.Thursday).AddHours(16);
+        var ocekivaniRok = ocekivanaIsporuka.AddHours(-48);
+
+        Assert.Equal(ocekivanaIsporuka, dto.DatumIsporuke);
+        Assert.Equal(ocekivaniRok, dto.RokNarucivanja);
+        Assert.Equal(DateTimeKind.Utc, dto.DatumIsporuke.Kind);
+    }
+
+    /// <summary>
+    /// TimeFrom je slobodan unos na DeliverySlot-u, bez validacije na modelu. Ako je
+    /// nekim putem ispao neparsabilan, rok ne smije da sruši zahtjev — pada na ponoć
+    /// (00:00), isto ponašanje kao kad bi TimeFrom bio "00:00".
+    /// </summary>
+    [Fact]
+    public async Task Neparsabilan_TimeFrom_pada_na_ponoc_umjesto_da_puca()
+    {
+        using var t = new TestDb();
+        t.Db.DeliverySlots.Add(new DeliverySlot
+        {
+            DayOfWeek = 4, TimeFrom = "nije-vrijeme", TimeTo = "20:00", CutoffHours = 48,
+        });
+        t.Db.SaveChanges();
+
+        var dto = await new GetTekucaSedmicaHandler(t.Db, Opcije)
+            .Handle(new GetTekucaSedmicaQuery(), default);
+
+        var (godina, sedmica) = Sada();
+        var ocekivanaIsporuka = System.Globalization.ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Thursday);
+
+        Assert.Equal(ocekivanaIsporuka, dto.DatumIsporuke);
+        Assert.Equal(DateTimeKind.Utc, dto.DatumIsporuke.Kind);
     }
 }

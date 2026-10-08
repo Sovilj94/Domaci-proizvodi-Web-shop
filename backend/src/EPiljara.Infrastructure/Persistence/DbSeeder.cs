@@ -124,7 +124,7 @@ public static class DbSeeder
             (TipKorpice.Povrce, "korpica povrća", "Sezonsko povrće sa Manjače, ubrano istog jutra."),
             (TipKorpice.Voce, "korpica voća", "Sezonsko voće sa domaćih gazdinstava."),
             (TipKorpice.Mlijecna, "mliječna korpica", "Sir, kajmak, mlijeko i pavlaka sa Manjače."),
-            (TipKorpice.Suhomesnata, "suhomesnata korpica", "Pečenica, slanina, kobasica i suvo meso."),
+            (TipKorpice.Suhomesnata, "suhomesnata korpica", "Pečenica, slanina, kobasica i suho meso."),
             (TipKorpice.Domacinska, "domaćinska korpica", "Miješano: komad pečenice, slanina, mlijeko i sir."),
         };
 

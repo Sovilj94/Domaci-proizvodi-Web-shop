@@ -30,6 +30,13 @@ public class KorpiceOpcije
     /// </summary>
     public DayOfWeek DanIsporukeRezerva { get; set; } = DayOfWeek.Friday;
 
+    /// <summary>
+    /// Vrijeme isporuke (npr. "16:00") — SAMO rezerva za slučaj kad u bazi ne postoji
+    /// nijedan <see cref="EPiljara.Domain.Entities.DeliverySlot"/>. Dok DeliverySlot
+    /// postoji, njegov TimeFrom je jedini izvor istine i ovo polje se ne čita.
+    /// </summary>
+    public string VrijemeIsporukeRezerva { get; set; } = "16:00";
+
     public Dictionary<VelicinaKorpice, int> MinimalanBrojArtikala { get; set; } = new()
     {
         [VelicinaKorpice.Mala] = 5,

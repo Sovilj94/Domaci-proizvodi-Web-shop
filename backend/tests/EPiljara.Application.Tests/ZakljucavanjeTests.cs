@@ -92,13 +92,13 @@ public class ZakljucavanjeTests
     {
         using var t = new TestDb();
         Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
-        // Rok dolazi iz slota (petak, 48h), ne iz konfiguracije — granica se ovdje
-        // testira na tačnu sekundu, pa mora ići kroz pravi (slot) put.
+        // Rok dolazi iz slota (petak 16h, 48h cutoff), ne iz konfiguracije — granica se
+        // ovdje testira na tačnu sekundu, pa mora ići kroz pravi (slot) put, VRIJEME
+        // uključeno (DatumIsporuke sad čita TimeFrom, ne samo dan — vidi finalni review C1).
         SeedSlot(t, dayOfWeek: 5, cutoffHours: 48);
 
-        // Rok je petak - 48h; testiramo tačno 1 sekund nakon roka.
-        var rok = System.Globalization.ISOWeek
-            .ToDateTime(2026, 41, DayOfWeek.Friday)
+        // Rok je (petak 16h) - 48h; testiramo tačno 1 sekund nakon roka.
+        var rok = SedmicaHelper.DatumIsporuke(2026, 41, DayOfWeek.Friday, "16:00")
             .AddHours(-48)
             .AddSeconds(1);
 
@@ -115,13 +115,13 @@ public class ZakljucavanjeTests
     {
         using var t = new TestDb();
         Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
-        // Rok dolazi iz slota (petak, 48h), ne iz konfiguracije — granica se ovdje
-        // testira na tačnu sekundu, pa mora ići kroz pravi (slot) put.
+        // Rok dolazi iz slota (petak 16h, 48h cutoff), ne iz konfiguracije — granica se
+        // ovdje testira na tačnu sekundu, pa mora ići kroz pravi (slot) put, VRIJEME
+        // uključeno (DatumIsporuke sad čita TimeFrom, ne samo dan — vidi finalni review C1).
         SeedSlot(t, dayOfWeek: 5, cutoffHours: 48);
 
-        // Rok je petak - 48h; testiramo tačno 1 sekund prije roka.
-        var rok = System.Globalization.ISOWeek
-            .ToDateTime(2026, 41, DayOfWeek.Friday)
+        // Rok je (petak 16h) - 48h; testiramo tačno 1 sekund prije roka.
+        var rok = SedmicaHelper.DatumIsporuke(2026, 41, DayOfWeek.Friday, "16:00")
             .AddHours(-48)
             .AddSeconds(-1);
 
@@ -140,26 +140,24 @@ public class ZakljucavanjeTests
         Sadrzaj(t, StatusSadrzaja.Objavljen, 2026, 41);
 
         // Slot kaže CutoffHours = 24h — namjerno drugačije od KorpiceOpcije.RokSati
-        // default-a (48h) koji ostaje nepromijenjen u Opcije. Dan iz slota je petak,
-        // isto kao default rezerva, da izoliramo samo cutoff-osu u ovom testu.
+        // default-a (48h) koji ostaje nepromijenjen u Opcije. Dan i vrijeme iz slota su
+        // petak 16h, isto kao default rezerva (KorpiceOpcije.VrijemeIsporukeRezerva je
+        // takođe "16:00"), da izoliramo samo cutoff-osu u ovom testu.
         SeedSlot(t, dayOfWeek: 5, cutoffHours: 24);
 
-        // Vrijeme: srijeda podne — nakon roka po KorpiceOpcije.RokSati (petak - 48h =
-        // srijeda podne... dakle TAČNO na granici), pa biramo malo kasnije da budemo
-        // jasno nakon "48h" granice, ali jasno PRIJE "24h" granice (četvrtak - 24h).
-        var srijeda = System.Globalization.ISOWeek
-            .ToDateTime(2026, 41, DayOfWeek.Friday)
-            .AddHours(-48)
-            .AddHours(12); // Srijeda podne
+        // Četvrtak ponoć — nakon pogrešnog roka (petak 16h - 48h = srijeda 16h, ono što
+        // bi dao Opcije.RokSati ako bi handler pogrešno čitao konfiguraciju umjesto
+        // slota), ali jasno prije tačnog roka (petak 16h - 24h = četvrtak 16h, iz
+        // seed-ovanog slota, ono što handler TREBA koristiti).
+        var cetvrtakPonoc = System.Globalization.ISOWeek.ToDateTime(2026, 41, DayOfWeek.Thursday);
 
-        // Sa CutoffHours=48 (ono što bi dao Opcije.RokSati ako bi handler pogrešno
-        // čitao konfiguraciju umjesto slota): srijeda podne > petak-48h, dakle ZATVARAJ
-        // (broj=1) — POGREŠNO, test bi propao.
-        // Sa CutoffHours=24 (iz seed-ovanog slota, ono što handler TREBA koristiti):
-        // srijeda podne < petak-24h (četvrtak podne), dakle NE zatvaraj (broj=0) — ISPRAVNO.
+        // Sa CutoffHours=48 (pogrešno, konfiguracija): četvrtak ponoć > srijeda 16h,
+        // dakle ZATVARAJ (broj=1) — POGREŠNO, test bi propao.
+        // Sa CutoffHours=24 (iz seed-ovanog slota, ispravno): četvrtak ponoć < četvrtak
+        // 16h, dakle NE zatvaraj (broj=0) — ISPRAVNO.
         // Ova dva ishoda se razlikuju, pa test razlikuje "čita slot" od "čita konfiguraciju".
         var broj = await new ZakljucajSadrzajeHandler(t.Db, Opcije)
-            .Handle(new ZakljucajSadrzajeCommand(srijeda), default);
+            .Handle(new ZakljucajSadrzajeCommand(cetvrtakPonoc), default);
 
         Assert.Equal(0, broj);
         var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
@@ -179,10 +177,10 @@ public class ZakljucavanjeTests
         SeedSlot(t, dayOfWeek: 1, cutoffHours: 48); // ponedjeljak
         SeedSlot(t, dayOfWeek: 5, cutoffHours: 48); // petak
 
-        var rokPonedjeljak = System.Globalization.ISOWeek
-            .ToDateTime(2026, 41, DayOfWeek.Monday).AddHours(-48);
-        var rokPetak = System.Globalization.ISOWeek
-            .ToDateTime(2026, 41, DayOfWeek.Friday).AddHours(-48);
+        // SeedSlot upisuje TimeFrom="16:00" — DatumIsporuke sad čita i taj dio (vidi
+        // finalni review C1), pa i ovdje rok mora ići kroz nju, ne kroz ponoć direktno.
+        var rokPonedjeljak = SedmicaHelper.DatumIsporuke(2026, 41, DayOfWeek.Monday, "16:00").AddHours(-48);
+        var rokPetak = SedmicaHelper.DatumIsporuke(2026, 41, DayOfWeek.Friday, "16:00").AddHours(-48);
 
         // Vrijeme je tačno 1h nakon roka za ponedjeljak, ali danima prije roka za petak.
         // Ispravno (dan = ponedjeljak): rok je prošao, ZATVARAJ (broj=1).

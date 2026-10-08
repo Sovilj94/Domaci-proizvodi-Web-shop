@@ -17,7 +17,7 @@ Pet vrsta × tri veličine:
 | Povrće | sezonsko povrće sa Manjače |
 | Voće | sezonsko voće |
 | Mliječna | sir, kajmak, mlijeko, pavlaka |
-| Suhomesnata | pečenica, slanina, kobasica, suvo meso |
+| Suhomesnata | pečenica, slanina, kobasica, suho meso |
 | Domaćinska | miješana — komad pečenice, slanina, flaša mlijeka, komad sira |
 
 U P1 ulazi: korpica kao prodajni artikal, sedmični sadržaj, generator prijedloga, admin ekran

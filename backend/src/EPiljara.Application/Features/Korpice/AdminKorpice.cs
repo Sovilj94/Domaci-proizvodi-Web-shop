@@ -20,8 +20,11 @@ public class GetSadrzajPregledHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
     public async Task<IReadOnlyList<SadrzajPregledDto>> Handle(
         GetSadrzajPregledQuery q, CancellationToken ct)
     {
+        // IsAvailable filter mora da se slaže sa GenerisiSedmicniSadrzajHandler-om (koji
+        // preskače nedostupne korpice) — inače admin vidi red sa dugmetom "Generiši" koje,
+        // kad se klikne, vrati praznu listu i ništa se ne desi (vidi I4, finalni review).
         var korpice = await db.Products
-            .Where(p => p.Vrsta == VrstaProizvoda.Korpica)
+            .Where(p => p.Vrsta == VrstaProizvoda.Korpica && p.IsAvailable)
             .OrderBy(p => p.TipKorpice).ThenBy(p => p.Velicina)
             .ToListAsync(ct);
 
@@ -93,6 +96,16 @@ public class IzmijeniNacrtHandler(IAppDbContext db)
             throw new ConflictException(
                 "Objavljen sadržaj se ne može mijenjati.", "sadrzaj_nije_nacrt");
 
+        // Isti ProductId dvaput u zahtjevu bi, bez ove provjere, prošao postojanje-provjeru
+        // ispod (ona koristi Distinct()) ali pri insertu ostavio DVA reda za jedan artikal
+        // (vidi petlju ispod koja ide kroz c.Stavke, ne kroz artikli) — duplikat koji se
+        // dalje vidi kao dva reda sa istim React key-om i u javnom modalu i u editoru.
+        // Odbijamo, ne spajamo tiho: spajanje bi promijenilo količinu koju je operater
+        // unio bez da to bilo gdje kaže.
+        if (c.Stavke.Select(s => s.ProductId).Distinct().Count() != c.Stavke.Count)
+            throw new DomainException(
+                "Isti artikal je dodat više puta u istom nacrtu.", "stavka_duplirana");
+
         var idjevi = c.Stavke.Select(s => s.ProductId).Distinct().ToList();
         var artikli = await db.Products.Where(p => idjevi.Contains(p.Id)).ToListAsync(ct);
 
@@ -106,6 +119,15 @@ public class IzmijeniNacrtHandler(IAppDbContext db)
         if (c.Stavke.Any(s => s.Kolicina <= 0))
             throw new DomainException(
                 "Količina mora biti veća od nule.", "kolicina_nevalidna");
+
+        // Artikli na komade (jaja, tegle...) se ne mogu naručiti u djelovima — "0,3 kom"
+        // nema smisla. Kg/L mogu biti frakcioni. Isto pravilo kao generator
+        // (KoracZaokruzivanja u GenerisiSedmicniSadrzajHandler), ovdje za ručni unos.
+        if (c.Stavke.Any(s =>
+                artikli.First(a => a.Id == s.ProductId).Unit == EPiljara.Domain.Enums.Unit.Kom
+                && s.Kolicina != Math.Floor(s.Kolicina)))
+            throw new DomainException(
+                "Količina za artikal na komade mora biti cio broj.", "kolicina_mora_biti_cio_broj");
 
         // Clear() je dovoljno za brisanje: StavkaSadrzaja → SedmicniSadrzaj je obavezna
         // veza (DeleteBehavior.Cascade), pa EF pri DetectChanges sam obriše osirotjele
@@ -149,7 +171,15 @@ public class GetPakerskaListaHandler(IAppDbContext db)
     public async Task<IReadOnlyList<StavkaPakerskeDto>> Handle(
         GetPakerskaListaQuery q, CancellationToken ct)
     {
+        // IgnoreQueryFilters(): bez ovoga EF primjenjuje Product-ov globalni !IsDeleted
+        // filter i na Include lanac, pa je za soft-obrisan artikal stavka.Product null i
+        // red na pakerskoj listi ispiše stvarnu količinu sa praznim nazivom (vidi ?? ispod
+        // — ObjaviSadrzajHandler sad odbija OVU situaciju za nova izdanja, ali objavljeni
+        // sadržaj od prije te provjere na pakerskoj listi ostaje). Umjesto da ga sakrijemo,
+        // prikazujemo ga sa pravim nazivom i obilježavamo — operater mora vidjeti da red
+        // treba posebnu pažnju, ne nestati kao praznina.
         var stavke = await db.StavkeSadrzaja
+            .IgnoreQueryFilters()
             .Include(s => s.Product).ThenInclude(p => p!.Producer)
             .Include(s => s.SedmicniSadrzaj)
             .Where(s => s.SedmicniSadrzaj!.Godina == q.Godina
@@ -169,6 +199,7 @@ public class GetPakerskaListaHandler(IAppDbContext db)
                     Jedinica = (p?.Unit ?? EPiljara.Domain.Enums.Unit.Kom).ToApi(),
                     Proizvodjac = p?.Producer?.Name ?? string.Empty,
                     Selo = p?.Producer?.Village ?? string.Empty,
+                    ArtikalObrisan = p is null || p.IsDeleted,
                 };
             })
             .OrderBy(r => r.Proizvodjac).ThenBy(r => r.Artikal)

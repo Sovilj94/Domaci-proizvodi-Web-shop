@@ -47,7 +47,7 @@ public class ObjavaSadrzajaTests
         var id = await t.Db.SedmicniSadrzaji.Select(s => s.Id).SingleAsync();
 
         // Bez ovoga, EF Core-ov change tracker bi "besplatno" popunio Producer navigaciju
-        // iz već pratih entiteta nastalih u Postavi() (relationship fixup), pa bismo
+        // iz već praćenih entiteta nastalih u Postavi() (relationship fixup), pa bismo
         // testirali grešku koju handler-ova Include lanac ne pravi — radi se o svježem
         // DbContext-u po zahtjevu u produkciji, isto kao što simuliramo ovdje.
         t.Db.ChangeTracker.Clear();
@@ -114,5 +114,39 @@ public class ObjavaSadrzajaTests
         using var t = new TestDb();
         await Assert.ThrowsAsync<NotFoundException>(() =>
             new ObjaviSadrzajHandler(t.Db).Handle(new ObjaviSadrzajCommand(Guid.NewGuid()), default));
+    }
+
+    /// <summary>
+    /// Regresioni test za nalaz I2 (finalni review): Product nosi globalni !IsDeleted
+    /// filter koji EF primjenjuje i na Include lanac, pa je za soft-obrisan artikal
+    /// stavka.Product null — bez ove provjere bi objava tiho prošla i pakerska lista
+    /// bi ispisala stvarnu količinu sa praznim nazivom.
+    /// </summary>
+    [Fact]
+    public async Task Objava_odbija_nacrt_sa_obrisanim_artiklom()
+    {
+        using var t = new TestDb();
+        var (sadrzaj, artikal) = Postavi(t);
+        artikal.IsDeleted = true;
+        await t.Db.SaveChangesAsync();
+        t.Db.ChangeTracker.Clear();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new ObjaviSadrzajHandler(t.Db).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
+        Assert.Equal("sadrzaj_sadrzi_nedostupan_artikal", ex.Code);
+    }
+
+    [Fact]
+    public async Task Objava_odbija_nacrt_sa_nedostupnim_artiklom()
+    {
+        using var t = new TestDb();
+        var (sadrzaj, artikal) = Postavi(t);
+        artikal.IsAvailable = false;
+        await t.Db.SaveChangesAsync();
+        t.Db.ChangeTracker.Clear();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new ObjaviSadrzajHandler(t.Db).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
+        Assert.Equal("sadrzaj_sadrzi_nedostupan_artikal", ex.Code);
     }
 }

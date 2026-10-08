@@ -11,7 +11,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EPiljara.Application.Features.Admin;
 
-/// <summary>Shared payload for creating and updating products.</summary>
+/// <summary>
+/// Shared payload for creating and updating products.
+///
+/// <c>MozeUKorpicu</c> / <c>PrioritetUKorpici</c> / <c>Mjeseci</c>: polja korpice, bez
+/// kojih artikal dodat kroz admin ekran nikad nije mogao ući u bazen generatora korpica
+/// (vidi <c>GenerisiSedmicniSadrzajHandler</c>) — kolone su postojale na <c>Product</c>-u,
+/// ali ništa iz admin API-ja nije pisalo u njih. Opciona su (<c>null</c> dozvoljen) da se
+/// ne sruši postojeći klijentski kod koji ih još ne šalje; handler tretira izostale kao
+/// "ne mijenjaj" na update-u i kao podrazumijevane vrijednosti na create-u.
+/// </summary>
 public record ProductInput(
     string Name,
     decimal Price,
@@ -22,7 +31,10 @@ public record ProductInput(
     string Description,
     string? ImageUrl,
     bool IsAvailable,
-    bool? IsFeatured);
+    bool? IsFeatured,
+    bool? MozeUKorpicu = null,
+    int? PrioritetUKorpici = null,
+    IReadOnlyList<int>? Mjeseci = null);
 
 public class ProductInputValidator : AbstractValidator<ProductInput>
 {
@@ -33,6 +45,12 @@ public class ProductInputValidator : AbstractValidator<ProductInput>
         RuleFor(x => x.Unit).NotEmpty().WithMessage("Jedinica je obavezna.");
         RuleFor(x => x.CategoryId).NotEmpty().WithMessage("Kategorija je obavezna.");
         RuleFor(x => x.ProducerId).NotEmpty().WithMessage("Proizvođač je obavezan.");
+        RuleFor(x => x.PrioritetUKorpici).GreaterThanOrEqualTo(0)
+            .When(x => x.PrioritetUKorpici is not null)
+            .WithMessage("Prioritet u korpici ne može biti negativan.");
+        RuleForEach(x => x.Mjeseci).InclusiveBetween(1, 12)
+            .When(x => x.Mjeseci is not null)
+            .WithMessage("Mjesec mora biti između 1 i 12.");
     }
 }
 
@@ -88,7 +106,11 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
             Category = category,
             ProducerId = producer.Id,
             Producer = producer,
+            MozeUKorpicu = input.MozeUKorpicu ?? false,
+            PrioritetUKorpici = input.PrioritetUKorpici ?? 0,
+            Mjeseci = input.Mjeseci?.ToArray() ?? [],
         };
+        product.ProvjeriInvarijantuKorpice();
 
         db.Products.Add(product);
         await db.SaveChangesAsync(ct);
@@ -143,7 +165,11 @@ public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProd
         product.Category = category;
         product.ProducerId = producer.Id;
         product.Producer = producer;
+        product.MozeUKorpicu = input.MozeUKorpicu ?? product.MozeUKorpicu;
+        product.PrioritetUKorpici = input.PrioritetUKorpici ?? product.PrioritetUKorpici;
+        product.Mjeseci = input.Mjeseci?.ToArray() ?? product.Mjeseci;
         product.UpdatedAt = DateTime.UtcNow;
+        product.ProvjeriInvarijantuKorpice();
 
         await db.SaveChangesAsync(ct);
         return product.ToDto();

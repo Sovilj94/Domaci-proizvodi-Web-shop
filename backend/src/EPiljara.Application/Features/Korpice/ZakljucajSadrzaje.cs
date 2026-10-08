@@ -20,8 +20,8 @@ public class ZakljucajSadrzajeHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
     {
         var sada = c.Sada ?? DateTime.UtcNow;
 
-        // Dan isporuke i rok se učitavaju jednom, prije petlje — isti za sve redove.
-        var (dan, cutoffSati) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        // Dan isporuke, vrijeme isporuke i rok se učitavaju jednom, prije petlje — isti za sve redove.
+        var (dan, vrijemeOd, cutoffSati) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
 
         var kandidati = await db.SedmicniSadrzaji
             .Where(s => s.Status == StatusSadrzaja.Objavljen)
@@ -30,7 +30,7 @@ public class ZakljucajSadrzajeHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
         var zakljucani = 0;
         foreach (var s in kandidati)
         {
-            var rok = SedmicaHelper.DatumIsporuke(s.Godina, s.Sedmica, dan)
+            var rok = SedmicaHelper.DatumIsporuke(s.Godina, s.Sedmica, dan, vrijemeOd)
                 .AddHours(-cutoffSati);
             if (sada <= rok) continue;
 

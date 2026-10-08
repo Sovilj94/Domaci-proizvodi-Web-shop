@@ -13,7 +13,6 @@ using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Infrastructure;
 using EPiljara.Infrastructure.BackgroundJobs;
-using EPiljara.Infrastructure.Services;
 using EPiljara.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;

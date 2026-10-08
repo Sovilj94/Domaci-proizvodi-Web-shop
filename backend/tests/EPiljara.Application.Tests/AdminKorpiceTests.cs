@@ -74,6 +74,27 @@ public class AdminKorpiceTests
         Assert.Equal("Nema", bez.Status);
     }
 
+    /// <summary>
+    /// Regresioni test za nalaz I4 (finalni review): GenerisiSedmicniSadrzajHandler
+    /// preskače nedostupne korpice (IsAvailable == false), pa pregled sedmice mora
+    /// preskočiti iste redove — inače admin vidi dugme "Generiši" koje, kad se klikne,
+    /// tiho vrati praznu listu.
+    /// </summary>
+    [Fact]
+    public async Task Pregled_ne_prikazuje_nedostupnu_korpicu()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        p.Korpica2.IsAvailable = false;
+        await t.Db.SaveChangesAsync();
+
+        var rez = await new GetSadrzajPregledHandler(t.Db, Opcije)
+            .Handle(new GetSadrzajPregledQuery(2026, 41), default);
+
+        var jedina = Assert.Single(rez);
+        Assert.Equal(p.Korpica1.Id, jedina.KorpicaId);
+    }
+
     [Fact]
     public async Task Admin_moze_ucitati_nacrt_sa_stavkama()
     {
@@ -169,6 +190,56 @@ public class AdminKorpiceTests
         Assert.Equal("kolicina_nevalidna", ex.Code);
     }
 
+    /// <summary>
+    /// Regresioni test za nalaz I3 (finalni review): generator zaokružuje na cio broj za
+    /// Unit.Kom (KoracZaokruzivanja u GenerisiSedmicniSadrzajHandler), ali ručni unos kroz
+    /// IzmijeniNacrtHandler je prihvatao bilo koju pozitivnu decimalu — "0,3 kom" jaja.
+    /// </summary>
+    [Fact]
+    public async Task Kolicina_za_artikal_na_komade_mora_biti_cio_broj()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
+
+        // p.Artikal je Unit.Kg (vidi Postavi) — treba artikal na komade da pogodi granu.
+        var komAtikal = new Product
+        {
+            Name = "Jaje", Slug = "jaje", Price = 0.5m, Unit = Unit.Kom,
+            CategoryId = p.Artikal.CategoryId, ProducerId = p.Proizvodjac.Id,
+            Stock = 100, MozeUKorpicu = true,
+        };
+        t.Db.Products.Add(komAtikal);
+        await t.Db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new IzmijeniNacrtHandler(t.Db).Handle(
+                new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(komAtikal.Id, 2.3m)]), default));
+
+        Assert.Equal("kolicina_mora_biti_cio_broj", ex.Code);
+    }
+
+    /// <summary>
+    /// Regresioni test za nalaz I5 (finalni review): Distinct() je čuvao samo provjeru
+    /// postojanja artikala, ali petlja koja upisuje stavke je i dalje iterirala sirovu
+    /// listu — isti ProductId dvaput bi stvorio dva reda za jedan artikal.
+    /// </summary>
+    [Fact]
+    public async Task Duplirani_ProductId_se_odbija()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new IzmijeniNacrtHandler(t.Db).Handle(
+                new IzmijeniNacrtCommand(
+                    s.Id, [new StavkaUnos(p.Artikal2.Id, 1m), new StavkaUnos(p.Artikal2.Id, 3m)]),
+                default));
+
+        Assert.Equal("stavka_duplirana", ex.Code);
+    }
+
     [Fact]
     public async Task Pakerska_lista_sabira_isti_artikal_preko_vise_korpica()
     {
@@ -201,5 +272,33 @@ public class AdminKorpiceTests
             .Handle(new GetPakerskaListaQuery(2026, 41), default);
 
         Assert.Empty(lista);
+    }
+
+    /// <summary>
+    /// Regresioni test za nalaz I2 (finalni review): Product nosi globalni !IsDeleted
+    /// filter koji EF primjenjuje i na Include lanac pakerske liste, pa je za artikal
+    /// obrisan NAKON objave (objava sama sad odbija obrisan artikal — ovaj slučaj nastaje
+    /// kad se artikal obriše poslije objave) stavka.Product bio null i red nestajao sa
+    /// praznim nazivom. GetPakerskaListaHandler sad koristi IgnoreQueryFilters() i vraća
+    /// red sa pravim nazivom i ArtikalObrisan=true umjesto da ga sakrije.
+    /// </summary>
+    [Fact]
+    public async Task Pakerska_lista_prikazuje_obrisan_artikal_umjesto_da_ga_sakrije()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Objavljen);
+
+        p.Artikal.IsDeleted = true; // obrisan POSLIJE objave — objava ga je zatekla živog
+        await t.Db.SaveChangesAsync();
+        t.Db.ChangeTracker.Clear();
+
+        var lista = await new GetPakerskaListaHandler(t.Db)
+            .Handle(new GetPakerskaListaQuery(2026, 41), default);
+
+        var red = Assert.Single(lista);
+        Assert.Equal("Paradajz", red.Artikal);
+        Assert.Equal(2m, red.Kolicina);
+        Assert.True(red.ArtikalObrisan);
     }
 }
