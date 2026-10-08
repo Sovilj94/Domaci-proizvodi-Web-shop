@@ -24,14 +24,23 @@ const TEZINA: Record<Korpica["velicina"], string> = {
 export function KorpicaCard({
   korpica,
   istaknuta,
+  rokIstekao,
   onPogledajSadrzaj,
   onDodaj,
 }: {
   korpica: Korpica;
   istaknuta?: boolean;
+  /**
+   * Rok naručivanja za ovu sedmicu je prošao — sadržaj je zaključan za pakovanje, pa
+   * korpica ne smije stići u korpu iako je formalno još "dostupna" (vidi `Dostupna`
+   * na backendu: ona ne znaje ništa o roku, samo o zalihi). Bez ovoga kupac može
+   * naručiti korpicu koja neće biti u zamrznutoj pakerskoj listi.
+   */
+  rokIstekao?: boolean;
   onPogledajSadrzaj: (slug: string) => void;
   onDodaj: (korpica: Korpica) => void;
 }) {
+  const nedostupna = !korpica.dostupna || !!rokIstekao;
   return (
     <article
       className={cn(
@@ -93,9 +102,13 @@ export function KorpicaCard({
           variant={istaknuta ? "primary" : "secondary"}
           className="w-full"
           onClick={() => onDodaj(korpica)}
-          disabled={!korpica.dostupna}
+          disabled={nedostupna}
         >
-          {korpica.dostupna ? "Naruči korpicu" : "Rasprodato ove sedmice"}
+          {!korpica.dostupna
+            ? "Rasprodato ove sedmice"
+            : rokIstekao
+              ? "Naručivanje zatvoreno za ovu sedmicu"
+              : "Naruči korpicu"}
         </Button>
 
         <button

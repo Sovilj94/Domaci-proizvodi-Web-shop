@@ -27,7 +27,7 @@ export default function KorpicaDetaljPage() {
   const { show } = useToast();
 
   const { data: korpica, isLoading, isError } = useQuery({
-    queryKey: ["korpice", slug],
+    queryKey: ["korpice", "detalj", slug],
     queryFn: () => korpiceApi.korpica(slug),
   });
 
@@ -37,9 +37,19 @@ export default function KorpicaDetaljPage() {
     isError: sadrzajGreska,
     error: sadrzajError,
   } = useQuery({
-    queryKey: ["korpice", slug, "sadrzaj"],
+    queryKey: ["korpice", "sadrzaj", slug],
     queryFn: () => korpiceApi.sadrzaj(slug),
     retry: false,
+  });
+
+  // Isti ključ kao u RokTraci, pa se keš deli — ovaj upit ne duplira zahtjev dok je
+  // RokTraka na stranici. Treba nam i ovdje, ne samo za prikaz trake: dugme "Naruči
+  // korpicu" se gasi kad je rok prošao (vidi `rokIstekao` ispod), ne samo kad je
+  // korpica rasprodata.
+  const { data: sedmica } = useQuery({
+    queryKey: ["korpice", "sedmica"],
+    queryFn: korpiceApi.sedmica,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Backend baca NotFoundException("sadrzaj_nije_objavljen") kad sadržaj za tekuću
@@ -66,7 +76,8 @@ export default function KorpicaDetaljPage() {
     );
   }
 
-  const nedostupna = !korpica.dostupna;
+  const rokIstekao = sedmica?.rokIstekao ?? false;
+  const nedostupna = !korpica.dostupna || rokIstekao;
 
   return (
     <>
@@ -102,7 +113,9 @@ export default function KorpicaDetaljPage() {
             <div className="mt-6">
               {nedostupna ? (
                 <div className="rounded-card bg-sand px-4 py-3 text-sm font-medium text-muted">
-                  Rasprodato ove sedmice — provjerite ponovo sljedeće sedmice.
+                  {!korpica.dostupna
+                    ? "Rasprodato ove sedmice — provjerite ponovo sljedeće sedmice."
+                    : "Naručivanje za ovu sedmicu je zatvoreno — sadržaj je zaključan za pakovanje. Provjerite ponovo sljedeće sedmice."}
                 </div>
               ) : (
                 <Button

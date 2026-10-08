@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { catalogApi, deliveryApi, orderApi, type ProductQuery } from "./endpoints";
+import { catalogApi, deliveryApi, korpiceApi, orderApi, type ProductQuery } from "./endpoints";
 
 export const queryKeys = {
   products: (q: ProductQuery) => ["products", q] as const,
@@ -12,6 +12,7 @@ export const queryKeys = {
   myOrders: () => ["orders", "mine"] as const,
   order: (id: string) => ["order", id] as const,
   trackOrder: (token: string) => ["order", "track", token] as const,
+  korpiceLista: () => ["korpice", "lista", undefined] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {
@@ -58,6 +59,21 @@ export function useDeliverySlots() {
     queryKey: queryKeys.slots(),
     queryFn: () => deliveryApi.slots(),
     staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * Cijela lista korpica (bez filtera po tipu) — za potrošače koji grade spojeni katalog
+ * (`products ∪ korpice`), ne za `/korpice` samu stranicu (ona filtrira po tipu, vidi
+ * `useQuery(["korpice", "lista", tip])` tamo). Dijeljeno mjesto za ovaj poziv je bitno:
+ * `/products` ne sadrži korpice (vidi backend `GetProductsHandler`), pa svaki novi
+ * potrošač koji ovo zaboravi da spoji tiho gubi svaku korpicu iz sačuvane korpe
+ * (vidi CLAUDE.md) — bio je dupliran u checkout-u i admin "Nova narudžba" ekranu.
+ */
+export function useKorpiceList() {
+  return useQuery({
+    queryKey: queryKeys.korpiceLista(),
+    queryFn: () => korpiceApi.lista(),
   });
 }
 

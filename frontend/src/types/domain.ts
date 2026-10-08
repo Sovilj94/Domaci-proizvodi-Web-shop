@@ -64,6 +64,12 @@ export interface Product {
   imageUrl?: string;
   description: string;
   isFeatured?: boolean;
+  /** Smije li ovaj artikal ući u sadržaj korpice. */
+  mozeUKorpicu?: boolean;
+  /** 0 = osnovni artikal, veći broj = dopuna. */
+  prioritetUKorpici?: number;
+  /** Mjeseci (1–12) sezone; praznina znači cijele godine. */
+  mjeseci?: number[];
 }
 
 export interface DeliveryZone {

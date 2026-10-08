@@ -27,3 +27,14 @@ export function korpicaKaoProizvod(korpica: Korpica): Product {
     description: korpica.opis,
   };
 }
+
+/**
+ * Spaja obične proizvode i korpice (mapirane preko `korpicaKaoProizvod`) u jedan
+ * katalog. `/products` ne sadrži korpice (vidi backend `GetProductsHandler`), pa
+ * potrošač koji provjerava dostupnost proizvoda iz korpe (checkout, admin "Nova
+ * narudžba") mora ovo koristiti umjesto golog `products` — inače svaka korpica u
+ * sačuvanoj korpi tiho ispadne kao "nedostupna" i biva uklonjena bez greške.
+ */
+export function spojiKatalog(proizvodi: Product[], korpice: Korpica[]): Product[] {
+  return [...proizvodi, ...korpice.map(korpicaKaoProizvod)];
+}

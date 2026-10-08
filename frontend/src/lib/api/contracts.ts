@@ -53,6 +53,12 @@ export interface ProductInput {
   imageUrl?: string;
   isAvailable: boolean;
   isFeatured?: boolean;
+  /** Smije li ovaj artikal ući u sadržaj korpice (vidi Product.MozeUKorpicu). */
+  mozeUKorpicu?: boolean;
+  /** 0 = osnovni artikal, veći broj = dopuna (vidi Product.PrioritetUKorpici). */
+  prioritetUKorpici?: number;
+  /** Mjeseci (1–12) sezone; praznina/izostanak znači cijele godine. */
+  mjeseci?: number[];
 }
 
 export interface CategoryInput {
@@ -150,6 +156,9 @@ export interface StavkaPakerske {
   jedinica: string;
   proizvodjac: string;
   selo: string;
+  /** Artikal je obrisan (ili trajno nestao) poslije objave sadržaja koji ga sadrži —
+   * red i dalje nosi pravu količinu, ali ga treba posebno provjeriti pred nabavku. */
+  artikalObrisan: boolean;
 }
 
 export interface GenerisiSadrzajRequest {

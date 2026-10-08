@@ -3,19 +3,19 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { AddressPicker } from "@/components/shop/address-picker";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
-import { useDeliverySlots, useDeliveryZones, useProducts } from "@/lib/api/hooks";
-import { orderApi, korpiceApi } from "@/lib/api/endpoints";
+import { useDeliverySlots, useDeliveryZones, useKorpiceList, useProducts } from "@/lib/api/hooks";
+import { orderApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import type { Product } from "@/types/domain";
-import { korpicaKaoProizvod } from "@/lib/korpice";
+import { spojiKatalog } from "@/lib/korpice";
 import { formatPrice, unitSuffix, weekdayName } from "@/lib/utils";
 
 export default function AdminNewOrderPage() {
@@ -26,15 +26,12 @@ export default function AdminNewOrderPage() {
   const products = useProducts();
   // Javni /products (iznad) ne sadrži korpice (vidi backend GetProductsHandler) — bez
   // ovoga, administrator ne bi mogao ručno dodati korpicu u telefonsku/ličnu narudžbu.
-  const korpice = useQuery({
-    queryKey: ["korpice", undefined],
-    queryFn: () => korpiceApi.lista(),
-  });
+  const korpice = useKorpiceList();
   const zones = useDeliveryZones();
   const slots = useDeliverySlots();
 
   const katalog = useMemo(
-    () => [...(products.data ?? []), ...(korpice.data ?? []).map(korpicaKaoProizvod)],
+    () => spojiKatalog(products.data ?? [], korpice.data ?? []),
     [products.data, korpice.data],
   );
 

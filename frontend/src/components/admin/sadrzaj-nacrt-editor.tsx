@@ -21,6 +21,16 @@ function poruka(err: unknown, rezerva: string): string {
 }
 
 /**
+ * Korak za unos količine, po jedinici — isto pravilo kao generator na backendu
+ * (KoracZaokruzivanja u GenerisiSedmicniSadrzajHandler): "kom" se ne djeli (nema
+ * 0,3 jaja), kg/l mogu biti frakcioni. Ranije je cijeli editor koristio step="0.1"
+ * za sve jedinice, pa je "0,3 kom" bilo moguće unijeti i sačuvati.
+ */
+function korakKolicine(jedinica: string): number {
+  return jedinica === "kom" ? 1 : 0.1;
+}
+
+/**
  * Bočni panel za uređivanje nacrta — isti obrazac kao `ProductForm` (klizi sa desna,
  * radni alat koji ostaje otvoren uz ostatak ekrana), ne centrirani dijalog kao
  * `SadrzajModal`, koji je samo za pregled.
@@ -182,13 +192,20 @@ export function SadrzajNacrtEditor({
             />
           ) : (
             <>
-              <p className="mb-4 text-sm">
-                Vrijednost nacrta:{" "}
-                <strong className={ukupno > cilj * 1.05 ? "text-red-700" : "text-ink"}>
-                  {formatPrice(ukupno)}
-                </strong>{" "}
-                <span className="text-muted">/ cilj {formatPrice(cilj)}</span>
-              </p>
+              {/* Dok katalog (artikli) nije stigao, `ukupno` računa sa cijenom 0 za svaki
+                  red (vidi reduce ispod) — bez ovog gejta bi operater nakratko vidio
+                  "~0 KM", baš onaj broj radi kojeg editor postoji. */}
+              {artikli ? (
+                <p className="mb-4 text-sm">
+                  Vrijednost nacrta:{" "}
+                  <strong className={ukupno > cilj * 1.05 ? "text-red-700" : "text-ink"}>
+                    {formatPrice(ukupno)}
+                  </strong>{" "}
+                  <span className="text-muted">/ cilj {formatPrice(cilj)}</span>
+                </p>
+              ) : (
+                <p className="mb-4 text-sm text-muted">Računam vrijednost nacrta…</p>
+              )}
 
               {redovi.length === 0 ? (
                 <p className="mb-4 text-sm text-muted">
@@ -210,8 +227,8 @@ export function SadrzajNacrtEditor({
                       </div>
                       <input
                         type="number"
-                        step="0.1"
-                        min="0.1"
+                        step={korakKolicine(r.jedinica)}
+                        min={korakKolicine(r.jedinica)}
                         value={r.kolicina}
                         onChange={(e) => izmijeniKolicinu(r.productId, Number(e.target.value))}
                         className="w-20 rounded-xl border border-line bg-sand px-2 py-1.5 text-right text-sm text-ink focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"

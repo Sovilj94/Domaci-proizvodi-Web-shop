@@ -33,7 +33,7 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
   );
 
   const { data, isPending, isError, error } = useQuery({
-    queryKey: ["korpice", slug, "sadrzaj"],
+    queryKey: ["korpice", "sadrzaj", slug],
     queryFn: () => korpiceApi.sadrzaj(slug),
     retry: false,
   });

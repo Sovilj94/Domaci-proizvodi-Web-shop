@@ -36,9 +36,20 @@ function KorpiceSadrzaj() {
   const [slugZaModal, setSlugZaModal] = useState<string | null>(null);
 
   const { data: korpice, isLoading, isError } = useQuery({
-    queryKey: ["korpice", tip],
+    queryKey: ["korpice", "lista", tip],
     queryFn: () => korpiceApi.lista(tip),
   });
+
+  // Isti ključ kao u RokTraci, pa se keš deli. Treba nam i ovdje (ne samo za prikaz
+  // trake) da bi se dugme "Naruči korpicu" gasilo kad je rok naručivanja prošao — vidi
+  // `rokIstekao` ispod. Dostupnost korpice (`korpica.dostupna`) ne znaje ništa o roku,
+  // samo o zalihi.
+  const { data: sedmica } = useQuery({
+    queryKey: ["korpice", "sedmica"],
+    queryFn: korpiceApi.sedmica,
+    staleTime: 5 * 60 * 1000,
+  });
+  const rokIstekao = sedmica?.rokIstekao ?? false;
 
   const { add } = useCart();
   const { show } = useToast();
@@ -46,7 +57,7 @@ function KorpiceSadrzaj() {
   // Korpica u korpu ide kao običan proizvod — vidi korpicaKaoProizvod. Isti poziv
   // koristi i stranica detalja (/korpice/[slug]).
   function dodajUKorpu(korpica: Korpica) {
-    if (!korpica.dostupna) return;
+    if (!korpica.dostupna || rokIstekao) return;
     add(korpicaKaoProizvod(korpica));
     show(`${korpica.naziv} dodana u korpu`);
   }
@@ -82,6 +93,7 @@ function KorpiceSadrzaj() {
                   key={k.id}
                   korpica={k}
                   istaknuta={k.velicina === "srednja"}
+                  rokIstekao={rokIstekao}
                   onPogledajSadrzaj={setSlugZaModal}
                   onDodaj={dodajUKorpu}
                 />

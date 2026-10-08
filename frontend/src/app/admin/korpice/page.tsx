@@ -164,6 +164,12 @@ function AdminKorpiceSadrzaj() {
     onSuccess: (rezultati) => {
       qc.invalidateQueries({ queryKey: pregledKljuc });
       primijeniRezultate(rezultati);
+      // Backend vrati [] kad nema šta da generiše (korpica nedostupna, ili već ima
+      // sadržaj za ovu sedmicu) — bez ove poruke dugme naizgled ne radi ništa, operater
+      // ne zna da li je zahtjev uopšte otišao (vidi I4, finalni review).
+      if (rezultati.length === 0) {
+        show("Nema šta da se generiše — korpica je nedostupna ili već ima sadržaj za ovu sedmicu.");
+      }
     },
     onError: (err) => show(poruka(err, "Generisanje nije uspjelo"), "error"),
   });
@@ -369,7 +375,14 @@ function AdminKorpiceSadrzaj() {
                     className="flex items-center gap-4 p-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-ink">{r.artikal}</p>
+                      <p className="truncate font-medium text-ink">
+                        {r.artikal}
+                        {r.artikalObrisan && (
+                          <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                            Obrisan artikal — provjeriti
+                          </span>
+                        )}
+                      </p>
                       <p className="truncate text-xs text-muted">
                         {r.proizvodjac} · {r.selo}
                       </p>

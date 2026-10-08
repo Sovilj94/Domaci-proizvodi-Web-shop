@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,17 +22,18 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import {
   useDeliverySlots,
   useDeliveryZones,
+  useKorpiceList,
   useMyAddresses,
   useProducts,
 } from "@/lib/api/hooks";
-import { orderApi, korpiceApi } from "@/lib/api/endpoints";
+import { orderApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useToast } from "@/components/ui/toast";
 import { ApiRequestError } from "@/lib/api/client";
 import type { Order, Product } from "@/types/domain";
-import { korpicaKaoProizvod } from "@/lib/korpice";
+import { spojiKatalog } from "@/lib/korpice";
 import { cn, formatPrice, weekdayName } from "@/lib/utils";
 
 /** Strip a "+387" a saved profile phone may already carry — the field below only holds
@@ -84,10 +85,7 @@ export default function CheckoutPage() {
   // njih čisti (vidi backend GetProductsHandler) — bez ovoga bi reconcile ispod, koji
   // briše iz korpe sve što nije u listi koju dobije, obrisao svaku korpicu iz korpe
   // čim kupac stigne na checkout. Zato se ovdje dovlače posebno i spajaju s products.
-  const korpice = useQuery({
-    queryKey: ["korpice", undefined],
-    queryFn: () => korpiceApi.lista(),
-  });
+  const korpice = useKorpiceList();
   const addresses = useMyAddresses(!!user);
   const savedAddresses = useMemo(() => addresses.data ?? [], [addresses.data]);
 
@@ -116,7 +114,7 @@ export default function CheckoutPage() {
     const odsutne = items.filter((i) => !poznatiId.has(i.productId));
 
     const katalog = korpice.isSuccess
-      ? [...list, ...korpice.data.map(korpicaKaoProizvod)]
+      ? spojiKatalog(list, korpice.data)
       : [...list, ...odsutne.map(stavkaKaoPlaceholder)];
 
     const available = new Set(katalog.filter((p) => p.isAvailable).map((p) => p.id));
