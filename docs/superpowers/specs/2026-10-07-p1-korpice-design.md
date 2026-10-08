@@ -328,6 +328,7 @@ i `lint` nisu dokaz da se frontend može isporučiti.
 | Fiksna cijena, promjenjiva nabavna | `KoeficijentVrijednosti` je podesiv; prati se po sedmici |
 | Rok promakne, sadržaj ostane otvoren | Zaključavanje je pozadinski posao, ne ručna radnja |
 | Korpica zavisi od redizajna u `redizajn-opcija3` | Grana je izvedena iz njega, ne iz `main`-a |
+| `DeliverySlot.TimeFrom` nema vremensku zonu | **Prihvaćeno u P1.** Slot se piše kao lokalno vrijeme, a čita kao UTC, pa se rok zatvara 2h kasnije od nominalnog. Backend i frontend su međusobno dosljedni; dvosmislenost prethodi korpicama i dijeli je i checkout. Za P2: eksplicitna zona na slotu, ili čuvati UTC i prikazivati lokalno. |
 
 ## Dekompozicija (P1…P7)
 

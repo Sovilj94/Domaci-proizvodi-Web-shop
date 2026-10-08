@@ -263,6 +263,16 @@ client as the envelope's error code, so one thrown with only a message reaches c
   backend by the UTC offset once it started rendering the hour. A malformed `TimeFrom` (free-text field,
   no model validation) falls back to midnight rather than throwing — see the comment on
   `SedmicaHelper.ParsirajVrijeme`.
+- **`DeliverySlot.TimeFrom` carries no timezone, and korpice read it as UTC.** The column is a bare
+  string (`"16:00"`) and the slot's own `Label` ("Četvrtak 16–20h") is rendered verbatim in the shop —
+  i.e. these times are written as **local Banja Luka time**. `SedmicaHelper.DatumIsporuke` nevertheless
+  marks the instant it builds as `Utc`, so a slot saying 16:00 yields 18:00 local and the korpica
+  ordering cutoff closes two hours later than the slot nominally states. This is a **known, accepted
+  gap from P1**, not an oversight: backend and frontend agree with each other (the countdown does not
+  lie about itself), the ambiguity predates korpice and the existing checkout shares it, and the owner
+  tunes `CutoffHours` to the behaviour they want anyway. Fixing it properly means giving `DeliverySlot`
+  an explicit timezone, or storing UTC and rendering local — do that before anything else starts
+  depending on these instants.
 - **`Product.Mjeseci` is `int[]` in C# but a CSV string in the database**, via a `ValueConverter` (the
   converter exists because tests run on SQLite, which has no array type) plus a `ValueComparer`
   (`AppDbContext.OnModelCreating`). The comparer is load-bearing: without it EF does not notice an
