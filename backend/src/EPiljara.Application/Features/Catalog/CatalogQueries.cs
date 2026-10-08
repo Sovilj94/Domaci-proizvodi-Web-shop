@@ -2,6 +2,7 @@ using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
+using EPiljara.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,9 +18,16 @@ public class GetProductsHandler(IAppDbContext db)
 {
     public async Task<IReadOnlyList<ProductDto>> Handle(GetProductsQuery q, CancellationToken ct)
     {
+        // Javni katalog ne prikazuje korpice — one su Product red samo da bi
+        // iskoristile postojeću korpu/checkout/isporuku (vidi Product.Vrsta), ali se
+        // seeduju sa prvom kategorijom/proizvođačem radi FK-ova, pa bi se ovdje
+        // pojavile kao povrće od nasumičnog proizvođača. Korpice imaju svoj katalog
+        // (/korpice, KorpiceQueries.cs). Admin i dalje vidi sve — GetAdminProductsHandler
+        // je potpuno odvojen handler bez ovog filtera.
         var query = db.Products
             .Include(p => p.Category)
             .Include(p => p.Producer)
+            .Where(p => p.Vrsta == VrstaProizvoda.Obican)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q.Category))
@@ -55,10 +63,11 @@ public class GetProductBySlugHandler(IAppDbContext db)
 {
     public async Task<ProductDto> Handle(GetProductBySlugQuery q, CancellationToken ct)
     {
+        // Isti razlog kao u GetProductsHandler — korpica po slugu ide kroz /korpice, ne ovdje.
         var product = await db.Products
             .Include(p => p.Category)
             .Include(p => p.Producer)
-            .FirstOrDefaultAsync(p => p.Slug == q.Slug, ct)
+            .FirstOrDefaultAsync(p => p.Slug == q.Slug && p.Vrsta == VrstaProizvoda.Obican, ct)
             ?? throw new NotFoundException("Proizvod nije pronađen.");
         return product.ToDto();
     }

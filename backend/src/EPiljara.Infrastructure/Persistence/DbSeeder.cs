@@ -9,8 +9,6 @@ namespace EPiljara.Infrastructure.Persistence;
 /// <summary>Idempotent demo seed: Manjača producers, catalog, zones, users, sample orders.</summary>
 public static class DbSeeder
 {
-    private static string Img(string seed) => $"https://picsum.photos/seed/{seed}/700/700";
-
     public static async Task SeedAsync(AppDbContext db, IPasswordHasher hasher, CancellationToken ct = default)
     {
         if (await db.Categories.AnyAsync(ct))
@@ -62,21 +60,128 @@ public static class DbSeeder
             Prod("Babura paprika", 4.0m, Unit.Kg, 60, povrce, kovacevic, "Debela mesnata babura, savršena za punjenje ili ajvar."),
             Prod("Crni luk", 1.5m, Unit.Kg, 200, povrce, kovacevic, "Ljutkasti domaći luk, dugo se čuva."),
             Prod("Mrkva", 2.0m, Unit.Kg, 120, povrce, kovacevic, "Slatka mrkva iz bašte, bez voska i premaza."),
+            Prod("Krastavac", 2.0m, Unit.Kg, 100, povrce, kovacevic, "Hrskav salatni krastavac bez gorčine, bran svako jutro."),
+            Prod("Kupus", 1.0m, Unit.Kg, 150, povrce, kovacevic, "Čvrsta glavica iz jesenje berbe, dobra i za salatu i za zimnicu."),
             Prod("Jabuka idared", 2.2m, Unit.Kg, 150, voce, jovanovic, "Hrskava i sočna, iz voćnjaka na 700m nadmorske visine.", featured: true),
             Prod("Šljiva požegača", 2.8m, Unit.Kg, 90, voce, jovanovic, "Klasična rakijska i džem šljiva, slatka kao med."),
+            Prod("Kruška", 2.5m, Unit.Kg, 80, voce, jovanovic, "Jesenja kruška, bere se kad počne sama da pada sa grane."),
+            Prod("Grožđe", 3.0m, Unit.Kg, 60, voce, jovanovic, "Stona sorta bez semena, zrna čvrsta i ne pucaju pri branju."),
+            Prod("Malina", 6.0m, Unit.Kg, 25, voce, jovanovic, "Bere se u hladu da ne omekša, kutija stoji u frižideru do isporuke."),
+            Prod("Dunja", 2.0m, Unit.Kg, 50, voce, jovanovic, "Opora dok je sirova — promijeni miris cijele kuće kad odstoji dan-dva."),
+            Prod("Orah", 8.0m, Unit.Kg, 40, voce, jovanovic, "Oljušten domaći orah, krupna jedra, bez gorčine opne."),
             Prod("Mladi kravlji sir", 9.0m, Unit.Kg, 40, mlijecni, maric, "Punomasni sir od jutarnjeg pomuza, blago slan.", featured: true),
             Prod("Kajmak", 14.0m, Unit.Kg, 25, mlijecni, maric, "Zreli kajmak sa ispaše — pravi domaći doručak."),
             Prod("Domaća pavlaka", 6.0m, Unit.L, 30, mlijecni, maric, "Gusta kisela pavlaka, kašika stoji uspravno."),
             Prod("Svježe kravlje mlijeko", 2.5m, Unit.L, 60, mlijecni, maric, "Nehomogenizovano, prokuhati prije upotrebe."),
+            Prod("Bijeli sir u rasoli", 10.0m, Unit.Kg, 30, mlijecni, maric, "Slan sir soljen po starom receptu, drži se u rasoli do prodaje."),
+            Prod("Skorup", 16.0m, Unit.Kg, 15, mlijecni, maric, "Kožica skupljena sa prokuhanog mlijeka, gušća i masnija od kajmaka."),
+            Prod("Domaći jogurt", 3.0m, Unit.L, 40, mlijecni, maric, "Gust domaći jogurt, kiseli se preko noći, bez zgušnjivača."),
             Prod("Jaja iz slobodnog uzgoja", 0.5m, Unit.Kom, 600, jaja, savic, "Koke se šetaju dvorištem, žumance narandžasto.", featured: true),
             Prod("Suha slanina", 18.0m, Unit.Kg, 20, meso, savic, "Dimljena na bukovom dimu, sušena tri mjeseca."),
             Prod("Domaća kobasica", 16.0m, Unit.Kg, 18, meso, savic, "Miješano svinjsko meso, ljuto po tradiciji."),
+            Prod("Pečenica", 22.0m, Unit.Kg, 15, meso, savic, "Komad svinjske pečenice, dimljen i sušen mjesec dana."),
+            Prod("Sudžuk", 17.0m, Unit.Kg, 20, meso, savic, "Ljuti sudžuk nabijen u crijevo, sušen na promaji dva mjeseca."),
+            Prod("Čvarci", 14.0m, Unit.Kg, 25, meso, savic, "Hrskavi čvarci, cijeđeni u kazanu na otvorenoj vatri."),
+            Prod("Suho meso", 20.0m, Unit.Kg, 18, meso, savic, "Komad buta sušen uz dimljenje, reže se u tankim listovima."),
+            Prod("Pršut", 25.0m, Unit.Kg, 12, meso, savic, "Sušen najmanje šest mjeseci, blago dimljen bukovim drvetom."),
             Prod("Livadski med", 12.0m, Unit.Kg, 50, med, jovanovic, "Med sa manjačkih livada, kristališe prirodno — znak kvaliteta.", featured: true),
             Prod("Bagremov med", 15.0m, Unit.Kg, 35, med, jovanovic, "Svijetli, blagi med, dugo ostaje tečan."),
             Prod("Džem od šljive", 7.0m, Unit.Kom, 40, zimnica, jovanovic, "Tegla 720ml, kuhan bez konzervansa, 60% voća."),
             Prod("Domaći ajvar", 9.0m, Unit.Kom, 45, zimnica, kovacevic, "Pečena paprika, blagi, tegla 500ml.", available: false),
         };
+        // Obična roba je podobna za sedmične korpice; korpice same (ispod) ostaju MozeUKorpicu = false.
+        foreach (var p in products)
+        {
+            p.MozeUKorpicu = true;
+            p.Mjeseci = [];
+        }
         db.Products.AddRange(products);
+
+        // ----- Korpice -----
+        // Kategorije su već unesene iznad. "Meso i suhomesnato" (slug "meso") već pokriva
+        // suhomesnato (suha slanina, domaća kobasica), pa nema potrebe za zasebnom
+        // "suhomesnati-proizvodi" kategorijom. Ista kategorija smije u više tipova —
+        // mliječno i suhomesnato idu i u svoj tip i u Domaćinsku.
+        var vezeKorpica = new (TipKorpice Tip, string KategorijaSlug)[]
+        {
+            (TipKorpice.Povrce, "povrce"),
+            (TipKorpice.Voce, "voce"),
+            (TipKorpice.Mlijecna, "mlijecni-proizvodi"),
+            (TipKorpice.Suhomesnata, "meso"),
+            (TipKorpice.Domacinska, "mlijecni-proizvodi"),
+            (TipKorpice.Domacinska, "meso"),
+        };
+
+        foreach (var (tip, slug) in vezeKorpica)
+        {
+            var kat = categories.FirstOrDefault(k => k.Slug == slug);
+            if (kat is null) continue;
+            db.KorpicaKategorije.Add(new KorpicaKategorija { TipKorpice = tip, CategoryId = kat.Id });
+        }
+
+        var definicije = new (TipKorpice Tip, string Naziv, string Opis)[]
+        {
+            (TipKorpice.Povrce, "korpica povrća", "Sezonsko povrće sa Manjače, ubrano istog jutra."),
+            (TipKorpice.Voce, "korpica voća", "Sezonsko voće sa domaćih gazdinstava."),
+            (TipKorpice.Mlijecna, "mliječna korpica", "Sir, kajmak, mlijeko i pavlaka sa Manjače."),
+            (TipKorpice.Suhomesnata, "suhomesnata korpica", "Pečenica, slanina, kobasica i suho meso."),
+            (TipKorpice.Domacinska, "domaćinska korpica", "Miješano: komad pečenice, slanina, mlijeko i sir."),
+        };
+
+        var velicine = new (VelicinaKorpice V, string Prefiks, decimal Faktor, string Clanovi)[]
+        {
+            (VelicinaKorpice.Mala, "Mala", 1.0m, "Za 1 do 2 člana"),
+            (VelicinaKorpice.Srednja, "Srednja", 1.4m, "Za 2 do 4 člana"),
+            (VelicinaKorpice.Velika, "Velika", 1.8m, "Za 5 i više članova"),
+        };
+
+        var osnovneCijene = new Dictionary<TipKorpice, decimal>
+        {
+            [TipKorpice.Povrce] = 25m,
+            [TipKorpice.Voce] = 28m,
+            [TipKorpice.Mlijecna] = 32m,
+            [TipKorpice.Suhomesnata] = 45m,
+            [TipKorpice.Domacinska] = 48m,
+        };
+
+        // Korpice i same moraju imati kategoriju/proizvođača (strani ključ), iako se
+        // ni jedno ni drugo ne prikazuje za korpicu (vidi KorpiceQueries.ToKorpicaDto) —
+        // Povrće/Kovačević su samo neškodljiv placeholder.
+        var prvaKategorija = povrce;
+        var prviProizvodjac = kovacevic;
+
+        foreach (var (tip, naziv, opis) in definicije)
+        foreach (var (v, prefiks, faktor, clanovi) in velicine)
+        {
+            var punNaziv = $"{prefiks} {naziv}";
+            var slug = Slug.From(punNaziv);
+            var korpica = new Product
+            {
+                Name = punNaziv,
+                Slug = slug,
+                Price = Math.Round(osnovneCijene[tip] * faktor, 0),
+                Unit = Unit.Kom,
+                Stock = 40,
+                IsAvailable = true,
+                Description = $"{opis} {clanovi}.",
+                ImageUrl = tip switch
+                {
+                    TipKorpice.Povrce => "/categories/povrce.jpg",
+                    TipKorpice.Voce => "/categories/voce.jpg",
+                    TipKorpice.Mlijecna => "/products/mladi-kravlji-sir.jpg",
+                    TipKorpice.Suhomesnata => "/products/suha-slanina.jpg",
+                    TipKorpice.Domacinska => "/hero/hero-domacinstvo.jpg",
+                    _ => throw new InvalidOperationException($"Nepoznat tip korpice: {tip}"),
+                },
+                Category = prvaKategorija,
+                Producer = prviProizvodjac,
+                Vrsta = VrstaProizvoda.Korpica,
+                TipKorpice = tip,
+                Velicina = v,
+            };
+            korpica.ProvjeriInvarijantuKorpice();
+            db.Products.Add(korpica);
+        }
 
         // ----- Delivery zones & slots -----
         var centar = Zone("Centar", 20, 3);

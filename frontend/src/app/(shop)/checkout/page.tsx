@@ -22,22 +22,50 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import {
   useDeliverySlots,
   useDeliveryZones,
+  useKorpiceList,
   useMyAddresses,
   useProducts,
 } from "@/lib/api/hooks";
 import { orderApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
-import { useCart } from "@/lib/cart/cart-context";
+import { useCart, type CartItem } from "@/lib/cart/cart-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useToast } from "@/components/ui/toast";
 import { ApiRequestError } from "@/lib/api/client";
-import type { Order } from "@/types/domain";
+import type { Order, Product } from "@/types/domain";
+import { spojiKatalog } from "@/lib/korpice";
 import { cn, formatPrice, weekdayName } from "@/lib/utils";
 
 /** Strip a "+387" a saved profile phone may already carry — the field below only holds
  * the local number, since the dial code is now fixed UI, not something the user types. */
 function stripDialCode(phone: string): string {
   return phone.replace(/^\+387\s*/, "").trim();
+}
+
+/**
+ * Privremeni placeholder za stavku korpe koja (još) nije u `products.data` — koristi se
+ * samo dok `/korpice` ne stigne, da `reconcile` ne obriše korpicu samo zato što njena
+ * stvarna dostupnost još nije poznata. `isAvailable: true` je namjerno — ovo nije tvrdnja
+ * da je stavka dostupna, nego "ne gasi je dok ne znamo"; vidi poziv u reconcile efektu
+ * ispod, gdje se ovo koristi samo za stavke odsutne iz `products.data` (CartItem ne nosi
+ * Vrsta, pa se korpica od stvarno obrisanog proizvoda ne može razlikovati bez korpice liste).
+ */
+function stavkaKaoPlaceholder(item: CartItem): Product {
+  return {
+    id: item.productId,
+    name: item.name,
+    slug: item.slug,
+    price: item.price,
+    unit: item.unit,
+    stock: item.stock,
+    isAvailable: true,
+    categoryId: "",
+    categoryName: "",
+    categorySlug: "",
+    producerId: "",
+    imageUrl: item.imageUrl,
+    description: "",
+  };
 }
 
 const STEPS = [
@@ -53,19 +81,47 @@ export default function CheckoutPage() {
   const zones = useDeliveryZones();
   const slots = useDeliverySlots();
   const products = useProducts();
+  // Korpice su Product redovi (Vrsta == Korpica), ali se javni katalog (/products) od
+  // njih čisti (vidi backend GetProductsHandler) — bez ovoga bi reconcile ispod, koji
+  // briše iz korpe sve što nije u listi koju dobije, obrisao svaku korpicu iz korpe
+  // čim kupac stigne na checkout. Zato se ovdje dovlače posebno i spajaju s products.
+  const korpice = useKorpiceList();
   const addresses = useMyAddresses(!!user);
   const savedAddresses = useMemo(() => addresses.data ?? [], [addresses.data]);
 
   // Drop cart items whose product no longer exists / isn't available (e.g. after a
   // catalog change) so checkout can't fail with "proizvod nije dostupan".
+  //
+  // Samo stavke koje su ODSUTNE iz products.data su dvosmislene — mogu biti korpica
+  // koja čeka svoju listu, ili stvarno obrisan proizvod; CartItem ne nosi Vrsta pa se ta
+  // dva slučaja ne mogu razlikovati bez liste korpica. Stavke koje SU u products.data (sa
+  // isAvailable === false) nisu dvosmislene — one se briše odmah, bez obzira da li su
+  // korpice stigle, jer čekanje na /korpice ne bi tu ništa razjasnilo, samo bi bespotrebno
+  // odgodilo brisanje stvarno rasprodatog običnog proizvoda (i toast o tome).
+  //
+  // Zato: odsutne stavke se privremeno "štite" placeholderom (stavkaKaoPlaceholder, uvijek
+  // isAvailable: true) dok korpice ne stignu uspješno — tada se zamjenjuju stvarnim
+  // korpice podacima i konačno presuđuju. Ako zahtjev za korpice trajno padne, odsutne
+  // stavke ostaju zaštićene (nikad se ne brišu po placeholderu), ali prisutne-nedostupne i
+  // dalje bivaju uklonjene — dostupnost se svakako ponovo provjerava na serveru pri slanju
+  // narudžbe, pa trajno čekanje ovdje nije opasno po ispravnost, samo po UX koji se ovim
+  // popravlja.
   useEffect(() => {
     const list = products.data;
     if (!list?.length) return;
-    const available = new Set(list.filter((p) => p.isAvailable).map((p) => p.id));
+
+    const poznatiId = new Set(list.map((p) => p.id));
+    const odsutne = items.filter((i) => !poznatiId.has(i.productId));
+
+    const katalog = korpice.isSuccess
+      ? spojiKatalog(list, korpice.data)
+      : [...list, ...odsutne.map(stavkaKaoPlaceholder)];
+
+    const available = new Set(katalog.filter((p) => p.isAvailable).map((p) => p.id));
     const removed = items.filter((i) => !available.has(i.productId)).length;
-    reconcile(list);
+    reconcile(katalog);
     if (removed > 0) show(`Uklonjeno ${removed} nedostupnih proizvoda iz korpe.`);
-  }, [products.data, items, reconcile, show]);
+  }, [products.data, korpice.isSuccess, korpice.data, items, reconcile, show]);
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({

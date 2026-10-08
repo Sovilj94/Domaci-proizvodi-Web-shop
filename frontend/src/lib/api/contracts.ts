@@ -1,4 +1,4 @@
-import type { OrderStatus, Unit } from "@/types/domain";
+import type { OrderStatus, StatusSadrzaja, TipKorpice, Unit, VelicinaKorpice } from "@/types/domain";
 
 /** Request/response payloads that are not plain domain entities. */
 
@@ -53,6 +53,12 @@ export interface ProductInput {
   imageUrl?: string;
   isAvailable: boolean;
   isFeatured?: boolean;
+  /** Smije li ovaj artikal ući u sadržaj korpice (vidi Product.MozeUKorpicu). */
+  mozeUKorpicu?: boolean;
+  /** 0 = osnovni artikal, veći broj = dopuna (vidi Product.PrioritetUKorpici). */
+  prioritetUKorpici?: number;
+  /** Mjeseci (1–12) sezone; praznina/izostanak znači cijele godine. */
+  mjeseci?: number[];
 }
 
 export interface CategoryInput {
@@ -126,4 +132,52 @@ export interface AssignOrdersBulkRequest {
 /** Odgovor na poslatu narudžbu gosta — narudžba još ne postoji, samo zahtjev sa rokom. */
 export interface GuestOrderRequestResult {
   expiresAt: string;
+}
+
+/** Status admin pregleda — širi `StatusSadrzaja` sa "Nema" za korpicu bez sadržaja te sedmice. */
+export type StatusPregleda = StatusSadrzaja | "Nema";
+
+export interface SadrzajPregled {
+  /** Odsutno na žici kad korpica te sedmice nema sadržaj (status "Nema"). */
+  sadrzajId?: string;
+  korpicaId: string;
+  korpicaNaziv: string;
+  tip: TipKorpice;
+  velicina: VelicinaKorpice;
+  status: StatusPregleda;
+  brojArtikala: number;
+  vrijednost: number;
+  ciljGenerisanja: number;
+}
+
+export interface StavkaPakerske {
+  artikal: string;
+  kolicina: number;
+  jedinica: string;
+  proizvodjac: string;
+  selo: string;
+  /** Artikal je obrisan (ili trajno nestao) poslije objave sadržaja koji ga sadrži —
+   * red i dalje nosi pravu količinu, ali ga treba posebno provjeriti pred nabavku. */
+  artikalObrisan: boolean;
+}
+
+export interface GenerisiSadrzajRequest {
+  godina: number;
+  sedmica: number;
+  korpicaId?: string;
+}
+
+export interface IzmijeniNacrtRequest {
+  stavke: { productId: string; kolicina: number }[];
+}
+
+export interface RezultatGenerisanja {
+  sadrzajId: string;
+  korpicaId: string;
+  korpicaNaziv: string;
+  brojArtikala: number;
+  vrijednost: number;
+  ciljGenerisanja: number;
+  /** Odsutno na žici kad nema upozorenja — ne stiže kao `null`. */
+  upozorenje?: string;
 }

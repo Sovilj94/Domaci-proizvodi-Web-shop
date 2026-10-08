@@ -82,6 +82,13 @@ Pokriveno je domensko pravilo `GeoBounds`, infrastruktura za testiranje handlera
 `FakeCurrentUser`, `FakeNotifications`) nad SQLite in-memory bazom sa stvarno enforsovanim stranim
 ključevima, i handler testovi: `AddressCommandsTests`, `DriverCommandsTests`, `GuestOrderTests`,
 `OrderTrackingTests`.
+**`TestDb` holds one long-lived `DbContext` shared between a test's setup and the handler call it
+exercises**, so EF relationship fixup populates navigation properties from entities already tracked in
+setup **regardless of whether the handler's own query includes them**. A test asserting on an
+`Include`-populated field is a false green unless it calls `t.Db.ChangeTracker.Clear()` between setup and
+the call — see `AdminKorpiceTests`, `ObjavaSadrzajaTests`, `KorpiceQueriesTests` for the pattern, each with
+a comment explaining it caused a real false pass in the korpice plan. Don't add `Clear()` reflexively to
+every test, though — one asserting only scalar columns gets nothing from it.
 
 **Frontend nema test setup** — provjerava se sa `npx tsc --noEmit`, `npm run lint`, **`npm run build`**
 i prolaskom kroz tok uz pokrenut stek. `npm run build` nije opcion: `tsc` i `eslint` ne vide greške koje
@@ -99,6 +106,11 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **Response envelope.** *Every* endpoint (success and error) returns `{ data, error, meta }`. The
   backend produces it (`ApiControllerBase` helpers + `ExceptionHandlingMiddleware`); the frontend
   unwraps it (`apiFetch` returns `data` or throws `ApiRequestError`).
+- **The API omits null properties entirely rather than serializing them as `null`**
+  (`JsonSerializerOptions.DefaultIgnoreCondition = WhenWritingNull` in `Program.cs`, global, not just the
+  geocoding `{}` case below). A nullable backend field is therefore *absent* on the wire, and TypeScript
+  types must declare it `?:`, never `| null` — see `Korpica.imageUrl?:` / `StavkaSadrzaja.imageUrl?:` in
+  `frontend/src/types/domain.ts`. A type or a check written as `=== null` for such a field never fires.
 - **Single frontend API surface.** Screens never call `fetch` directly — they call
   `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` derives
   `API_BASE` as `NEXT_PUBLIC_API_BASE_URL || "/api"`: **unset/empty** → the app's own built-in mock (route
@@ -163,10 +175,17 @@ Dependencies point inward, enforced by project references: **API → Infrastruct
 `AbstractValidator`) in `Application/Features/**`, then add a thin controller action that does
 `Mediator.Send(...)`. MediatR and FluentValidation are auto-discovered by assembly scan — **no per-handler
 DI registration**. Validation runs automatically in the MediatR pipeline (`ValidationBehavior`).
+`MediatR.Unit` and `EPiljara.Domain.Enums.Unit` (the product measurement unit) collide — CS0104 — in any
+file that `using`s both namespaces, which any handler touching `Product.Unit` will. Qualify the enum fully
+(`EPiljara.Domain.Enums.Unit.Kom`, as `GenerisiSedmicniSadrzajHandler` does) rather than aliasing or
+dropping the MediatR import.
 
 **Error handling:** throw domain exceptions; the middleware maps them to status + envelope
 (`DomainException`→400, `NotFoundException`→404, `ForbiddenException`→403, `ConflictException`→409,
-`UnauthorizedException`→401). Don't hand-build error responses in controllers.
+`UnauthorizedException`→401). Don't hand-build error responses in controllers. Give the exception a
+specific `code` as its second constructor argument — `ExceptionHandlingMiddleware` sends `ex.Code` to the
+client as the envelope's error code, so one thrown with only a message reaches callers as the generic
+`domain_error`/`conflict` fallback instead of something a frontend `catch` can branch on.
 
 **Domain invariants worth preserving:**
 - Order status is a **state machine** (`Order.Transitions` / `CanTransitionTo`); illegal transitions throw
@@ -201,6 +220,72 @@ DI registration**. Validation runs automatically in the MediatR pipeline (`Valid
   orders created in the same instant compute the same number and the second one dies on the unique index
   with no retry anywhere. Low-traffic shop, so it has not bitten yet; do not build anything on the number
   being sequential-per-month, and if concurrency ever becomes real, replace it with a sequence.
+- **A korpica (curated weekly produce box) is a `Product` with `Vrsta = Korpica`, not a separate
+  entity.** That is why it travels the existing cart, checkout, `OrderItem`, zones, slots and routing
+  untouched. A korpica must never be an item inside another korpica —
+  `Product.ProvjeriInvarijantuKorpice()` encodes the rule (korpica needs `TipKorpice` + `Velicina` and
+  `MozeUKorpicu == false`; the seeder calls it, nothing else does yet) and `IzmijeniNacrtHandler` enforces
+  it at write time, rejecting a korpica among a draft's own items with `DomainException("korpica_u_korpici")`.
+- **`SedmicniSadrzaj.Status` is a state machine** (`Nacrt → Objavljen → Zakljucan`), like `Order.Status`.
+  It only moves forward, only through `Predji(...)` (`SedmicniSadrzaj.Prelazi`) — never assign `Status`
+  directly. A `Nacrt` is never visible to a public endpoint: `GetSadrzajKorpiceHandler` throws
+  `NotFoundException("sadrzaj_nije_objavljen")` for one, and the frontend matches that exact string
+  (`sadrzaj-modal.tsx`, `korpice/[slug]/page.tsx`) because `NotFoundException` is `sealed` and hard-codes
+  `not_found` as its `Code` — the specific identifier has nowhere to live but the message.
+- **`SedmicniSadrzaj.CiljnaVrijednost` is frozen at publish**, as `Σ(Kolicina × JedinicnaCijena)` over the
+  final draft, and is `0` while still a draft. Anything needing a target for a draft must use the
+  generator's own target instead (`Product.Price × KoeficijentVrijednosti`), which
+  `GetSadrzajPregledHandler` and the generator both expose as `CiljGenerisanja` (`ciljGenerisanja` on the
+  wire). Confusing the two — using `CiljnaVrijednost` before publish — reads as `0` and broke a screen
+  during implementation.
+- **The public catalog excludes korpice.** `GetProductsHandler` and `GetProductBySlugHandler`
+  (`Features/Catalog/CatalogQueries.cs`) filter `Vrsta == Obican`; korpice are sold only through
+  `/korpice`. The admin product query (`GetAdminProductsHandler`) deliberately does **not** filter — the
+  admin manages korpica stock from the same products screen. Because of that split, anything that
+  reconciles a cart against the catalog must union `/products` with `/korpice` or it silently empties
+  korpice from customers' carts — `useCart().reconcile()` prunes items absent from the list it's handed,
+  and `checkout/page.tsx` plus `admin/orders/new/page.tsx` both pass it the union; a new consumer that
+  forgets this drops every korpica from a saved cart with no error.
+- **Korpica stock is not component stock.** `Product.Stock` on a korpica is how many boxes are available
+  that week; the stock of the articles making up its content is **not decremented per order**, because
+  the composition varies per customer once the editor ships (P2). The source of truth for procurement is
+  the packing list (`GET /admin/korpice/pakerska-lista`, `GetPakerskaListaHandler`), not any single
+  article's `Stock` — an article sold both standalone and inside a korpica shows only its standalone sales
+  in `Stock`.
+- **The weekly cycle (delivery day + ordering cutoff) comes from `DeliverySlot`, not from config.**
+  `KorpiceQueries.UcitajRokAsync` reads the slot with the **lowest `DayOfWeek`** and uses its `DayOfWeek`,
+  `TimeFrom` and `CutoffHours`. `KorpiceOpcije.RokSati` / `DanIsporukeRezerva` / `VrijemeIsporukeRezerva`
+  are **fallbacks only**, read solely when the database has no `DeliverySlot` row at all; while any slot
+  exists they are not consulted. `SedmicaHelper.DatumIsporuke` builds the delivery instant from day
+  **and** `TimeFrom` and marks it `DateTimeKind.Utc` explicitly — it used to return bare midnight
+  (`ISOWeek.ToDateTime` with `Kind.Unspecified`) and ignore `TimeFrom` entirely, which put the real
+  cutoff up to a day earlier than the slot says and made the frontend's countdown disagree with the
+  backend by the UTC offset once it started rendering the hour. A malformed `TimeFrom` (free-text field,
+  no model validation) falls back to midnight rather than throwing — see the comment on
+  `SedmicaHelper.ParsirajVrijeme`.
+- **`Product.Mjeseci` is `int[]` in C# but a CSV string in the database**, via a `ValueConverter` (the
+  converter exists because tests run on SQLite, which has no array type) plus a `ValueComparer`
+  (`AppDbContext.OnModelCreating`). The comparer is load-bearing: without it EF does not notice an
+  in-place mutation of the array and silently skips the `UPDATE`. Because the column is text, season
+  filtering for korpica generation happens **in memory** after loading the pool
+  (`GenerisiSedmicniSadrzajHandler`) — do not try to push `Mjeseci.Contains(...)` into the SQL `WHERE`.
+- **Korpica DATA lives in a migration, not in `DbSeeder`**, same shape as `Magacin` above: the
+  `KorpicaPodaci` migration (not `DbSeeder`) inserts the `KorpicaKategorije` category links, the 15
+  korpica `Product` rows, and a `MozeUKorpicu = true` backfill for existing ordinary products — the
+  `Korpice` migration before it only added columns/tables, schema with no data. `DbSeeder` bails on any
+  existing `Category` and only runs in Development or under `Seed:Demo=true`, so real production would
+  otherwise come up with the schema but zero korpica rows: `GET /korpice` returns `[]` and "Generiši"
+  can never produce anything, silently. The migration is idempotent (guards every insert so it is safe
+  to run on a database `DbSeeder` already populated) and resolves the korpica rows' placeholder
+  category/producer dynamically (first one that exists), not to a hardcoded id.
+- **`Product` soft-delete (`!IsDeleted` global query filter) silently drops rows out of a required
+  `Include`, not just the navigation.** `StavkaSadrzaja.ProductId` is non-nullable, so EF treats
+  `StavkaSadrzaja → Product` as a required relationship and compiles `Include(Stavke).ThenInclude(Product)`
+  as an INNER JOIN — when `Product` fails the filter, the whole `StavkaSadrzaja` row disappears from the
+  parent's collection, it is **not** merely `Product == null` on a surviving row. `ObjaviSadrzajHandler`
+  and `GetPakerskaListaHandler` both need `IgnoreQueryFilters()` because of this; without it, publishing a
+  draft with a soft-deleted article can under-count `Stavke` enough to look like an empty draft instead of
+  surfacing the actual "artikal obrisan" error.
 
 **Enums are stored as strings** (`HasConversion<string>()` for `Role`, `Status`, `Unit`), so raw SQL
 compares text: `WHERE "Role" = 'Admin'`, not a number.

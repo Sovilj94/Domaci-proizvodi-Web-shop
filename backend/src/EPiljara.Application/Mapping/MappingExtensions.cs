@@ -54,6 +54,9 @@ public static class MappingExtensions
         ImageUrl = p.ImageUrl,
         Description = p.Description,
         IsFeatured = p.IsFeatured,
+        MozeUKorpicu = p.MozeUKorpicu,
+        PrioritetUKorpici = p.PrioritetUKorpici,
+        Mjeseci = p.Mjeseci,
     };
 
     public static DeliveryZoneDto ToDto(this DeliveryZone z) => new()

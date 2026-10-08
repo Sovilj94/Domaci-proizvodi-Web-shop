@@ -10,6 +10,7 @@ using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.Common.Models;
 using EPiljara.Application.Features.Admin;
+using EPiljara.Application.Features.Korpice;
 using EPiljara.Infrastructure;
 using EPiljara.Infrastructure.BackgroundJobs;
 using EPiljara.Infrastructure.Persistence;
@@ -41,6 +42,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddHostedService<ExpiredGuestRequestsCleaner>();
+builder.Services.AddHostedService<ZakljucavanjeSadrzajaService>();
 
 // ----- Controllers + JSON envelope -----
 builder.Services
@@ -52,6 +54,10 @@ builder.Services
 // carry our envelope, field keys ("customer.name") and Bosnian messages. Suppressing
 // the built-in filter stops ASP.NET from short-circuiting with its own 400 first.
 builder.Services.Configure<ApiBehaviorOptions>(o => o.SuppressModelStateInvalidFilter = true);
+
+// ----- Korpice (generator sedmičnog sadržaja) -----
+builder.Services.Configure<KorpiceOpcije>(
+    builder.Configuration.GetSection(KorpiceOpcije.Sekcija));
 
 // ----- JWT authentication -----
 var jwt = builder.Configuration.GetSection("Jwt");

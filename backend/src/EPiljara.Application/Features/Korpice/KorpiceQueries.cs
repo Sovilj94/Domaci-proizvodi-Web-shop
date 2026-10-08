@@ -1,0 +1,225 @@
+using System.Globalization;
+using EPiljara.Application.Common.Interfaces;
+using EPiljara.Application.DTOs;
+using EPiljara.Domain.Common;
+using EPiljara.Domain.Entities;
+using EPiljara.Domain.Enums;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+
+namespace EPiljara.Application.Features.Korpice;
+
+/* ---------- pomoćno ---------- */
+
+public static class SedmicaHelper
+{
+    public static (int Godina, int Sedmica) Tekuca(DateTime? sada = null)
+    {
+        var d = sada ?? DateTime.UtcNow;
+        return (ISOWeek.GetYear(d), ISOWeek.GetWeekOfYear(d));
+    }
+
+    /// <summary>
+    /// Datum i VRIJEME isporuke za zadatu ISO sedmicu, za dan i vrijeme koje pozivalac
+    /// prosljeđuje. Ciklus je vezan za <see cref="DeliverySlot"/>, ne za zakucan dan/sat —
+    /// pozivalac ih dobija preko <see cref="UcitajRokAsync"/>.
+    ///
+    /// <see cref="ISOWeek.ToDateTime"/> vraća PONOĆ tog dana sa <see cref="DateTimeKind.Unspecified"/>.
+    /// Prije ovog popravka se ponoć koristila direktno kao "vrijeme isporuke", pa je rok
+    /// (ponoć - CutoffHours) ispadao do 24h ranije od stvarnog operativnog roka —
+    /// DeliverySlot.TimeFrom se nikad nije čitao. Ovdje se <paramref name="vrijemeOd"/>
+    /// dodaje na ponoć, a rezultat se eksplicitno obilježava kao UTC: backend ovo
+    /// poredi sa DateTime.UtcNow (vidi GetTekucaSedmicaHandler, ZakljucajSadrzajeHandler),
+    /// a frontend parsira ISO string sa "Z" kao UTC (vidi types/domain.ts) — bez
+    /// eksplicitnog Kind-a se ta dva tumačenja razilaze za tačno UTC offset.
+    /// </summary>
+    public static DateTime DatumIsporuke(int godina, int sedmica, DayOfWeek danIsporuke, string vrijemeOd)
+    {
+        var ponoc = ISOWeek.ToDateTime(godina, sedmica, danIsporuke);
+        var (sati, minuti) = ParsirajVrijeme(vrijemeOd);
+        return DateTime.SpecifyKind(ponoc.AddHours(sati).AddMinutes(minuti), DateTimeKind.Utc);
+    }
+
+    /// <summary>
+    /// TimeFrom na DeliverySlot-u je slobodan tekstualni unos ("16:00"), bez validacije
+    /// na modelu. Ako je neparsabilan ili van opsega 00:00–23:59, NE rušimo zahtjev —
+    /// to bi oborilo javnu stranicu /korpice zbog loše unesenog podatka u admin ekranu
+    /// koji P1 još nema (vidi Important I4 u finalnom review-u). Biramo ponoć (00:00) kao
+    /// neutralnu vrijednost — isto ponašanje kao prije ovog popravka, samo sada
+    /// namjerno, a ne kao posljedica da se TimeFrom nikad nije čitao.
+    /// </summary>
+    private static (int Sati, int Minuti) ParsirajVrijeme(string vrijemeOd)
+    {
+        if (TimeSpan.TryParse(vrijemeOd, System.Globalization.CultureInfo.InvariantCulture, out var t)
+            && t >= TimeSpan.Zero && t < TimeSpan.FromDays(1))
+            return (t.Hours, t.Minutes);
+
+        return (0, 0);
+    }
+
+    /// <summary>
+    /// Dan isporuke, vrijeme isporuke i rok naručivanja (u satima prije isporuke),
+    /// izvedeni iz <see cref="DeliverySlot"/>-a sa najnižim <see cref="DeliverySlot.DayOfWeek"/> —
+    /// prvog dana isporuke u sedmici. Kad u bazi ne postoji nijedan DeliverySlot
+    /// (prazna baza, ili test kojem ovo nije bitno), koristi se
+    /// <see cref="KorpiceOpcije"/> kao rezerva — vidi tamo.
+    /// </summary>
+    public static async Task<(DayOfWeek Dan, string VrijemeOd, int CutoffSati)> UcitajRokAsync(
+        IAppDbContext db, KorpiceOpcije opcije, CancellationToken ct)
+    {
+        var slot = await db.DeliverySlots
+            .OrderBy(s => s.DayOfWeek)
+            .FirstOrDefaultAsync(ct);
+
+        return slot is null
+            ? (opcije.DanIsporukeRezerva, opcije.VrijemeIsporukeRezerva, opcije.RokSati)
+            : ((DayOfWeek)slot.DayOfWeek, slot.TimeFrom, slot.CutoffHours);
+    }
+
+    public static string Slug(TipKorpice t) => t switch
+    {
+        TipKorpice.Povrce => "povrce",
+        TipKorpice.Voce => "voce",
+        TipKorpice.Mlijecna => "mlijecna",
+        TipKorpice.Suhomesnata => "suhomesnata",
+        TipKorpice.Domacinska => "domacinska",
+        _ => "povrce",
+    };
+
+    public static TipKorpice? IzSluga(string? s) => s?.Trim().ToLowerInvariant() switch
+    {
+        "povrce" => TipKorpice.Povrce,
+        "voce" => TipKorpice.Voce,
+        "mlijecna" => TipKorpice.Mlijecna,
+        "suhomesnata" => TipKorpice.Suhomesnata,
+        "domacinska" => TipKorpice.Domacinska,
+        _ => null,
+    };
+
+    /// <summary>
+    /// NE zove se ToDto: <c>MappingExtensions.ToDto(this Product)</c> već postoji i vraća
+    /// ProductDto. Dvije ekstenzije istog imena nad istim tipom čine svaki poziv dvosmislenim.
+    /// </summary>
+    public static KorpicaDto ToKorpicaDto(this Product p) => new()
+    {
+        Id = p.Id,
+        Naziv = p.Name,
+        Slug = p.Slug,
+        Tip = Slug(p.TipKorpice ?? TipKorpice.Povrce),
+        Velicina = (p.Velicina ?? VelicinaKorpice.Mala).ToString().ToLowerInvariant(),
+        Cijena = p.Price,
+        ImageUrl = p.ImageUrl,
+        Opis = p.Description,
+        Stock = p.Stock,
+        Dostupna = p.IsAvailable && p.Stock > 0,
+    };
+
+    public static SadrzajDto ToDto(this SedmicniSadrzaj s) => new()
+    {
+        Id = s.Id,
+        KorpicaId = s.KorpicaId,
+        Godina = s.Godina,
+        Sedmica = s.Sedmica,
+        Status = s.Status.ToString(),
+        CiljnaVrijednost = s.CiljnaVrijednost,
+        Stavke = s.Stavke.Select(st => new StavkaSadrzajaDto
+        {
+            ProductId = st.ProductId,
+            Naziv = st.Product?.Name ?? string.Empty,
+            Kolicina = st.Kolicina,
+            Jedinica = (st.Product?.Unit ?? EPiljara.Domain.Enums.Unit.Kom).ToApi(),
+            ImageUrl = st.Product?.ImageUrl,
+            ProizvodjacNaziv = st.Product?.Producer?.Name ?? string.Empty,
+            ProizvodjacSelo = st.Product?.Producer?.Village ?? string.Empty,
+        }).ToList(),
+    };
+}
+
+/* ---------- lista korpica ---------- */
+
+public record GetKorpiceQuery(string? Tip) : IRequest<IReadOnlyList<KorpicaDto>>;
+
+public class GetKorpiceHandler(IAppDbContext db)
+    : IRequestHandler<GetKorpiceQuery, IReadOnlyList<KorpicaDto>>
+{
+    public async Task<IReadOnlyList<KorpicaDto>> Handle(GetKorpiceQuery q, CancellationToken ct)
+    {
+        var tip = SedmicaHelper.IzSluga(q.Tip);
+
+        var lista = await db.Products
+            .Where(p => p.Vrsta == VrstaProizvoda.Korpica)
+            .Where(p => tip == null || p.TipKorpice == tip)
+            .OrderBy(p => p.TipKorpice).ThenBy(p => p.Velicina)
+            .ToListAsync(ct);
+
+        return lista.Select(p => p.ToKorpicaDto()).ToList();
+    }
+}
+
+/* ---------- jedna korpica ---------- */
+
+public record GetKorpicaBySlugQuery(string Slug) : IRequest<KorpicaDto>;
+
+public class GetKorpicaBySlugHandler(IAppDbContext db)
+    : IRequestHandler<GetKorpicaBySlugQuery, KorpicaDto>
+{
+    public async Task<KorpicaDto> Handle(GetKorpicaBySlugQuery q, CancellationToken ct)
+    {
+        var p = await db.Products
+            .FirstOrDefaultAsync(x => x.Slug == q.Slug && x.Vrsta == VrstaProizvoda.Korpica, ct)
+            ?? throw new NotFoundException("Korpica nije pronađena.");
+        return p.ToKorpicaDto();
+    }
+}
+
+/* ---------- sadržaj korpice za tekuću sedmicu ---------- */
+
+public record GetSadrzajKorpiceQuery(string Slug) : IRequest<SadrzajDto>;
+
+public class GetSadrzajKorpiceHandler(IAppDbContext db)
+    : IRequestHandler<GetSadrzajKorpiceQuery, SadrzajDto>
+{
+    public async Task<SadrzajDto> Handle(GetSadrzajKorpiceQuery q, CancellationToken ct)
+    {
+        var korpica = await db.Products
+            .FirstOrDefaultAsync(x => x.Slug == q.Slug && x.Vrsta == VrstaProizvoda.Korpica, ct)
+            ?? throw new NotFoundException("Korpica nije pronađena.");
+
+        var (godina, sedmica) = SedmicaHelper.Tekuca();
+
+        var sadrzaj = await db.SedmicniSadrzaji
+            .Include(s => s.Stavke).ThenInclude(st => st.Product).ThenInclude(p => p!.Producer)
+            .FirstOrDefaultAsync(s =>
+                s.KorpicaId == korpica.Id && s.Godina == godina && s.Sedmica == sedmica
+                && s.Status != StatusSadrzaja.Nacrt, ct)
+            ?? throw new NotFoundException("sadrzaj_nije_objavljen");
+
+        return sadrzaj.ToDto();
+    }
+}
+
+/* ---------- tekuća sedmica i rok ---------- */
+
+public record GetTekucaSedmicaQuery : IRequest<SedmicaDto>;
+
+public class GetTekucaSedmicaHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
+    : IRequestHandler<GetTekucaSedmicaQuery, SedmicaDto>
+{
+    public async Task<SedmicaDto> Handle(GetTekucaSedmicaQuery q, CancellationToken ct)
+    {
+        var (godina, sedmica) = SedmicaHelper.Tekuca();
+        var (dan, vrijemeOd, cutoffSati) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd);
+        var rok = isporuka.AddHours(-cutoffSati);
+
+        return new SedmicaDto
+        {
+            Godina = godina,
+            Sedmica = sedmica,
+            DatumIsporuke = isporuka,
+            RokNarucivanja = rok,
+            RokIstekao = DateTime.UtcNow > rok,
+        };
+    }
+}

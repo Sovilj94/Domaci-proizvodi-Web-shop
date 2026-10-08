@@ -12,6 +12,28 @@ public class Product : Entity
     public decimal Stock { get; set; }
     public bool IsAvailable { get; set; } = true;
     public bool IsFeatured { get; set; }
+
+    /// <summary>Obična roba ili korpica. Korpica ne smije ući u sadržaj druge korpice.</summary>
+    public VrstaProizvoda Vrsta { get; set; } = VrstaProizvoda.Obican;
+
+    /// <summary>Postavljeno samo kad je <see cref="Vrsta"/> == Korpica.</summary>
+    public TipKorpice? TipKorpice { get; set; }
+
+    /// <summary>Postavljeno samo kad je <see cref="Vrsta"/> == Korpica.</summary>
+    public VelicinaKorpice? Velicina { get; set; }
+
+    /// <summary>Smije li obična roba ući u sadržaj korpice.</summary>
+    public bool MozeUKorpicu { get; set; }
+
+    /// <summary>0 = osnovni artikal (ide skoro uvijek), veći broj = dopuna.</summary>
+    public int PrioritetUKorpici { get; set; }
+
+    /// <summary>
+    /// Mjeseci (1–12) u kojima je artikal dostupan. <b>Prazan niz znači cijele godine</b> —
+    /// mliječno i suhomesnato nemaju sezonu. U bazi stoji kao CSV string, jer SQLite
+    /// (testovi) nema tip niza; vidi AppDbContext.
+    /// </summary>
+    public int[] Mjeseci { get; set; } = [];
     public string Description { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
 
@@ -26,4 +48,24 @@ public class Product : Entity
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Provjerava invarijantu korpice: kad je <see cref="Vrsta"/> == Korpica, mora imati
+    /// <see cref="TipKorpice"/> i <see cref="Velicina"/>, i ne smije sama ući u sadržaj
+    /// druge korpice (<see cref="MozeUKorpicu"/> == false). Običnu robu (Vrsta == Obican)
+    /// ne dotiče, bez obzira na vrijednosti ostalih polja. Nije ožičeno u SaveChanges ni u
+    /// handlere — poziva ga seeder i kasniji validatori.
+    /// </summary>
+    public void ProvjeriInvarijantuKorpice()
+    {
+        if (Vrsta != VrstaProizvoda.Korpica) return;
+
+        if (TipKorpice is null)
+            throw new DomainException("Korpica mora imati tip korpice.", "korpica_bez_tipa");
+        if (Velicina is null)
+            throw new DomainException("Korpica mora imati veličinu.", "korpica_bez_velicine");
+        if (MozeUKorpicu)
+            throw new DomainException(
+                "Korpica ne može ući u sadržaj druge korpice.", "korpica_u_korpici");
+    }
 }

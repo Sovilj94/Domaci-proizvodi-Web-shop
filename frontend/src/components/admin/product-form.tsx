@@ -11,6 +11,7 @@ import { adminApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { ProductInput } from "@/lib/api/contracts";
 import type { Product, Unit } from "@/types/domain";
+import { cn } from "@/lib/utils";
 
 const EMPTY = {
   name: "",
@@ -23,7 +24,16 @@ const EMPTY = {
   imageUrl: "",
   isAvailable: true,
   isFeatured: false,
+  mozeUKorpicu: false,
+  prioritetUKorpici: "0",
+  mjeseci: [] as number[],
 };
+
+/** Kratki nazivi mjeseci za 12 checkbox-a — indeks 0 je januar. */
+const MJESECI_NAZIVI = [
+  "Jan", "Feb", "Mar", "Apr", "Maj", "Jun",
+  "Jul", "Avg", "Sep", "Okt", "Nov", "Dec",
+];
 
 export function ProductForm({
   open,
@@ -57,6 +67,9 @@ export function ProductForm({
             imageUrl: product.imageUrl ?? "",
             isAvailable: product.isAvailable,
             isFeatured: product.isFeatured ?? false,
+            mozeUKorpicu: product.mozeUKorpicu ?? false,
+            prioritetUKorpici: String(product.prioritetUKorpici ?? 0),
+            mjeseci: product.mjeseci ?? [],
           }
         : EMPTY,
     );
@@ -91,7 +104,19 @@ export function ProductForm({
       imageUrl: form.imageUrl || undefined,
       isAvailable: form.isAvailable,
       isFeatured: form.isFeatured,
+      mozeUKorpicu: form.mozeUKorpicu,
+      prioritetUKorpici: Number(form.prioritetUKorpici || 0),
+      mjeseci: form.mjeseci,
     });
+  }
+
+  function prekidajMjesec(mjesec: number) {
+    setForm((f) => ({
+      ...f,
+      mjeseci: f.mjeseci.includes(mjesec)
+        ? f.mjeseci.filter((m) => m !== mjesec)
+        : [...f.mjeseci, mjesec].sort((a, b) => a - b),
+    }));
   }
 
   if (!open) return null;
@@ -213,6 +238,65 @@ export function ProductForm({
               />
               Izdvojeno
             </label>
+          </div>
+
+          {/* Korpice (P1): bez ovih polja artikal dodat ovdje nikad ne može ući u bazen
+              generatora korpica (vidi GenerisiSedmicniSadrzajHandler) — kolone su postojale
+              na Product-u, ali admin API ih nije primao. */}
+          <div className="rounded-card border border-line bg-sand/50 p-4">
+            <p className="mb-3 text-sm font-semibold text-ink">Korpice</p>
+
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={form.mozeUKorpicu}
+                onChange={(e) => setForm({ ...form, mozeUKorpicu: e.target.checked })}
+                className="h-4 w-4 accent-brand-600"
+              />
+              Smije ući u sadržaj korpice
+            </label>
+
+            <div className="mt-3">
+              <Field label="Prioritet u korpici">
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.prioritetUKorpici}
+                  onChange={(e) => setForm({ ...form, prioritetUKorpici: e.target.value })}
+                />
+              </Field>
+              <p className="mt-1 text-xs text-muted">
+                0 = osnovni artikal (ide skoro uvijek), veći broj = dopuna.
+              </p>
+            </div>
+
+            <div className="mt-3">
+              <p className="mb-1.5 text-sm font-medium">
+                Sezona (mjeseci) — praznina znači cijele godine
+              </p>
+              <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-12">
+                {MJESECI_NAZIVI.map((naziv, i) => {
+                  const mjesec = i + 1;
+                  const aktivan = form.mjeseci.includes(mjesec);
+                  return (
+                    <button
+                      key={mjesec}
+                      type="button"
+                      onClick={() => prekidajMjesec(mjesec)}
+                      className={cn(
+                        "rounded-lg border px-1.5 py-1 text-xs font-medium transition",
+                        aktivan
+                          ? "border-brand-600 bg-brand-600 text-white"
+                          : "border-line bg-white text-muted hover:border-brand-400",
+                      )}
+                    >
+                      {naziv}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </form>
 

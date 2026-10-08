@@ -6,10 +6,14 @@ import type {
   DeliverySlot,
   DeliveryZone,
   GeocodeHit,
+  Korpica,
   Order,
   OrderStatus,
   Producer,
   Product,
+  SadrzajKorpice,
+  Sedmica,
+  TipKorpice,
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
@@ -22,12 +26,17 @@ import type {
   DashboardStats,
   Driver,
   DriverInput,
+  GenerisiSadrzajRequest,
   GuestOrderRequestResult,
+  IzmijeniNacrtRequest,
   LoginRequest,
   ProducerInput,
   ProductInput,
   RegisterRequest,
   RegisterResponse,
+  RezultatGenerisanja,
+  SadrzajPregled,
+  StavkaPakerske,
 } from "./contracts";
 
 /**
@@ -54,6 +63,59 @@ export const catalogApi = {
     apiFetch<Producer[]>("/producers", { auth: false }).then((r) => r.data),
   producer: (id: string) =>
     apiFetch<Producer>(`/producers/${id}`, { auth: false }).then((r) => r.data),
+};
+
+/* ---------- Korpice ---------- */
+
+export const korpiceApi = {
+  lista: (tip?: TipKorpice) =>
+    apiFetch<Korpica[]>("/korpice", {
+      auth: false,
+      query: tip ? { tip } : {},
+    }).then((r) => r.data),
+
+  korpica: (slug: string) =>
+    apiFetch<Korpica>(`/korpice/${slug}`, { auth: false }).then((r) => r.data),
+
+  sadrzaj: (slug: string) =>
+    apiFetch<SadrzajKorpice>(`/korpice/${slug}/sadrzaj`, { auth: false }).then((r) => r.data),
+
+  sedmica: () => apiFetch<Sedmica>("/korpice/sedmica", { auth: false }).then((r) => r.data),
+};
+
+/* ---------- Admin: korpice ---------- */
+
+export const adminKorpiceApi = {
+  pregled: (godina: number, sedmica: number) =>
+    apiFetch<SadrzajPregled[]>("/admin/korpice/sadrzaj", {
+      query: { godina, sedmica },
+    }).then((r) => r.data),
+
+  /** Jedan sadržaj, uključujući nacrt — javni endpoint nacrt odbija. */
+  sadrzaj: (id: string) =>
+    apiFetch<SadrzajKorpice>(`/admin/korpice/sadrzaj/${id}`).then((r) => r.data),
+
+  generisi: (body: GenerisiSadrzajRequest) =>
+    apiFetch<RezultatGenerisanja[]>("/admin/korpice/sadrzaj/generisi", {
+      method: "POST",
+      body,
+    }).then((r) => r.data),
+
+  izmijeni: (id: string, body: IzmijeniNacrtRequest) =>
+    apiFetch<SadrzajKorpice>(`/admin/korpice/sadrzaj/${id}`, {
+      method: "PUT",
+      body,
+    }).then((r) => r.data),
+
+  objavi: (id: string) =>
+    apiFetch<SadrzajKorpice>(`/admin/korpice/sadrzaj/${id}/objavi`, {
+      method: "POST",
+    }).then((r) => r.data),
+
+  pakerskaLista: (godina: number, sedmica: number) =>
+    apiFetch<StavkaPakerske[]>("/admin/korpice/pakerska-lista", {
+      query: { godina, sedmica },
+    }).then((r) => r.data),
 };
 
 /* ---------- Delivery ---------- */

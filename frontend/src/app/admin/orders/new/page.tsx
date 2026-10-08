@@ -10,11 +10,12 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { AddressPicker } from "@/components/shop/address-picker";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
-import { useDeliverySlots, useDeliveryZones, useProducts } from "@/lib/api/hooks";
+import { useDeliverySlots, useDeliveryZones, useKorpiceList, useProducts } from "@/lib/api/hooks";
 import { orderApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import type { Product } from "@/types/domain";
+import { spojiKatalog } from "@/lib/korpice";
 import { formatPrice, unitSuffix, weekdayName } from "@/lib/utils";
 
 export default function AdminNewOrderPage() {
@@ -23,8 +24,16 @@ export default function AdminNewOrderPage() {
   const { show } = useToast();
 
   const products = useProducts();
+  // Javni /products (iznad) ne sadrži korpice (vidi backend GetProductsHandler) — bez
+  // ovoga, administrator ne bi mogao ručno dodati korpicu u telefonsku/ličnu narudžbu.
+  const korpice = useKorpiceList();
   const zones = useDeliveryZones();
   const slots = useDeliverySlots();
+
+  const katalog = useMemo(
+    () => spojiKatalog(products.data ?? [], korpice.data ?? []),
+    [products.data, korpice.data],
+  );
 
   const [form, setForm] = useState({
     name: "",
@@ -44,9 +53,9 @@ export default function AdminNewOrderPage() {
 
   const productById = useMemo(() => {
     const m = new Map<string, Product>();
-    products.data?.forEach((p) => m.set(p.id, p));
+    katalog.forEach((p) => m.set(p.id, p));
     return m;
-  }, [products.data]);
+  }, [katalog]);
 
   const lines = useMemo(
     () =>
@@ -70,9 +79,9 @@ export default function AdminNewOrderPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const avail = products.data?.filter((p) => p.isAvailable) ?? [];
+    const avail = katalog.filter((p) => p.isAvailable);
     return (q ? avail.filter((p) => p.name.toLowerCase().includes(q)) : avail).slice(0, 8);
-  }, [products.data, search]);
+  }, [katalog, search]);
 
   function bump(id: string, delta: number) {
     setQty((m) => {
@@ -122,7 +131,8 @@ export default function AdminNewOrderPage() {
     !belowMin &&
     !mutation.isPending;
 
-  if (products.isLoading || zones.isLoading || slots.isLoading) return <LoadingBlock />;
+  if (products.isLoading || korpice.isLoading || zones.isLoading || slots.isLoading)
+    return <LoadingBlock />;
 
   return (
     <form onSubmit={submit} className="space-y-6">
