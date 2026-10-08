@@ -234,7 +234,7 @@ Kontroler je već `[Authorize]`, pa ruta nasljeđuje zaštitu.
 - [ ] **Step 5: Pokreni testove**
 
 Run: `dotnet test --filter ProfileCommandsTests` pa `dotnet test`
-Expected: PASS — osam novih testova, i svi postojeći i dalje prolaze.
+Expected: PASS — deset novih slučajeva (sedam metoda, od kojih jedan `[Theory]` nosi četiri `[InlineData]`), i svi postojeći i dalje prolaze.
 
 - [ ] **Step 6: Commit**
 
