@@ -100,7 +100,7 @@ export default function MojNalogAdresePage() {
               adresa={a}
               onIzmijeni={() => otvoriIzmjenu(a)}
               onPostaviGlavnu={() => postaviGlavnuMutacija.mutate(a.id)}
-              onObrisi={() => obrisiMutacija.mutate(a.id)}
+              onObrisi={() => obrisiMutacija.mutateAsync(a.id)}
               glavnaPending={
                 postaviGlavnuMutacija.isPending && postaviGlavnuMutacija.variables === a.id
               }
@@ -144,7 +144,7 @@ function AdresaKartica({
   adresa: Address;
   onIzmijeni: () => void;
   onPostaviGlavnu: () => void;
-  onObrisi: () => void;
+  onObrisi: () => Promise<unknown>;
   glavnaPending: boolean;
   brisanjePending: boolean;
 }) {
@@ -183,7 +183,17 @@ function AdresaKartica({
         {potvrdaBrisanja ? (
           <>
             <span className="text-sm font-medium text-ink">Sigurno?</span>
-            <Button variant="danger" size="sm" onClick={onObrisi} disabled={brisanjePending}>
+            {/*
+              Na uspjeh kartica nestane sa liste, pa nema šta da se vraća. Na grešku kartica
+              ostaje — i bez ovog `catch` zaglavi na „Sigurno?" dok kupac ručno ne otkaže.
+              Toast sa porukom o grešci diže roditeljski `onError`.
+            */}
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => void onObrisi().catch(() => setPotvrdaBrisanja(false))}
+              disabled={brisanjePending}
+            >
               {brisanjePending ? "Brišem…" : "Obriši"}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setPotvrdaBrisanja(false)}>
