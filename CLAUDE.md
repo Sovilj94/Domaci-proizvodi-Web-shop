@@ -253,15 +253,39 @@ client as the envelope's error code, so one thrown with only a message reaches c
   article's `Stock` — an article sold both standalone and inside a korpica shows only its standalone sales
   in `Stock`.
 - **The weekly cycle (delivery day + ordering cutoff) comes from `DeliverySlot`, not from config.**
-  `KorpiceQueries.UcitajRokAsync` reads the slot with the **lowest `DayOfWeek`** and uses its `DayOfWeek`
-  and `CutoffHours`. `KorpiceOpcije.RokSati` / `DanIsporukeRezerva` are **fallbacks only**, read solely
-  when the database has no `DeliverySlot` row at all; while any slot exists they are not consulted.
+  `KorpiceQueries.UcitajRokAsync` reads the slot with the **lowest `DayOfWeek`** and uses its `DayOfWeek`,
+  `TimeFrom` and `CutoffHours`. `KorpiceOpcije.RokSati` / `DanIsporukeRezerva` / `VrijemeIsporukeRezerva`
+  are **fallbacks only**, read solely when the database has no `DeliverySlot` row at all; while any slot
+  exists they are not consulted. `SedmicaHelper.DatumIsporuke` builds the delivery instant from day
+  **and** `TimeFrom` and marks it `DateTimeKind.Utc` explicitly — it used to return bare midnight
+  (`ISOWeek.ToDateTime` with `Kind.Unspecified`) and ignore `TimeFrom` entirely, which put the real
+  cutoff up to a day earlier than the slot says and made the frontend's countdown disagree with the
+  backend by the UTC offset once it started rendering the hour. A malformed `TimeFrom` (free-text field,
+  no model validation) falls back to midnight rather than throwing — see the comment on
+  `SedmicaHelper.ParsirajVrijeme`.
 - **`Product.Mjeseci` is `int[]` in C# but a CSV string in the database**, via a `ValueConverter` (the
   converter exists because tests run on SQLite, which has no array type) plus a `ValueComparer`
   (`AppDbContext.OnModelCreating`). The comparer is load-bearing: without it EF does not notice an
   in-place mutation of the array and silently skips the `UPDATE`. Because the column is text, season
   filtering for korpica generation happens **in memory** after loading the pool
   (`GenerisiSedmicniSadrzajHandler`) — do not try to push `Mjeseci.Contains(...)` into the SQL `WHERE`.
+- **Korpica DATA lives in a migration, not in `DbSeeder`**, same shape as `Magacin` above: the
+  `KorpicaPodaci` migration (not `DbSeeder`) inserts the `KorpicaKategorije` category links, the 15
+  korpica `Product` rows, and a `MozeUKorpicu = true` backfill for existing ordinary products — the
+  `Korpice` migration before it only added columns/tables, schema with no data. `DbSeeder` bails on any
+  existing `Category` and only runs in Development or under `Seed:Demo=true`, so real production would
+  otherwise come up with the schema but zero korpica rows: `GET /korpice` returns `[]` and "Generiši"
+  can never produce anything, silently. The migration is idempotent (guards every insert so it is safe
+  to run on a database `DbSeeder` already populated) and resolves the korpica rows' placeholder
+  category/producer dynamically (first one that exists), not to a hardcoded id.
+- **`Product` soft-delete (`!IsDeleted` global query filter) silently drops rows out of a required
+  `Include`, not just the navigation.** `StavkaSadrzaja.ProductId` is non-nullable, so EF treats
+  `StavkaSadrzaja → Product` as a required relationship and compiles `Include(Stavke).ThenInclude(Product)`
+  as an INNER JOIN — when `Product` fails the filter, the whole `StavkaSadrzaja` row disappears from the
+  parent's collection, it is **not** merely `Product == null` on a surviving row. `ObjaviSadrzajHandler`
+  and `GetPakerskaListaHandler` both need `IgnoreQueryFilters()` because of this; without it, publishing a
+  draft with a soft-deleted article can under-count `Stavke` enough to look like an empty draft instead of
+  surfacing the actual "artikal obrisan" error.
 
 **Enums are stored as strings** (`HasConversion<string>()` for `Role`, `Status`, `Unit`), so raw SQL
 compares text: `WHERE "Role" = 'Admin'`, not a number.

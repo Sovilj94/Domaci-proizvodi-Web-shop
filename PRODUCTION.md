@@ -99,6 +99,23 @@ else in the order flow changes.
 
 ## Korpice (curated weekly produce boxes)
 
+**The korpica data comes from a migration, not from `DbSeeder`.** The `Korpice` migration
+(20261007075847) added the columns and three tables — schema only, left empty by design. The
+`KorpicaPodaci` migration (20261008071037) that follows it inserts the actual data: the
+`KorpicaKategorije` category links, the 15 korpica `Product` rows (5 types × 3 sizes), and a
+backfill (`MozeUKorpicu = true` for existing ordinary products). Without it, on any database
+that was never seeded by `DbSeeder` (real production: it bails on any existing `Category` and
+only runs in Development or under `Seed:Demo=true`), `GET /korpice` returns `[]`, every tab
+shows "nije u ponudi", and "Generiši" can never produce anything — nothing errors, the feature
+is just silently empty. Same shape as `Magacin` (see that section above): data a real
+deployment needs lives in a migration, not the demo seeder. The migration is idempotent
+(guards every insert, safe to run on a database `DbSeeder` already populated) and resolves the
+korpica rows' placeholder category/producer to whichever one already exists first on that
+database, not a hardcoded id — but it still needs **at least one `Category` and one
+`Producer`** to exist before it runs; on a database with neither, the korpica product rows are
+skipped (the `KorpicaKategorije` links for categories that do exist still insert) until the
+owner adds their first product.
+
 Config section `Korpice` (`appsettings.json`, override via `Korpice__*` env vars):
 
 | Key | Default | Meaning |
@@ -107,9 +124,11 @@ Config section `Korpice` (`appsettings.json`, override via `Korpice__*` env vars
 | `Korpice:MinimalanBrojArtikala` | `{Mala: 5, Srednja: 7, Velika: 9}` | Minimum item count the generator aims for, per box size. Always in effect; under-filled pools return a warning for the admin to fix by hand, not an error. |
 | `Korpice:RokSati` | `48` | Ordering-cutoff hours before delivery. **Fallback only** — used only when the database has no `DeliverySlot` row at all. While any `DeliverySlot` exists, its own `CutoffHours` (on the slot with the lowest `DayOfWeek`) is the sole source of truth and this key is not read. |
 | `Korpice:DanIsporukeRezerva` | `Friday` | Delivery day. Same fallback-only caveat as `RokSati` — superseded by the lowest-`DayOfWeek` `DeliverySlot` whenever one exists. |
+| `Korpice:VrijemeIsporukeRezerva` | `16:00` | Delivery time-of-day, combined with `DanIsporukeRezerva` into the delivery instant. Same fallback-only caveat — superseded by the lowest-`DayOfWeek` `DeliverySlot`'s own `TimeFrom` whenever one exists. |
 
-`ZakljucavanjeSadrzajaService` (a `BackgroundService`) runs every **15 minutes** and closes
-(`Zakljucan`) every published (`Objavljen`) weekly content whose ordering cutoff has passed. If it is not
+`ZakljucavanjeSadrzajaService` (a `BackgroundService`, now in `Infrastructure/BackgroundJobs/`)
+runs every **15 minutes** and closes (`Zakljucan`) every published (`Objavljen`) weekly content
+whose ordering cutoff — delivery day **and** time, minus `CutoffHours` — has passed. If it is not
 running, a content stays editable past its deadline, so the packing list (`GET
 /admin/korpice/pakerska-lista`) can still shift after the warehouse already has the printed list in hand —
 the failure mode is silent (nothing errors; the content just never locks), so confirm the service is
