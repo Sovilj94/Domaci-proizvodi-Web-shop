@@ -1446,14 +1446,14 @@ public class GetMojaKorpicaHandler(
             ?? throw new NotFoundException("Korpica nije pronađena.");
 
         if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
-            throw new ForbiddenException("Ova korpica nije vaša.", "forbidden");
+            throw new ForbiddenException("Ova korpica nije vaša.");
 
         var korpica = await db.Products.FirstOrDefaultAsync(p => p.Id == red.ProductId, ct);
 
         // Ponuda je CIJELA sezonska ponuda — odluka P2b. Artikli iz kategorija ove korpice se
         // obilježavaju da ih birač može staviti prve, ali se ništa ne zabranjuje.
         var kategorijeKorpice = await db.KorpicaKategorije
-            .Where(k => k.KorpicaId == red.ProductId)
+            .Where(k => k.TipKorpice == korpica!.TipKorpice)
             .Select(k => k.CategoryId)
             .ToListAsync(ct);
 
@@ -1759,7 +1759,7 @@ public class IzmijeniMojuKorpicuHandler(
             ?? throw new NotFoundException("Korpica nije pronađena.");
 
         if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
-            throw new ForbiddenException("Ova korpica nije vaša.", "forbidden");
+            throw new ForbiddenException("Ova korpica nije vaša.");
 
         if (!MojaKorpicaPravila.StatusiKojiDozvoljavaju.Contains(red.Order.Status))
             throw new ConflictException(
