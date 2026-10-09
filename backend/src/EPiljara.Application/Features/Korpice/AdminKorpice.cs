@@ -173,12 +173,11 @@ public class GetPakerskaListaHandler(IAppDbContext db)
         // StavkeSadrzaja — redove jedne kutije — pa je četrdeset narudžbi i jedna davale isti
         // broj, i nabavka po toj listi je bila za jednu korpicu.
         //
-        // IgnoreQueryFilters(): bez toga EF primjenjuje Product-ov globalni !IsDeleted filter
-        // i na Include lanac, pa je za soft-obrisan artikal Product null. Takav red se i dalje
-        // prikazuje sa stvarnom količinom i obilježava — pakerska lista je procurement istina
-        // i ne smije praviti prazne redove.
+        // Nema IgnoreQueryFilters() ovdje: StavkaKorpiceNarudzbe, OrderItem i Order nemaju
+        // globalni query filter (jedini u šemi je Product-ov !IsDeleted, AppDbContext.cs:91),
+        // pa ga ovaj Include lanac (OrderItem → Order) ne dira. Zaštita za soft-obrisan
+        // artikal je ispod, na upitu nad Products (vidi komentar tamo).
         var redovi = await db.StavkeKorpiceNarudzbe
-            .IgnoreQueryFilters()
             .Include(s => s.OrderItem).ThenInclude(i => i!.Order)
             .Where(s => s.OrderItem!.Order!.Godina == q.Godina
                         && s.OrderItem.Order.Sedmica == q.Sedmica

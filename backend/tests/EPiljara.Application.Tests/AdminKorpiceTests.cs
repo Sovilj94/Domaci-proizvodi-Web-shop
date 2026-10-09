@@ -305,5 +305,11 @@ public class AdminKorpiceTests
         var red = lista.Stavke.Single(s => s.Artikal == "Krompir");
         Assert.Equal(2m, red.Kolicina);
         Assert.True(red.ArtikalObrisan);
+        // Proizvodjac/Selo dolaze SAMO iz druge (Product) upita — bez IgnoreQueryFilters()
+        // na njoj bi za ovaj soft-obrisan artikal p bio null i oba polja bi pala na
+        // string.Empty. Artikal/Kolicina/ArtikalObrisan same ne bi uhvatile taj regres, jer
+        // svi imaju fallback na ProductName snapshot i na "p is null" granu.
+        Assert.Equal("Marko", red.Proizvodjac);
+        Assert.Equal("Manjača", red.Selo);
     }
 }
