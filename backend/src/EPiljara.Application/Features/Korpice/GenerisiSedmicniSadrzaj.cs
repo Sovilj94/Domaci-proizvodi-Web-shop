@@ -58,14 +58,14 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                 .ToHashSet();
 
             // Mjeseci su CSV u bazi, pa se sezona filtrira u memoriji nakon učitavanja.
-            var bazen = (await db.Products
-                    .Where(p => p.Vrsta == VrstaProizvoda.Obican
-                                && p.MozeUKorpicu
-                                && p.IsAvailable
-                                && p.Stock > 0
-                                && kategorije.Contains(p.CategoryId))
-                    .ToListAsync(ct))
-                .Where(p => p.Mjeseci.Length == 0 || p.Mjeseci.Contains(mjesec))
+            // Uslov podobnosti dijeli sa kupčevim editorom — vidi KorpicaPodobnost.
+            // Ograničenje na kategorije te korpice ostaje SAMO ovdje: generator puni povrćnu
+            // korpicu povrćem, a kupac po odluci iz P2b bira iz cijele ponude.
+            var bazen = KorpicaPodobnost.USezoni(
+                    await KorpicaPodobnost.UpitPodobnih(db.Products)
+                        .Where(p => kategorije.Contains(p.CategoryId))
+                        .ToListAsync(ct),
+                    mjesec)
                 .OrderBy(p => p.PrioritetUKorpici)
                 .ThenBy(_ => Guid.NewGuid())      // nasumično unutar istog prioriteta
                 .ToList();
