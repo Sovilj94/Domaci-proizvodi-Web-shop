@@ -86,3 +86,49 @@ public record StavkaPakerskeDto
     /// posebno provjeriti umjesto da naruči "nepoznato".</summary>
     public bool ArtikalObrisan { get; init; }
 }
+
+/// <summary>Jedna korpica koju kupac trenutno može mijenjati.</summary>
+public record MojaKorpicaDto
+{
+    public Guid OrderItemId { get; init; }
+    public Guid OrderId { get; init; }
+    public string KodNarudzbe { get; init; } = string.Empty;
+    public string Naziv { get; init; } = string.Empty;
+    public string? ImageUrl { get; init; }
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
+    public DateTime RokIzmjene { get; init; }
+    public decimal CiljnaVrijednost { get; init; }
+    public decimal TrenutnaVrijednost { get; init; }
+    public int BrojArtikala { get; init; }
+    public int MinimalanBrojArtikala { get; init; }
+}
+
+public record StavkaMojeKorpiceDto
+{
+    public Guid ProductId { get; init; }
+    public string Naziv { get; init; } = string.Empty;
+    public decimal Kolicina { get; init; }
+    public string Jedinica { get; init; } = "kom";
+    public decimal JedinicnaCijena { get; init; }
+    public bool DodaoKupac { get; init; }
+}
+
+/// <summary>Artikal koji kupac može dodati u korpicu.</summary>
+public record PonudaArtiklaDto
+{
+    public Guid ProductId { get; init; }
+    public string Naziv { get; init; } = string.Empty;
+    public string Jedinica { get; init; } = "kom";
+    public decimal Cijena { get; init; }
+    public string? ImageUrl { get; init; }
+    /// <summary>Artikal pripada kategorijama ove korpice. Birač takve stavlja prve.</summary>
+    public bool IzOveKorpice { get; init; }
+}
+
+public record MojaKorpicaDetaljiDto
+{
+    public MojaKorpicaDto Korpica { get; init; } = new();
+    public IReadOnlyList<StavkaMojeKorpiceDto> Stavke { get; init; } = [];
+    public IReadOnlyList<PonudaArtiklaDto> Ponuda { get; init; } = [];
+}

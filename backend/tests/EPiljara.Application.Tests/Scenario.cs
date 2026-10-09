@@ -4,6 +4,7 @@ using EPiljara.Application.Features.Orders;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
 using EPiljara.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Tests;
@@ -233,6 +234,21 @@ internal sealed class Scenario : IDisposable
 
     public Task<PakerskaListaDto> PakerskaListaAsync() =>
         new GetPakerskaListaHandler(Db).Handle(new GetPakerskaListaQuery(Godina, Sedmica), default);
+
+    // ---------- Task 7 ----------
+
+    public async Task<Guid> OrderItemIdAsync(Guid orderId) =>
+        (await Db.OrderItems.FirstAsync(i => i.OrderId == orderId)).Id;
+
+    public Task<IReadOnlyList<MojaKorpicaDto>> MojeKorpiceAsync(Guid? kao = null) =>
+        new GetMojeKorpiceHandler(Db, KorisnikZa(kao), Options.Create(Opcije))
+            .Handle(new GetMojeKorpiceQuery(), default);
+
+    public Task<MojaKorpicaDetaljiDto> MojaKorpicaAsync(Guid orderItemId, Guid? kao = null) =>
+        new GetMojaKorpicaHandler(Db, KorisnikZa(kao), Options.Create(Opcije))
+            .Handle(new GetMojaKorpicaQuery(orderItemId), default);
+
+    private FakeCurrentUser KorisnikZa(Guid? kao) => new(kao ?? KupacId);
 
     public void Dispose() => _t.Dispose();
 }

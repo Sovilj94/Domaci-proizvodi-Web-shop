@@ -1,4 +1,5 @@
 using EPiljara.Application.Features.Account;
+using EPiljara.Application.Features.Korpice;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +12,14 @@ public class AccountController : ApiControllerBase
     [HttpPut("account/profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] AzurirajProfilCommand command) =>
         Envelope(await Mediator.Send(command));
+
+    [HttpGet("account/korpice")]
+    public async Task<IActionResult> MojeKorpice() =>
+        EnvelopeList(await Mediator.Send(new GetMojeKorpiceQuery()));
+
+    [HttpGet("account/korpice/{orderItemId:guid}")]
+    public async Task<IActionResult> MojaKorpica(Guid orderItemId) =>
+        Envelope(await Mediator.Send(new GetMojaKorpicaQuery(orderItemId)));
 
     [HttpGet("account/addresses")]
     public async Task<IActionResult> Addresses() =>
