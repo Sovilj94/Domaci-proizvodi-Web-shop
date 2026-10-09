@@ -4,8 +4,10 @@ using EPiljara.Application.Features.Orders;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
 using EPiljara.Infrastructure.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Unit = EPiljara.Domain.Enums.Unit;
 
 namespace EPiljara.Application.Tests;
 
@@ -249,6 +251,78 @@ internal sealed class Scenario : IDisposable
             .Handle(new GetMojaKorpicaQuery(orderItemId), default);
 
     private FakeCurrentUser KorisnikZa(Guid? kao) => new(kao ?? KupacId);
+
+    // ---------- Task 8 ----------
+
+    public Task<MojaKorpicaDetaljiDto> IzmijeniAsync(
+        Guid orderItemId, Guid[] productIds, Guid? kao = null)
+    {
+        var korisnik = KorisnikZa(kao);
+        var mediator = new FakeMediator(Db, korisnik, Options.Create(Opcije));
+        return new IzmijeniMojuKorpicuHandler(Db, korisnik, Options.Create(Opcije), mediator)
+            .Handle(new IzmijeniMojuKorpicuCommand(orderItemId, productIds), default);
+    }
+
+    /// <summary>
+    /// `94.9` i `100.1` su preslikani direktno na korpe iz tabele u scenario-spec.md:
+    /// [Krompir, Jeftin264] = 6.64 (ispod donje granice 6.65) i [Krompir, Skup301] = 7.01
+    /// (iznad gornje granice 7.00). Ovo NIJE računica — svaki drugi broj bi zahtijevao
+    /// pogađanje koje artikle sastaviti, a test bi onda mogao proći iz pogrešnog razloga.
+    /// </summary>
+    public Task<MojaKorpicaDetaljiDto> IzmijeniNaProcenatAsync(Guid orderItemId, double procenat)
+    {
+        Guid[] productIds = procenat switch
+        {
+            94.9 => [KrompirId, Jeftin264Id],
+            100.1 => [KrompirId, Skup301Id],
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(procenat), procenat, "Nema pripremljene korpe za ovaj procenat."),
+        };
+        return IzmijeniAsync(orderItemId, productIds);
+    }
+
+    /// <summary>
+    /// Mediator koji hendler Taska 8 koristi SAMO za <see cref="GetMojaKorpicaQuery"/>, da
+    /// vrati svježe stanje poslije izmjene bez drugog round-trip-a u testu. Ostali članovi
+    /// IMediator-a se u ovom scenariju ne zovu.
+    /// </summary>
+    private sealed class FakeMediator(
+        AppDbContext db, FakeCurrentUser current, IOptions<KorpiceOpcije> opcije) : IMediator
+    {
+        public Task<TResponse> Send<TResponse>(
+            IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        {
+            if (request is GetMojaKorpicaQuery q)
+                return (Task<TResponse>)(object)new GetMojaKorpicaHandler(db, current, opcije)
+                    .Handle(q, cancellationToken);
+            throw new NotImplementedException(
+                $"FakeMediator ne zna da posluži {request.GetType().Name}.");
+        }
+
+        public Task<object?> Send(object request, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task Send<TRequest>(
+            TRequest request, CancellationToken cancellationToken = default)
+            where TRequest : IRequest =>
+            throw new NotImplementedException();
+
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
+            IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public IAsyncEnumerable<object?> CreateStream(
+            object request, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task Publish<TNotification>(
+            TNotification notification, CancellationToken cancellationToken = default)
+            where TNotification : INotification =>
+            throw new NotImplementedException();
+    }
 
     public void Dispose() => _t.Dispose();
 }

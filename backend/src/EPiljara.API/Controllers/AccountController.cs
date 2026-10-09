@@ -21,6 +21,12 @@ public class AccountController : ApiControllerBase
     public async Task<IActionResult> MojaKorpica(Guid orderItemId) =>
         Envelope(await Mediator.Send(new GetMojaKorpicaQuery(orderItemId)));
 
+    [HttpPut("account/korpice/{orderItemId:guid}")]
+    public async Task<IActionResult> IzmijeniKorpicu(
+        Guid orderItemId, [FromBody] IzmijeniKorpicuBody body) =>
+        Envelope(await Mediator.Send(
+            new IzmijeniMojuKorpicuCommand(orderItemId, body.ProductIds)));
+
     [HttpGet("account/addresses")]
     public async Task<IActionResult> Addresses() =>
         EnvelopeList(await Mediator.Send(new GetAccountAddressesQuery()));
@@ -53,3 +59,6 @@ public record UpdateAddressBody(
     double? Latitude,
     double? Longitude,
     Guid? DeliveryZoneId);
+
+/// <summary>Tijelo bez Id-a — Id dolazi iz putanje. Količine i cijene određuje server.</summary>
+public record IzmijeniKorpicuBody(IReadOnlyList<Guid> ProductIds);

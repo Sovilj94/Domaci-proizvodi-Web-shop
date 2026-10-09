@@ -4,6 +4,7 @@ using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -199,5 +200,122 @@ public class GetMojaKorpicaHandler(
                 .ToList(),
             Ponuda = ponuda,
         };
+    }
+}
+
+public record IzmijeniMojuKorpicuCommand(Guid OrderItemId, IReadOnlyList<Guid> ProductIds)
+    : IRequest<MojaKorpicaDetaljiDto>;
+
+public class IzmijeniMojuKorpicuValidator : AbstractValidator<IzmijeniMojuKorpicuCommand>
+{
+    public IzmijeniMojuKorpicuValidator()
+    {
+        RuleFor(x => x.ProductIds).NotEmpty().WithMessage("Korpica ne može ostati prazna.");
+    }
+}
+
+public class IzmijeniMojuKorpicuHandler(
+    IAppDbContext db, ICurrentUser current, IOptions<KorpiceOpcije> opcije, IMediator mediator)
+    : IRequestHandler<IzmijeniMojuKorpicuCommand, MojaKorpicaDetaljiDto>
+{
+    /// <summary>Donja i gornja granica budžeta, kao udio CiljnaVrijednost.</summary>
+    public const decimal DonjaGranica = 0.95m;
+    public const decimal GornjaGranica = 1.00m;
+
+    public async Task<MojaKorpicaDetaljiDto> Handle(
+        IzmijeniMojuKorpicuCommand cmd, CancellationToken ct)
+    {
+        var red = await db.OrderItems
+            .Include(i => i.Order)
+            .Include(i => i.KorpicaStavke)
+            .FirstOrDefaultAsync(i => i.Id == cmd.OrderItemId, ct)
+            ?? throw new NotFoundException("Korpica nije pronađena.");
+
+        if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
+            throw new ForbiddenException("Ova korpica nije vaša.");
+
+        if (!MojaKorpicaPravila.StatusiKojiDozvoljavaju.Contains(red.Order.Status))
+            throw new ConflictException(
+                "Narudžba se već pakuje, sadržaj se više ne može mijenjati.", "korpica_se_pakuje");
+
+        // Duplikat bi se tiho udvostručio u količini — odbijamo ga umjesto da ga sažmemo,
+        // jer kupac koji je dvaput kliknuo isti artikal nije tražio dvostruku količinu.
+        if (cmd.ProductIds.Distinct().Count() != cmd.ProductIds.Count)
+            throw new DomainException("Isti artikal je naveden dvaput.", "duplirani_artikal");
+
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        var rok = SedmicaHelper
+            .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, dan, vrijemeOd)
+            .AddHours(-cutoff);
+        if (DateTime.UtcNow > rok)
+            throw new DomainException(
+                "Rok za izmjenu ove korpice je prošao.", "rok_istekao");
+
+        var mjesec = SedmicaHelper
+            .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, DayOfWeek.Monday, "00:00")
+            .Month;
+
+        var podobni = KorpicaPodobnost
+            .USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec)
+            .ToDictionary(p => p.Id);
+
+        // Količine iz šablona te sedmice: artikal koji je u šablonu zadržava svoju količinu,
+        // sve ostalo dobija 1 u svojoj jedinici. Količinu NIKAD ne šalje klijent — vidi spec.
+        var sadrzaj = await db.SedmicniSadrzaji
+            .Include(s => s.Stavke)
+            .FirstOrDefaultAsync(s => s.KorpicaId == red.ProductId
+                                      && s.Godina == red.Order.Godina
+                                      && s.Sedmica == red.Order.Sedmica, ct);
+        var sablonskeKolicine = sadrzaj?.Stavke.ToDictionary(s => s.ProductId, s => s.Kolicina)
+                                ?? [];
+
+        var nove = new List<StavkaKorpiceNarudzbe>();
+        foreach (var pid in cmd.ProductIds)
+        {
+            if (!podobni.TryGetValue(pid, out var p))
+                throw new DomainException(
+                    "Artikal nije dostupan za korpicu ove sedmice.", "artikal_nije_podoban");
+
+            nove.Add(new StavkaKorpiceNarudzbe
+            {
+                OrderItemId = red.Id,
+                ProductId = p.Id,
+                ProductName = p.Name,
+                Unit = p.Unit,
+                Kolicina = sablonskeKolicine.GetValueOrDefault(p.Id, 1m),
+                JedinicnaCijena = p.Price,
+                DodaoKupac = !sablonskeKolicine.ContainsKey(p.Id),
+            });
+        }
+
+        var cilj = sadrzaj?.CiljnaVrijednost ?? 0m;
+        var vrijednost = Math.Round(nove.Sum(s => s.Kolicina * s.JedinicnaCijena), 2);
+
+        if (cilj > 0m && vrijednost < Math.Round(cilj * DonjaGranica, 2))
+            throw new DomainException(
+                $"Vrijednost korpice je {vrijednost:0.##} KM, a mora biti bar " +
+                $"{cilj * DonjaGranica:0.##} KM.", "budzet_premali");
+
+        if (cilj > 0m && vrijednost > Math.Round(cilj * GornjaGranica, 2))
+            throw new DomainException(
+                $"Vrijednost korpice je {vrijednost:0.##} KM, a najviše može biti " +
+                $"{cilj * GornjaGranica:0.##} KM.", "budzet_preveliki");
+
+        var korpica = await db.Products.FirstOrDefaultAsync(p => p.Id == red.ProductId, ct);
+        var minimum = opcije.Value.MinimalanBrojArtikala.GetValueOrDefault(
+            korpica?.Velicina ?? VelicinaKorpice.Mala, 5);
+        if (nove.Count < minimum)
+            throw new DomainException(
+                $"Korpica mora imati bar {minimum} artikala.", "premalo_artikala");
+
+        // Stari redovi se brišu eksplicitno kroz DbSet. `Clear()` na kolekciji praćenog
+        // roditelja je u P1 dao DbUpdateConcurrencyException — EF je pokušao da ih i obriše i
+        // ažurira. Vidi CLAUDE.md.
+        db.StavkeKorpiceNarudzbe.RemoveRange(red.KorpicaStavke);
+        foreach (var s in nove) db.StavkeKorpiceNarudzbe.Add(s);
+
+        await db.SaveChangesAsync(ct);
+
+        return await mediator.Send(new GetMojaKorpicaQuery(red.Id), ct);
     }
 }
