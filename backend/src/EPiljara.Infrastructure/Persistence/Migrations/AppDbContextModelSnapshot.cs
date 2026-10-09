@@ -735,6 +735,48 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("SedmicniSadrzaji");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.StavkaKorpiceNarudzbe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("DodaoKupac")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("JedinicnaCijena")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("Kolicina")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderItemId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("StavkeKorpiceNarudzbe");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.StavkaSadrzaja", b =>
                 {
                     b.Property<Guid>("Id")
@@ -981,6 +1023,23 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Navigation("Korpica");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.StavkaKorpiceNarudzbe", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.OrderItem", "OrderItem")
+                        .WithMany("KorpicaStavke")
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OrderItem");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.StavkaSadrzaja", b =>
                 {
                     b.HasOne("EPiljara.Domain.Entities.Product", "Product")
@@ -1023,6 +1082,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EPiljara.Domain.Entities.Order", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.OrderItem", b =>
+                {
+                    b.Navigation("KorpicaStavke");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Producer", b =>

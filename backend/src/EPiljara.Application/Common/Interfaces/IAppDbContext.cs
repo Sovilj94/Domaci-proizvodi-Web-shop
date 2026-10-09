@@ -24,6 +24,7 @@ public interface IAppDbContext
     DbSet<KorpicaKategorija> KorpicaKategorije { get; }
     DbSet<SedmicniSadrzaj> SedmicniSadrzaji { get; }
     DbSet<StavkaSadrzaja> StavkeSadrzaja { get; }
+    DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe { get; }
 
     /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
     DbSet<Magacin> Magacin { get; }

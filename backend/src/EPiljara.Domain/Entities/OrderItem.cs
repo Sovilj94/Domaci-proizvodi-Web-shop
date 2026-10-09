@@ -20,4 +20,12 @@ public class OrderItem : Entity
     public string? ImageUrl { get; set; }
 
     public decimal LineTotal => Math.Round(UnitPrice * Quantity, 2);
+
+    /// <summary>
+    /// Sadržaj korpice, kad je ovaj red korpica (Product.Vrsta == Korpica). Za obične
+    /// artikle je prazan. Čuva se JEDNOM po redu — dvije kutije iste korpice
+    /// (Quantity == 2) dijele isti sadržaj, a pakerska lista ga množi sa Quantity.
+    /// </summary>
+    public ICollection<StavkaKorpiceNarudzbe> KorpicaStavke { get; set; }
+        = new List<StavkaKorpiceNarudzbe>();
 }

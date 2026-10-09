@@ -26,6 +26,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<KorpicaKategorija> KorpicaKategorije => Set<KorpicaKategorija>();
     public DbSet<SedmicniSadrzaj> SedmicniSadrzaji => Set<SedmicniSadrzaj>();
     public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
+    public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -116,6 +117,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.SedmicniSadrzajId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Product).WithMany()
                 .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<StavkaKorpiceNarudzbe>(e =>
+        {
+            e.Property(x => x.ProductName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Unit).HasConversion<string>().HasMaxLength(8);
+            e.Property(x => x.Kolicina).HasPrecision(10, 3);
+            e.Property(x => x.JedinicnaCijena).HasPrecision(12, 2);
+            e.HasOne(x => x.OrderItem).WithMany(i => i.KorpicaStavke)
+                .HasForeignKey(x => x.OrderItemId).OnDelete(DeleteBehavior.Cascade);
+            // Restrict, ne Cascade: brisanje artikla ne smije obrisati red iz nečije
+            // narudžbe. Isto kao na StavkaSadrzaja.
+            e.HasOne<Product>().WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.OrderItemId);
         });
 
         b.Entity<DeliveryZone>(e =>
