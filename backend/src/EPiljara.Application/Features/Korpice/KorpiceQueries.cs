@@ -77,6 +77,30 @@ public static class SedmicaHelper
             : ((DayOfWeek)slot.DayOfWeek, slot.TimeFrom, slot.CutoffHours);
     }
 
+    /// <summary>
+    /// Sedmica koju narudžba isporučuje: prva sedmica čiji rok naručivanja još nije prošao.
+    ///
+    /// NE koristi <see cref="Tekuca"/> direktno. Korpica je Product, a checkout ne provjerava
+    /// rok — bez ovog pravila bi se poslije roka naručivala korpica za sedmicu čiji je sadržaj
+    /// već zaključan i čija je pakerska lista već odštampana.
+    ///
+    /// Granica godine se ne računa ručno: uzima se ponedjeljak tekuće ISO sedmice, doda sedam
+    /// dana, i iz tog datuma ponovo izvedu ISO godina i sedmica — pa prelaz 52/53 → 1 izlazi
+    /// tačan sam od sebe.
+    /// </summary>
+    public static (int Godina, int Sedmica) SedmicaZaNarudzbu(
+        DayOfWeek dan, string vrijemeOd, int cutoffSati, DateTime? sada = null)
+    {
+        var now = sada ?? DateTime.UtcNow;
+        var (godina, sedmica) = Tekuca(now);
+
+        var rok = DatumIsporuke(godina, sedmica, dan, vrijemeOd).AddHours(-cutoffSati);
+        if (now <= rok) return (godina, sedmica);
+
+        var sljedeca = ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Monday).AddDays(7);
+        return (ISOWeek.GetYear(sljedeca), ISOWeek.GetWeekOfYear(sljedeca));
+    }
+
     public static string Slug(TipKorpice t) => t switch
     {
         TipKorpice.Povrce => "povrce",
