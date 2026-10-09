@@ -240,27 +240,33 @@ public class AdminKorpiceTests
         Assert.Equal("stavka_duplirana", ex.Code);
     }
 
+    /// <summary>
+    /// Prepisan za Task 6 (P2b): lista od sada sabira NARUDŽBE, ne šablone, pa "isti
+    /// artikal preko više korpica" ovdje znači preko više narudžbi iste korpice (Scenario
+    /// ima samo jedan tip korpice) — isti princip, drugi izvor podataka. Assertacija na
+    /// Proizvodjac je ono što je originalni test čuvao a novi PakerskaListaTests.cs ne
+    /// provjerava, pa je ovdje zadržana.
+    /// </summary>
     [Fact]
     public async Task Pakerska_lista_sabira_isti_artikal_preko_vise_korpica()
     {
-        using var t = new TestDb();
-        var p = Postavi(t);
-        Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Objavljen);
-        Sadrzaj(t, p.Korpica2, p.Artikal, 3.5m, StatusSadrzaja.Objavljen);
-
-        // Bez ovoga EF fixup popunjava Product/Producer iz dijeljenog konteksta i test
-        // prolazi i bez Include-a u handleru — vidi Task 7, Korekcija 2.
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        await t.PosaljiKorpicuAsync(kolicina: 1m);
+        await t.PosaljiKorpicuAsync(kolicina: 1m);
         t.Db.ChangeTracker.Clear();
 
-        var lista = await new GetPakerskaListaHandler(t.Db)
-            .Handle(new GetPakerskaListaQuery(2026, 41), default);
+        var lista = await t.PakerskaListaAsync();
 
-        var red = Assert.Single(lista);
-        Assert.Equal("Paradajz", red.Artikal);
-        Assert.Equal(5.5m, red.Kolicina);
-        Assert.Equal("Mujo Mujić", red.Proizvodjac);
+        var krompir = lista.Stavke.Single(s => s.Artikal == "Krompir");
+        Assert.Equal(4m, krompir.Kolicina); // 2 po korpici × 2 narudžbe
+        Assert.Equal("Marko", krompir.Proizvodjac);
     }
 
+    /// <summary>
+    /// Prepisan za Task 6 (P2b): handler od sada ne čita StavkaSadrzaja uopšte, pa nacrt
+    /// (kao i objavljen šablon bez narudžbi) ne doprinosi ničim listi — "ignoriše nacrte"
+    /// je sad samo poseban slučaj opštijeg pravila "bez narudžbe nema reda".
+    /// </summary>
     [Fact]
     public async Task Pakerska_lista_ignorise_nacrte()
     {
@@ -271,33 +277,32 @@ public class AdminKorpiceTests
         var lista = await new GetPakerskaListaHandler(t.Db)
             .Handle(new GetPakerskaListaQuery(2026, 41), default);
 
-        Assert.Empty(lista);
+        Assert.Equal(0, lista.BrojNarudzbi);
+        Assert.Empty(lista.Stavke);
     }
 
     /// <summary>
-    /// Regresioni test za nalaz I2 (finalni review): Product nosi globalni !IsDeleted
-    /// filter koji EF primjenjuje i na Include lanac pakerske liste, pa je za artikal
-    /// obrisan NAKON objave (objava sama sad odbija obrisan artikal — ovaj slučaj nastaje
-    /// kad se artikal obriše poslije objave) stavka.Product bio null i red nestajao sa
-    /// praznim nazivom. GetPakerskaListaHandler sad koristi IgnoreQueryFilters() i vraća
-    /// red sa pravim nazivom i ArtikalObrisan=true umjesto da ga sakrije.
+    /// Regresioni test za nalaz I2 (finalni review), prepisan za Task 6 (P2b): Product
+    /// nosi globalni !IsDeleted filter koji EF primjenjuje i na Include lanac pakerske
+    /// liste, pa je za artikal obrisan NAKON narudžbe stavka bila null i red je nestajao
+    /// sa praznim nazivom. GetPakerskaListaHandler koristi IgnoreQueryFilters() i vraća
+    /// red sa pravim nazivom i ArtikalObrisan=true umjesto da ga sakrije. Izvor podatka je
+    /// sad narudžba (StavkaKorpiceNarudzbe), ne StavkaSadrzaja.
     /// </summary>
     [Fact]
     public async Task Pakerska_lista_prikazuje_obrisan_artikal_umjesto_da_ga_sakrije()
     {
-        using var t = new TestDb();
-        var p = Postavi(t);
-        Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Objavljen);
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        await t.PosaljiKorpicuAsync(kolicina: 1m);
 
-        p.Artikal.IsDeleted = true; // obrisan POSLIJE objave — objava ga je zatekla živog
+        var krompir = await t.Db.Products.FirstAsync(x => x.Id == t.KrompirId);
+        krompir.IsDeleted = true; // obrisan POSLIJE narudžbe — narudžba ga je zatekla živog
         await t.Db.SaveChangesAsync();
         t.Db.ChangeTracker.Clear();
 
-        var lista = await new GetPakerskaListaHandler(t.Db)
-            .Handle(new GetPakerskaListaQuery(2026, 41), default);
+        var lista = await t.PakerskaListaAsync();
 
-        var red = Assert.Single(lista);
-        Assert.Equal("Paradajz", red.Artikal);
+        var red = lista.Stavke.Single(s => s.Artikal == "Krompir");
         Assert.Equal(2m, red.Kolicina);
         Assert.True(red.ArtikalObrisan);
     }

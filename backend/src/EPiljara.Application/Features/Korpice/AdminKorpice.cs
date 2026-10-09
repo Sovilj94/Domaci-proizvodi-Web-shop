@@ -162,41 +162,55 @@ public class IzmijeniNacrtHandler(IAppDbContext db)
 
 /* ---------- pakerska lista ---------- */
 
-public record GetPakerskaListaQuery(int Godina, int Sedmica)
-    : IRequest<IReadOnlyList<StavkaPakerskeDto>>;
+public record GetPakerskaListaQuery(int Godina, int Sedmica) : IRequest<PakerskaListaDto>;
 
 public class GetPakerskaListaHandler(IAppDbContext db)
-    : IRequestHandler<GetPakerskaListaQuery, IReadOnlyList<StavkaPakerskeDto>>
+    : IRequestHandler<GetPakerskaListaQuery, PakerskaListaDto>
 {
-    public async Task<IReadOnlyList<StavkaPakerskeDto>> Handle(
-        GetPakerskaListaQuery q, CancellationToken ct)
+    public async Task<PakerskaListaDto> Handle(GetPakerskaListaQuery q, CancellationToken ct)
     {
-        // IgnoreQueryFilters(): bez ovoga EF primjenjuje Product-ov globalni !IsDeleted
-        // filter i na Include lanac, pa je za soft-obrisan artikal stavka.Product null i
-        // red na pakerskoj listi ispiše stvarnu količinu sa praznim nazivom (vidi ?? ispod
-        // — ObjaviSadrzajHandler sad odbija OVU situaciju za nova izdanja, ali objavljeni
-        // sadržaj od prije te provjere na pakerskoj listi ostaje). Umjesto da ga sakrijemo,
-        // prikazujemo ga sa pravim nazivom i obilježavamo — operater mora vidjeti da red
-        // treba posebnu pažnju, ne nestati kao praznina.
-        var stavke = await db.StavkeSadrzaja
+        // Od P2b lista sabira SADRŽAJ NARUDŽBI, ne šablon. Prije toga je sabirala
+        // StavkeSadrzaja — redove jedne kutije — pa je četrdeset narudžbi i jedna davale isti
+        // broj, i nabavka po toj listi je bila za jednu korpicu.
+        //
+        // IgnoreQueryFilters(): bez toga EF primjenjuje Product-ov globalni !IsDeleted filter
+        // i na Include lanac, pa je za soft-obrisan artikal Product null. Takav red se i dalje
+        // prikazuje sa stvarnom količinom i obilježava — pakerska lista je procurement istina
+        // i ne smije praviti prazne redove.
+        var redovi = await db.StavkeKorpiceNarudzbe
             .IgnoreQueryFilters()
-            .Include(s => s.Product).ThenInclude(p => p!.Producer)
-            .Include(s => s.SedmicniSadrzaj)
-            .Where(s => s.SedmicniSadrzaj!.Godina == q.Godina
-                        && s.SedmicniSadrzaj.Sedmica == q.Sedmica
-                        && s.SedmicniSadrzaj.Status != StatusSadrzaja.Nacrt)
+            .Include(s => s.OrderItem).ThenInclude(i => i!.Order)
+            .Where(s => s.OrderItem!.Order!.Godina == q.Godina
+                        && s.OrderItem.Order.Sedmica == q.Sedmica
+                        && s.OrderItem.Order.Status != OrderStatus.Cancelled)
             .ToListAsync(ct);
 
-        return stavke
+        var brojNarudzbi = redovi
+            .Select(s => s.OrderItem!.OrderId)
+            .Distinct()
+            .Count();
+
+        // Artikal se dohvata posebno, jer StavkaKorpiceNarudzbe namjerno nema navigaciju na
+        // Product — snapshot naziva živi na samom redu, a proizvođač i selo se čitaju iz
+        // trenutnog kataloga jer su podatak o nabavci, ne o prodaji.
+        var idjevi = redovi.Select(s => s.ProductId).Distinct().ToList();
+        var artikli = await db.Products
+            .IgnoreQueryFilters()
+            .Include(p => p.Producer)
+            .Where(p => idjevi.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
+
+        var stavke = redovi
             .GroupBy(s => s.ProductId)
             .Select(g =>
             {
-                var p = g.First().Product;
+                artikli.TryGetValue(g.Key, out var p);
+                var prvi = g.First();
                 return new StavkaPakerskeDto
                 {
-                    Artikal = p?.Name ?? string.Empty,
-                    Kolicina = g.Sum(x => x.Kolicina),
-                    Jedinica = (p?.Unit ?? EPiljara.Domain.Enums.Unit.Kom).ToApi(),
+                    Artikal = p?.Name ?? prvi.ProductName,
+                    Kolicina = g.Sum(x => x.Kolicina * x.OrderItem!.Quantity),
+                    Jedinica = (p?.Unit ?? prvi.Unit).ToApi(),
                     Proizvodjac = p?.Producer?.Name ?? string.Empty,
                     Selo = p?.Producer?.Village ?? string.Empty,
                     ArtikalObrisan = p is null || p.IsDeleted,
@@ -204,5 +218,7 @@ public class GetPakerskaListaHandler(IAppDbContext db)
             })
             .OrderBy(r => r.Proizvodjac).ThenBy(r => r.Artikal)
             .ToList();
+
+        return new PakerskaListaDto { BrojNarudzbi = brojNarudzbi, Stavke = stavke };
     }
 }

@@ -14,10 +14,11 @@ namespace EPiljara.Application.Tests;
 /// se traži, i objavljen sedmični sadržaj za sedmicu koju narudžba zaista isporučuje.
 ///
 /// Napravljen u punom obliku odjednom (Task 5 koristi samo dio): da ga ne prepravljamo u
-/// svakom od Taskova 6–8, što bi rizikovalo testove koji su već prošli. Metode specifične za
-/// Taskove 6–8 (pakerska lista, upiti editora, izmjena) NISU ovdje — njihovi tipovi povratne
-/// vrijednosti (PakerskaListaDto, MojaKorpicaDto, MojaKorpicaDetaljiDto) još ne postoje, pa bi
-/// fajl pucao. Dodaju ih ti taskovi, uz polja i podatke koji su već spremni.
+/// svakom od Taskova 6–8, što bi rizikovalo testove koji su već prošli. Task 6 dodaje
+/// <see cref="PakerskaListaAsync"/>. Metode specifične za Taskove 7–8 (upiti editora, izmjena)
+/// još nisu ovdje — njihovi tipovi povratne vrijednosti (MojaKorpicaDto,
+/// MojaKorpicaDetaljiDto) još ne postoje, pa bi fajl pucao. Dodaju ih ti taskovi, uz polja i
+/// podatke koji su već spremni.
 /// </summary>
 internal sealed class Scenario : IDisposable
 {
@@ -227,6 +228,11 @@ internal sealed class Scenario : IDisposable
         new CustomerInput("Test Kupac", "test@example.com", "065 000 000"),
         _zonaId, _slotId, "Testna adresa 1", null,
         [new OrderItemInput(productId, kolicina)]);
+
+    // ---------- Task 6 ----------
+
+    public Task<PakerskaListaDto> PakerskaListaAsync() =>
+        new GetPakerskaListaHandler(Db).Handle(new GetPakerskaListaQuery(Godina, Sedmica), default);
 
     public void Dispose() => _t.Dispose();
 }

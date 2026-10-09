@@ -62,6 +62,17 @@ public record SadrzajPregledDto
     public decimal CiljGenerisanja { get; init; }
 }
 
+/// <summary>
+/// Pakerska lista za jednu sedmicu. Nosi i broj narudžbi, jer prazna lista i „niko nije
+/// naručio" izgledaju isto a znače različito — prije P2b je lista u toj situaciji pokazivala
+/// sadržaj šablona, pa operater koji to pamti mora vidjeti nulu, ne prazninu.
+/// </summary>
+public record PakerskaListaDto
+{
+    public int BrojNarudzbi { get; init; }
+    public IReadOnlyList<StavkaPakerskeDto> Stavke { get; init; } = [];
+}
+
 public record StavkaPakerskeDto
 {
     public string Artikal { get; init; } = string.Empty;

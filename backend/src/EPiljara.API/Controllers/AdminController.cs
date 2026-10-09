@@ -160,5 +160,5 @@ public class AdminController : ApiControllerBase
 
     [HttpGet("admin/korpice/pakerska-lista")]
     public async Task<IActionResult> PakerskaLista([FromQuery] int godina, [FromQuery] int sedmica) =>
-        EnvelopeList(await Mediator.Send(new GetPakerskaListaQuery(godina, sedmica)));
+        Envelope(await Mediator.Send(new GetPakerskaListaQuery(godina, sedmica)));
 }
