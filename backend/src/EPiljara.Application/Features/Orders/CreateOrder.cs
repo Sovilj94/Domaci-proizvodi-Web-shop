@@ -143,7 +143,12 @@ public class CreateOrderHandler(
 
                 foreach (var ss in sadrzaj.Stavke)
                 {
-                    var artikal = await db.Products.FirstOrDefaultAsync(p => p.Id == ss.ProductId, ct);
+                    // IgnoreQueryFilters: artikal je mogao biti soft-obrisan (IsDeleted) između
+                    // objave sadržaja i ove narudžbe. Snapshot bilježi šta je stvarno bilo u
+                    // kutiji — obrisan-iz-kataloga artikal i dalje ima naziv i jedinicu; samo
+                    // potpuno nestao red (hard delete, u praksi se ne dešava) padne na ??.
+                    var artikal = await db.Products.IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(p => p.Id == ss.ProductId, ct);
                     stavka.KorpicaStavke.Add(new StavkaKorpiceNarudzbe
                     {
                         ProductId = ss.ProductId,
