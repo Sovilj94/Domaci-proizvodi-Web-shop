@@ -437,6 +437,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DeliveryZoneId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Godina")
+                        .HasColumnType("integer");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
 
@@ -451,6 +454,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Sedmica")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -481,6 +487,8 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PublicToken")
                         .IsUnique();
+
+                    b.HasIndex("Godina", "Sedmica");
 
                     b.ToTable("Orders");
                 });

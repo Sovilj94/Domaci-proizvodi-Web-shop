@@ -45,6 +45,18 @@ public class Order : Entity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
+    /// ISO 8601 godina i sedmica DATUMA ISPORUKE — ne datuma narudžbe. Korpica kupljena u
+    /// ovoj narudžbi nosi sadržaj te sedmice, a pakerska lista po njoj grupiše.
+    ///
+    /// Narudžbama otprije P2b migracija je upisala sedmicu izvedenu iz CreatedAt. Za njih je
+    /// vrijednost PRIBLIŽNA — ko je naručio u nedjelju za četvrtak naredne sedmice ima upisanu
+    /// pogrešnu. To se prihvata jer nijedna od njih ne nosi sadržaj korpice koji bi o tu
+    /// sedmicu visio; polje im je samo metapodatak.
+    /// </summary>
+    public int Godina { get; set; }
+    public int Sedmica { get; set; }
+
+    /// <summary>
     /// Trenutak (UTC) kad je vozač zatvorio stanicu — status prešao u Delivered ili
     /// FailedDelivery. null za sve narudžbe od prije uvođenja ovog polja i za one koje
     /// još nisu isporučene; to je normalno stanje, ne greška.

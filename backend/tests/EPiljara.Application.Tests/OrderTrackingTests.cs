@@ -1,8 +1,10 @@
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Orders;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace EPiljara.Application.Tests;
@@ -103,7 +105,9 @@ internal sealed class Scena
     }
 
     public Task<OrderDto> Naruci() =>
-        new CreateOrderHandler(_t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber())
+        new CreateOrderHandler(
+                _t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
+                Options.Create(new KorpiceOpcije()))
             .Handle(Komanda(), default);
 
     public CreateOrderCommand Komanda() => new(

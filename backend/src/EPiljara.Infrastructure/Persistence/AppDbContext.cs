@@ -185,6 +185,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(x => x.Code).IsUnique();
             e.HasIndex(x => x.PublicToken).IsUnique();
             e.HasIndex(x => x.CustomerId);
+            // Pakerska lista i editor oboje traže narudžbe jedne sedmice.
+            e.HasIndex(x => new { x.Godina, x.Sedmica });
             e.HasMany(x => x.Items).WithOne(i => i.Order!)
                 .HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.DeliverySlot).WithMany()

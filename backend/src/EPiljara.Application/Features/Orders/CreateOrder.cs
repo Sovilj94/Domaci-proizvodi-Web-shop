@@ -1,6 +1,7 @@
 using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
@@ -8,6 +9,7 @@ using EPiljara.Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Orders;
 
@@ -82,7 +84,12 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
     }
 }
 
-public class CreateOrderHandler(IAppDbContext db, ICurrentUser current, IEmailService email, IViberService viber)
+public class CreateOrderHandler(
+    IAppDbContext db,
+    ICurrentUser current,
+    IEmailService email,
+    IViberService viber,
+    IOptions<KorpiceOpcije> korpiceOpcije)
     : IRequestHandler<CreateOrderCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(CreateOrderCommand cmd, CancellationToken ct)
@@ -93,6 +100,13 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUser current, IEmailSe
 
         var slot = await db.DeliverySlots.FirstOrDefaultAsync(s => s.Id == cmd.DeliverySlotId, ct)
             ?? throw new DomainException("Nepoznat termin dostave.", "invalid_slot");
+
+        // Sedmica isporuke se računa iz ciklusa korpica, ne iz DateTime.Now — vidi
+        // SedmicaHelper.SedmicaZaNarudzbu za razlog zašto poslije roka ide naredna sedmica.
+        var (danIsporuke, vrijemeIsporuke, cutoffSati) =
+            await SedmicaHelper.UcitajRokAsync(db, korpiceOpcije.Value, ct);
+        var (godina, sedmica) =
+            SedmicaHelper.SedmicaZaNarudzbu(danIsporuke, vrijemeIsporuke, cutoffSati);
 
         var items = new List<OrderItem>();
         foreach (var line in cmd.Items)
@@ -146,6 +160,8 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUser current, IEmailSe
             DeliveryZone = zone,
             DeliveryAddress = cmd.DeliveryAddress,
             Note = cmd.Note,
+            Godina = godina,
+            Sedmica = sedmica,
             Latitude = cmd.Latitude,
             Longitude = cmd.Longitude,
         };
