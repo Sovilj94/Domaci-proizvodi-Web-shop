@@ -10,6 +10,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Unit = EPiljara.Domain.Enums.Unit;
 
 namespace EPiljara.Application.Features.Orders;
 
@@ -115,7 +116,7 @@ public class CreateOrderHandler(
             if (product is null || !product.IsAvailable)
                 throw new DomainException($"Proizvod nije dostupan ({line.ProductId}).", "product_unavailable");
 
-            items.Add(new OrderItem
+            var stavka = new OrderItem
             {
                 ProductId = product.Id,
                 ProductName = product.Name,
@@ -123,7 +124,39 @@ public class CreateOrderHandler(
                 Quantity = line.Quantity,
                 UnitPrice = product.Price, // price snapshot
                 ImageUrl = product.ImageUrl,
-            });
+            };
+
+            // Korpica nosi sadržaj sedmice koju narudžba isporučuje. Snima se, ne referencira:
+            // admin koji kasnije izmijeni šablon ne smije promijeniti ono što je kupac kupio.
+            if (product.Vrsta == VrstaProizvoda.Korpica)
+            {
+                var sadrzaj = await db.SedmicniSadrzaji
+                    .Include(s => s.Stavke)
+                    .FirstOrDefaultAsync(
+                        s => s.KorpicaId == product.Id
+                             && s.Godina == godina
+                             && s.Sedmica == sedmica
+                             && s.Status == StatusSadrzaja.Objavljen, ct)
+                    ?? throw new DomainException(
+                        $"Za korpicu {product.Name} još nema objavljenog sadržaja za tu sedmicu.",
+                        "korpica_bez_sadrzaja");
+
+                foreach (var ss in sadrzaj.Stavke)
+                {
+                    var artikal = await db.Products.FirstOrDefaultAsync(p => p.Id == ss.ProductId, ct);
+                    stavka.KorpicaStavke.Add(new StavkaKorpiceNarudzbe
+                    {
+                        ProductId = ss.ProductId,
+                        ProductName = artikal?.Name ?? string.Empty,
+                        Unit = artikal?.Unit ?? Unit.Kom,
+                        Kolicina = ss.Kolicina,
+                        JedinicnaCijena = ss.JedinicnaCijena,
+                        DodaoKupac = false,
+                    });
+                }
+            }
+
+            items.Add(stavka);
 
             product.Stock = Math.Max(0, product.Stock - line.Quantity);
         }
