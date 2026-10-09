@@ -14,6 +14,7 @@ import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { RezultatGenerisanja, StatusPregleda } from "@/lib/api/contracts";
 import type { VelicinaKorpice } from "@/types/domain";
+import { narudzbeRijec } from "@/lib/orders";
 import { cn, formatDate, formatPrice } from "@/lib/utils";
 
 /** ISO broj sedmice za dati datum — isti račun kao na backendu (ISO-8601, četvrtak određuje sedmicu). */
@@ -345,7 +346,7 @@ function AdminKorpiceSadrzaj() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold text-ink">Pakerska lista</h2>
-          {pakerska.data && pakerska.data.length > 0 && (
+          {pakerska.data && pakerska.data.stavke.length > 0 && (
             <Button
               variant="secondary"
               size="sm"
@@ -359,41 +360,53 @@ function AdminKorpiceSadrzaj() {
 
         {pakerska.isLoading ? (
           <LoadingBlock />
-        ) : !pakerska.data || pakerska.data.length === 0 ? (
-          <EmptyState
-            title="Pakerska lista je prazna"
-            description="Puni se kad se bar jedna korpica objavi za ovu sedmicu."
-          />
+        ) : !pakerska.data || pakerska.data.stavke.length === 0 ? (
+          <>
+            <p className="text-sm text-muted">
+              {pakerska.data?.brojNarudzbi === 0
+                ? "Za ovu sedmicu još nema nijedne narudžbe."
+                : `${pakerska.data?.brojNarudzbi} ${narudzbeRijec(pakerska.data?.brojNarudzbi ?? 0)} za ovu sedmicu.`}
+            </p>
+            <EmptyState
+              title="Pakerska lista je prazna"
+              description="Nema narudžbi za ovu sedmicu, pa nema ni šta da se pakuje."
+            />
+          </>
         ) : (
-          <div className="overflow-hidden rounded-card bg-white shadow-card">
-            <ul className="divide-y divide-line">
-              {[...pakerska.data]
-                .sort((a, b) => a.artikal.localeCompare(b.artikal, "sr"))
-                .map((r) => (
-                  <li
-                    key={`${r.artikal}-${r.proizvodjac}-${r.selo}`}
-                    className="flex items-center gap-4 p-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-ink">
-                        {r.artikal}
-                        {r.artikalObrisan && (
-                          <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                            Obrisan artikal — provjeriti
-                          </span>
-                        )}
+          <>
+            <p className="text-sm text-muted">
+              {pakerska.data.brojNarudzbi} {narudzbeRijec(pakerska.data.brojNarudzbi)} za ovu sedmicu.
+            </p>
+            <div className="overflow-hidden rounded-card bg-white shadow-card">
+              <ul className="divide-y divide-line">
+                {[...pakerska.data.stavke]
+                  .sort((a, b) => a.artikal.localeCompare(b.artikal, "sr"))
+                  .map((r) => (
+                    <li
+                      key={`${r.artikal}-${r.proizvodjac}-${r.selo}`}
+                      className="flex items-center gap-4 p-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-ink">
+                          {r.artikal}
+                          {r.artikalObrisan && (
+                            <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                              Obrisan artikal — provjeriti
+                            </span>
+                          )}
+                        </p>
+                        <p className="truncate text-xs text-muted">
+                          {r.proizvodjac} · {r.selo}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold text-ink">
+                        {r.kolicina} {r.jedinica}
                       </p>
-                      <p className="truncate text-xs text-muted">
-                        {r.proizvodjac} · {r.selo}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-sm font-semibold text-ink">
-                      {r.kolicina} {r.jedinica}
-                    </p>
-                  </li>
-                ))}
-            </ul>
-          </div>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </>
         )}
       </section>
 

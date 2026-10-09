@@ -34,6 +34,7 @@ import type {
   IzmijeniNacrtRequest,
   LoginRequest,
   MojaKorpicaDetalji,
+  PakerskaLista,
   ProducerInput,
   ProductInput,
   ProfileInput,
@@ -41,7 +42,6 @@ import type {
   RegisterResponse,
   RezultatGenerisanja,
   SadrzajPregled,
-  StavkaPakerske,
 } from "./contracts";
 
 /**
@@ -118,7 +118,7 @@ export const adminKorpiceApi = {
     }).then((r) => r.data),
 
   pakerskaLista: (godina: number, sedmica: number) =>
-    apiFetch<StavkaPakerske[]>("/admin/korpice/pakerska-lista", {
+    apiFetch<PakerskaLista>("/admin/korpice/pakerska-lista", {
       query: { godina, sedmica },
     }).then((r) => r.data),
 };

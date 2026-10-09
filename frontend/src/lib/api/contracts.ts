@@ -185,6 +185,11 @@ export interface StavkaPakerske {
   artikalObrisan: boolean;
 }
 
+export interface PakerskaLista {
+  brojNarudzbi: number;
+  stavke: StavkaPakerske[];
+}
+
 export interface GenerisiSadrzajRequest {
   godina: number;
   sedmica: number;
