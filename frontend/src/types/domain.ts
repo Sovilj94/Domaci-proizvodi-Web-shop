@@ -274,3 +274,44 @@ export interface Sedmica {
   rokNarucivanja: string;
   rokIstekao: boolean;
 }
+
+/**
+ * Preslikava `MojaKorpicaDto` (backend `DTOs/KorpiceDtos.cs`) 1:1 — red na
+ * `GET /account/korpice`, jedna korpica koju je kupac naručio i koju još može
+ * mijenjati prije roka.
+ */
+export interface MojaKorpica {
+  orderItemId: string;
+  orderId: string;
+  kodNarudzbe: string;
+  naziv: string;
+  imageUrl?: string;
+  godina: number;
+  sedmica: number;
+  /** ISO 8601 sa "Z" — backend ga šalje kao UTC. */
+  rokIzmjene: string;
+  ciljnaVrijednost: number;
+  trenutnaVrijednost: number;
+  brojArtikala: number;
+  minimalanBrojArtikala: number;
+}
+
+/** Preslikava `StavkaMojeKorpiceDto` — stavka koju kupac trenutno ima u svojoj korpici. */
+export interface StavkaMojeKorpice {
+  productId: string;
+  naziv: string;
+  kolicina: number;
+  jedinica: string;
+  jedinicnaCijena: number;
+  dodaoKupac: boolean;
+}
+
+/** Preslikava `PonudaArtiklaDto` — artikal koji kupac može dodati u svoju korpicu. */
+export interface PonudaArtikla {
+  productId: string;
+  naziv: string;
+  jedinica: string;
+  cijena: number;
+  imageUrl?: string;
+  izOveKorpice: boolean;
+}

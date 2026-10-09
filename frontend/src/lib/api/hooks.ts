@@ -14,6 +14,8 @@ export const queryKeys = {
   order: (id: string) => ["order", id] as const,
   trackOrder: (token: string) => ["order", "track", token] as const,
   korpiceLista: () => ["korpice", "lista", undefined] as const,
+  mojeKorpice: () => ["account", "korpice"] as const,
+  mojaKorpica: (id: string) => ["account", "korpica", id] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {

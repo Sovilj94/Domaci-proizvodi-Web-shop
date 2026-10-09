@@ -1,4 +1,13 @@
-import type { OrderStatus, StatusSadrzaja, TipKorpice, Unit, VelicinaKorpice } from "@/types/domain";
+import type {
+  MojaKorpica,
+  OrderStatus,
+  PonudaArtikla,
+  StatusSadrzaja,
+  StavkaMojeKorpice,
+  TipKorpice,
+  Unit,
+  VelicinaKorpice,
+} from "@/types/domain";
 
 /** Request/response payloads that are not plain domain entities. */
 
@@ -195,4 +204,15 @@ export interface RezultatGenerisanja {
   ciljGenerisanja: number;
   /** Odsutno na žici kad nema upozorenja — ne stiže kao `null`. */
   upozorenje?: string;
+}
+
+/**
+ * Preslikava `MojaKorpicaDetaljiDto` — odgovor na `GET`/`PUT` `/account/korpice/{orderItemId}`.
+ * Envelope specifičan za ekran izmjene jedne korpice (vidi `MojaKorpica`, `StavkaMojeKorpice`,
+ * `PonudaArtikla` u `types/domain.ts`), zato ovdje i ne u domain.ts.
+ */
+export interface MojaKorpicaDetalji {
+  korpica: MojaKorpica;
+  stavke: StavkaMojeKorpice[];
+  ponuda: PonudaArtikla[];
 }

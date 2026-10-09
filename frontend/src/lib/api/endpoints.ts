@@ -8,6 +8,7 @@ import type {
   DeliveryZone,
   GeocodeHit,
   Korpica,
+  MojaKorpica,
   Order,
   OrderStatus,
   Producer,
@@ -32,6 +33,7 @@ import type {
   GuestOrderRequestResult,
   IzmijeniNacrtRequest,
   LoginRequest,
+  MojaKorpicaDetalji,
   ProducerInput,
   ProductInput,
   ProfileInput,
@@ -212,6 +214,17 @@ export const accountApi = {
 
   azurirajProfil: (body: ProfileInput) =>
     apiFetch<AuthUser>("/account/profile", { method: "PUT", body }).then((r) => r.data),
+
+  mojeKorpice: () => apiFetch<MojaKorpica[]>("/account/korpice").then((r) => r.data),
+
+  mojaKorpica: (orderItemId: string) =>
+    apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}`).then((r) => r.data),
+
+  izmijeniKorpicu: (orderItemId: string, productIds: string[]) =>
+    apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}`, {
+      method: "PUT",
+      body: { productIds },
+    }).then((r) => r.data),
 };
 
 /* ---------- Admin ---------- */
