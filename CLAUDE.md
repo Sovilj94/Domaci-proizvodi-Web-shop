@@ -169,7 +169,7 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   the default **promotes another address automatically**. UI code that picks a replacement after a delete is
   fighting the server, not helping it. The default also always sorts first in `GET /account/addresses`.
 
-## Moj nalog (P2a)
+## Moj nalog i korpice kupca (P2a, P2b)
 
 - **`/moj-nalog` is a nested route whose guard lives in `layout.tsx`, once.** The sections do not repeat it;
   the shape follows `app/admin/layout.tsx`. The guard shows an invitation to log in rather than redirecting,
@@ -194,6 +194,43 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **`DELETE /account/addresses/{id}` is the only endpoint in the API that returns a bodiless `204`.**
   `apiFetch` returns early on that status; without it `res.json()` throws on the empty body and a *successful*
   delete surfaces as `ApiRequestError(204)`.
+
+### P2b — the box a customer already bought
+
+- **`Order.Godina` / `Order.Sedmica` are the ISO year and week of the DELIVERY date,** not of the order date,
+  and come from `SedmicaHelper.SedmicaZaNarudzbu` — the first week whose ordering deadline has not passed.
+  Before the deadline that is this week; after it, the next. Orders from before P2b were backfilled from
+  `CreatedAt`, which is **approximate** for them and exact for everything since; none of them carries korpica
+  content, so the approximation hangs nothing.
+- **`StavkaKorpiceNarudzbe` is not `StavkaSadrzaja`, and confusing them is the easiest mistake here.**
+  `StavkaSadrzaja` is the weekly template, shared by every customer. `StavkaKorpiceNarudzbe` belongs to one
+  `OrderItem` and the customer may edit it. The content is **copied** at order time, never referenced — an
+  admin editing the template afterwards must not change what somebody already bought. It hangs off
+  `OrderItem` rather than `Order` because one order can carry two different korpice.
+- **A korpica with no published content for its week cannot be ordered** (`korpica_bez_sadrzaja`). A korpica
+  is just a `Product` and checkout checks no deadline, so before P2b one could be bought for a week whose
+  content was already locked and whose packing list was already printed. This guard is the only thing
+  stopping that; the public `/korpice` page still talks about the *current* calendar week and does not know
+  about this rule.
+- **The packing list sums orders, not the template.** An empty list means zero orders, and the screen says
+  the number out loud for that reason. Before P2b it summed `StavkeSadrzaja`, so forty orders and one gave
+  identical quantities and procurement bought for a single box.
+- **`KorpicaPodobnost` is the single definition of "may go into a korpica".** The generator narrows it to the
+  korpica's own categories; the customer's editor does not, because P2b's spec lets the customer pick from
+  the whole seasonal catalogue. Its split into `UpitPodobnih` (SQL) and `USezoni` (in memory) is not
+  stylistic: `Product.Mjeseci` is `int[]` in C# but CSV in the database, so the season filter cannot be
+  translated and must run on an already-materialised list.
+- **`PUT /account/korpice/{orderItemId}` accepts only `productIds`.** The server decides every quantity — an
+  item in that week's template keeps the template's quantity, anything else gets 1 in its own unit — and
+  re-reads prices itself. Accepting quantities would let a client write itself ten kilos at the price of one.
+- **`CiljnaVrijednost` is frozen at publish; `TrenutnaVrijednost` is summed from the order's rows.** They are
+  equal the moment the content is copied and diverge the moment the customer edits, which is the entire
+  budget rule (95–100%). Computing both from the same source makes the ratio permanently 100% and the rule
+  decorative — and no fixture built from ordinary data will catch it, because at snapshot time they agree.
+- **Rule order in the editor is load-bearing:** owner → order status → duplicates → deadline → eligibility →
+  budget → item count. Budget before count is why removing one item from a full box reports `budzet_premali`
+  rather than `premalo_artikala`; the screen's helper text has to agree with that or it contradicts the
+  server.
 
 ## Backend (Clean Architecture + CQRS)
 
