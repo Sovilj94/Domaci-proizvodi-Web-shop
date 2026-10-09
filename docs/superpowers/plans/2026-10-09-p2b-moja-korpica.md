@@ -876,7 +876,7 @@ U `backend/src/EPiljara.Application/Features/Orders/CreateOrder.cs`, unutar `for
                              && s.Sedmica == sedmica
                              && s.Status == StatusSadrzaja.Objavljen, ct)
                     ?? throw new DomainException(
-                        $"Za korpicu „{product.Name}" još nema objavljenog sadržaja za tu sedmicu.",
+                        $"Za korpicu {product.Name} još nema objavljenog sadržaja za tu sedmicu.",
                         "korpica_bez_sadrzaja");
 
                 foreach (var ss in sadrzaj.Stavke)
