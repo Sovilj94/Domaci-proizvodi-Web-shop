@@ -360,6 +360,12 @@ function AdminKorpiceSadrzaj() {
 
         {pakerska.isLoading ? (
           <LoadingBlock />
+        ) : pakerska.isError ? (
+          <EmptyState
+            title="Ne mogu da učitam pakersku listu"
+            description="Provjeri konekciju pa pokušaj ponovo."
+            action={<Button onClick={() => pakerska.refetch()}>Pokušaj ponovo</Button>}
+          />
         ) : !pakerska.data || pakerska.data.stavke.length === 0 ? (
           <>
             <p className="text-sm text-muted">
