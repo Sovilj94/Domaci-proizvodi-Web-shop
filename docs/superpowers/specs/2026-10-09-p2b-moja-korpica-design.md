@@ -58,6 +58,34 @@ ISO sedmica **datuma isporuke**, ne datuma narudžbe. Računa se pri kreiranju n
 izabranog `DeliverySlot`-a, istim `SedmicaHelper`-om koji korpice već koriste — jedan izvor
 istine za to šta je „sedmica", umjesto dva koja se raziđu.
 
+**Koja je to sedmica tačno — i rupa koju to zatvara.** `GetTekucaSedmicaHandler`
+(`KorpiceQueries.cs:206`) uvijek vraća **tekuću kalendarsku sedmicu** i uz nju zastavicu
+`RokIstekao`. Ne prelazi na sljedeću. To znači da javna stranica `/korpice` poslije utorka do
+kraja sedmice piše „rok istekao" umjesto da ponudi narednu — što je podnošljivo dok je korpica
+samo izlog.
+
+Ali korpica je `Product`, a checkout ne provjerava nikakav rok. Danas, poslije isteka roka,
+korpica se **i dalje može staviti u korpu i platiti**. Niko to nije primijetio jer prije P2b
+narudžba korpice nije ni bila vezana za sedmicu, pa nije imala šta da prekrši.
+
+P2b to zatvara, jer mora: sedmica narudžbe je **prva sedmica čiji rok još nije prošao**.
+
+```csharp
+public static (int Godina, int Sedmica) SedmicaZaNarudzbu(
+    DayOfWeek dan, string vrijemeOd, int cutoffSati, DateTime? sada = null)
+```
+
+Prije roka to je tekuća sedmica; poslije roka sljedeća. Granica godine se ne računa ručno —
+uzima se ponedjeljak tekuće ISO sedmice, doda sedam dana, i iz tog datuma ponovo izvedu ISO
+godina i sedmica, pa prelaz 52/53 → 1 izlazi tačan sam od sebe.
+
+Ako za tu sedmicu nema objavljenog sadržaja, korpica se ne može naručiti (vidi dolje). To je
+ispravan ishod: prodaja koju ne možemo isporučiti ne treba da se desi.
+
+`GetTekucaSedmicaHandler` se u P2b **ne mijenja** — javna stranica i dalje govori o tekućoj
+sedmici. Uskladiti izlog sa ovim pravilom je zaseban posao; ovdje je bitno da naplata ne
+prolazi tamo gdje isporuka ne može.
+
 Polja su obavezna, ne `int?`. Svaka narudžba se isporučuje u nekoj sedmici; nullable bi tu
 istinu pretvorio u granu koju svaki upit mora da obrađuje. Migracija postojećim redovima
 upisuje ISO sedmicu njihovog `CreatedAt`. Za narudžbe otprije P2b to je **približno** — ako je
@@ -230,6 +258,7 @@ Frontend nema test setup. Provjera je `npx tsc --noEmit`, `npm run lint` i **oba
 | **R3.** `Order.Godina/Sedmica` za stare narudžbe je približno | Dokumentovano u migraciji i u `CLAUDE.md`. Nijedna stara narudžba nema sadržaj korpice |
 | **R4.** Količina 1 za dodat artikal je nezgrapna za skupe artikle po kg | Budžet odbija; ako se pokaže kao stvaran problem, `PorcijaUKorpici` je zaseban posao |
 | **R5.** Rok se računa iz `DeliverySlot.TimeFrom` koji nema vremensku zonu — zatvara se dva sata kasnije od nominalnog | **Postojeća, prihvaćena rupa iz P1** (`CLAUDE.md`). P2b je nasljeđuje i ne pogoršava. Zatvara se kad se uvede vremenska zona, a ne usput |
+| **R6.** `/korpice` i dalje piše „rok istekao" za ostatak sedmice, dok checkout prodaje za narednu | Izlog i naplata govore o različitim sedmicama. Naplata je sada tačna, izlog zaostaje. Uskladiti `GetTekucaSedmicaHandler` je zaseban posao; prodaja koja se ne može isporučiti je ovim već zaustavljena |
 
 ## Šta P2b NE pokriva
 
@@ -241,6 +270,7 @@ Frontend nema test setup. Provjera je `npx tsc --noEmit`, `npm run lint` i **oba
 | `PorcijaUKorpici` po artiklu | zaseban posao, vidi R4 |
 | Birač adrese na mapi | ostatak iz P2a, prva stavka nastavka |
 | Vremenska zona na `DeliverySlot` | zaseban posao, vidi R5 |
+| Usklađivanje `/korpice` izloga sa sedmicom naručivanja | zaseban posao, vidi R6 |
 
 ## Dekompozicija (P1…P7)
 
