@@ -45,15 +45,15 @@ const PLOCICE: Plocica[] = [
     description: "Pogledaj šta je ova sedmica donijela sa Manjače.",
     icon: ShoppingBasket,
   },
-];
-
-const USKORO: Plocica[] = [
   {
     href: "/moj-nalog/korpica",
     label: "Izmjena sadržaja korpice",
-    description: "Prilagodi šta ide u tvoju korpicu prije dostave.",
+    description: "Podesi šta ide u tvoju korpicu prije dostave.",
     icon: ShoppingBasket,
   },
+];
+
+const USKORO: Plocica[] = [
   {
     href: "/moj-nalog/pretplate",
     label: "Pretplate",
