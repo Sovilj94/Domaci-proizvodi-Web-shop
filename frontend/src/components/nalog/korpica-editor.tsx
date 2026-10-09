@@ -102,13 +102,26 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
 
+  // Potpis skupa stavki koje server trenutno javlja — NE ključamo efekat na `detalji`
+  // direktno, jer `useQuery` vrati novi objekat na SVAKI refetch (npr. refetch na fokus
+  // prozora, koji je default u TanStack Query-u), pa bi identitet `detalji` promijenio
+  // potpis i poslije refetcha koji ništa nije promijenio na serveru — i tiho pobrisao
+  // neposačuvan izbor kupca dok je on samo prešao na drugi tab i vratio se. Potpis je
+  // stabilan dok se skup productId-ova ne promijeni, bez obzira na to koliko se puta
+  // refetch desio.
+  const potpisServera = detalji?.stavke.map((s) => s.productId).sort().join("|") ?? "";
+
   // Resinhronizacija sa serverom — i pri prvom učitavanju i poslije uspješnog čuvanja
-  // (onSuccess invalidira ovaj upit, refetch donese novi `detalji`, a ovaj efekat
-  // vrati `selected` na ono što server upravo potvrdio kao istinu). Zato Sačuvaj
-  // poslije uspjeha ponovo postane onemogućen — `izmijenjeno` pada na `false`.
+  // (onSuccess invalidira ovaj upit, refetch donese novi `detalji` sa DRUGAČIJIM
+  // potpisom, a ovaj efekat vrati `selected` na ono što server upravo potvrdio kao
+  // istinu). Zato Sačuvaj poslije uspjeha ponovo postane onemogućen — `izmijenjeno`
+  // pada na `false`.
   useEffect(() => {
     if (detalji) setSelected(detalji.stavke.map((s) => s.productId));
-  }, [detalji]);
+    // Namjerno ključano na potpis (stabilan skup id-ova), ne na `detalji` (novi objekat
+    // na svaki refetch) — vidi komentar iznad efekta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [potpisServera]);
 
   const original = useMemo(() => detalji?.stavke.map((s) => s.productId) ?? [], [detalji]);
 
@@ -323,7 +336,7 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
 
       <div className="flex flex-col gap-2 border-t border-line pt-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={() => mutation.mutate(selected)} disabled={disabled}>
+          <Button type="button" onClick={() => mutation.mutate(selected)} disabled={disabled}>
             {mutation.isPending ? "Čuvam…" : "Sačuvaj"}
           </Button>
           <Button
