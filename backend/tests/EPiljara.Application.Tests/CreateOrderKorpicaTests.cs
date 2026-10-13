@@ -96,4 +96,63 @@ public class CreateOrderKorpicaTests
 
         Assert.Equal(0, broj);
     }
+
+    // ---------- Druga vrata u Orders: potvrda zahtjeva gosta (nalaz F1) ----------
+
+    [Fact]
+    public async Task Gostova_korpica_dobija_sedmicu_i_snapshot_sadrzaja()
+    {
+        // prijavljen: false — gost. Zahtjev nosi samo namjeru; sedmica i sadržaj nastaju na
+        // potvrdu, jer tada narudžba stvarno nastaje.
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        var token = await t.ZahtjevGostaAsync(t.KorpicaId);
+
+        var dto = await t.PotvrdiGostaAsync(token);
+
+        t.Db.ChangeTracker.Clear();
+        var narudzba = await t.Db.Orders.AsNoTracking().FirstAsync(o => o.Id == dto.Id);
+        Assert.Equal(t.Godina, narudzba.Godina);
+        Assert.Equal(t.Sedmica, narudzba.Sedmica);
+
+        var stavke = await t.Db.StavkeKorpiceNarudzbe
+            .AsNoTracking()
+            .Where(s => s.OrderItem!.OrderId == dto.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, stavke.Count);
+        Assert.All(stavke, s => Assert.False(s.DodaoKupac));
+        Assert.Contains(stavke, s => s.ProductName == "Krompir" && s.Kolicina == 2m);
+        Assert.Contains(stavke, s => s.ProductName == "Paprika" && s.Kolicina == 1m);
+    }
+
+    [Fact]
+    public async Task Gost_ne_moze_potvrditi_korpicu_bez_objavljenog_sadrzaja()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: false);
+        var token = await t.ZahtjevGostaAsync(t.KorpicaId);
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => t.PotvrdiGostaAsync(token));
+
+        Assert.Equal("korpica_bez_sadrzaja", ex.Code);
+        t.Db.ChangeTracker.Clear();
+        Assert.Empty(await t.Db.Orders.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task Gostova_narudzba_obicnog_artikla_i_dalje_dobija_sedmicu()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        var token = await t.ZahtjevGostaAsync(t.KrompirId);
+
+        var dto = await t.PotvrdiGostaAsync(token);
+
+        // Sedmica je invarijanta SVAKE narudžbe, ne samo one sa korpicom — na njoj stoji
+        // odgovor na „koliko je kutija naručeno ove sedmice". 0/0 je bilo nerazlučivo od
+        // starog, nepopunjenog reda iz migracije.
+        t.Db.ChangeTracker.Clear();
+        var narudzba = await t.Db.Orders.AsNoTracking().FirstAsync(o => o.Id == dto.Id);
+        Assert.NotEqual(0, narudzba.Sedmica);
+        Assert.Equal(t.Godina, narudzba.Godina);
+        Assert.Equal(t.Sedmica, narudzba.Sedmica);
+    }
 }

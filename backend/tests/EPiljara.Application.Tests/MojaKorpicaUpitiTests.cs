@@ -92,4 +92,19 @@ public class MojaKorpicaUpitiTests
         await Assert.ThrowsAsync<EPiljara.Domain.Common.ForbiddenException>(
             () => t.MojaKorpicaAsync(orderItemId, kao: Guid.NewGuid()));
     }
+
+    [Fact]
+    public async Task Detalji_obicne_stavke_svoje_narudzbe_ne_postoje()
+    {
+        // Nalaz F2: detaljni GET je na id običnog reda (1 kg krompira) vraćao cijelu podobnu
+        // ponudu i time davao sastojke za upis kroz PUT. Obična stavka narudžbe nije korpica,
+        // pa za ovaj endpoint nije ni resurs.
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        var dto = await t.PosaljiObicanArtikalAsync();
+        var orderItemId = await t.OrderItemIdAsync(dto.Id);
+        t.Db.ChangeTracker.Clear();
+
+        await Assert.ThrowsAsync<EPiljara.Domain.Common.NotFoundException>(
+            () => t.MojaKorpicaAsync(orderItemId));
+    }
 }

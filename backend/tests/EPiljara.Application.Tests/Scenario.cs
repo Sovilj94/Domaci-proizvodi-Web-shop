@@ -16,12 +16,10 @@ namespace EPiljara.Application.Tests;
 /// dvije kategorije, proizvođača, puni skup artikala iz scenario-spec.md i korpicu — a kad
 /// se traži, i objavljen sedmični sadržaj za sedmicu koju narudžba zaista isporučuje.
 ///
-/// Napravljen u punom obliku odjednom (Task 5 koristi samo dio): da ga ne prepravljamo u
-/// svakom od Taskova 6–8, što bi rizikovalo testove koji su već prošli. Task 6 dodaje
-/// <see cref="PakerskaListaAsync"/>. Metode specifične za Taskove 7–8 (upiti editora, izmjena)
-/// još nisu ovdje — njihovi tipovi povratne vrijednosti (MojaKorpicaDto,
-/// MojaKorpicaDetaljiDto) još ne postoje, pa bi fajl pucao. Dodaju ih ti taskovi, uz polja i
-/// podatke koji su već spremni.
+/// Napravljen u punom obliku odjednom (Task 5 koristio je samo dio): da ga ne prepravljamo u
+/// svakom od Taskova 6–8, što bi rizikovalo testove koji su već prošli. Sve je sada ovdje —
+/// naručivanje (Task 5), pakerska lista (Task 6), upiti editora (Task 7), izmjena sa
+/// graničnim vrijednostima budžeta (Task 8) i putanja gosta (ispravke finalnog review-a).
 /// </summary>
 internal sealed class Scenario : IDisposable
 {
@@ -45,13 +43,27 @@ internal sealed class Scenario : IDisposable
     public Guid Skup301Id { get; }
     public Guid VanSezoneId { get; }
 
+    /// <summary>
+    /// Luk, 2.65 KM. Dodat uz ispravke finalnog review-a: nijedna kombinacija postojećih
+    /// artikala nije mogla sastaviti tačno donju granicu budžeta. [Krompir, Granica265] je
+    /// 2×2.00 + 1×2.65 = 6.65, a to je tačno <c>Math.Round(7.00m * 0.95m, 2)</c>.
+    /// </summary>
+    public Guid Granica265Id { get; }
+
     public int Godina { get; }
     public int Sedmica { get; }
+
+    /// <summary>
+    /// Mjesec koji NIJE mjesec isporuke — isti koji nosi <see cref="VanSezoneId"/>. Izložen je
+    /// da test može poslati postojeći artikal van sezone bez zakucanog mjeseca.
+    /// </summary>
+    public int VanSezoneMjesec { get; }
 
     private Scenario(
         TestDb t, bool prijavljen, Guid zonaId, Guid slotId, KorpiceOpcije opcije, Guid kupacId,
         Guid korpicaId, Guid krompirId, Guid paprikaId, Guid sirId, Guid skupiArtikalId,
-        Guid jeftin264Id, Guid skup301Id, Guid vanSezoneId, int godina, int sedmica)
+        Guid jeftin264Id, Guid skup301Id, Guid vanSezoneId, Guid granica265Id,
+        int godina, int sedmica, int vanSezoneMjesec)
     {
         _t = t;
         _prijavljen = prijavljen;
@@ -67,8 +79,10 @@ internal sealed class Scenario : IDisposable
         Jeftin264Id = jeftin264Id;
         Skup301Id = skup301Id;
         VanSezoneId = vanSezoneId;
+        Granica265Id = granica265Id;
         Godina = godina;
         Sedmica = sedmica;
+        VanSezoneMjesec = vanSezoneMjesec;
     }
 
     public static async Task<Scenario> NapraviAsync(
@@ -159,6 +173,16 @@ internal sealed class Scenario : IDisposable
             Vrsta = VrstaProizvoda.Obican, Mjeseci = [],
             Category = mlijecni, Producer = proizvodjac,
         };
+        var granica265 = new Product
+        {
+            // Donja granica budžeta, tačno na njoj: [Krompir, Granica265] = 4.00 + 2.65 = 6.65,
+            // a Math.Round(7.00m * 0.95m, 2) je 6.65. Bez ovog artikla nijedna kombinacija ne
+            // pada na samu granicu — 6.64 i 7.01 je okružuju, ali je ne dotiču.
+            Name = "Luk", Slug = "luk", Price = 2.65m, Unit = Unit.Kom,
+            Stock = 100, IsAvailable = true, MozeUKorpicu = true,
+            Vrsta = VrstaProizvoda.Obican, Mjeseci = [],
+            Category = povrce, Producer = proizvodjac,
+        };
         var vanSezone = new Product
         {
             // Mjesec koji NIJE mjesec isporuke — izračunat, nikad zakucan.
@@ -178,7 +202,8 @@ internal sealed class Scenario : IDisposable
         };
 
         t.Db.Products.AddRange(
-            krompir, paprika, sir, skupiArtikal, jeftin264, skup301, vanSezone, korpica);
+            krompir, paprika, sir, skupiArtikal, jeftin264, skup301, granica265, vanSezone,
+            korpica);
         await t.Db.SaveChangesAsync();
 
         // Korpica se puni samo iz Povrća — Sir i Kajmak (Mliječni) ostaju van nje.
@@ -212,7 +237,8 @@ internal sealed class Scenario : IDisposable
         return new Scenario(
             t, prijavljen, zona.Id, slot.Id, opcije, kupacId,
             korpica.Id, krompir.Id, paprika.Id, sir.Id, skupiArtikal.Id,
-            jeftin264.Id, skup301.Id, vanSezone.Id, godina, sedmica);
+            jeftin264.Id, skup301.Id, vanSezone.Id, granica265.Id,
+            godina, sedmica, vanSezoneMjesec);
     }
 
     // ---------- Task 5 ----------
@@ -263,17 +289,64 @@ internal sealed class Scenario : IDisposable
             .Handle(new IzmijeniMojuKorpicuCommand(orderItemId, productIds), default);
     }
 
+    // ---------- Ispravke finalnog review-a ----------
+
+    /// <summary>
+    /// Zahtjev gosta za korpicu, pa token iz upisanog reda. Gost zahtjev ne nosi sedmicu ni
+    /// sadržaj — oboje nastaje na potvrdu, vidi <see cref="PotvrdiGostaAsync"/>.
+    /// Zahtijeva <c>prijavljen: false</c> (podrazumijevano), jer
+    /// CreateGuestOrderRequestHandler odbija prijavljenog kupca.
+    /// </summary>
+    public async Task<string> ZahtjevGostaAsync(Guid productId, decimal kolicina = 1m)
+    {
+        await new CreateGuestOrderRequestHandler(Db, new FakeCurrentUser(null), new FakeEmail())
+            .Handle(KomandaGosta(productId, kolicina), default);
+        return (await Db.GuestOrderRequests.OrderBy(r => r.CreatedAt).LastAsync()).Token;
+    }
+
+    public Task<OrderDto> PotvrdiGostaAsync(string token) =>
+        new ConfirmGuestOrderHandler(
+                Db, new FakeEmail(), new FakeViber(), Options.Create(Opcije))
+            .Handle(new ConfirmGuestOrderCommand(token), default);
+
+    private CreateGuestOrderRequestCommand KomandaGosta(Guid productId, decimal kolicina) => new(
+        new CustomerInput("Test Gost", "gost@example.com", "065 000 001"),
+        _zonaId, _slotId, "Testna adresa 1", null,
+        [new OrderItemInput(productId, kolicina)]);
+
+    /// <summary>
+    /// Pomjera sedmicu narudžbe u prošlost, da rok izmjene padne iza nas. Vrijeme se NE čeka
+    /// (nikakav Sleep) — rok se izvodi iz <c>Order.Godina/Sedmica</c>, pa se pomjera taj ulaz.
+    /// Prelaz preko granice godine ide kroz ISOWeek, ne ručnim odbijanjem.
+    /// </summary>
+    public async Task PomjeriSedmicuUProslostAsync(Guid orderId, int sedmicaNazad = 2)
+    {
+        var ponedjeljak = System.Globalization.ISOWeek
+            .ToDateTime(Godina, Sedmica, DayOfWeek.Monday)
+            .AddDays(-7 * sedmicaNazad);
+
+        var o = await Db.Orders.FirstAsync(x => x.Id == orderId);
+        o.Godina = System.Globalization.ISOWeek.GetYear(ponedjeljak);
+        o.Sedmica = System.Globalization.ISOWeek.GetWeekOfYear(ponedjeljak);
+        await Db.SaveChangesAsync();
+    }
+
     /// <summary>
     /// `94.9` i `100.1` su preslikani direktno na korpe iz tabele u scenario-spec.md:
     /// [Krompir, Jeftin264] = 6.64 (ispod donje granice 6.65) i [Krompir, Skup301] = 7.01
     /// (iznad gornje granice 7.00). Ovo NIJE računica — svaki drugi broj bi zahtijevao
     /// pogađanje koje artikle sastaviti, a test bi onda mogao proći iz pogrešnog razloga.
+    ///
+    /// `95.0` je dodat uz ispravke finalnog review-a: [Krompir, Granica265] = 4.00 + 2.65 =
+    /// 6.65, tačno na inkluzivnoj donjoj granici. Granica je dotad bila dokazana s obje
+    /// strane (6.64 pada, 7.00 prolazi), ali ne na sebi samoj.
     /// </summary>
     public Task<MojaKorpicaDetaljiDto> IzmijeniNaProcenatAsync(Guid orderItemId, double procenat)
     {
         Guid[] productIds = procenat switch
         {
             94.9 => [KrompirId, Jeftin264Id],
+            95.0 => [KrompirId, Granica265Id],
             100.1 => [KrompirId, Skup301Id],
             _ => throw new ArgumentOutOfRangeException(
                 nameof(procenat), procenat, "Nema pripremljene korpe za ovaj procenat."),
