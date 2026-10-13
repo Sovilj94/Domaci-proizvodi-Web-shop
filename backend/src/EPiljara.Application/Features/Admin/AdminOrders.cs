@@ -1,5 +1,6 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Enums;
@@ -93,6 +94,11 @@ public class UpdateOrderStatusHandler(IAppDbContext db)
             .Include(o => o.DeliveryZone)
             .FirstOrDefaultAsync(o => o.Id == cmd.Id, ct)
             ?? throw new NotFoundException("Narudžba nije pronađena.");
+
+        // Prije prelaza, jer pomoćnik gleda i STARI status da isporuku ne bi brojao dvaput.
+        // Drugo mjesto koje postavlja Delivered je vozačev DriverFeature — otuda pomoćnik,
+        // a ne dvije kopije istog uslova.
+        await BrojacIsporuka.ZabiljeziAsync(db, order, status, ct);
 
         order.TransitionTo(status);
         await db.SaveChangesAsync(ct);

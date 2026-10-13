@@ -101,6 +101,25 @@ public static class SedmicaHelper
         return (ISOWeek.GetYear(sljedeca), ISOWeek.GetWeekOfYear(sljedeca));
     }
 
+    /// <summary>
+    /// Sedmica pomjerena za <paramref name="zaSedmica"/> unaprijed (pauza pretplate).
+    /// Računa se preko datuma, ne sabiranjem brojeva: 52 + 3 nije 55, a godine imaju i 52 i
+    /// 53 sedmice — isti razlog zbog kojeg <see cref="SedmicaZaNarudzbu"/> ide preko
+    /// ponedjeljka umjesto da ručno hvata prelaz godine.
+    /// </summary>
+    public static (int Godina, int Sedmica) Pomjeri(int godina, int sedmica, int zaSedmica)
+    {
+        var d = ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Monday).AddDays(7 * zaSedmica);
+        return (ISOWeek.GetYear(d), ISOWeek.GetWeekOfYear(d));
+    }
+
+    /// <summary>
+    /// Je li sedmica (g1, s1) prije (g2, s2). Poređenje PARA, ne jednog broja — sedmica 1
+    /// naredne godine je poslije sedmice 52 tekuće.
+    /// </summary>
+    public static bool SedmicaPrije(int g1, int s1, int g2, int s2) =>
+        g1 != g2 ? g1 < g2 : s1 < s2;
+
     public static string Slug(TipKorpice t) => t switch
     {
         TipKorpice.Povrce => "povrce",

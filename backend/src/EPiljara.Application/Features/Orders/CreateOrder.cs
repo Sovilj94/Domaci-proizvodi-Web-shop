@@ -2,6 +2,7 @@ using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
@@ -17,6 +18,14 @@ public record CustomerInput(string Name, string? Email, string Phone);
 
 public record OrderItemInput(Guid ProductId, decimal Quantity);
 
+/// <summary>
+/// `CustomerId` i `PretplataId` NISU ulazi sa žice. Nijedan kontroler ih ne popunjava —
+/// `OrdersController` gradi komandu iz tijela zahtjeva koje ta dva polja nema, jer bi inače
+/// bilo ko mogao da naruči u tuđe ime. Postoje zbog jedinog pozivaoca koji nema prijavljenog
+/// korisnika: pozadinskog posla pretplata. Narudžba bez vlasnika se ne bi pojavila kupcu pod
+/// „Moje narudžbe", a pretplatna narudžba koja ne zna iz koje je pretplate nastala ne bi
+/// mogla ni da uveća brojač isporuka ni da se pojavi na ekranu pretplate.
+/// </summary>
 public record CreateOrderCommand(
     CustomerInput Customer,
     Guid DeliveryZoneId,
@@ -25,7 +34,9 @@ public record CreateOrderCommand(
     string? Note,
     IReadOnlyList<OrderItemInput> Items,
     double? Latitude = null,
-    double? Longitude = null) : IRequest<OrderDto>;
+    double? Longitude = null,
+    Guid? CustomerId = null,
+    Guid? PretplataId = null) : IRequest<OrderDto>;
 
 public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
 {
@@ -89,7 +100,8 @@ public class CreateOrderHandler(
     ICurrentUser current,
     IEmailService email,
     IViberService viber,
-    IOptions<KorpiceOpcije> korpiceOpcije)
+    IOptions<KorpiceOpcije> korpiceOpcije,
+    IOptions<PretplateOpcije> pretplateOpcije)
     : IRequestHandler<CreateOrderCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(CreateOrderCommand cmd, CancellationToken ct)
@@ -108,6 +120,14 @@ public class CreateOrderHandler(
         var (godina, sedmica) =
             SedmicaHelper.SedmicaZaNarudzbu(danIsporuke, vrijemeIsporuke, cutoffSati);
 
+        // Pretplatna cijena se računa ovdje, a ne u pozivaocu, iz istog razloga iz kojeg
+        // pretplata uopšte ide kroz ovaj handler: zbir, dostava i ukupno se računaju na
+        // jednom mjestu. Pravilo („šesta isporuka je prva jeftinija") i dalje stoji samo u
+        // PretplatnaCijena — ovdje se poziva, ne ponavlja.
+        Pretplata? pretplata = null;
+        if (cmd.PretplataId is not null)
+            pretplata = await db.Pretplate.FirstOrDefaultAsync(x => x.Id == cmd.PretplataId, ct);
+
         var items = new List<OrderItem>();
         foreach (var line in cmd.Items)
         {
@@ -115,13 +135,20 @@ public class CreateOrderHandler(
             if (product is null || !product.IsAvailable)
                 throw new DomainException($"Proizvod nije dostupan ({line.ProductId}).", "product_unavailable");
 
+            // Cijena se snima u trenutku narudžbe. Za pretplatnu korpicu to je cijena
+            // umanjena za popust koji je kupac dotad ZARADIO — popust visi o broju
+            // isporučenih, ne o datumu pretplate, pa ga svaka naredna narudžba računa iznova.
+            var jedinicna = pretplata is not null && product.Id == pretplata.ProductId
+                ? PretplatnaCijena.Izracunaj(product.Price, pretplata.BrojIsporuka, pretplateOpcije.Value)
+                : product.Price;
+
             var stavka = new OrderItem
             {
                 ProductId = product.Id,
                 ProductName = product.Name,
                 Unit = product.Unit,
                 Quantity = line.Quantity,
-                UnitPrice = product.Price, // price snapshot
+                UnitPrice = jedinicna,
                 ImageUrl = product.ImageUrl,
             };
 
@@ -146,7 +173,10 @@ public class CreateOrderHandler(
         // je greška, ne zaštita. Ranije je ovdje stajao uslov `Role == UserRole.Customer`,
         // pa su narudžbe admina i vozača tiho ostajale sa CustomerId = NULL.
         // Gost nema nalog i ostaje nevezan — to je i dalje ispravno.
-        var customerId = current.IsAuthenticated ? current.Id : null;
+        // `cmd.CustomerId` ima prednost samo zato što ga postavlja pozivalac koji nema
+        // ICurrentUser (posao pretplata). Kontroleri ga ne šalju, pa je za svaki zahtjev
+        // sa žice ovo i dalje isključivo prijavljeni korisnik.
+        var customerId = cmd.CustomerId ?? (current.IsAuthenticated ? current.Id : null);
 
         var order = new Order
         {
@@ -171,6 +201,7 @@ public class CreateOrderHandler(
             Sedmica = sedmica,
             Latitude = cmd.Latitude,
             Longitude = cmd.Longitude,
+            PretplataId = cmd.PretplataId,
         };
 
         db.Orders.Add(order);

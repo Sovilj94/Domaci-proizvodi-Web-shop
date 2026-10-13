@@ -1,4 +1,5 @@
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Orders;
 using EPiljara.Domain.Entities;
@@ -251,7 +252,7 @@ internal sealed class Scenario : IDisposable
 
     private CreateOrderHandler Handler() => new(
         Db, new FakeCurrentUser(_prijavljen ? KupacId : null), new FakeEmail(), new FakeViber(),
-        Options.Create(Opcije));
+        Options.Create(Opcije), Options.Create(new PretplateOpcije()));
 
     private CreateOrderCommand Komanda(Guid productId, decimal kolicina) => new(
         new CustomerInput("Test Kupac", "test@example.com", "065 000 000"),
