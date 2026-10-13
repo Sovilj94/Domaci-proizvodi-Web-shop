@@ -317,13 +317,51 @@ public class IzmijeniMojuKorpicuHandler(
                 "ne može mijenjati.", "korpica_bez_sadrzaja");
 
         var sablonskeKolicine = sadrzaj.Stavke.ToDictionary(s => s.ProductId, s => s.Kolicina);
+        var sablonskeCijene = sadrzaj.Stavke.ToDictionary(s => s.ProductId, s => s.JedinicnaCijena);
+
+        // Redovi koji su već na ovoj narudžbi. Nose ZAMRZNUT snimak (naziv, jedinicu, cijenu)
+        // iz trenutka narudžbe i on se izmjenom ne smije pomjeriti — vidi niže.
+        var zadrzani = red.KorpicaStavke.ToDictionary(s => s.ProductId);
+
+        // Nazivi SVIH poslanih id-ova, i onih koji nisu podobni (obrisan, van sezone, bez
+        // zaliha) — poruka o nepodobnom artiklu mora da ga imenuje, inače kupac vidi ćorsokak
+        // bez ijednog putokaza.
+        var trazeniIdjevi = cmd.ProductIds.ToList();
+        var nazivi = await db.Products.IgnoreQueryFilters()
+            .Where(p => trazeniIdjevi.Contains(p.Id))
+            .Select(p => new { p.Id, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
 
         var nove = new List<StavkaKorpiceNarudzbe>();
         foreach (var pid in cmd.ProductIds)
         {
+            // Zadržan artikal preskače provjeru podobnosti: spec vezuje podobnost za DODATI
+            // artikal. Artikal iz šablona koji je u međuvremenu izašao iz sezone ili sa zaliha
+            // inače čini cijelu kutiju zauvijek nesačuvljivom, a kupac ga nije ni dodao.
+            if (zadrzani.TryGetValue(pid, out var stara))
+            {
+                nove.Add(new StavkaKorpiceNarudzbe
+                {
+                    OrderItemId = red.Id,
+                    ProductId = stara.ProductId,
+                    // Naziv, jedinica i cijena iz SNIMKA, ne iz kataloga: artikal je mogao
+                    // biti obrisan, a cijena izmijenjena poslije objave — kupac ga samo
+                    // zadržava, pa ni jedno ni drugo nema šta da ga pomjeri.
+                    ProductName = stara.ProductName,
+                    Unit = stara.Unit,
+                    Kolicina = sablonskeKolicine.GetValueOrDefault(pid, stara.Kolicina),
+                    JedinicnaCijena = stara.JedinicnaCijena,
+                    DodaoKupac = stara.DodaoKupac,
+                });
+                continue;
+            }
+
             if (!podobni.TryGetValue(pid, out var p))
                 throw new DomainException(
-                    "Artikal nije dostupan za korpicu ove sedmice.", "artikal_nije_podoban");
+                    nazivi.TryGetValue(pid, out var naziv)
+                        ? $"Artikal {naziv} nije dostupan za korpicu ove sedmice."
+                        : "Artikal nije dostupan za korpicu ove sedmice.",
+                    "artikal_nije_podoban");
 
             nove.Add(new StavkaKorpiceNarudzbe
             {
@@ -332,7 +370,14 @@ public class IzmijeniMojuKorpicuHandler(
                 ProductName = p.Name,
                 Unit = p.Unit,
                 Kolicina = sablonskeKolicine.GetValueOrDefault(p.Id, 1m),
-                JedinicnaCijena = p.Price,
+                // Cijena po prioritetu: red koji je već na narudžbi (gore), pa šablon te
+                // sedmice, pa — samo za stvarno nov artikal, kojem nijedan snimak ne postoji —
+                // trenutna katalog cijena. Inače bi se kutija mjerila današnjim cijenama
+                // naspram cilja zamrznutog pri objavi, i jedno poskupljenje bi je trajno
+                // izbacilo iznad plafona.
+                JedinicnaCijena = sablonskeCijene.TryGetValue(p.Id, out var sablonska)
+                    ? sablonska
+                    : p.Price,
                 DodaoKupac = !sablonskeKolicine.ContainsKey(p.Id),
             });
         }

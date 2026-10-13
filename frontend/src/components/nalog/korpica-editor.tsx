@@ -38,6 +38,9 @@ interface Red {
   naziv: string;
   kolicina: number;
   jedinica: string;
+  /** Jedinična cijena, NEZAOKRUŽENA — zbir korpice se računa iz nje. Vidi `vrijednost`. */
+  cijena: number;
+  /** Zaokružen proizvod `kolicina × cijena`. Samo za ispis u redu, nikad za zbir. */
   ukupno: number;
   dodaoKupac: boolean;
   imageUrl?: string;
@@ -57,6 +60,7 @@ function redZaId(id: string, stavke: StavkaMojeKorpice[], ponuda: PonudaArtikla[
       naziv: s.naziv,
       kolicina: s.kolicina,
       jedinica: s.jedinica,
+      cijena: s.jedinicnaCijena,
       ukupno: Math.round(s.kolicina * s.jedinicnaCijena * 100) / 100,
       dodaoKupac: s.dodaoKupac,
     };
@@ -67,6 +71,7 @@ function redZaId(id: string, stavke: StavkaMojeKorpice[], ponuda: PonudaArtikla[
     naziv: p?.naziv ?? id,
     kolicina: 1,
     jedinica: p?.jedinica ?? "kom",
+    cijena: p?.cijena ?? 0,
     ukupno: p?.cijena ?? 0,
     dodaoKupac: true,
     imageUrl: p?.imageUrl,
@@ -188,7 +193,17 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
   }
 
   const redovi = selected.map((id) => redZaId(id, stavke, ponuda));
-  const vrijednost = Math.round(redovi.reduce((acc, r) => acc + r.ukupno, 0) * 100) / 100;
+  // Sabira se SIROVI proizvod po redu, pa se zaokružuje JEDANPUT na kraju — isto kao server
+  // (`Math.Round(Σ Kolicina × JedinicnaCijena, 2)`). Ranije se zaokruživao svaki red pa se
+  // sabirali zaokruženi brojevi, i traka je mogla pisati tačno 100% uz omogućen Sačuvaj dok
+  // server odgovara `budzet_preveliki`.
+  //
+  // Jedna razlika ipak ostaje i NE pokušavamo je sakriti: na tačno pola feninga JavaScript
+  // zaokružuje od nule (`Math.round(0.005 * 100) = 1`), a .NET `Math.Round` na parno. Server
+  // je mjerodavan — ovaj ekran samo sprečava zahtjev koji unaprijed pada; bankarsko
+  // zaokruživanje u klijentu bi bila treća aritmetika koja se raziđe sa obje.
+  const vrijednost =
+    Math.round(redovi.reduce((acc, r) => acc + r.kolicina * r.cijena, 0) * 100) / 100;
   // Granice su inkluzivne: donja je 95% cilja (zaokruženo na 2 decimale), gornja je cilj.
   const donjaGranica = Math.round(korpica.ciljnaVrijednost * 0.95 * 100) / 100;
   const gornjaGranica = korpica.ciljnaVrijednost;
