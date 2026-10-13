@@ -51,7 +51,15 @@ export default function PotvrdaPage() {
       .catch((e: unknown) => {
         if (e instanceof ApiRequestError && e.apiError.code === "guest_request_expired") {
           setState({ kind: "expired" });
-        } else if (e instanceof ApiRequestError && e.apiError.code === "product_unavailable") {
+        } else if (
+          e instanceof ApiRequestError &&
+          // `korpica_bez_sadrzaja` ide kroz isto stanje kao `product_unavailable`: narudžba
+          // NIJE nastala, a poruka servera imenuje korpicu za koju sadržaj te sedmice nije
+          // objavljen. Sedmica se računa na potvrdu, ne na slanje forme, pa ovo može puknuti
+          // i kad je forma prošla bez greške — vidi ConfirmGuestOrderHandler.
+          (e.apiError.code === "product_unavailable" ||
+            e.apiError.code === "korpica_bez_sadrzaja")
+        ) {
           setState({ kind: "unavailable", message: e.message });
         } else {
           setState({

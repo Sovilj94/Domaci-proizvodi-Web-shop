@@ -1,8 +1,10 @@
+using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Orders;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
 using EPiljara.Infrastructure.BackgroundJobs;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace EPiljara.Application.Tests;
@@ -111,7 +113,8 @@ public class GuestOrderTests
         proizvod.Price = 99m;
         t.Db.SaveChanges();
 
-        var rezultat = await new ConfirmGuestOrderHandler(t.Db, new FakeEmail(), new FakeViber())
+        var rezultat = await new ConfirmGuestOrderHandler(
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         rezultat.Items.Single().UnitPrice.Should().Be(20m, "kupac plaća cijenu koju je vidio");
@@ -130,7 +133,8 @@ public class GuestOrderTests
         var zahtjev = t.Db.GuestOrderRequests.Single();
         var token = zahtjev.Token;
 
-        var rezultat = await new ConfirmGuestOrderHandler(t.Db, new FakeEmail(), new FakeViber())
+        var rezultat = await new ConfirmGuestOrderHandler(
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         // Vozačka aplikacija navigira po ovim koordinatama — polovičan ili izgubljen
@@ -152,7 +156,8 @@ public class GuestOrderTests
             .Handle(scena.ZahtjevGosta(), default);
         var token = t.Db.GuestOrderRequests.Single().Token;
 
-        await new ConfirmGuestOrderHandler(t.Db, new FakeEmail(), new FakeViber())
+        await new ConfirmGuestOrderHandler(
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         t.Db.Products.Single().Stock.Should().Be(99);
@@ -169,7 +174,8 @@ public class GuestOrderTests
         zahtjev.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
         t.Db.SaveChanges();
 
-        var radnja = () => new ConfirmGuestOrderHandler(t.Db, new FakeEmail(), new FakeViber())
+        var radnja = () => new ConfirmGuestOrderHandler(
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
             .Handle(new ConfirmGuestOrderCommand(zahtjev.Token), default);
 
         (await radnja.Should().ThrowAsync<DomainException>())
@@ -185,7 +191,8 @@ public class GuestOrderTests
         await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
             .Handle(scena.ZahtjevGosta(), default);
         var token = t.Db.GuestOrderRequests.Single().Token;
-        var handler = new ConfirmGuestOrderHandler(t.Db, new FakeEmail(), new FakeViber());
+        var handler = new ConfirmGuestOrderHandler(
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()));
 
         await handler.Handle(new ConfirmGuestOrderCommand(token), default);
         var drugiKlik = () => handler.Handle(new ConfirmGuestOrderCommand(token), default);
@@ -206,7 +213,8 @@ public class GuestOrderTests
         t.Db.Products.Single().IsAvailable = false;
         t.Db.SaveChanges();
 
-        var radnja = () => new ConfirmGuestOrderHandler(t.Db, new FakeEmail(), new FakeViber())
+        var radnja = () => new ConfirmGuestOrderHandler(
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         var greska = (await radnja.Should().ThrowAsync<DomainException>()).Which;

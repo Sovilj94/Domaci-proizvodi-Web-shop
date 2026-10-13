@@ -1,6 +1,7 @@
 using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
@@ -8,6 +9,7 @@ using EPiljara.Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Orders;
 
@@ -208,7 +210,11 @@ public record ConfirmGuestOrderCommand(string Token) : IRequest<OrderDto>;
 /// do sada je postojao samo <see cref="GuestOrderRequest"/>, koji ovim postaje stvaran
 /// <see cref="Order"/> i nestaje.
 /// </summary>
-public class ConfirmGuestOrderHandler(IAppDbContext db, IEmailService email, IViberService viber)
+public class ConfirmGuestOrderHandler(
+    IAppDbContext db,
+    IEmailService email,
+    IViberService viber,
+    IOptions<KorpiceOpcije> korpiceOpcije)
     : IRequestHandler<ConfirmGuestOrderCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(ConfirmGuestOrderCommand cmd, CancellationToken ct)
@@ -242,6 +248,15 @@ public class ConfirmGuestOrderHandler(IAppDbContext db, IEmailService email, IVi
                 "Potvrda je istekla ili je narudžba već primljena.", "guest_request_expired");
         }
 
+        // Sedmica se računa SADA, u trenutku potvrde, a ne kad je gost poslao formu: zahtjev
+        // je nepotvrđena namjera sa tokenom od GuestOrderRequest.TrajanjeMinuta minuta, a
+        // sedmica koja je bitna je ona koja se isporučuje. Isti izvor istine kao
+        // CreateOrderHandler — SedmicaHelper, ne DateTime.Now.
+        var (danIsporuke, vrijemeIsporuke, cutoffSati) =
+            await SedmicaHelper.UcitajRokAsync(db, korpiceOpcije.Value, ct);
+        var (godina, sedmica) =
+            SedmicaHelper.SedmicaZaNarudzbu(danIsporuke, vrijemeIsporuke, cutoffSati);
+
         var items = new List<OrderItem>();
         foreach (var stavka in zahtjev.Items)
         {
@@ -250,7 +265,7 @@ public class ConfirmGuestOrderHandler(IAppDbContext db, IEmailService email, IVi
                 throw new DomainException(
                     $"Proizvod nije dostupan ({stavka.ProductName}).", "product_unavailable");
 
-            items.Add(new OrderItem
+            var red = new OrderItem
             {
                 ProductId = stavka.ProductId,
                 ProductName = stavka.ProductName,
@@ -258,7 +273,16 @@ public class ConfirmGuestOrderHandler(IAppDbContext db, IEmailService email, IVi
                 Quantity = stavka.Quantity,
                 UnitPrice = stavka.UnitPrice, // cijena iz zahtjeva — kupac plaća ono što je vidio, ne trenutnu cijenu
                 ImageUrl = stavka.ImageUrl,
-            });
+            };
+
+            // Ista korpičina obaveza kao na putanji prijavljenog kupca: bez ovoga narudžba
+            // gosta nosi korpicu bez ijednog reda sadržaja i nijedna pakerska lista je ne
+            // vidi. Odbijanje potvrde sa `korpica_bez_sadrzaja` je NOV način da ovaj
+            // endpoint padne — i jedini ispravan, jer je prodaja kutije koju ne možemo
+            // napuniti gora od odbijene potvrde.
+            await SnapshotKorpice.PricvrstiAsync(db, red, product, godina, sedmica, ct);
+
+            items.Add(red);
 
             // Zalihe se skidaju tek sada — CreateGuestOrderRequestHandler ih namjerno
             // nije dirao dok je zahtjev bio samo nepotvrđena namjera.
@@ -286,6 +310,8 @@ public class ConfirmGuestOrderHandler(IAppDbContext db, IEmailService email, IVi
             DeliveryZone = zahtjev.DeliveryZone,
             DeliveryAddress = zahtjev.DeliveryAddress,
             Note = zahtjev.Note,
+            Godina = godina,
+            Sedmica = sedmica,
             Latitude = zahtjev.Latitude,
             Longitude = zahtjev.Longitude,
         };
