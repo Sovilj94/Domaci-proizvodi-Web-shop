@@ -240,6 +240,10 @@ export interface Korpica {
   tip: TipKorpice;
   velicina: VelicinaKorpice;
   cijena: number;
+  /** Cijena poslije zarađenog popusta. Računa je server (`PretplatnaCijena`), ne klijent. */
+  cijenaSaPretplatom?: number;
+  /** Koliko isporuka po punoj cijeni prethodi popustu. */
+  isporukaDoPopusta?: number;
   imageUrl?: string;
   opis: string;
   stock: number;
@@ -314,4 +318,50 @@ export interface PonudaArtikla {
   cijena: number;
   imageUrl?: string;
   izOveKorpice: boolean;
+}
+
+/** `StatusPretplate` sa backenda — isti nazivi, jer DTO šalje `.ToString()`. */
+export type StatusPretplate = "Aktivna" | "Pauzirana" | "Otkazana";
+
+/**
+ * Preslikava `PretplataDto` (backend `DTOs/AccountDtos.cs`) 1:1. Cijene su IZVEDENE na
+ * serveru pri svakom čitanju (vidi `PretplatnaCijena`) — klijent ih prikazuje, ne računa.
+ */
+export interface Pretplata {
+  id: string;
+  status: StatusPretplate;
+
+  productId: string;
+  naziv: string;
+  slug: string;
+  tip?: TipKorpice;
+  velicina?: string;
+  imageUrl?: string;
+
+  deliveryAddress: string;
+  latitude?: number;
+  longitude?: number;
+  deliveryZoneId: string;
+  deliveryZoneName?: string;
+  /** Zona se može ugasiti poslije pretplate — isto kao kod sačuvane adrese. */
+  deliveryZoneActive: boolean;
+  deliverySlotId: string;
+  deliverySlotLabel?: string;
+  napomena?: string;
+
+  brojIsporuka: number;
+  punaCijena: number;
+  /** Cijena naredne isporuke; jednaka punoj dok popust nije zarađen. */
+  trenutnaCijena: number;
+  popustAktivan: boolean;
+  /** Koliko još isporuka do niže cijene; 0 kad je kupac već ima. */
+  doPopusta: number;
+
+  sljedecaGodina?: number;
+  sljedecaSedmica?: number;
+  sljedecaIsporuka?: string;
+
+  pauzaDoGodina?: number;
+  pauzaDoSedmica?: number;
+  createdAt: string;
 }

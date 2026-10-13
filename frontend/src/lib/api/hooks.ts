@@ -16,6 +16,7 @@ export const queryKeys = {
   korpiceLista: () => ["korpice", "lista", undefined] as const,
   mojeKorpice: () => ["account", "korpice"] as const,
   mojaKorpica: (id: string) => ["account", "korpica", id] as const,
+  pretplate: () => ["account", "pretplate"] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {

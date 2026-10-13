@@ -221,3 +221,18 @@ export interface MojaKorpicaDetalji {
   stavke: StavkaMojeKorpice[];
   ponuda: PonudaArtikla[];
 }
+
+/**
+ * Tijelo za `POST`/`PUT` `/account/pretplate`. Greške oko adrese i tačke backend vraća pod
+ * ključem `fullAddress` (dijeli `AddressRules` sa adresarom), ne pod `deliveryAddress` —
+ * forma zato grešku čita odatle.
+ */
+export interface PretplataInput {
+  productId: string;
+  deliveryZoneId: string;
+  deliverySlotId: string;
+  deliveryAddress: string;
+  latitude?: number;
+  longitude?: number;
+  napomena?: string;
+}

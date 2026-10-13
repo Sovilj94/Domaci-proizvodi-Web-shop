@@ -10,6 +10,8 @@ namespace EPiljara.Application.Tests;
 public class KorpiceQueriesTests
 {
     private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
+    private static readonly IOptions<EPiljara.Application.Features.Pretplate.PretplateOpcije> PretplateOpc =
+        Options.Create(new EPiljara.Application.Features.Pretplate.PretplateOpcije());
 
     private static SedmicniSadrzaj Postavi(TestDb t, StatusSadrzaja status, int godina, int sedmica)
     {
@@ -56,7 +58,7 @@ public class KorpiceQueriesTests
         var (g, s) = Sada();
         Postavi(t, StatusSadrzaja.Objavljen, g, s);
 
-        var rez = await new GetKorpiceHandler(t.Db).Handle(new GetKorpiceQuery(null), default);
+        var rez = await new GetKorpiceHandler(t.Db, PretplateOpc).Handle(new GetKorpiceQuery(null), default);
 
         var k = Assert.Single(rez);
         Assert.Equal("mala-korpica-povrca", k.Slug);
@@ -69,8 +71,8 @@ public class KorpiceQueriesTests
         var (g, s) = Sada();
         Postavi(t, StatusSadrzaja.Objavljen, g, s);
 
-        Assert.Single(await new GetKorpiceHandler(t.Db).Handle(new GetKorpiceQuery("povrce"), default));
-        Assert.Empty(await new GetKorpiceHandler(t.Db).Handle(new GetKorpiceQuery("mlijecna"), default));
+        Assert.Single(await new GetKorpiceHandler(t.Db, PretplateOpc).Handle(new GetKorpiceQuery("povrce"), default));
+        Assert.Empty(await new GetKorpiceHandler(t.Db, PretplateOpc).Handle(new GetKorpiceQuery("mlijecna"), default));
     }
 
     [Fact]

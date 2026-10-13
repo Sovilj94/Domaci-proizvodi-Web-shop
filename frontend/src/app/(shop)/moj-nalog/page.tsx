@@ -51,9 +51,6 @@ const PLOCICE: Plocica[] = [
     description: "Podesi šta ide u tvoju korpicu prije dostave.",
     icon: ShoppingBasket,
   },
-];
-
-const USKORO: Plocica[] = [
   {
     href: "/moj-nalog/pretplate",
     label: "Pretplate",
@@ -61,6 +58,9 @@ const USKORO: Plocica[] = [
     icon: RefreshCw,
   },
 ];
+
+/** Prazno od P3, kad su „Pretplate" otključane. Lista ostaje za naredni potprojekat. */
+const USKORO: Plocica[] = [];
 
 export default function MojNalogPage() {
   return (
