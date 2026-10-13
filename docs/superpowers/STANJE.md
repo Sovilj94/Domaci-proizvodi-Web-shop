@@ -36,7 +36,7 @@ Stanje provjera na `main`-u: **`dotnet test` 151/151**, `tsc` čisto, `lint` či
 
 ## Nije urađeno
 
-**P3 — Pretplate.** Tek započeto: pročitao sam pozadinske poslove i to je sve. Nema ni specа
+**P3 — Pretplate.** Tek započeto: pročitao sam pozadinske poslove i to je sve. Nema ni speca
 ni plana. Stavka „Pretplate" već stoji zaključana u navigaciji naloga i čeka da se otključa,
 isto kao što je „Moja korpica" čekala P2b.
 
