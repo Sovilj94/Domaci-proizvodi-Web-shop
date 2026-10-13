@@ -27,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SedmicniSadrzaj> SedmicniSadrzaji => Set<SedmicniSadrzaj>();
     public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
+    public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -209,6 +210,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.DeliverySlotId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.DeliveryZone).WithMany()
                 .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
+            // Ekran pretplate traži njene narudžbe; bez indeksa je to skeniranje svih.
+            e.HasIndex(x => x.PretplataId);
+        });
+
+        b.Entity<Pretplata>(e =>
+        {
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.DeliveryAddress).HasMaxLength(400).IsRequired();
+            e.Property(x => x.Napomena).HasMaxLength(1000);
+            e.HasIndex(x => x.UserId);
+            // Posao svakih 15 minuta traži pretplate koje rade — bez ovoga je to redovno
+            // skeniranje cijele tabele.
+            e.HasIndex(x => x.Status);
+            // Jedan kupac, jedna korpica, jedna pretplata — ali OTKAZANE se ne broje, da se
+            // kupac smije vratiti na isti paket. Filter je obavezan baš zbog toga: bez njega
+            // bi otkazana pretplata zauvijek zaključala taj paket za tog kupca.
+            e.HasIndex(x => new { x.UserId, x.ProductId }, "IX_Pretplate_UserId_ProductId_Aktivne")
+                .IsUnique()
+                .HasFilter("\"Status\" <> 'Otkazana'");
+            e.HasOne(x => x.User).WithMany()
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            // Restrict kao i svuda: proizvod, zona i termin se ne brišu ispod pretplate.
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DeliveryZone).WithMany()
+                .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DeliverySlot).WithMany()
+                .HasForeignKey(x => x.DeliverySlotId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<OrderItem>(e =>

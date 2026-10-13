@@ -82,3 +82,13 @@ public static class UnitExtensions
         _ => Unit.Kom,
     };
 }
+
+/// <summary>
+/// Stanje pretplate. Iz Otkazana se ne izlazi — vidi Pretplata.Prelazi.
+/// </summary>
+public enum StatusPretplate
+{
+    Aktivna,
+    Pauzirana,
+    Otkazana,
+}

@@ -450,6 +450,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid?>("PretplataId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PublicToken")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -484,6 +487,8 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.HasIndex("DeliverySlotId");
 
                     b.HasIndex("DeliveryZoneId");
+
+                    b.HasIndex("PretplataId");
 
                     b.HasIndex("PublicToken")
                         .IsUnique();
@@ -531,6 +536,84 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.Pretplata", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BrojIsporuka")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeliveryAddress")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<Guid>("DeliverySlotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeliveryZoneId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Napomena")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("OtkazanaU")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PauzaDoGodina")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PauzaDoSedmica")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PoslednjaGodina")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PoslednjaSedmica")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliverySlotId");
+
+                    b.HasIndex("DeliveryZoneId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex(new[] { "UserId", "ProductId" }, "IX_Pretplate_UserId_ProductId_Aktivne")
+                        .IsUnique()
+                        .HasFilter("\"Status\" <> 'Otkazana'");
+
+                    b.ToTable("Pretplate");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Producer", b =>
@@ -972,6 +1055,41 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.Pretplata", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.DeliverySlot", "DeliverySlot")
+                        .WithMany()
+                        .HasForeignKey("DeliverySlotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.DeliveryZone", "DeliveryZone")
+                        .WithMany()
+                        .HasForeignKey("DeliveryZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DeliverySlot");
+
+                    b.Navigation("DeliveryZone");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Product", b =>

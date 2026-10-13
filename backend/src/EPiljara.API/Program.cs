@@ -11,6 +11,7 @@ using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.Common.Models;
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Pretplate;
 using EPiljara.Infrastructure;
 using EPiljara.Infrastructure.BackgroundJobs;
 using EPiljara.Infrastructure.Persistence;
@@ -58,6 +59,10 @@ builder.Services.Configure<ApiBehaviorOptions>(o => o.SuppressModelStateInvalidF
 // ----- Korpice (generator sedmičnog sadržaja) -----
 builder.Services.Configure<KorpiceOpcije>(
     builder.Configuration.GetSection(KorpiceOpcije.Sekcija));
+
+// ----- Pretplate (prag popusta, koliko unaprijed se pravi narudžba) -----
+builder.Services.Configure<PretplateOpcije>(
+    builder.Configuration.GetSection(PretplateOpcije.Sekcija));
 
 // ----- JWT authentication -----
 var jwt = builder.Configuration.GetSection("Jwt");
