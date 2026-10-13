@@ -10,7 +10,7 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 | HEAD | `01ea0f4` |
 | Radno stablo | čisto |
 | Nespojeno | ništa |
-| `main` vs `origin/main` | sinhronizovano â pushovano 13.10.2026. (`73abece..7cdba0d`) |
+| `main` vs `origin/main` | sinhronizovano, pushovano 13.10.2026. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
