@@ -164,6 +164,15 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   explanation, the default is marked rather than chosen client-side, and a saved address whose zone was later
   switched off carries a visible warning because checkout will reject it. Client-side copies of those rules
   would drift from the server's, and the server is the one that decides.
+- **The Adresar's form (`components/nalog/adresa-forma.tsx`) is the map picker, not a text field** — since
+  P2c it embeds the same `AddressPicker` checkout uses, so a saved address carries a pin and the route
+  optimizer stops falling back to zone order for it. The pin stays **optional**: Nominatim misses real
+  addresses, and the card shows a muted "bez tačke na mapi" line rather than a warning. Two consequences
+  worth keeping: the panel's body is a separate component mounted with a `key` (state seeded in `useState`,
+  no reset effect) because the picker reads `value`/`initialCoordinates` **on mount** — seeding it through an
+  effect made the picker see an empty field first and then treat the real address as the customer typing,
+  dropping the pin; and the zone hint comes from `lib/zone.ts` (`pogodiZonu`), the same helper checkout
+  calls, so the neighbourhood→zone guess exists once.
 - **The backend owns which address is the default, in both directions.** The first address on an empty
   account comes back `isDefault: true`; setting another as default flips the previous one off; and deleting
   the default **promotes another address automatically**. UI code that picks a replacement after a delete is
@@ -600,7 +609,15 @@ using OSM tiles.
   bound. Editing the number still moves the pin because the geocoding effect depends on `querySuffix`.
   Picking a saved address pushes `onCoordinates(null)` — a history string has no pin of its own, and the
   abandoned one must not travel with it.
-- **Address entry** (customer checkout and admin *Nova narudžba* at `admin/orders/new`) uses a keyless
+- **A point the picker was *given* is not a point the picker *owns*.** `AddressPicker` has two rules around
+  `initialCoordinates` (the Adresar's saved pin, the warehouse in *Magacin*) and both exist because breaking
+  either silently deletes a pin nobody touched: while the text is still the one the point arrived with
+  (`polazniTekst`) it does **not** geocode — the mount would otherwise report `null` first and then whatever
+  Nominatim thinks of that address; and its unmount cleanup reports `null` only if the picker itself ever
+  reported a point (`preuzeoTacku`). Both guards are written to survive running twice — React's StrictMode
+  mounts, cleans up and mounts again in dev, which is exactly how both bugs showed up. A screen that hands
+  over `initialCoordinates` therefore keeps its point until the customer edits the address or moves the pin.
+- **Address entry** (customer checkout, admin *Nova narudžba* at `admin/orders/new`, Adresar form) uses a keyless
   **OpenStreetMap + Leaflet** map picker (`components/shop/address-picker.tsx`): type → `geocodeApi`
   (our `/geocode`, see Geocoding) → draggable pin → reverse-geocode via `/geocode/reverse`. No Google Maps key. **Coordinates are persisted** alongside the address
   (`Order.Latitude`/`Longitude`, both nullable) and drive route optimization — an earlier version of this

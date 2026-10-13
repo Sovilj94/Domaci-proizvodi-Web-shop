@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type * as LType from "leaflet";
 import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
@@ -63,6 +63,8 @@ export function AddressPicker({
    * od nje umjesto od centra Banje Luke, da ekran pokaže gdje je lokacija *sada*.
    * Čita se jednom, na mount, i **ne** emituje se kroz `onCoordinates` — vlasnik te
    * vrijednosti je ionako već ima, a emitovanje bi se sudarilo sa poništavanjem iznad.
+   * Zato ova tačka i ukida geokodiranje polaznog teksta (vidi `polazniTekst`): inače bi
+   * mount odmah prijavio `null`, pa eventualno tuđu tačku za istu adresu.
    */
   initialCoordinates?: { lat: number; lon: number };
   id?: string;
@@ -95,13 +97,44 @@ export function AddressPicker({
   // display_name, so `value` never changes, the effect never runs, and a boolean would
   // stay armed — swallowing the NEXT real edit of the address, pin and all.
   const suppressFor = useRef<string | null>(null);
+  // Polazni tekst uz `initialCoordinates`: taj par (tekst + tačka) je neko ranije
+  // sačuvao, pa ga efekat ispod ne smije geokodirati — poslao bi `onCoordinates(null)`
+  // i onda, u najboljem slučaju suvišno, tražio tuđu tačku za istu adresu; u najgorem
+  // tiho pomjeri ili izgubi pin koji je kupac ručno postavio.
+  //
+  // Zašto zaseban ref a ne `suppressFor` iznad: ono se troši pri prvom prolazu, a React
+  // u razvoju (StrictMode) montira i pušta efekte dvaput — drugi prolaz bi zatekao
+  // razoružan ref i ipak obrisao tačku. Ovo je idempotentno: dok je tekst isti kao
+  // polazni, prolaz se preskače koliko god puta došao. Prva izmjena teksta ga gasi
+  // zauvijek, pa i ponovo otkucan isti tekst poslije toga normalno geokodira.
+  const polazniTekst = useRef<string | null>(initialCoordinates ? value : null);
 
   const [found, setFound] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "searching" | "notfound" | "pinned">("idle");
+  // `sacuvana` je samo polazno stanje za tačku koja je došla iz baze: efekat ispod nad
+  // polaznim tekstom ćuti (vidi `polazniTekst`), pa bi bez ovoga ekran pored pina na mapi
+  // pisao „Upišite adresu iznad" kao da tačke nema. Gasi ga prva izmjena teksta ili pina.
+  const [status, setStatus] = useState<
+    "idle" | "searching" | "notfound" | "pinned" | "sacuvana"
+  >(initialCoordinates ? "sacuvana" : "idle");
+
+  // Je li ovo polje ikad javilo tačku roditelju. Sve prijave idu kroz `javiTacku` baš
+  // zbog toga.
+  const preuzeoTacku = useRef(false);
+  const javiTacku = useCallback((coords: { lat: number; lon: number } | null) => {
+    preuzeoTacku.current = true;
+    onCoordinatesRef.current?.(coords);
+  }, []);
 
   // The pin is gone when the picker goes: whoever holds the coordinates must not keep
   // them after this field disappears (e.g. checkout switching back to a saved address).
-  useEffect(() => () => onCoordinatesRef.current?.(null), []);
+  //
+  // Ali samo ako je tačka naša. Tuđu — onu koju je roditelj dobio iz baze i dao nam kao
+  // `initialCoordinates` — ovo bi obrisalo a da je niko nije ni dirao. U razvoju je to
+  // odmah vidljivo: StrictMode montira, pusti čišćenje, pa montira ponovo, pa je forma
+  // adresara gubila sačuvani pin čim bi se otvorila.
+  useEffect(() => () => {
+    if (preuzeoTacku.current) onCoordinatesRef.current?.(null);
+  }, []);
 
   // Initialise the map once, client-side only.
   useEffect(() => {
@@ -141,7 +174,7 @@ export function AddressPicker({
           suppressFor.current = res.displayName;
           onChangeRef.current(res.displayName);
           onLocalitiesRef.current?.(res.localities);
-          onCoordinatesRef.current?.({ lat, lon });
+          javiTacku({ lat, lon });
           return;
         }
         // Reverse geocoding missed, so the address text stays as typed — but the pin the
@@ -149,7 +182,7 @@ export function AddressPicker({
         // point in place would silently disagree with the marker on screen.
         setFound(null);
         setStatus("pinned");
-        onCoordinatesRef.current?.({ lat, lon });
+        javiTacku({ lat, lon });
       };
 
       marker.on("dragend", () => {
@@ -173,10 +206,18 @@ export function AddressPicker({
       mapRef.current = null;
       markerRef.current = null;
     };
-  }, []);
+  // `javiTacku` je stabilna (useCallback bez zavisnosti) — stoji ovdje samo zbog
+  // pravila o zavisnostima i ne ponovo pokreće inicijalizaciju mape.
+  }, [javiTacku]);
 
   // Geocode the typed address (debounced) and move the pin to it.
   useEffect(() => {
+    if (polazniTekst.current !== null) {
+      // Tekst je i dalje onaj sa kojim je došla sačuvana tačka — ništa se nije desilo.
+      if (polazniTekst.current === value) return;
+      // Krenulo je kucanje: od sad je ovo polje kao i svako drugo.
+      polazniTekst.current = null;
+    }
     if (suppressFor.current === value) {
       // This exact text is ours, straight from the pin: the coordinates already match it.
       suppressFor.current = null;
@@ -189,7 +230,7 @@ export function AddressPicker({
     // to the previous address. Drop it now — before the debounce, before the request — so
     // there is no window in which a submit could pair this address with the old pin. A
     // missing coordinate is recoverable (admin can set it); a wrong one is invisible.
-    onCoordinatesRef.current?.(null);
+    javiTacku(null);
 
     // `querySuffix` (e.g. the house number, typed in its own field) only ever widens the
     // geocoding query — it never touches `value`/`onChange`, so it can't round-trip back
@@ -218,19 +259,19 @@ export function AddressPicker({
         setFound(hit.displayName);
         setStatus("idle");
         onLocalitiesRef.current?.(hit.localities);
-        onCoordinatesRef.current?.({ lat, lon });
+        javiTacku({ lat, lon });
       } else {
         setStatus("notfound");
         setFound(null);
         // Nothing was found for this address; make sure nothing is reported for it either.
-        onCoordinatesRef.current?.(null);
+        javiTacku(null);
       }
     }, 800);
     return () => {
       stale = true;
       clearTimeout(t);
     };
-  }, [value, querySuffix]);
+  }, [value, querySuffix, javiTacku]);
 
   return (
     <div className="space-y-2">
@@ -258,6 +299,12 @@ export function AddressPicker({
       {status === "notfound" && (
         <p className="text-xs text-honey-600">
           Adresa nije pronađena — kliknite na mapu ili prevucite pin da označite tačnu lokaciju.
+        </p>
+      )}
+      {status === "sacuvana" && (
+        <p className="text-xs text-muted">
+          📍 Sačuvana lokacija je označena na mapi. Ako nije tačna, prevucite pin ili
+          kliknite na mapu.
         </p>
       )}
       {status === "pinned" && (

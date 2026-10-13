@@ -28,6 +28,7 @@ import {
 } from "@/lib/api/hooks";
 import { orderApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
+import { pogodiZonu } from "@/lib/zone";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useToast } from "@/components/ui/toast";
@@ -183,17 +184,10 @@ export default function CheckoutPage() {
   };
 
   // Best-effort: auto-select the delivery zone from the address's neighbourhood name.
+  // Sam uslov podudaranja stoji u `lib/zone.ts` jer ga od P2c dijeli sa formom adresara.
   const applyZoneHint = useCallback(
     (localities: string[]) => {
-      const zs = zones.data;
-      if (!zs || localities.length === 0) return;
-      const match = zs.find((z) =>
-        localities.some((l) => {
-          const a = l.toLowerCase();
-          const b = z.name.toLowerCase();
-          return a === b || a.includes(b) || b.includes(a);
-        }),
-      );
+      const match = pogodiZonu(localities, zones.data);
       if (match) setForm((f) => ({ ...f, zoneId: match.id }));
     },
     [zones.data],

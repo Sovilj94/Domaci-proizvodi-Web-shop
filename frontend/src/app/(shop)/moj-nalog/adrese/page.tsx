@@ -184,6 +184,18 @@ function AdresaKartica({
       {adresa.deliveryZoneName && <p className="text-xs text-muted">Zona: {adresa.deliveryZoneName}</p>}
 
       {/*
+        Namjerno prigušeno, a ne žuto kao upozorenje o zoni: adresa bez tačke je potpuno
+        ispravna i checkout je prima — ruta se samo vraća na sortiranje po zonama. Adrese
+        prenesene iz starog `User.Address` tačku nikad nisu imale, pa bi upozorenje
+        zateklo kupca zbog nečega što nije zgriješio.
+      */}
+      {adresa.latitude == null && (
+        <p className="text-xs text-muted">
+          Bez tačke na mapi — otvori „Izmijeni“ i označi mjesto da vozač stigne tačnije.
+        </p>
+      )}
+
+      {/*
         `deliveryZoneActive` je `a.DeliveryZone?.IsActive ?? false` (MappingExtensions.cs:203),
         pa je `false` i kad zone uopšte NEMA. Zona je u formi opciona, tako da bi adresa
         sačuvana bez zone inače odmah dobila crveno „zona je ugašena" — što nije istina.

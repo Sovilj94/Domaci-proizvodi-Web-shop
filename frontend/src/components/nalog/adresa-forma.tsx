@@ -1,28 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { AddressPicker } from "@/components/shop/address-picker";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useDeliveryZones, queryKeys } from "@/lib/api/hooks";
 import { accountApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
+import { pogodiZonu } from "@/lib/zone";
 import type { AddressInput } from "@/lib/api/contracts";
 import type { Address } from "@/types/domain";
 
-const EMPTY = {
-  label: "",
-  fullAddress: "",
-  deliveryZoneId: "",
-};
+function pocetnoStanje(adresa?: Address | null) {
+  return {
+    label: adresa?.label ?? "",
+    fullAddress: adresa?.fullAddress ?? "",
+    deliveryZoneId: adresa?.deliveryZoneId ?? "",
+    latitude: adresa?.latitude,
+    longitude: adresa?.longitude,
+  };
+}
 
 /**
  * Panel koji klizi s desne strane — isti obrazac kao `components/admin/product-form.tsx`.
- * Koordinate se ovdje ne unose ručno (birač na mapi je zaseban posao, nije u ovom tasku);
- * kad se postojeća adresa uređuje i već ima tačku, ta tačka putuje kroz izmjenu
- * nepromijenjena umjesto da se tiho izgubi.
+ *
+ * Adresa se unosi kroz `AddressPicker`, isti birač koji koriste checkout i admin: tekst →
+ * geokodiranje kroz naš `/geocode` → pin koji se može prevući. Tačka je ono što adresar
+ * vrijedi vozaču — bez nje se ruta vraća na sortiranje po zonama — ali ostaje opciona,
+ * jer Nominatim ne nalazi svaku adresu i prazna tačka je bolja od izmišljene.
+ *
+ * Sadržaj je izdvojen u `Forma` i montira se iznova za svaku adresu (`key`), umjesto da
+ * se stanje puni efektom nakon otvaranja. Razlog je birač: on čita `value` i
+ * `initialCoordinates` na mountu, pa bi ga punjenje kroz efekat zateklo sa praznim
+ * poljem, a sledeća izmjena bi mu izgledala kao da je kupac počeo da kuca — poništio bi
+ * sačuvanu tačku i krenuo da geokodira iznova. Ovako panel ne postoji dok se ne otvori,
+ * i svako otvaranje počinje od čistog stanja, bez efekta koji to dopravlja.
  */
 export function AdresaForma({
   open,
@@ -33,27 +48,41 @@ export function AdresaForma({
   onClose: () => void;
   adresa?: Address | null;
 }) {
+  if (!open) return null;
+  return <Forma key={adresa?.id ?? "nova"} onClose={onClose} adresa={adresa} />;
+}
+
+function Forma({
+  onClose,
+  adresa,
+}: {
+  onClose: () => void;
+  adresa?: Address | null;
+}) {
   const qc = useQueryClient();
   const { show } = useToast();
   const zones = useDeliveryZones();
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState(() => pocetnoStanje(adresa));
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    setErrors({});
-    setError(null);
-    setForm(
-      adresa
-        ? {
-            label: adresa.label ?? "",
-            fullAddress: adresa.fullAddress,
-            deliveryZoneId: adresa.deliveryZoneId ?? "",
-          }
-        : EMPTY,
-    );
-  }, [open, adresa]);
+  // Birač javlja tačku (ili `null` kad tekst adrese krene da se mijenja). Pola tačke
+  // backend odbija — `AddressRules` traži i širinu i dužinu ili nijednu — pa se obje
+  // postavljaju i gase zajedno, u jednom setState.
+  const postaviTacku = useCallback((coords: { lat: number; lon: number } | null) => {
+    setForm((f) => ({ ...f, latitude: coords?.lat, longitude: coords?.lon }));
+  }, []);
+
+  // Isti „best-effort" predlog zone kao na checkoutu, iz istog helpera. Predlaže se samo
+  // kad zona još nije izabrana: kupac koji je svjesno izabrao zonu ne gubi izbor zato što
+  // je poslije toga pomjerio pin.
+  const predloziZonu = useCallback(
+    (localities: string[]) => {
+      const match = pogodiZonu(localities, zones.data);
+      if (match) setForm((f) => (f.deliveryZoneId ? f : { ...f, deliveryZoneId: match.id }));
+    },
+    [zones.data],
+  );
 
   const mutation = useMutation({
     mutationFn: (body: AddressInput) =>
@@ -81,14 +110,10 @@ export function AdresaForma({
       label: form.label || undefined,
       fullAddress: form.fullAddress,
       deliveryZoneId: form.deliveryZoneId || undefined,
-      // Prosljeđuje se samo ako adresa koja se uređuje već ima tačku — birač na mapi
-      // nije u ovom tasku, pa se tačka ovdje ne unosi ručno (vidi napomenu iznad).
-      latitude: adresa?.latitude,
-      longitude: adresa?.longitude,
+      latitude: form.latitude,
+      longitude: form.longitude,
     });
   }
-
-  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -117,9 +142,17 @@ export function AdresaForma({
           </Field>
 
           <Field label="Adresa" required error={errors.fullAddress?.[0]}>
-            <Input
+            <AddressPicker
+              id="adresa"
               value={form.fullAddress}
-              onChange={(e) => setForm({ ...form, fullAddress: e.target.value })}
+              onChange={(value) => setForm((f) => ({ ...f, fullAddress: value }))}
+              onCoordinates={postaviTacku}
+              onLocalities={predloziZonu}
+              initialCoordinates={
+                adresa?.latitude != null && adresa?.longitude != null
+                  ? { lat: adresa.latitude, lon: adresa.longitude }
+                  : undefined
+              }
             />
           </Field>
 
