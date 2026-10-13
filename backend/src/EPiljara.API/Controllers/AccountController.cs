@@ -1,5 +1,6 @@
 using EPiljara.Application.Features.Account;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Pretplate;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -50,6 +51,36 @@ public class AccountController : ApiControllerBase
     [HttpPost("account/addresses/{id:guid}/default")]
     public async Task<IActionResult> SetDefault(Guid id) =>
         Envelope(await Mediator.Send(new SetDefaultAddressCommand(id)));
+
+    [HttpGet("account/pretplate")]
+    public async Task<IActionResult> Pretplate() =>
+        EnvelopeList(await Mediator.Send(new GetMojePretplateQuery()));
+
+    [HttpPost("account/pretplate")]
+    public async Task<IActionResult> NapraviPretplatu([FromBody] NapraviPretplatuCommand command) =>
+        EnvelopeCreated(await Mediator.Send(command));
+
+    [HttpPut("account/pretplate/{id:guid}")]
+    public async Task<IActionResult> IzmijeniPretplatu(
+        Guid id, [FromBody] IzmijeniPretplatuBody body) =>
+        Envelope(await Mediator.Send(new IzmijeniPretplatuCommand(
+            id, body.ProductId, body.DeliveryZoneId, body.DeliverySlotId,
+            body.DeliveryAddress, body.Latitude, body.Longitude, body.Napomena)));
+
+    [HttpPost("account/pretplate/{id:guid}/pauza")]
+    public async Task<IActionResult> PauzirajPretplatu(Guid id, [FromBody] PauzaBody body) =>
+        Envelope(await Mediator.Send(new PauzirajPretplatuCommand(id, body.Sedmica)));
+
+    [HttpPost("account/pretplate/{id:guid}/nastavi")]
+    public async Task<IActionResult> NastaviPretplatu(Guid id) =>
+        Envelope(await Mediator.Send(new NastaviPretplatuCommand(id)));
+
+    [HttpDelete("account/pretplate/{id:guid}")]
+    public async Task<IActionResult> OtkaziPretplatu(Guid id)
+    {
+        await Mediator.Send(new OtkaziPretplatuCommand(id));
+        return NoContent();
+    }
 }
 
 /// <summary>Tijelo PUT-a bez Id-a — Id dolazi iz putanje, da se ne mogu razići.</summary>
@@ -62,3 +93,16 @@ public record UpdateAddressBody(
 
 /// <summary>Tijelo bez Id-a — Id dolazi iz putanje. Količine i cijene određuje server.</summary>
 public record IzmijeniKorpicuBody(IReadOnlyList<Guid> ProductIds);
+
+/// <summary>Tijelo PUT-a bez Id-a — Id dolazi iz putanje, da se ne mogu razići.</summary>
+public record IzmijeniPretplatuBody(
+    Guid ProductId,
+    Guid DeliveryZoneId,
+    Guid DeliverySlotId,
+    string DeliveryAddress,
+    double? Latitude,
+    double? Longitude,
+    string? Napomena);
+
+/// <summary>Koliko SEDMICA (isporuka) se preskače, ne datum — vidi odluku O4 u specu.</summary>
+public record PauzaBody(int Sedmica);

@@ -44,6 +44,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddHostedService<ExpiredGuestRequestsCleaner>();
 builder.Services.AddHostedService<ZakljucavanjeSadrzajaService>();
+builder.Services.AddHostedService<PretplatneNarudzbeService>();
 
 // ----- Controllers + JSON envelope -----
 builder.Services
