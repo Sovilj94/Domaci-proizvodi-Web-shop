@@ -7,7 +7,7 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 | | |
 |---|---|
 | Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa` i `pretplate-p3` su spojene i obrisane. |
-| HEAD | merge P3 (pretplate) |
+| HEAD | `50b517f` — merge P3 (pretplate) |
 | Radno stablo | čisto |
 | Nespojeno | ništa |
 | `main` vs `origin/main` | **main je ispred za P2c i P3 — nije pushovan**, push čeka odobrenje. |
