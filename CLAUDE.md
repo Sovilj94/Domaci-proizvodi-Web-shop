@@ -202,6 +202,14 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   Before the deadline that is this week; after it, the next. Orders from before P2b were backfilled from
   `CreatedAt`, which is **approximate** for them and exact for everything since; none of them carries korpica
   content, so the approximation hangs nothing.
+- **Three places construct an `Order`, and anything that must hold for every order has to be added to all
+  of them.** `CreateOrder.cs` (a logged-in or guest checkout through the normal flow),
+  `GuestOrderRequests.cs` (a guest request confirmed later, from its own 15-minute token) and
+  `DbSeeder.cs` (demo data). P2b was written against the first alone, which left guests' korpice with no
+  week and no content snapshot — invisible to every packing list, which is the exact bug P2b exists to fix.
+  The shared part now lives in `Features/Korpice/SnapshotKorpice.cs` and both real sites call it; the
+  seeder never orders a korpica, so it stays out. **Before adding an order-level invariant, run
+  `grep -rn "new Order {" backend/src --include=*.cs` and decide about each hit explicitly.**
 - **`StavkaKorpiceNarudzbe` is not `StavkaSadrzaja`, and confusing them is the easiest mistake here.**
   `StavkaSadrzaja` is the weekly template, shared by every customer. `StavkaKorpiceNarudzbe` belongs to one
   `OrderItem` and the customer may edit it. The content is **copied** at order time, never referenced — an
