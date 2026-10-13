@@ -23,6 +23,35 @@ public static class MojaKorpicaPravila
     /// </summary>
     public static readonly OrderStatus[] StatusiKojiDozvoljavaju =
         [OrderStatus.Pending, OrderStatus.Confirmed];
+
+    /// <summary>
+    /// Učitava proizvod stavke narudžbe i potvrđuje da ta stavka JESTE korpica.
+    ///
+    /// Provjerava se <see cref="Product.Vrsta"/>, a ne <c>KorpicaStavke.Any()</c>: postojanje
+    /// redova sadržaja je POSLJEDICA toga što je stavka korpica, a posljedica se može
+    /// izgubiti (sadržaj te sedmice obrisan) dok činjenica ostaje. Bez ove straže se PUT može
+    /// uperiti u običnu stavku svoje narudžbe — 1 kg krompira — i na nju upisati proizvoljne
+    /// redove koje pakerska lista potom sabira i množi sa Quantity.
+    ///
+    /// <c>IgnoreQueryFilters</c>: korpica je mogla biti soft-obrisana iz kataloga POSLIJE
+    /// narudžbe. Bez toga bi ova straža legalnu korpicu pretvorila u 404, a Velicina (i time
+    /// minimalan broj artikala) bi tiho pala na Mala.
+    ///
+    /// Baca <see cref="NotFoundException"/> — istu grešku kao nepostojeći OrderItemId. Za
+    /// ovaj endpoint obična stavka narudžbe nije resurs, a identičan odgovor ne daje način da
+    /// se „ne postoji" razlikuje od „postoji ali nije korpica".
+    /// </summary>
+    public static async Task<Product> UcitajKorpicuAsync(
+        IAppDbContext db, OrderItem red, CancellationToken ct)
+    {
+        var korpica = await db.Products.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == red.ProductId, ct);
+
+        if (korpica is null || korpica.Vrsta != VrstaProizvoda.Korpica)
+            throw new NotFoundException("Korpica nije pronađena.");
+
+        return korpica;
+    }
 }
 
 public record GetMojeKorpiceQuery : IRequest<IReadOnlyList<MojaKorpicaDto>>;
@@ -48,7 +77,9 @@ public class GetMojeKorpiceHandler(
 
         var korpiceIdjevi = redovi.Select(r => r.ProductId).Distinct().ToList();
 
-        var korpice = await db.Products
+        // IgnoreQueryFilters: korpica soft-obrisana poslije narudžbe ne smije ispasti iz
+        // rječnika — inače Velicina padne na Mala i kupac dobije tuđi minimalan broj artikala.
+        var korpice = await db.Products.IgnoreQueryFilters()
             .Where(p => korpiceIdjevi.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
 
@@ -90,9 +121,11 @@ public class GetMojeKorpiceHandler(
         var rok = SedmicaHelper.DatumIsporuke(o.Godina, o.Sedmica, dan, vrijemeOd)
             .AddHours(-cutoff);
 
-        // Kad sadržaja nema (obrisan poslije narudžbe), cilj pada na zbir redova — tada je
-        // odnos 100% i editor nikog ne blokira. Bolje nego dijeliti nulom ili tvrditi budžet
-        // koji ne postoji.
+        // Kad sadržaja nema (obrisan poslije narudžbe), cilj pada na zbir redova i odnos
+        // ispadne 100%. To je ISKLJUČIVO prikaz — da stara narudžba ne obori listu i da se
+        // ne dijeli nulom. NIJE dozvola: putanja upisa (IzmijeniMojuKorpicuHandler) u tom
+        // stanju odbija izmjenu sa `korpica_bez_sadrzaja`, jer straža koja se sama isključi
+        // kad joj nestane ulaz nije straža.
         var trenutna = Math.Round(red.KorpicaStavke.Sum(s => s.Kolicina * s.JedinicnaCijena), 2);
         var cilj = ciljevi.TryGetValue((red.ProductId, o.Godina, o.Sedmica), out var c) && c > 0m
             ? c
@@ -134,12 +167,14 @@ public class GetMojaKorpicaHandler(
         if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
             throw new ForbiddenException("Ova korpica nije vaša.");
 
-        var korpica = await db.Products.FirstOrDefaultAsync(p => p.Id == red.ProductId, ct);
+        // Obična stavka narudžbe nije korpica i ovaj endpoint joj ne smije izdati ni sadržaj
+        // ni ponudu — vidi MojaKorpicaPravila.UcitajKorpicuAsync.
+        var korpica = await MojaKorpicaPravila.UcitajKorpicuAsync(db, red, ct);
 
         // Ponuda je CIJELA sezonska ponuda — odluka P2b. Artikli iz kategorija ove korpice se
         // obilježavaju da ih birač može staviti prve, ali se ništa ne zabranjuje.
         // KorpicaKategorija se vezuje za TipKorpice, ne za Id konkretne korpice — vidi entitet.
-        var kategorijeKorpice = korpica?.TipKorpice is null
+        var kategorijeKorpice = korpica.TipKorpice is null
             ? new List<Guid>()
             : await db.KorpicaKategorije
                 .Where(k => k.TipKorpice == korpica.TipKorpice)
@@ -177,7 +212,7 @@ public class GetMojaKorpicaHandler(
         var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
         var zaglavlje = GetMojeKorpiceHandler.Sastavi(
             red,
-            korpica is null ? new Dictionary<Guid, Product>() : new() { [korpica.Id] = korpica },
+            new Dictionary<Guid, Product> { [korpica.Id] = korpica },
             cilj is null
                 ? new Dictionary<(Guid, int, int), decimal>()
                 : new() { [(red.ProductId, red.Order.Godina, red.Order.Sedmica)] = cilj.Value },
@@ -234,6 +269,11 @@ public class IzmijeniMojuKorpicuHandler(
         if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
             throw new ForbiddenException("Ova korpica nije vaša.");
 
+        // PRVO pitanje, prije svih pravila: je li ova stavka uopšte korpica. Bez toga se PUT
+        // uperi u običnu stavku svoje narudžbe, cilj budžeta ispadne 0, obje granice se
+        // isključe i proizvoljni redovi odu na pakersku listu — vidi UcitajKorpicuAsync.
+        var korpica = await MojaKorpicaPravila.UcitajKorpicuAsync(db, red, ct);
+
         if (!MojaKorpicaPravila.StatusiKojiDozvoljavaju.Contains(red.Order.Status))
             throw new ConflictException(
                 "Narudžba se već pakuje, sadržaj se više ne može mijenjati.", "korpica_se_pakuje");
@@ -266,8 +306,17 @@ public class IzmijeniMojuKorpicuHandler(
             .FirstOrDefaultAsync(s => s.KorpicaId == red.ProductId
                                       && s.Godina == red.Order.Godina
                                       && s.Sedmica == red.Order.Sedmica, ct);
-        var sablonskeKolicine = sadrzaj?.Stavke.ToDictionary(s => s.ProductId, s => s.Kolicina)
-                                ?? [];
+
+        // Sedmični sadržaj je JEDINI izvor cilja budžeta. Ako ga nema, upis se ODBIJA, a ne
+        // propušta bez granica: straža koja se sama isključi kad joj nestane ulaz nije straža.
+        // Prikaz (vidi Sastavi) u istom stanju pada na 100% da stara narudžba ne obori listu —
+        // to je prikaz, ne dozvola.
+        if (sadrzaj is null || sadrzaj.CiljnaVrijednost <= 0m)
+            throw new DomainException(
+                $"Za korpicu {korpica.Name} nema objavljenog sadržaja za tu sedmicu, pa se " +
+                "ne može mijenjati.", "korpica_bez_sadrzaja");
+
+        var sablonskeKolicine = sadrzaj.Stavke.ToDictionary(s => s.ProductId, s => s.Kolicina);
 
         var nove = new List<StavkaKorpiceNarudzbe>();
         foreach (var pid in cmd.ProductIds)
@@ -288,22 +337,21 @@ public class IzmijeniMojuKorpicuHandler(
             });
         }
 
-        var cilj = sadrzaj?.CiljnaVrijednost ?? 0m;
+        var cilj = sadrzaj.CiljnaVrijednost;
         var vrijednost = Math.Round(nove.Sum(s => s.Kolicina * s.JedinicnaCijena), 2);
 
-        if (cilj > 0m && vrijednost < Math.Round(cilj * DonjaGranica, 2))
+        if (vrijednost < Math.Round(cilj * DonjaGranica, 2))
             throw new DomainException(
                 $"Vrijednost korpice je {vrijednost:0.##} KM, a mora biti bar " +
                 $"{cilj * DonjaGranica:0.##} KM.", "budzet_premali");
 
-        if (cilj > 0m && vrijednost > Math.Round(cilj * GornjaGranica, 2))
+        if (vrijednost > Math.Round(cilj * GornjaGranica, 2))
             throw new DomainException(
                 $"Vrijednost korpice je {vrijednost:0.##} KM, a najviše može biti " +
                 $"{cilj * GornjaGranica:0.##} KM.", "budzet_preveliki");
 
-        var korpica = await db.Products.FirstOrDefaultAsync(p => p.Id == red.ProductId, ct);
         var minimum = opcije.Value.MinimalanBrojArtikala.GetValueOrDefault(
-            korpica?.Velicina ?? VelicinaKorpice.Mala, 5);
+            korpica.Velicina ?? VelicinaKorpice.Mala, 5);
         if (nove.Count < minimum)
             throw new DomainException(
                 $"Korpica mora imati bar {minimum} artikala.", "premalo_artikala");
