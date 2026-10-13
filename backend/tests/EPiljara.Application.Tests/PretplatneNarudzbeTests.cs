@@ -111,9 +111,9 @@ public class PretplatneNarudzbeTests
         }
 
         public NapraviPretplatneNarudzbeHandler Handler(
-            PretplateOpcije? opcije = null, bool mediatorPuca = false, bool pucaPrviPut = false) =>
+            PretplateOpcije? opcije = null, bool mediatorPuca = false, Guid? pucaZa = null) =>
             new(Db,
-                new FakeMediator(Db, opcije ?? Opcije(), mediatorPuca, pucaPrviPut),
+                new FakeMediator(Db, opcije ?? Opcije(), mediatorPuca, pucaZa),
                 Options.Create(new KorpiceOpcije()),
                 Options.Create(opcije ?? Opcije()),
                 NullLogger<NapraviPretplatneNarudzbeHandler>.Instance);
@@ -131,11 +131,14 @@ public class PretplatneNarudzbeTests
     /// Mediator koji zna samo za <see cref="CreateOrderCommand"/> — jedinu komandu koju
     /// posao šalje. `puca` simulira pad usred posla, poslije nastanka narudžbe.
     /// </summary>
+    /// <summary>
+    /// `pucaZa` je PRETPLATA na kojoj se puca, ne redni broj poziva: upit nad pretplatama nema
+    /// zadani poredak, pa bi „padni na prvoj" davalo test koji prolazi ili pada u zavisnosti
+    /// od toga kojim redom baza vrati redove.
+    /// </summary>
     private sealed class FakeMediator(
-        AppDbContext db, PretplateOpcije opcije, bool puca, bool pucaPrviPut = false) : IMediator
+        AppDbContext db, PretplateOpcije opcije, bool puca, Guid? pucaZa = null) : IMediator
     {
-        private bool _vecPukao;
-
         public async Task<TResponse> Send<TResponse>(
             IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
@@ -145,11 +148,8 @@ public class PretplatneNarudzbeTests
                         db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
                         Options.Create(new KorpiceOpcije()), Options.Create(opcije))
                     .Handle(cmd, cancellationToken);
-                if (puca || (pucaPrviPut && !_vecPukao))
-                {
-                    _vecPukao = true;
+                if (puca || (pucaZa is not null && cmd.PretplataId == pucaZa))
                     throw new InvalidOperationException("Pad poslije nastanka narudžbe.");
-                }
                 return (TResponse)(object)dto;
             }
             throw new NotImplementedException(
@@ -346,8 +346,8 @@ public class PretplatneNarudzbeTests
         s.Db.Pretplate.Add(druga);
         await s.Db.SaveChangesAsync();
 
-        // Mediator puca na PRVOJ narudžbi koju vidi; ostale prolaze.
-        var napravljeno = await s.Handler(Opcije(), pucaPrviPut: true)
+        // Puca tačno na prvoj pretplati; druga mora proći bez obzira na redoslijed obrade.
+        var napravljeno = await s.Handler(Opcije(), pucaZa: s.Pretplata.Id)
             .Handle(new NapraviPretplatneNarudzbeCommand(), default);
 
         Assert.Equal(1, napravljeno);

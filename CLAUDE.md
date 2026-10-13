@@ -249,6 +249,42 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   rather than `premalo_artikala`; the screen's helper text has to agree with that or it contradicts the
   server.
 
+## Pretplate (P3)
+
+- **There is one path to an `Order`, and the subscription job walks it.** `PretplatneNarudzbe` sends a
+  `CreateOrderCommand` through MediatR instead of building an `Order` itself, which is why a subscription
+  order gets the basket snapshot, the ISO week, the stock decrement and the confirmation mail for free. The
+  command therefore carries `CustomerId` and `PretplataId`, **neither of which is a wire input** — no
+  controller fills them, because anyone could then order in someone else's name. They exist for the one
+  caller with no `ICurrentUser`: the background job. Before touching anything order-shaped, run
+  `grep -rn "new Order" backend/src --include=*.cs` and decide about each hit; P2b learned that the hard way.
+- **Idempotency is two checks plus one transaction.** `Pretplata.Poslednja{Godina,Sedmica}` is the cheap
+  filter, an `Orders.AnyAsync` on `(PretplataId, Godina, Sedmica)` is the truth that survives a lost write,
+  and the order plus that marker are written inside **one** transaction. Split them and a crash in between
+  hands the customer two boxes and two cash-on-delivery bills next pass. A pass that finds an order whose
+  marker is missing repairs the marker instead of ordering again.
+- **The job must survive one broken row.** Every subscription is processed in its own `try`, and the catch
+  **reloads the entity** — a rolled-back transaction leaves the in-memory `Poslednja*` edits in the context,
+  and the next subscription's `SaveChanges` would flush them, permanently skipping that week for a customer
+  who never got an order.
+- **`BrojIsporuka` goes up in exactly one place.** `OrderStatus.Delivered` is set from both `AdminOrders` and
+  `DriverFeature`, so `BrojacIsporuka.ZabiljeziAsync` is called from both, **before** the transition (it
+  reads the old status so a second "Delivered" cannot count twice). The discount is earned by *deliveries*,
+  never by orders, so nothing increments when the order is created.
+- **The discount is earned backwards and lives in `PretplatnaCijena`.** `PragPopusta` counts deliveries
+  already made, so with the default 5 the sixth delivery is the first cheaper one. Payment is cash on
+  delivery, so a discount given up front would be a gift to whoever quits after two boxes. The rule is
+  server-side only: `KorpicaDto.CijenaSaPretplatom` exists precisely so the shop page does not multiply by
+  0.9 itself and drift away from what is actually charged.
+- **A subscription that could not pass checkout is rejected when it is created**, not quietly skipped every
+  week — zone minimum above the basket price, inactive zone, a product that is not a basket. The unique
+  index `(UserId, ProductId)` is **filtered on non-cancelled**, so a customer can come back to a package
+  they once cancelled.
+- **Content missing means no delivery, by choice.** If the week's `SedmicniSadrzaj` is not `Objavljen` or
+  `Zakljucan`, the job skips that week and logs it; an order with no content is a box nobody can pack.
+  `GET /admin/pretplate` surfaces exactly that: how many baskets are promised for the next week and how many
+  of them are still waiting for content.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.
