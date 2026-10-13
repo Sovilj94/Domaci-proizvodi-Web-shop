@@ -34,6 +34,43 @@ narudžbi i jedna davale isti broj, pa je nabavka kupovala za jednu kutiju).
 Stanje provjera na `main`-u: **`dotnet test` 151/151**, `tsc` čisto, `lint` čisto,
 `npm run build` ✓ 54/54 stranica.
 
+## Popis — šta tačno postoji
+
+Da se ne vadi iz koda pri nastavku.
+
+**Endpointi kupca** (`AccountController`, svi `[Authorize]`)
+
+```
+PUT    /account/profile                 ime i telefon
+GET    /account/addresses               adresar
+POST   /account/addresses
+PUT    /account/addresses/{id}
+DELETE /account/addresses/{id}          jedini 204 bez tijela u cijelom API-ju
+POST   /account/addresses/{id}/default
+GET    /account/korpice                 korpice koje se trenutno mogu mijenjati
+GET    /account/korpice/{orderItemId}   sadržaj, budžet, rok, ponuda
+PUT    /account/korpice/{orderItemId}   tijelo: samo { productIds }
+```
+
+**Javno** — `GET /korpice`, `/korpice/sedmica`, `/korpice/{slug}`, `/korpice/{slug}/sadrzaj`
+
+**Admin** — `/admin/korpice/sadrzaj`, `/sadrzaj/generisi`, `/sadrzaj/{id}`,
+`/sadrzaj/{id}/objavi`, `/admin/korpice/pakerska-lista?godina=&sedmica=`
+
+**Entiteti dodati kroz P1–P2b** — `SedmicniSadrzaj`, `StavkaSadrzaja`, `KorpicaKategorija`
+(P1); `StavkaKorpiceNarudzbe` (P2b). `Product` je dobio `Vrsta`, `TipKorpice`, `Velicina`,
+`MozeUKorpicu`, `PrioritetUKorpici`, `Mjeseci`. `Order` je dobio `Godina` i `Sedmica`.
+
+**Ekrani kupca** — `/korpice`, `/korpice/[slug]`, `/moj-nalog` i pod njim `/podaci`,
+`/adrese`, `/narudzbe`, `/korpica`. `/orders` je serverski redirect na `/moj-nalog/narudzbe`.
+
+**Pozadinski poslovi** — `ZakljucavanjeSadrzajaService` (svakih 15 minuta zaključava sadržaje
+kojima je rok prošao), `ExpiredGuestRequestsCleaner`.
+
+**Zajedničke tačke koje se ne smiju duplirati** — `KorpicaPodobnost` (jedini pojam „smije u
+korpicu"), `SnapshotKorpice` (kopiranje sadržaja pri nastanku narudžbe; zovu ga oba mjesta koja
+stvarno prave `Order`), `SedmicaHelper` (sve o sedmicama i rokovima).
+
 ## Nije urađeno
 
 **P3 — Pretplate.** Tek započeto: pročitao sam pozadinske poslove i to je sve. Nema ni speca
