@@ -6,11 +6,11 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` i samo ona. `redizajn-opcija3` je spojena i obrisana. |
-| HEAD | `01ea0f4` |
+| Grana | `main` i samo ona. `redizajn-opcija3` i `adresar-mapa` su spojene i obrisane. |
+| HEAD | `5fed930` (P2c — birač adrese na mapi u adresaru) |
 | Radno stablo | čisto |
 | Nespojeno | ništa |
-| `main` vs `origin/main` | sinhronizovano, pushovano 13.10.2026. |
+| `main` vs `origin/main` | **main je ispred za P2c commit — nije pushovan**, push čeka odobrenje. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -31,8 +31,25 @@ budžeta. Uz to dva preduslova koja su i sama popravke: `Order` dobija ISO sedmi
 pakerska lista prestaje da sabira šablon a počinje da sabira narudžbe (prije toga je četrdeset
 narudžbi i jedna davale isti broj, pa je nabavka kupovala za jednu kutiju).
 
-Stanje provjera na `main`-u: **`dotnet test` 151/151**, `tsc` čisto, `lint` čisto,
-`npm run build` ✓ 54/54 stranica.
+**P2c — Birač adrese na mapi u adresaru.** Prva stavka koja je u ranijoj verziji ovog
+dokumenta stajala kao „nalaz nošen dalje". Forma adresara više nije tekstualno polje nego
+isti `AddressPicker` koji koriste checkout i admin, pa sačuvana adresa nosi tačku i ruta je
+ne vraća na sortiranje po zonama. Backend nije mijenjan — `latitude`/`longitude` je primao
+od P2a, samo mu ih niko nije slao.
+
+Dvije popravke u samom biraču, obje zato što bi inače obrisao tuđi pin: ne geokodira dok je
+tekst onaj sa kojim je tačka došla (`polazniTekst`), i pri gašenju javlja `null` samo ako je
+ikad sam javio tačku (`preuzeoTacku`). Obje su pisane da podnesu dvostruko izvršavanje —
+React u razvoju (StrictMode) montira, počisti pa montira ponovo, i obje greške su se baš tu
+pokazale. Isto je uklonilo i tiši kvar na admin ekranu *Magacin*, koji je jedini drugi
+pozivalac sa `initialCoordinates`.
+
+Uz to: pogađanje zone po naselju je izvađeno iz checkouta u `lib/zone.ts`, pa ga oba ekrana
+zovu iz istog mjesta, a kartica adrese bez tačke to prigušeno kaže.
+
+Stanje provjera na `main`-u: `tsc` čisto, `lint` čisto, `npm run build` ✓ 54/54 stranica.
+**`dotnet test` nije ponovo pokrenut uz P2c** — nijedan fajl backenda nije dirnut; posljednji
+izmjereni rezultat je 151/151 na `01ea0f4`.
 
 ## Popis — šta tačno postoji
 
@@ -61,7 +78,8 @@ PUT    /account/korpice/{orderItemId}   tijelo: samo { productIds }
 (P1); `StavkaKorpiceNarudzbe` (P2b). `Product` je dobio `Vrsta`, `TipKorpice`, `Velicina`,
 `MozeUKorpicu`, `PrioritetUKorpici`, `Mjeseci`. `Order` je dobio `Godina` i `Sedmica`.
 
-**Ekrani kupca** — `/korpice`, `/korpice/[slug]`, `/moj-nalog` i pod njim `/podaci`,
+**Ekrani kupca** (adresar od P2c nosi mapu u formi) — `/korpice`, `/korpice/[slug]`,
+`/moj-nalog` i pod njim `/podaci`,
 `/adrese`, `/narudzbe`, `/korpica`. `/orders` je serverski redirect na `/moj-nalog/narudzbe`.
 
 **Pozadinski poslovi** — `ZakljucavanjeSadrzajaService` (svakih 15 minuta zaključava sadržaje
@@ -69,9 +87,13 @@ kojima je rok prošao), `ExpiredGuestRequestsCleaner`.
 
 **Zajedničke tačke koje se ne smiju duplirati** — `KorpicaPodobnost` (jedini pojam „smije u
 korpicu"), `SnapshotKorpice` (kopiranje sadržaja pri nastanku narudžbe; zovu ga oba mjesta koja
-stvarno prave `Order`), `SedmicaHelper` (sve o sedmicama i rokovima).
+stvarno prave `Order`), `SedmicaHelper` (sve o sedmicama i rokovima), `lib/zone.ts`
+(`pogodiZonu` — jedino pogađanje zone po imenu naselja; zovu ga checkout i forma adresara).
 
 ## Nije urađeno
+
+**Sljedeće na redu je P3**, jer je ono što je u prethodnoj predaji stajalo kao „prva stavka
+nastavka" (birač na mapi) sada gotovo i spojeno.
 
 **P3 — Pretplate.** Tek započeto: pročitao sam pozadinske poslove i to je sve. Nema ni speca
 ni plana. Stavka „Pretplate" već stoji zaključana u navigaciji naloga i čeka da se otključa,
@@ -94,7 +116,8 @@ Ništa od ovoga ne blokira ništa; sve je svjesno odloženo uz razlog.
 
 | Nalaz | Gdje | Zašto je odloženo |
 |---|---|---|
-| Birač adrese na mapi | `adresa-forma.tsx`; `components/shop/address-picker.tsx` već postoji sa pravim propovima | Spec P2a ga izričito stavlja izvan opsega. Posljedica: adresar čuva adrese bez pina, pa se ruta i dalje optimizuje po zonama. **Prva stavka nastavka.** |
+| Adrese sačuvane prije P2c nemaju tačku | postojeći redovi u `Addresses` | Birač postoji od P2c, ali ranije sačuvane adrese (i one prenesene iz starog `User.Address`) i dalje stoje bez pina. Kupac to vidi kao prigušenu napomenu na kartici i zatvara sam kroz „Izmijeni"; batch-geokodiranje adresara, kakvo narudžbe imaju (`admin/orders/geocode-missing`), nije pravljeno. |
+| Niko ne provjerava da pin i tekst adrese govore o istom mjestu | `address-picker.tsx`, `AddressRules` | Kad reverzno geokodiranje ne uspije, tekst ostaje kako je otkucan a pin tamo gdje je kliknut; birač na to i upozorava rečenicom ispod mape. Server provjerava samo da je tačka u granicama BiH. Isto važi i na checkoutu, nije uvedeno u P2c. |
 | Razlika broj-narudžbi naspram broj-redova nije testirana | `AdminKorpice.cs`, `BrojNarudzbi` | Pokrivanje traži drugu korpicu u dijeljenom test helperu dok su dva taska gradila na njemu. Završna recenzija je potvrdila da je odluka branjiva ali da sam rizik potcijenio — baš taj nedostajući fixture je ostavio neispitanim da editor ne provjerava je li red korpica. |
 | Klijent predviđa količinu 1 za ponovo dodat šablonski artikal | `korpica-editor.tsx` | Zatvaranje traži da `PonudaArtiklaDto` nosi šablonsku količinu — izmjena ugovora backenda. Server ostaje mjerodavan; posljedica je samo da traka budžeta pokaže manje nego server. |
 | Razlika na pola feninga između JS i .NET zaokruživanja | `korpica-editor.tsx` | JS zaokružuje od nule, .NET na parno. Zabilježeno u komentaru, server mjerodavan. |
@@ -132,3 +155,12 @@ narudžba `EP-2610-0052` (Mujo) čiji sam sadržaj mijenjao kroz ekran dok sam g
 Rok za izmjenu te korpice je bio `2026-10-13 16:00`, pa je vjerovatno ispao iz prozora za
 uređivanje — to je očekivano, ne kvar. Ako P3 traži svježu korpicu za ručnu provjeru,
 generisati i objaviti novu sedmicu kroz admin endpointe.
+
+Iz P2c je ostala Mujina adresa „Kuća" (Kralja Petra I Karađorđevića 93), sa pinom
+postavljenim klikom na mapu — jedini red u `Addresses`. Ostavljena je namjerno: to je jedina
+adresa sa tačkom u bazi, pa je zgodna i za provjeru rute i kao polazna adresa za checkout.
+Geokodiranje je i dalje mrtvo lokalno (`GET /geocode` vraća `{}`, izlazni soket 10013), pa se
+pin u ručnoj provjeri postavlja klikom na mapu, a ne kucanjem adrese.
+
+**Dev server je ostavljen upaljen** (`npm run dev` u zasebnom prozoru), isti kakav je i
+zatečen, zato što je `npm run build` morao da ga ugasi i obriše `.next`.
