@@ -7,7 +7,7 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 | | |
 |---|---|
 | Grana | `main` i samo ona. `redizajn-opcija3` i `adresar-mapa` su spojene i obrisane. |
-| HEAD | `5fed930` (P2c — birač adrese na mapi u adresaru) |
+| HEAD | `c731eba` — merge P2c (birač adrese na mapi u adresaru) |
 | Radno stablo | čisto |
 | Nespojeno | ništa |
 | `main` vs `origin/main` | **main je ispred za P2c commit — nije pushovan**, push čeka odobrenje. |
