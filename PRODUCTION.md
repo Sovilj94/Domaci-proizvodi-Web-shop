@@ -134,6 +134,33 @@ running, a content stays editable past its deadline, so the packing list (`GET
 the failure mode is silent (nothing errors; the content just never locks), so confirm the service is
 registered and running rather than inferring it from the absence of complaints.
 
+## Pretplate (recurring basket subscriptions)
+
+Config section `Pretplate` (override via `Pretplate__*` env vars):
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Pretplate:PragPopusta` | `5` | How many deliveries the customer must already have **behind** them before the price drops. With the default, the sixth delivery is the first cheaper one — the discount is earned backwards, because payment is cash on delivery and a period paid up front does not exist here. |
+| `Pretplate:Popust` | `0.10` | Share taken off the basket price once the threshold is reached. |
+| `Pretplate:SatiUnaprijed` | `48` | How many hours before the week's ordering cutoff the job creates that week's orders. Lower it and customers lose the window in which they can still pause; raise it and orders exist long before anyone can change their mind. |
+| `Pretplate:MaksPauzaSedmica` | `8` | Longest pause a customer can set at once, counted in deliveries. |
+
+`PretplatneNarudzbeService` (a `BackgroundService` in `Infrastructure/BackgroundJobs/`) runs every
+**15 minutes** and creates one order per active subscription whose week has come. **If it is not
+running, no subscriber gets anything** and nothing errors anywhere — the only visible symptom is
+missing orders, so confirm the service is registered and that the log line "Pretplatnih narudžbi
+napravljeno" appears in the hours before the weekly cutoff. The command is idempotent, so a restart
+mid-pass cannot duplicate an order.
+
+Two operational consequences worth knowing before the first real week:
+
+- **An unpublished weekly content means that subscriber gets nothing that week** — by design, since an
+  order with no content is a box nobody can pack. `GET /admin/pretplate` reports `cekajuSadrzaj`: how
+  many active subscriptions are still waiting for content for the upcoming week. Watch that number
+  before the cutoff, not after.
+- **Prices are not frozen at subscription time.** Each order takes the basket's current price minus the
+  earned discount, so a price change reaches subscribers with their next delivery.
+
 ## Still your call (operational)
 
 - **Migrations** run automatically on startup. For multi-instance deploys, consider applying them

@@ -27,7 +27,7 @@ export const NALOG_STAVKE: NalogStavka[] = [
   { href: "/moj-nalog/adrese", label: "Adrese", icon: MapPin },
   { href: "/moj-nalog/narudzbe", label: "Narudžbe", icon: ShoppingBag },
   { href: "/moj-nalog/korpica", label: "Moja korpica", icon: ShoppingBasket },
-  { href: "/moj-nalog/pretplate", label: "Pretplate", icon: RefreshCw, uskoro: true },
+  { href: "/moj-nalog/pretplate", label: "Pretplate", icon: RefreshCw },
 ];
 
 /**

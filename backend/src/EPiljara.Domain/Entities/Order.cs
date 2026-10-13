@@ -63,6 +63,17 @@ public class Order : Entity
     /// </summary>
     public DateTime? ZatvorenaU { get; set; }
 
+    /// <summary>
+    /// Pretplata iz koje je ova narudžba nastala. `null` znači da ju je napravio čovjek —
+    /// kupac na checkoutu, gost preko potvrde mejlom, ili admin. Nije samo metapodatak: po
+    /// njemu <c>BrojacIsporuka</c> zna koju pretplatu da uveća kad narudžba bude isporučena,
+    /// i po njemu ekran pretplate prikazuje njenu istoriju.
+    ///
+    /// Namjerno bez navigacije ka <c>Pretplata</c>: broj isporuka se računa upitom, a
+    /// kolekcija narudžbi na pretplati bi se učitavala svaki put kad se pretplata dohvati.
+    /// </summary>
+    public Guid? PretplataId { get; set; }
+
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 
     /// <summary>Allowed forward transitions for the order status state machine.</summary>

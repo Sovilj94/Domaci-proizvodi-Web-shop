@@ -4,6 +4,7 @@ using EPiljara.Application.DTOs;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
+using EPiljara.Application.Features.Pretplate;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -101,6 +102,25 @@ public static class SedmicaHelper
         return (ISOWeek.GetYear(sljedeca), ISOWeek.GetWeekOfYear(sljedeca));
     }
 
+    /// <summary>
+    /// Sedmica pomjerena za <paramref name="zaSedmica"/> unaprijed (pauza pretplate).
+    /// Računa se preko datuma, ne sabiranjem brojeva: 52 + 3 nije 55, a godine imaju i 52 i
+    /// 53 sedmice — isti razlog zbog kojeg <see cref="SedmicaZaNarudzbu"/> ide preko
+    /// ponedjeljka umjesto da ručno hvata prelaz godine.
+    /// </summary>
+    public static (int Godina, int Sedmica) Pomjeri(int godina, int sedmica, int zaSedmica)
+    {
+        var d = ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Monday).AddDays(7 * zaSedmica);
+        return (ISOWeek.GetYear(d), ISOWeek.GetWeekOfYear(d));
+    }
+
+    /// <summary>
+    /// Je li sedmica (g1, s1) prije (g2, s2). Poređenje PARA, ne jednog broja — sedmica 1
+    /// naredne godine je poslije sedmice 52 tekuće.
+    /// </summary>
+    public static bool SedmicaPrije(int g1, int s1, int g2, int s2) =>
+        g1 != g2 ? g1 < g2 : s1 < s2;
+
     public static string Slug(TipKorpice t) => t switch
     {
         TipKorpice.Povrce => "povrce",
@@ -125,7 +145,13 @@ public static class SedmicaHelper
     /// NE zove se ToDto: <c>MappingExtensions.ToDto(this Product)</c> već postoji i vraća
     /// ProductDto. Dvije ekstenzije istog imena nad istim tipom čine svaki poziv dvosmislenim.
     /// </summary>
-    public static KorpicaDto ToKorpicaDto(this Product p) => new()
+    /// <param name="pretplateOpcije">
+    /// Kad je prosljeđeno, DTO nosi i cijenu koju pretplatnik plaća od šeste isporuke.
+    /// Računa je <see cref="PretplatnaCijena"/>, nikad klijent: popust je poslovno pravilo i
+    /// kopija tog množenja u pregledaču bi se razišla sa računom čim se prag ili procenat
+    /// promijene.
+    /// </param>
+    public static KorpicaDto ToKorpicaDto(this Product p, PretplateOpcije? pretplateOpcije = null) => new()
     {
         Id = p.Id,
         Naziv = p.Name,
@@ -133,6 +159,10 @@ public static class SedmicaHelper
         Tip = Slug(p.TipKorpice ?? TipKorpice.Povrce),
         Velicina = (p.Velicina ?? VelicinaKorpice.Mala).ToString().ToLowerInvariant(),
         Cijena = p.Price,
+        CijenaSaPretplatom = pretplateOpcije is null
+            ? null
+            : PretplatnaCijena.Izracunaj(p.Price, pretplateOpcije.PragPopusta, pretplateOpcije),
+        IsporukaDoPopusta = pretplateOpcije?.PragPopusta,
         ImageUrl = p.ImageUrl,
         Opis = p.Description,
         Stock = p.Stock,
@@ -164,7 +194,7 @@ public static class SedmicaHelper
 
 public record GetKorpiceQuery(string? Tip) : IRequest<IReadOnlyList<KorpicaDto>>;
 
-public class GetKorpiceHandler(IAppDbContext db)
+public class GetKorpiceHandler(IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije)
     : IRequestHandler<GetKorpiceQuery, IReadOnlyList<KorpicaDto>>
 {
     public async Task<IReadOnlyList<KorpicaDto>> Handle(GetKorpiceQuery q, CancellationToken ct)
@@ -177,7 +207,7 @@ public class GetKorpiceHandler(IAppDbContext db)
             .OrderBy(p => p.TipKorpice).ThenBy(p => p.Velicina)
             .ToListAsync(ct);
 
-        return lista.Select(p => p.ToKorpicaDto()).ToList();
+        return lista.Select(p => p.ToKorpicaDto(pretplateOpcije.Value)).ToList();
     }
 }
 
@@ -185,7 +215,7 @@ public class GetKorpiceHandler(IAppDbContext db)
 
 public record GetKorpicaBySlugQuery(string Slug) : IRequest<KorpicaDto>;
 
-public class GetKorpicaBySlugHandler(IAppDbContext db)
+public class GetKorpicaBySlugHandler(IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije)
     : IRequestHandler<GetKorpicaBySlugQuery, KorpicaDto>
 {
     public async Task<KorpicaDto> Handle(GetKorpicaBySlugQuery q, CancellationToken ct)
@@ -193,7 +223,7 @@ public class GetKorpicaBySlugHandler(IAppDbContext db)
         var p = await db.Products
             .FirstOrDefaultAsync(x => x.Slug == q.Slug && x.Vrsta == VrstaProizvoda.Korpica, ct)
             ?? throw new NotFoundException("Korpica nije pronađena.");
-        return p.ToKorpicaDto();
+        return p.ToKorpicaDto(pretplateOpcije.Value);
     }
 }
 

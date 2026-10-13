@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-13
+# Stanje projekta — 2026-10-13 (P2c i P3 istog dana)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -6,11 +6,11 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` i samo ona. `redizajn-opcija3` i `adresar-mapa` su spojene i obrisane. |
-| HEAD | `c731eba` — merge P2c (birač adrese na mapi u adresaru) |
+| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa` i `pretplate-p3` su spojene i obrisane. |
+| HEAD | merge P3 (pretplate) |
 | Radno stablo | čisto |
 | Nespojeno | ništa |
-| `main` vs `origin/main` | **main je ispred za P2c commit — nije pushovan**, push čeka odobrenje. |
+| `main` vs `origin/main` | **main je ispred za P2c i P3 — nije pushovan**, push čeka odobrenje. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -47,9 +47,25 @@ pozivalac sa `initialCoordinates`.
 Uz to: pogađanje zone po naselju je izvađeno iz checkouta u `lib/zone.ts`, pa ga oba ekrana
 zovu iz istog mjesta, a kartica adrese bez tačke to prigušeno kaže.
 
-Stanje provjera na `main`-u: `tsc` čisto, `lint` čisto, `npm run build` ✓ 54/54 stranica.
-**`dotnet test` nije ponovo pokrenut uz P2c** — nijedan fajl backenda nije dirnut; posljednji
-izmjereni rezultat je 151/151 na `01ea0f4`.
+**P3 — Pretplate.** Kupac se pretplati na korpicu i narudžbe nastaju same, jednom sedmično,
+48 sati prije roka. Pauza (1–8 isporuka), promjena paketa, nastavak i otkaz sa
+`/moj-nalog/pretplate`. Popust se zarađuje unazad: prvih pet isporuka po punoj cijeni, od
+šeste niža (`PretplatnaCijena`, jedino mjesto koje zna to pravilo).
+
+Tri stvari iz P3 vrijedi znati prije nego se išta oko narudžbi dira:
+
+1. **Posao ide kroz `CreateOrderHandler`, ne pored njega.** Komanda je dobila `CustomerId` i
+   `PretplataId` koje nijedan kontroler ne popunjava — postoje zbog jedinog pozivaoca bez
+   `ICurrentUser`. Tako pretplatna narudžba dobija snapshot korpice, sedmicu, zalihe i mejl
+   besplatno (provjereno: na pretplatnoj narudžbi stoji šest redova sadržaja).
+2. **Idempotentnost je dvostruka i u transakciji.** `Poslednja*` kao brz filter, upit nad
+   narudžbama kao istina, oboje u istoj transakciji sa narudžbom. Dva prolaza daju jednu
+   narudžbu — provjereno i testom i uživo (restart API-ja = novi prolaz).
+3. **`BrojIsporuka` diže samo `BrojacIsporuka`**, zvan sa oba mjesta koja postavljaju
+   `Delivered` (admin panel i vozačka aplikacija), prije prelaza statusa.
+
+Stanje provjera na `main`-u: **`dotnet test` 199/199**, `tsc` čisto, `lint` čisto,
+`npm run build` ✓ 55/55 stranica.
 
 ## Popis — šta tačno postoji
 
@@ -67,45 +83,47 @@ POST   /account/addresses/{id}/default
 GET    /account/korpice                 korpice koje se trenutno mogu mijenjati
 GET    /account/korpice/{orderItemId}   sadržaj, budžet, rok, ponuda
 PUT    /account/korpice/{orderItemId}   tijelo: samo { productIds }
+GET    /account/pretplate                                                   (P3)
+POST   /account/pretplate
+PUT    /account/pretplate/{id}
+POST   /account/pretplate/{id}/pauza    tijelo: { sedmica: 1..8 }
+POST   /account/pretplate/{id}/nastavi
+DELETE /account/pretplate/{id}          drugi 204 bez tijela u API-ju
 ```
 
-**Javno** — `GET /korpice`, `/korpice/sedmica`, `/korpice/{slug}`, `/korpice/{slug}/sadrzaj`
+**Javno** — `GET /korpice`, `/korpice/sedmica`, `/korpice/{slug}`, `/korpice/{slug}/sadrzaj`.
+Od P3 `KorpicaDto` nosi i `cijenaSaPretplatom` + `isporukaDoPopusta`; klijent popust ne računa.
 
 **Admin** — `/admin/korpice/sadrzaj`, `/sadrzaj/generisi`, `/sadrzaj/{id}`,
-`/sadrzaj/{id}/objavi`, `/admin/korpice/pakerska-lista?godina=&sedmica=`
+`/sadrzaj/{id}/objavi`, `/admin/korpice/pakerska-lista?godina=&sedmica=`,
+`/admin/pretplate?status=` (P3 — koliko je korpica obećano za narednu sedmicu i koliko njih
+još čeka sadržaj).
 
-**Entiteti dodati kroz P1–P2b** — `SedmicniSadrzaj`, `StavkaSadrzaja`, `KorpicaKategorija`
-(P1); `StavkaKorpiceNarudzbe` (P2b). `Product` je dobio `Vrsta`, `TipKorpice`, `Velicina`,
-`MozeUKorpicu`, `PrioritetUKorpici`, `Mjeseci`. `Order` je dobio `Godina` i `Sedmica`.
+**Entiteti dodati kroz P1–P3** — `SedmicniSadrzaj`, `StavkaSadrzaja`, `KorpicaKategorija`
+(P1); `StavkaKorpiceNarudzbe` (P2b); `Pretplata` (P3). `Product` je dobio `Vrsta`,
+`TipKorpice`, `Velicina`, `MozeUKorpicu`, `PrioritetUKorpici`, `Mjeseci`. `Order` je dobio
+`Godina`, `Sedmica` i `PretplataId`.
 
-**Ekrani kupca** (adresar od P2c nosi mapu u formi) — `/korpice`, `/korpice/[slug]`,
-`/moj-nalog` i pod njim `/podaci`,
-`/adrese`, `/narudzbe`, `/korpica`. `/orders` je serverski redirect na `/moj-nalog/narudzbe`.
+**Ekrani kupca** (adresar od P2c nosi mapu u formi) — `/korpice`, `/korpice/[slug]` (od P3 ima
+i „Pretplati se"), `/moj-nalog` i pod njim `/podaci`, `/adrese`, `/narudzbe`, `/korpica`,
+`/pretplate`. `/orders` je serverski redirect na `/moj-nalog/narudzbe`. U navigaciji naloga
+više nema zaključanih stavki.
 
 **Pozadinski poslovi** — `ZakljucavanjeSadrzajaService` (svakih 15 minuta zaključava sadržaje
-kojima je rok prošao), `ExpiredGuestRequestsCleaner`.
+kojima je rok prošao), `PretplatneNarudzbeService` (svakih 15 minuta pravi pretplatne
+narudžbe), `ExpiredGuestRequestsCleaner`.
 
 **Zajedničke tačke koje se ne smiju duplirati** — `KorpicaPodobnost` (jedini pojam „smije u
 korpicu"), `SnapshotKorpice` (kopiranje sadržaja pri nastanku narudžbe; zovu ga oba mjesta koja
 stvarno prave `Order`), `SedmicaHelper` (sve o sedmicama i rokovima), `lib/zone.ts`
-(`pogodiZonu` — jedino pogađanje zone po imenu naselja; zovu ga checkout i forma adresara).
+(`pogodiZonu` — jedino pogađanje zone po imenu naselja; zovu ga checkout i forme adresara i
+pretplate), `PretplatnaCijena` (jedino mjesto sa pravilom popusta; zovu ga ekran, javni
+`KorpicaDto` i `CreateOrderHandler`), `BrojacIsporuka` (jedino mjesto koje diže `BrojIsporuka`;
+zovu ga oba mjesta koja postavljaju `Delivered`).
 
 ## Nije urađeno
 
-**Sljedeće na redu je P3**, jer je ono što je u prethodnoj predaji stajalo kao „prva stavka
-nastavka" (birač na mapi) sada gotovo i spojeno.
-
-**P3 — Pretplate.** Tek započeto: pročitao sam pozadinske poslove i to je sve. Nema ni speca
-ni plana. Stavka „Pretplate" već stoji zaključana u navigaciji naloga i čeka da se otključa,
-isto kao što je „Moja korpica" čekala P2b.
-
-Jedna stvar koju P3 mora riješiti odmah, jer ju je P2b naučio na teži način: pretplata pravi
-narudžbe **bez kupca pred ekranom**, a u repou postoje **tri mjesta koja prave `Order`**
-(`CreateOrder.cs`, `GuestOrderRequests.cs`, `DbSeeder.cs`). P2b je bio pisan samo protiv prvog
-i gostove korpice su ostajale nevidljive pakerskoj listi — našla je to tek završna recenzija
-grane. U `CLAUDE.md` stoji uputstvo da se prije svake invarijante na nivou narudžbe pokrene
-`grep -rn "new Order {" backend/src --include=*.cs` i svjesno odluči o svakom pogotku. Za P3 to
-pitanje ide u spec, ne u recenziju.
+**Sljedeće na redu je P4** — P3 (pretplate) je gotov i spojen.
 
 **P4–P7** nisu dirani: marketinška početna; Analize/Recepti/O nama/Postani partner; poeni,
 referral, promo kodovi, ocjena isporuke; višejezičnost.
@@ -116,6 +134,10 @@ Ništa od ovoga ne blokira ništa; sve je svjesno odloženo uz razlog.
 
 | Nalaz | Gdje | Zašto je odloženo |
 |---|---|---|
+| Pretplata nema admin **ekran**, samo endpoint | `/admin/pretplate` | Podatak postoji i vraća i brojač „koliko čeka sadržaj", ali ga nijedna admin stranica ne prikazuje. Nabavka ga za sad čita kroz API. Ekran je mali posao, ali je izvan P3 opsega koji je bio kupčeva strana. |
+| Pretplatnik ne dobija obavijest kad mu sedmica bude preskočena | `PretplatneNarudzbe` | Kad sadržaj nije objavljen, posao preskoči sedmicu i zapiše u log — kupac to vidi tek po izostanku isporuke. Mejl kupcu i alarm adminu su svjesno ostavljeni za kasnije (rizik R2 u specu); `cekajuSadrzaj` na admin endpointu je zamjena dok ne postoje. |
+| `BrojIsporuka` je izveden podatak koji se može raziću sa narudžbama | `Pretplata`, `BrojacIsporuka` | Ako neko ručno mijenja statuse narudžbi, brojač i stvarni broj isporučenih mogu se razići. Mjerodavan je upit nad narudžbama; nije pravljen okidač u bazi jer logike u bazi nema nigdje u projektu. |
+| Sedmica pretplate ne gleda njen `DeliverySlot` | `PretplatneNarudzbe`, `SedmicaHelper` | Ciljna sedmica se računa iz slota sa najnižim `DayOfWeek`, isto kao u checkoutu. Dok su svi slotovi u istoj sedmici (četvrtak i petak), razlike nema. Isti je nalaz već zaveden za `CreateOrder` (vidi „Pet sitnica" ispod) i treba ih riješiti zajedno, ne odvojeno. |
 | Adrese sačuvane prije P2c nemaju tačku | postojeći redovi u `Addresses` | Birač postoji od P2c, ali ranije sačuvane adrese (i one prenesene iz starog `User.Address`) i dalje stoje bez pina. Kupac to vidi kao prigušenu napomenu na kartici i zatvara sam kroz „Izmijeni"; batch-geokodiranje adresara, kakvo narudžbe imaju (`admin/orders/geocode-missing`), nije pravljeno. |
 | Niko ne provjerava da pin i tekst adrese govore o istom mjestu | `address-picker.tsx`, `AddressRules` | Kad reverzno geokodiranje ne uspije, tekst ostaje kako je otkucan a pin tamo gdje je kliknut; birač na to i upozorava rečenicom ispod mape. Server provjerava samo da je tačka u granicama BiH. Isto važi i na checkoutu, nije uvedeno u P2c. |
 | Razlika broj-narudžbi naspram broj-redova nije testirana | `AdminKorpice.cs`, `BrojNarudzbi` | Pokrivanje traži drugu korpicu u dijeljenom test helperu dok su dva taska gradila na njemu. Završna recenzija je potvrdila da je odluka branjiva ali da sam rizik potcijenio — baš taj nedostajući fixture je ostavio neispitanim da editor ne provjerava je li red korpica. |
@@ -153,7 +175,7 @@ Nisu obrisani namjerno: to je jedino mjesto gdje piše šta je odlučeno umjesto
 Sedmica 42/2026 je generisana i objavljena za „Malu domaćinsku korpicu", i na njoj stoji
 narudžba `EP-2610-0052` (Mujo) čiji sam sadržaj mijenjao kroz ekran dok sam ga provjeravao.
 Rok za izmjenu te korpice je bio `2026-10-13 16:00`, pa je vjerovatno ispao iz prozora za
-uređivanje — to je očekivano, ne kvar. Ako P3 traži svježu korpicu za ručnu provjeru,
+uređivanje — to je očekivano, ne kvar. Ako treba svježa korpica za ručnu provjeru,
 generisati i objaviti novu sedmicu kroz admin endpointe.
 
 Iz P2c je ostala Mujina adresa „Kuća" (Kralja Petra I Karađorđevića 93), sa pinom
@@ -162,5 +184,19 @@ adresa sa tačkom u bazi, pa je zgodna i za provjeru rute i kao polazna adresa z
 Geokodiranje je i dalje mrtvo lokalno (`GET /geocode` vraća `{}`, izlazni soket 10013), pa se
 pin u ručnoj provjeri postavlja klikom na mapu, a ne kucanjem adrese.
 
-**Dev server je ostavljen upaljen** (`npm run dev` u zasebnom prozoru), isti kakav je i
-zatečen, zato što je `npm run build` morao da ga ugasi i obriše `.next`.
+Iz P3 su ostali: **sedmica 43/2026 generisana i objavljena** za „Malu domaćinsku korpicu",
+**jedna aktivna pretplata** Mujina na tu korpicu, i **narudžba `EP-2610-0053`** koju je napravio
+sam posao (pa sam je kroz admin prošetao do `Delivered`, da se vidi da brojač ide na 1).
+Pretplata je zato na „još 4 isporuke do niže cijene". Ako treba ispočetka: obrisati red iz
+`Pretplate` i narudžbu, pa napraviti novu pretplatu kroz ekran.
+
+**Da bi se posao vidio uživo** treba mu proširiti prozor — podrazumijevano pravi narudžbe tek
+48 sati prije roka, a to je obično nekoliko dana unaprijed. Privremeno u
+`appsettings.Development.json`:
+`"Pretplate": { "SatiUnaprijed": 10000 }`, pa restart API-ja (prvi prolaz ide odmah po dizanju).
+**Vratiti poslije** — ostavljeno podešeno znači da narudžbe nastaju mjesecima unaprijed.
+
+**Dev server i API su ostavljeni upaljeni**, isti kakvi su i zatečeni: `npm run dev` i
+`dotnet run --project src/EPiljara.API` u zasebnim prozorima. Oba su usput morala biti ugašena —
+dev server zbog `npm run build`, API zbog toga što drži Debug DLL-ove zaključane dok traje
+`dotnet build` i `dotnet ef`.

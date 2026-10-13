@@ -1,19 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ShoppingBasket } from "lucide-react";
+import { ArrowLeft, RefreshCw, ShoppingBasket } from "lucide-react";
 import { korpiceApi } from "@/lib/api/endpoints";
 import { korpicaKaoProizvod } from "@/lib/korpice";
 import { ApiRequestError } from "@/lib/api/client";
 import { RokTraka } from "@/components/korpice/rok-traka";
 import { SmartImage } from "@/components/ui/smart-image";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useCart } from "@/lib/cart/cart-context";
 import { useToast } from "@/components/ui/toast";
+import { useAuth } from "@/lib/auth/auth-context";
+import { PretplataForma } from "@/components/nalog/pretplata-forma";
 import { formatPrice } from "@/lib/utils";
 
 /**
@@ -24,6 +27,8 @@ import { formatPrice } from "@/lib/utils";
 export default function KorpicaDetaljPage() {
   const slug = String(useParams().slug);
   const { add } = useCart();
+  const { user } = useAuth();
+  const [pretplataOpen, setPretplataOpen] = useState(false);
   const { show } = useToast();
 
   const { data: korpica, isLoading, isError } = useQuery({
@@ -108,9 +113,21 @@ export default function KorpicaDetaljPage() {
               <span className="ml-1 text-sm font-normal text-muted">/korpica</span>
             </p>
 
+            {/* Cijenu sa pretplatom računa server (`PretplatnaCijena`) i šalje je uz
+                korpicu — ovdje se samo prikazuje. Stoji uz cijenu zato što je to jedini
+                razlog da se neko pretplati, a odluka se donosi baš ovdje. */}
+            {korpica.cijenaSaPretplatom !== undefined && (
+              <p className="mt-1 text-sm text-muted">
+                Sa pretplatom, od {(korpica.isporukaDoPopusta ?? 0) + 1}. isporuke:{" "}
+                <span className="font-semibold text-brand-700">
+                  {formatPrice(korpica.cijenaSaPretplatom)}
+                </span>
+              </p>
+            )}
+
             <p className="mt-4 text-ink/80">{korpica.opis}</p>
 
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               {nedostupna ? (
                 <div className="rounded-card bg-sand px-4 py-3 text-sm font-medium text-muted">
                   {!korpica.dostupna
@@ -127,6 +144,25 @@ export default function KorpicaDetaljPage() {
                 >
                   <ShoppingBasket className="h-5 w-5" /> Naruči korpicu
                 </Button>
+              )}
+
+              {/*
+                Pretplata se nudi i kad je naručivanje za OVU sedmicu zatvoreno: ona ionako
+                ne ide kroz ovu sedmicu nego kroz naredne, pa bi je gašenje zajedno sa
+                dugmetom „Naruči" sakrilo baš kad je kupcu najkorisnija. Neprijavljeni ide
+                na prijavu i vraća se ovdje — pretplata bez naloga nema vlasnika.
+              */}
+              {user ? (
+                <Button size="lg" variant="secondary" onClick={() => setPretplataOpen(true)}>
+                  <RefreshCw className="h-5 w-5" /> Pretplati se
+                </Button>
+              ) : (
+                <Link
+                  href={`/login?next=${encodeURIComponent(`/korpice/${slug}`)}`}
+                  className={buttonVariants({ variant: "secondary", size: "lg" })}
+                >
+                  <RefreshCw className="h-5 w-5" /> Pretplati se
+                </Link>
               )}
             </div>
 
@@ -175,6 +211,13 @@ export default function KorpicaDetaljPage() {
           </div>
         </div>
       </div>
+
+      {/* Korpica je već izabrana — forma otvara sa njom i kupac bira samo adresu i termin. */}
+      <PretplataForma
+        open={pretplataOpen}
+        onClose={() => setPretplataOpen(false)}
+        korpicaId={korpica.id}
+      />
     </>
   );
 }

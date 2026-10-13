@@ -1,5 +1,6 @@
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Pretplate;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -161,4 +162,12 @@ public class AdminController : ApiControllerBase
     [HttpGet("admin/korpice/pakerska-lista")]
     public async Task<IActionResult> PakerskaLista([FromQuery] int godina, [FromQuery] int sedmica) =>
         Envelope(await Mediator.Send(new GetPakerskaListaQuery(godina, sedmica)));
+
+    /// <summary>
+    /// Koliko je korpica obećano za narednu sedmicu, prije nego što ijedna narudžba nastane —
+    /// pitanje koje nabavka do P3 nije mogla postaviti.
+    /// </summary>
+    [HttpGet("admin/pretplate")]
+    public async Task<IActionResult> Pretplate([FromQuery] string? status) =>
+        Envelope(await Mediator.Send(new GetAdminPretplateQuery(status)));
 }

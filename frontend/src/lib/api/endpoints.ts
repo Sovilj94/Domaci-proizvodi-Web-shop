@@ -11,6 +11,7 @@ import type {
   MojaKorpica,
   Order,
   OrderStatus,
+  Pretplata,
   Producer,
   Product,
   SadrzajKorpice,
@@ -35,6 +36,7 @@ import type {
   LoginRequest,
   MojaKorpicaDetalji,
   PakerskaLista,
+  PretplataInput,
   ProducerInput,
   ProductInput,
   ProfileInput,
@@ -225,6 +227,32 @@ export const accountApi = {
       method: "PUT",
       body: { productIds },
     }).then((r) => r.data),
+
+  pretplate: () => apiFetch<Pretplata[]>("/account/pretplate").then((r) => r.data),
+
+  dodajPretplatu: (body: PretplataInput) =>
+    apiFetch<Pretplata>("/account/pretplate", { method: "POST", body }).then((r) => r.data),
+
+  izmijeniPretplatu: (id: string, body: PretplataInput) =>
+    apiFetch<Pretplata>(`/account/pretplate/${id}`, { method: "PUT", body }).then(
+      (r) => r.data,
+    ),
+
+  /** `sedmica` je broj ISPORUKA koje se preskaču, ne datum — vidi spec P3, odluka O4. */
+  pauzirajPretplatu: (id: string, sedmica: number) =>
+    apiFetch<Pretplata>(`/account/pretplate/${id}/pauza`, {
+      method: "POST",
+      body: { sedmica },
+    }).then((r) => r.data),
+
+  nastaviPretplatu: (id: string) =>
+    apiFetch<Pretplata>(`/account/pretplate/${id}/nastavi`, { method: "POST" }).then(
+      (r) => r.data,
+    ),
+
+  /** Backend vraća 204 bez tijela; `apiFetch` to prepoznaje kao uspjeh (vidi client.ts). */
+  otkaziPretplatu: (id: string): Promise<void> =>
+    apiFetch<void>(`/account/pretplate/${id}`, { method: "DELETE" }).then(() => undefined),
 };
 
 /* ---------- Admin ---------- */

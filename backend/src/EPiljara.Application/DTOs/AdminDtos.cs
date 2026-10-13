@@ -128,3 +128,35 @@ public record WarehouseDto
     public double Latitude { get; init; }
     public double Longitude { get; init; }
 }
+
+/// <summary>
+/// Pretplate za nabavku: spisak plus dva broja koja su smisao ekrana — koliko je korpica
+/// obećano za narednu sedmicu i koliko njih još nema objavljen sadržaj.
+/// </summary>
+public class AdminPretplateDto
+{
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
+    public int BrojAktivnih { get; init; }
+    public int CekajuSadrzaj { get; init; }
+    public IReadOnlyList<AdminPretplataDto> Stavke { get; init; } = [];
+}
+
+public class AdminPretplataDto
+{
+    public Guid Id { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public string Kupac { get; init; } = string.Empty;
+    public string? Email { get; init; }
+    public string? Telefon { get; init; }
+    public string Korpica { get; init; } = string.Empty;
+    public decimal Cijena { get; init; }
+    public int BrojIsporuka { get; init; }
+    public string? Zona { get; init; }
+    public string Adresa { get; init; } = string.Empty;
+    public int? PoslednjaGodina { get; init; }
+    public int? PoslednjaSedmica { get; init; }
+
+    /// <summary>Ima li ova korpica objavljen sadržaj za ciljnu sedmicu.</summary>
+    public bool SadrzajSpreman { get; init; }
+}

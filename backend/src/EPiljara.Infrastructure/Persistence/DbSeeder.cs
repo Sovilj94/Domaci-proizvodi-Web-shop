@@ -244,6 +244,25 @@ public static class DbSeeder
             Order(ref seq, mujo, starcevica, cet, "Carice Milice 8, Banja Luka", OrderStatus.Pending,
                 (findProduct("Kajmak"), 1m), (findProduct("Svježe kravlje mlijeko"), 4m)));
 
+        // ----- Pretplata (P3) -----
+        // Jedna aktivna, sa četiri isporuke iza sebe: ekran se tako vidi u oba stanja —
+        // traka „još jedna isporuka do niže cijene" sada, a pretplatnička cijena poslije
+        // naredne isporuke. Narudžbe za te četiri isporuke se ne izmišljaju; brojač je
+        // izveden podatak i demo baza ne mora da ima istoriju koja ga potkrepljuje.
+        db.Pretplate.Add(new Pretplata
+        {
+            UserId = mujo.Id,
+            ProductId = db.Products.Local.First(p =>
+                p.Vrsta == VrstaProizvoda.Korpica
+                && p.TipKorpice == TipKorpice.Domacinska
+                && p.Velicina == VelicinaKorpice.Mala).Id,
+            Status = StatusPretplate.Aktivna,
+            DeliveryZoneId = centar.Id,
+            DeliverySlotId = cet.Id,
+            DeliveryAddress = "Kralja Petra I 12, Banja Luka",
+            BrojIsporuka = 4,
+        });
+
         await db.SaveChangesAsync(ct);
     }
 
