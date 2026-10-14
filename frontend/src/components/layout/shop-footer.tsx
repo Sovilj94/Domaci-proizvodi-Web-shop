@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MapPin, Phone } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { FooterRok } from "@/components/layout/footer-rok";
+import { KONTAKT } from "@/lib/kontakt";
 
 /**
  * Footer je taman, kao zadnji od naizmjeničnih pojaseva stranice. Sekundarni tekst
@@ -17,8 +18,8 @@ export function ShopFooter() {
        * fiksirana na dno VIEWPORT-a, pa pokriva dno onoga što je zadnje u toku — a to
        * je footer, poslije <main>. Na telefonima sa zarezom raste za safe-area inset.
        */}
-      {/* Brend stupac je širi od ostala tri — nosi opis, a ne spisak linkova. */}
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
+      {/* Brend stupac je širi od ostalih — nosi opis, a ne spisak linkova. */}
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
         <div className="space-y-4">
           <Logo tone="dark" />
           <p className="max-w-xs text-sm leading-relaxed text-muted-dark">
@@ -50,6 +51,39 @@ export function ShopFooter() {
           </ul>
         </div>
 
+        <div>
+          <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-honey-500">
+            E piljara
+          </h3>
+          <ul className="space-y-2.5 text-sm text-muted-dark">
+            <li>
+              <Link href="/o-nama" className="transition hover:text-cream">
+                O nama
+              </Link>
+            </li>
+            <li>
+              <Link href="/proizvodjaci" className="transition hover:text-cream">
+                Naši domaćini
+              </Link>
+            </li>
+            <li>
+              <Link href="/recepti" className="transition hover:text-cream">
+                Recepti
+              </Link>
+            </li>
+            <li>
+              <Link href="/analize" className="transition hover:text-cream">
+                Analize
+              </Link>
+            </li>
+            <li>
+              <Link href="/postani-partner" className="transition hover:text-cream">
+                Postani partner
+              </Link>
+            </li>
+          </ul>
+        </div>
+
         <div id="dostava">
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-honey-500">
             Dostava
@@ -69,10 +103,13 @@ export function ShopFooter() {
           </h3>
           <ul className="space-y-2.5 text-sm text-muted-dark">
             <li className="flex items-center gap-2">
-              <Phone className="h-4 w-4 shrink-0 text-sage" /> +387 51 000 000
+              <Phone className="h-4 w-4 shrink-0 text-sage" />
+              <a href={KONTAKT.telefonHref} className="transition hover:text-cream">
+                {KONTAKT.telefon}
+              </a>
             </li>
             <li className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 shrink-0 text-sage" /> Manjača, Banja Luka
+              <MapPin className="h-4 w-4 shrink-0 text-sage" /> {KONTAKT.adresa}
             </li>
           </ul>
         </div>
