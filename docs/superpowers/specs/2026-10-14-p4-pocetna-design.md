@@ -66,7 +66,7 @@ Korisnik je tražio da ne pita. Sve niže su moje i svaka nosi cijenu ako je pog
 | O6 | `/korpice/sedmica` dobija **sljedeći krug** (`SljedeciRok`, `SljedecaIsporuka`) | Aditivno polje u DTO-u; postojeći potrošači (traka roka, `/korpice`) ga ignorišu. Bez njega odbrojavanje poslije roka nema do čega brojati. |
 | O7 | Odbrojavanje broji do `rokNarucivanja` dok rok nije prošao, a poslije do `sljedeciRok` sa porukom da je ova sedmica zatvorena | Isto tumačenje kao checkout (`SedmicaZaNarudzbu`): poslije roka se naručuje za narednu sedmicu. Izlog `/korpice` i dalje gasi dugme poslije roka — taj otvoreni nalaz ostaje kakav jeste, P4 ga ne rješava. |
 | O8 | Odbrojavanje kuca svake sekunde, ali prikazuje sekunde samo u posljednja 24 sata | Do tada su dani/sati/minute dovoljni i stranica ne treperi. |
-| O9 | Domaćini: svi proizvođači (do 8), uz do četiri imena **aktivnih, običnih** proizvoda (korpice se ne broje). `ProducerDto` dobija `Artikli: string[]` | Polje putuje i u admin listu proizvođača, gdje se ne koristi. Kartica i dalje ne vodi nikud, jer filter po proizvođaču ne postoji. |
+| O9 | Domaćini: svi proizvođači (do 8), uz do četiri imena **dostupnih, običnih** proizvoda (korpice se ne broje). `ProducerDto` dobija `Artikli: string[]` | Polje putuje i u admin listu proizvođača, gdje se ne koristi. Kartica i dalje ne vodi nikud, jer filter po proizvođaču ne postoji. |
 | O10 | Footer čita rok i dan isporuke iz `/korpice/sedmica` umjesto zakucanog teksta. Zone ostaju zakucane | Popravka izvan užeg opsega, ali odbrojavanje bi inače na istoj stranici reklo jedan rok, a footer drugi. Zone se ne diraju jer se rjeđe mijenjaju i nisu dio P4. |
 | O11 | Imena dana i padeži se vade iz `rok-traka.tsx` u `lib/sedmica.ts` | Tri nova potrošača (odbrojavanje, FAQ, footer) bi inače kopirala iste dvije liste. |
 | O12 | „Kako funkcioniše" je statičan, tri koraka, bez brojeva iz konfiguracije | Ne obećava ništa mjerljivo, pa nema šta da se razide sa serverom. |
@@ -84,10 +84,11 @@ public class Utisak : Entity
     public string Tekst { get; set; } = string.Empty;
     public bool Objavljen { get; set; }
     public int Redoslijed { get; set; }                 // manji ide prvi
+    public DateTime Kreiran { get; set; } = DateTime.UtcNow;
 }
 ```
 
-`Entity` već nosi `Id` i `CreatedAt`. Tabela `Utisci`, migracija `DodajUtiske`.
+`Entity` nosi samo `Id`, pa `Kreiran` služi kao drugi ključ redoslijeda. Tabela `Utisci`, migracija `DodajUtiske`.
 
 **Pravila (validator):** `Ime` 2–60 znakova; `Mjesto` 0–60; `Tekst` 10–500; `Redoslijed`
 0–999. Prazni stringovi se trimuju prije provjere.
@@ -105,13 +106,13 @@ istog `DatumIsporuke`/cutoff-a. Nema nove logike o rokovima — samo drugi argum
 ### `ProducerDto` dobija `Artikli`
 
 `IReadOnlyList<string> Artikli` — do četiri imena proizvoda tog proizvođača koji su
-`IsActive` i `Vrsta == Obican`, po imenu. Puni ga `GetProducersHandler` jednim upitom nad
+`IsAvailable` i `Vrsta == Obican`, po imenu (obrisane već skida globalni filter `IsDeleted`). Puni ga `GetProducersHandler` jednim upitom nad
 `Products` grupisanim po `ProducerId`, ne N upita.
 
 ## API
 
 ```
-GET    /utisci                    javno; samo objavljeni, po Redoslijed pa CreatedAt
+GET    /utisci                    javno; samo objavljeni, po Redoslijed pa Kreiran
 GET    /admin/utisci              svi, isti redoslijed
 POST   /admin/utisci              tijelo: UtisakInput { ime, mjesto, tekst, objavljen, redoslijed }
 PUT    /admin/utisci/{id}
