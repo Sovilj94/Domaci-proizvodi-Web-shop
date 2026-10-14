@@ -4,6 +4,7 @@ import type {
   PonudaArtikla,
   StatusSadrzaja,
   StavkaMojeKorpice,
+  TezinaRecepta,
   TipKorpice,
   Unit,
   VelicinaKorpice,
@@ -243,4 +244,23 @@ export interface PretplataInput {
   latitude?: number;
   longitude?: number;
   napomena?: string;
+}
+
+export interface SastojakInput {
+  naziv: string;
+  kolicina?: string;
+  productId?: string;
+}
+
+/** Koraci idu kao jedan tekst, redovi odvojeni sa "\n". */
+export interface ReceptInput {
+  naslov: string;
+  opis?: string;
+  slikaUrl?: string;
+  vrijemeMinuta: number;
+  porcije: number;
+  tezina: TezinaRecepta;
+  koraci: string;
+  objavljen: boolean;
+  sastojci?: SastojakInput[];
 }

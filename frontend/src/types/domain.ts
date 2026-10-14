@@ -380,3 +380,53 @@ export interface Utisak {
   objavljen: boolean;
   redoslijed: number;
 }
+
+/* ---------- Recepti (backend `DTOs/ReceptiDtos.cs`) ---------- */
+
+/** Enum je na žici PascalCase string. */
+export type TezinaRecepta = "Lako" | "Srednje" | "Zahtjevno";
+
+export const TEZINA_TEKST: Record<TezinaRecepta, string> = {
+  Lako: "Lako",
+  Srednje: "Srednje",
+  Zahtjevno: "Zahtjevno",
+};
+
+/** `ReceptKratkoDto` — stavka javne liste. */
+export interface ReceptKratko {
+  id: string;
+  naslov: string;
+  slug: string;
+  opis: string;
+  slikaUrl?: string;
+  vrijemeMinuta: number;
+  porcije: number;
+  tezina: TezinaRecepta;
+}
+
+export interface SastojakRecepta {
+  naziv: string;
+  kolicina: string;
+  proizvod?: Product;
+}
+
+/** `ReceptDto` — javni detalj. */
+export interface Recept extends ReceptKratko {
+  koraci: string[];
+  sastojci: SastojakRecepta[];
+  objavljen: boolean;
+}
+
+export interface SastojakAdmin {
+  naziv: string;
+  kolicina: string;
+  productId?: string;
+}
+
+/** `ReceptAdminDto`. `koraci` je niz; ulaz ih prima kao jedan tekst. */
+export interface ReceptAdmin extends ReceptKratko {
+  koraci: string[];
+  sastojci: SastojakAdmin[];
+  objavljen: boolean;
+  kreiran: string;
+}

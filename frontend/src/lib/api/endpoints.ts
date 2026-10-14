@@ -18,6 +18,9 @@ import type {
   Sedmica,
   TipKorpice,
   Utisak,
+  Recept,
+  ReceptAdmin,
+  ReceptKratko,
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
@@ -46,6 +49,7 @@ import type {
   RezultatGenerisanja,
   SadrzajPregled,
   UtisakInput,
+  ReceptInput,
 } from "./contracts";
 
 /**
@@ -98,6 +102,14 @@ export const korpiceApi = {
 
 export const utisciApi = {
   lista: () => apiFetch<Utisak[]>("/utisci", { auth: false }).then((r) => r.data),
+};
+
+/* ---------- Recepti ---------- */
+
+export const receptiApi = {
+  lista: () => apiFetch<ReceptKratko[]>("/recepti", { auth: false }).then((r) => r.data),
+  recept: (slug: string) =>
+    apiFetch<Recept>(`/recepti/${slug}`, { auth: false }).then((r) => r.data),
 };
 
 /* ---------- Admin: korpice ---------- */
@@ -336,6 +348,18 @@ export const adminApi = {
 
   deleteUtisak: (id: string) =>
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
+
+  /* Recepti */
+  recepti: () => apiFetch<ReceptAdmin[]>("/admin/recepti").then((r) => r.data),
+
+  createRecept: (body: ReceptInput) =>
+    apiFetch<ReceptAdmin>("/admin/recepti", { method: "POST", body }).then((r) => r.data),
+
+  updateRecept: (id: string, body: ReceptInput) =>
+    apiFetch<ReceptAdmin>(`/admin/recepti/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deleteRecept: (id: string) =>
+    apiFetch<string>(`/admin/recepti/${id}`, { method: "DELETE" }).then(() => id),
 
   /* Drivers */
   drivers: () => apiFetch<Driver[]>("/admin/drivers").then((r) => r.data),
