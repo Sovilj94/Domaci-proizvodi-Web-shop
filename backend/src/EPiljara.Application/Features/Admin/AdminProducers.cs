@@ -101,9 +101,11 @@ public class DeleteProducerHandler(IAppDbContext db) : IRequestHandler<DeletePro
             ?? throw new NotFoundException("Proizvođač nije pronađen.");
 
         // Even soft-deleted products still hold the FK, so guard with a clear 409.
-        if (await db.Products.IgnoreQueryFilters().AnyAsync(p => p.ProducerId == cmd.Id, ct))
+        // Isto važi za analize: nalaz ne smije ostati bez proizvođača.
+        if (await db.Products.IgnoreQueryFilters().AnyAsync(p => p.ProducerId == cmd.Id, ct)
+            || await db.Analize.AnyAsync(a => a.ProducerId == cmd.Id, ct))
             throw new ConflictException(
-                "Proizvođač ima proizvode i ne može se obrisati.", "producer_in_use");
+                "Proizvođač ima proizvode ili analize i ne može se obrisati.", "producer_in_use");
 
         db.Producers.Remove(producer);
         await db.SaveChangesAsync(ct);

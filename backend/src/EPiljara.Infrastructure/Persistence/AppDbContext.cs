@@ -29,6 +29,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
+    public DbSet<Recept> Recepti => Set<Recept>();
+    public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();
+    public DbSet<Analiza> Analize => Set<Analiza>();
+    public DbSet<PartnerPrijava> PartnerPrijave => Set<PartnerPrijava>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -249,6 +253,59 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Tekst).HasMaxLength(500).IsRequired();
             // Javna lista filtrira po Objavljen i sortira po Redoslijed.
             e.HasIndex(x => new { x.Objavljen, x.Redoslijed });
+        });
+
+        b.Entity<Recept>(e =>
+        {
+            e.Property(x => x.Naslov).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Slug).HasMaxLength(140).IsRequired();
+            e.HasIndex(x => x.Slug).IsUnique();
+            e.Property(x => x.Opis).HasMaxLength(500).IsRequired();
+            e.Property(x => x.SlikaUrl).HasMaxLength(500);
+            e.Property(x => x.Koraci).HasMaxLength(8000).IsRequired();
+            e.Property(x => x.Tezina).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => x.Objavljen);
+            e.HasMany(x => x.Sastojci).WithOne(s => s.Recept!)
+                .HasForeignKey(s => s.ReceptId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ReceptSastojak>(e =>
+        {
+            e.Property(x => x.Naziv).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Kolicina).HasMaxLength(40).IsRequired();
+            // Proizvod se može izgubiti ispod recepta — sastojak tada samo ostane bez dugmeta.
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<Analiza>(e =>
+        {
+            e.Property(x => x.Uzorak).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Laboratorija).HasMaxLength(120).IsRequired();
+            e.Property(x => x.BrojIzvjestaja).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Ispitano).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Napomena).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.PdfUrl).HasMaxLength(500);
+            e.Property(x => x.Rezultat).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(x => new { x.Objavljena, x.DatumUzorkovanja });
+            // Nalaz ne smije nestati ispod proizvođača — brisanje proizvođača se odbija (409).
+            e.HasOne(x => x.Producer).WithMany()
+                .HasForeignKey(x => x.ProducerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<PartnerPrijava>(e =>
+        {
+            e.Property(x => x.Ime).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Gazdinstvo).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Mjesto).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Telefon).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Proizvodi).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.AdminNapomena).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => new { x.Status, x.Kreirana });
         });
 
         b.Entity<OrderItem>(e =>

@@ -18,6 +18,12 @@ import type {
   Sedmica,
   TipKorpice,
   Utisak,
+  Analiza,
+  PartnerPrijava,
+  StatusPrijave,
+  Recept,
+  ReceptAdmin,
+  ReceptKratko,
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
@@ -46,6 +52,10 @@ import type {
   RezultatGenerisanja,
   SadrzajPregled,
   UtisakInput,
+  AnalizaInput,
+  PartnerPrijavaInput,
+  PartnerStatusInput,
+  ReceptInput,
 } from "./contracts";
 
 /**
@@ -59,6 +69,8 @@ export interface ProductQuery {
   category?: string;
   search?: string;
   featured?: boolean;
+  /** id proizvođača — stranica domaćina */
+  producer?: string;
 }
 
 export const catalogApi = {
@@ -96,6 +108,30 @@ export const korpiceApi = {
 
 export const utisciApi = {
   lista: () => apiFetch<Utisak[]>("/utisci", { auth: false }).then((r) => r.data),
+};
+
+/* ---------- Analize ---------- */
+
+export const analizeApi = {
+  lista: (producer?: string) =>
+    apiFetch<Analiza[]>("/analize", { auth: false, query: { producer } }).then((r) => r.data),
+};
+
+/* ---------- Partneri ---------- */
+
+export const partneriApi = {
+  posalji: (body: PartnerPrijavaInput) =>
+    apiFetch<{ primljena: boolean }>("/partneri/prijave", { method: "POST", body, auth: false }).then(
+      (r) => r.data,
+    ),
+};
+
+/* ---------- Recepti ---------- */
+
+export const receptiApi = {
+  lista: () => apiFetch<ReceptKratko[]>("/recepti", { auth: false }).then((r) => r.data),
+  recept: (slug: string) =>
+    apiFetch<Recept>(`/recepti/${slug}`, { auth: false }).then((r) => r.data),
 };
 
 /* ---------- Admin: korpice ---------- */
@@ -334,6 +370,37 @@ export const adminApi = {
 
   deleteUtisak: (id: string) =>
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
+
+  /* Partneri */
+  partneri: (status?: StatusPrijave) =>
+    apiFetch<PartnerPrijava[]>("/admin/partneri", { query: { status } }).then((r) => r.data),
+
+  azurirajPrijavu: (id: string, body: PartnerStatusInput) =>
+    apiFetch<PartnerPrijava>(`/admin/partneri/${id}`, { method: "PATCH", body }).then((r) => r.data),
+
+  /* Analize */
+  analize: () => apiFetch<Analiza[]>("/admin/analize").then((r) => r.data),
+
+  createAnaliza: (body: AnalizaInput) =>
+    apiFetch<Analiza>("/admin/analize", { method: "POST", body }).then((r) => r.data),
+
+  updateAnaliza: (id: string, body: AnalizaInput) =>
+    apiFetch<Analiza>(`/admin/analize/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deleteAnaliza: (id: string) =>
+    apiFetch<string>(`/admin/analize/${id}`, { method: "DELETE" }).then(() => id),
+
+  /* Recepti */
+  recepti: () => apiFetch<ReceptAdmin[]>("/admin/recepti").then((r) => r.data),
+
+  createRecept: (body: ReceptInput) =>
+    apiFetch<ReceptAdmin>("/admin/recepti", { method: "POST", body }).then((r) => r.data),
+
+  updateRecept: (id: string, body: ReceptInput) =>
+    apiFetch<ReceptAdmin>(`/admin/recepti/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deleteRecept: (id: string) =>
+    apiFetch<string>(`/admin/recepti/${id}`, { method: "DELETE" }).then(() => id),
 
   /* Drivers */
   drivers: () => apiFetch<Driver[]>("/admin/drivers").then((r) => r.data),

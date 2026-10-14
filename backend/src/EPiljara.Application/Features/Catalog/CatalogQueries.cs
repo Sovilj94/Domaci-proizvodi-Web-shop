@@ -10,7 +10,7 @@ namespace EPiljara.Application.Features.Catalog;
 
 /* ---------- Products ---------- */
 
-public record GetProductsQuery(string? Category, string? Search, bool? Featured)
+public record GetProductsQuery(string? Category, string? Search, bool? Featured, Guid? Producer = null)
     : IRequest<IReadOnlyList<ProductDto>>;
 
 public class GetProductsHandler(IAppDbContext db)
@@ -32,6 +32,9 @@ public class GetProductsHandler(IAppDbContext db)
 
         if (!string.IsNullOrWhiteSpace(q.Category))
             query = query.Where(p => p.Category!.Slug == q.Category);
+
+        if (q.Producer is { } proizvodjac)
+            query = query.Where(p => p.ProducerId == proizvodjac);
 
         if (q.Featured == true)
             query = query.Where(p => p.IsFeatured);

@@ -1,6 +1,9 @@
 using EPiljara.Application.Features.Admin;
+using EPiljara.Application.Features.Analize;
+using EPiljara.Application.Features.Recepti;
 using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Partneri;
 using EPiljara.Application.Features.Pretplate;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -187,4 +190,44 @@ public class AdminController : ApiControllerBase
     [HttpDelete("admin/utisci/{id:guid}")]
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
+
+    [HttpGet("admin/recepti")]
+    public async Task<IActionResult> Recepti() =>
+        EnvelopeList(await Mediator.Send(new GetAdminRecepteQuery()));
+
+    [HttpPost("admin/recepti")]
+    public async Task<IActionResult> CreateRecept([FromBody] ReceptInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreateReceptCommand(input)));
+
+    [HttpPut("admin/recepti/{id:guid}")]
+    public async Task<IActionResult> UpdateRecept(Guid id, [FromBody] ReceptInput input) =>
+        Envelope(await Mediator.Send(new UpdateReceptCommand(id, input)));
+
+    [HttpDelete("admin/recepti/{id:guid}")]
+    public async Task<IActionResult> DeleteRecept(Guid id) =>
+        Envelope(await Mediator.Send(new DeleteReceptCommand(id)));
+
+    [HttpGet("admin/analize")]
+    public async Task<IActionResult> Analize() =>
+        EnvelopeList(await Mediator.Send(new GetAdminAnalizeQuery()));
+
+    [HttpPost("admin/analize")]
+    public async Task<IActionResult> CreateAnaliza([FromBody] AnalizaInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreateAnalizaCommand(input)));
+
+    [HttpPut("admin/analize/{id:guid}")]
+    public async Task<IActionResult> UpdateAnaliza(Guid id, [FromBody] AnalizaInput input) =>
+        Envelope(await Mediator.Send(new UpdateAnalizaCommand(id, input)));
+
+    [HttpGet("admin/partneri")]
+    public async Task<IActionResult> Partneri([FromQuery] string? status) =>
+        EnvelopeList(await Mediator.Send(new GetAdminPartneriQuery(status)));
+
+    [HttpPatch("admin/partneri/{id:guid}")]
+    public async Task<IActionResult> ObradiPartnera(Guid id, [FromBody] ObradaInput input) =>
+        Envelope(await Mediator.Send(new ObradiPrijavuCommand(id, input)));
+
+    [HttpDelete("admin/analize/{id:guid}")]
+    public async Task<IActionResult> DeleteAnaliza(Guid id) =>
+        Envelope(await Mediator.Send(new DeleteAnalizaCommand(id)));
 }

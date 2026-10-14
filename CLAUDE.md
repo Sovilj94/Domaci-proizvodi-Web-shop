@@ -311,6 +311,34 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   prerenders it, so `Date.now()` in render is a hydration mismatch. At zero it invalidates
   `["korpice","sedmica"]` and the server decides the round has moved on.
 
+## Sadržaj (P5)
+
+- **Lab analyses (`Analiza`) are never seeded, not even in the demo seed.** A made-up lab result is a lie
+  about food. A non-compliant result (`NijeUskladjeno`) is still published when `Objavljena`; whether to
+  publish is the admin's call, never a filter in the query. A producer with analyses cannot be deleted
+  (`producer_in_use`, 409; FK is `Restrict`).
+- **Recipes (`Recept` + `ReceptSastojak`) are seeded only in the demo seed** (`DbSeeder.SeedReceptiAsync`,
+  its own idempotent guard so it also runs on an already-seeded DB). A recipe's `Slug` is made once from the
+  title and **never changes** on edit, so old links keep working.
+- **An ingredient offers a product only if it is an ordinary, non-deleted `Product`**
+  (`ReceptPravila.SmijeUPrikaz`) — a korpica in a recipe would bypass `/korpice` and its deadline. "Dodaj
+  sastojke u korpu" adds only available linked products, one unit each.
+- **Updating a recipe or analysis accepts product ids that are already linked even if the product has since
+  been soft-deleted**; only *new* ids must exist. Without that, one deleted product locked every recipe that
+  used it.
+- **`POST /partneri/prijave` is the only unauthenticated write besides checkout.** It sits behind the `auth`
+  rate-limit policy and has a honeypot field `web`: when filled, the handler returns the same
+  `{ primljena: true }` as a real submission and writes nothing. The validator never mentions `web`.
+- **Enums cross the wire as PascalCase strings** (`ToString()` out; `string` in, validated with
+  `Enum.TryParse(…, ignoreCase: true)` **and** `Enum.IsDefined` — `TryParse` alone accepts `"99"`).
+- **Every new command validator starts with `RuleFor(x => x.Input).NotNull()`.** With
+  `SuppressModelStateInvalidFilter`, a body that fails JSON binding (e.g. `""` for a `DateOnly`) arrives as a
+  null `Input`, `SetValidator` skips it, and the handler would throw a 500.
+- **Admin-entered URLs:** `Analiza.PdfUrl` is rendered as a link only for `http(s)://` or a site path; images
+  go through `SmartImage`. There is no upload anywhere — admins paste URLs.
+- **Contact data lives in `frontend/src/lib/kontakt.ts`** (footer and `/o-nama#kontakt`). Public copy on the
+  P5 pages states only what the app actually does; check a new sentence against the code before adding it.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.

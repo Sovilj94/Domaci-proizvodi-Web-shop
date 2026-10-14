@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { catalogApi, deliveryApi, korpiceApi, orderApi, utisciApi, type ProductQuery } from "./endpoints";
+import { analizeApi, catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
 
 export const queryKeys = {
   products: (q: ProductQuery) => ["products", q] as const,
@@ -20,6 +20,12 @@ export const queryKeys = {
   pretplate: () => ["account", "pretplate"] as const,
   utisci: () => ["utisci"] as const,
   adminUtisci: () => ["admin", "utisci"] as const,
+  recepti: () => ["recepti"] as const,
+  recept: (slug: string) => ["recepti", slug] as const,
+  adminRecepti: () => ["admin", "recepti"] as const,
+  analize: (producer?: string) => ["analize", producer ?? "sve"] as const,
+  adminAnalize: () => ["admin", "analize"] as const,
+  adminPartneri: (status?: string) => ["admin", "partneri", status ?? "sve"] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {
@@ -50,6 +56,15 @@ export function useProducers() {
     queryKey: queryKeys.producers(),
     queryFn: () => catalogApi.producers(),
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useProducer(id: string) {
+  return useQuery({
+    queryKey: queryKeys.producer(id),
+    queryFn: () => catalogApi.producer(id),
+    enabled: !!id,
+    retry: false, // 404 je odgovor, ne kvar mreže — ne ponavljati
   });
 }
 
@@ -129,5 +144,29 @@ export function useSedmica() {
     queryKey: queryKeys.sedmica(),
     queryFn: korpiceApi.sedmica,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useRecepti() {
+  return useQuery({
+    queryKey: queryKeys.recepti(),
+    queryFn: () => receptiApi.lista(),
+  });
+}
+
+export function useRecept(slug: string) {
+  return useQuery({
+    queryKey: queryKeys.recept(slug),
+    queryFn: () => receptiApi.recept(slug),
+    enabled: !!slug,
+    retry: false, // 404 je odgovor, ne kvar mreže
+  });
+}
+
+/** Objavljene analize; `producer` sužava na jednog domaćina. */
+export function useAnalize(producer?: string) {
+  return useQuery({
+    queryKey: queryKeys.analize(producer),
+    queryFn: () => analizeApi.lista(producer),
   });
 }

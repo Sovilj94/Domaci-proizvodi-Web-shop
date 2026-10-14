@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ChefHat,
+  FlaskConical,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Package,
@@ -21,25 +24,31 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { adminApi } from "@/lib/api/endpoints";
-import { narudzbeRijec } from "@/lib/orders";
+import { queryKeys } from "@/lib/api/hooks";
+import { narudzbeRijec, prijaveRijec } from "@/lib/orders";
 import { cn } from "@/lib/utils";
+
+type BadgeVrsta = "narudzbe" | "partneri";
 
 interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Nosi badge sa brojem narudžbi koje čekaju potvrdu. */
-  badge?: boolean;
+  /** Vrsta badge-a: narudžbe koje čekaju potvrdu ili nove prijave partnera. */
+  badge?: BadgeVrsta;
 }
 
 const ITEMS: NavItem[] = [
   { href: "/admin/dashboard", label: "Pregled", icon: LayoutDashboard },
-  { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag, badge: true },
+  { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag, badge: "narudzbe" },
   { href: "/admin/products", label: "Proizvodi", icon: Package },
   { href: "/admin/korpice", label: "Korpice", icon: ShoppingBasket },
   { href: "/admin/categories", label: "Kategorije", icon: Tags },
   { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
   { href: "/admin/utisci", label: "Utisci", icon: Quote },
+  { href: "/admin/recepti", label: "Recepti", icon: ChefHat },
+  { href: "/admin/analize", label: "Analize", icon: FlaskConical },
+  { href: "/admin/partneri", label: "Partneri", icon: Handshake, badge: "partneri" },
   { href: "/admin/drivers", label: "Vozači", icon: Users },
   { href: "/admin/dostava", label: "Dostava", icon: Truck },
   { href: "/admin/settings", label: "Magacin", icon: Warehouse },
@@ -65,11 +74,31 @@ function usePendingOrdersCount() {
   return data?.pendingOrders ?? 0;
 }
 
-function PendingBadge({ count, className }: { count: number; className?: string }) {
+/** Broj prijava partnera u statusu Nova; invalidira se prefiksom ["admin","partneri"]. */
+function useNewPartnersCount() {
+  const { data } = useQuery({
+    queryKey: queryKeys.adminPartneri("Nova"),
+    queryFn: () => adminApi.partneri("Nova"),
+    refetchInterval: 30_000,
+  });
+  return data?.length ?? 0;
+}
+
+function useBadgeCounts(): Record<BadgeVrsta, number> {
+  return { narudzbe: usePendingOrdersCount(), partneri: useNewPartnersCount() };
+}
+
+function badgeLabel(vrsta: BadgeVrsta, count: number): string {
+  return vrsta === "narudzbe"
+    ? `${count} ${narudzbeRijec(count)} na čekanju`
+    : `${count} ${prijaveRijec(count)}`;
+}
+
+function PendingBadge({ count, label, className }: { count: number; label: string; className?: string }) {
   if (count <= 0) return null;
   return (
     <span
-      aria-label={`${count} ${narudzbeRijec(count)} na čekanju`}
+      aria-label={label}
       className={cn(
         "grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white",
         className,
@@ -83,7 +112,7 @@ function PendingBadge({ count, className }: { count: number; className?: string 
 export function AdminSidebar() {
   const isActive = useActive();
   const { user, logout } = useAuth();
-  const pending = usePendingOrdersCount();
+  const counts = useBadgeCounts();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink text-white lg:flex">
@@ -111,7 +140,13 @@ export function AdminSidebar() {
           >
             <item.icon className="h-4 w-4" />
             {item.label}
-            {item.badge && <PendingBadge count={pending} className="ml-auto" />}
+            {item.badge && (
+              <PendingBadge
+                count={counts[item.badge]}
+                label={badgeLabel(item.badge, counts[item.badge])}
+                className="ml-auto"
+              />
+            )}
           </Link>
         ))}
       </nav>
@@ -146,7 +181,7 @@ export function AdminSidebar() {
 export function AdminMobileBar() {
   const isActive = useActive();
   const { logout } = useAuth();
-  const pending = usePendingOrdersCount();
+  const counts = useBadgeCounts();
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden">
@@ -188,7 +223,9 @@ export function AdminMobileBar() {
           >
             <item.icon className="h-4 w-4" />
             {item.label}
-            {item.badge && <PendingBadge count={pending} />}
+            {item.badge && (
+              <PendingBadge count={counts[item.badge]} label={badgeLabel(item.badge, counts[item.badge])} />
+            )}
           </Link>
         ))}
       </nav>

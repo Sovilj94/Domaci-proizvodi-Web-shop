@@ -2,8 +2,11 @@ import type {
   MojaKorpica,
   OrderStatus,
   PonudaArtikla,
+  RezultatAnalize,
+  StatusPrijave,
   StatusSadrzaja,
   StavkaMojeKorpice,
+  TezinaRecepta,
   TipKorpice,
   Unit,
   VelicinaKorpice,
@@ -243,4 +246,55 @@ export interface PretplataInput {
   latitude?: number;
   longitude?: number;
   napomena?: string;
+}
+
+export interface SastojakInput {
+  naziv: string;
+  kolicina?: string;
+  productId?: string;
+}
+
+/** Koraci idu kao jedan tekst, redovi odvojeni sa "\n". */
+export interface ReceptInput {
+  naslov: string;
+  opis?: string;
+  slikaUrl?: string;
+  vrijemeMinuta: number;
+  porcije: number;
+  tezina: TezinaRecepta;
+  koraci: string;
+  objavljen: boolean;
+  sastojci?: SastojakInput[];
+}
+
+export interface AnalizaInput {
+  producerId: string;
+  productId?: string;
+  uzorak: string;
+  laboratorija: string;
+  brojIzvjestaja?: string;
+  /** "yyyy-MM-dd" — vrijednost `<input type="date">` šalje se neizmijenjena. */
+  datumUzorkovanja: string;
+  ispitano: string;
+  rezultat: RezultatAnalize;
+  napomena?: string;
+  pdfUrl?: string;
+  objavljena: boolean;
+}
+
+/** `web` je honeypot: ljudi ga ne vide, pa ostaje prazan. */
+export interface PartnerPrijavaInput {
+  ime: string;
+  gazdinstvo?: string;
+  mjesto: string;
+  telefon: string;
+  email?: string;
+  proizvodi: string;
+  web?: string;
+}
+
+/** Izostavljena `adminNapomena` ostavlja staru, "" je briše. */
+export interface PartnerStatusInput {
+  status: StatusPrijave;
+  adminNapomena?: string;
 }

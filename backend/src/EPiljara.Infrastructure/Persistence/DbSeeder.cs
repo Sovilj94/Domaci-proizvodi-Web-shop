@@ -11,8 +11,12 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db, IPasswordHasher hasher, CancellationToken ct = default)
     {
+        // Recepti imaju svoj provjeren seed — izvršava se i na bazi koja je već seedovana.
         if (await db.Categories.AnyAsync(ct))
+        {
+            await SeedReceptiAsync(db, ct);
             return;
+        }
 
         // ----- Categories -----
         var povrce = Cat("Povrće", 1, "povrce");
@@ -262,6 +266,61 @@ public static class DbSeeder
             DeliveryAddress = "Kralja Petra I 12, Banja Luka",
             BrojIsporuka = 4,
         });
+
+        await db.SaveChangesAsync(ct);
+        await SeedReceptiAsync(db, ct);
+    }
+
+    /// <summary>Dva demo recepta (spec O3); sastojci se vezuju za seed proizvode po imenu.</summary>
+    private static async Task SeedReceptiAsync(AppDbContext db, CancellationToken ct)
+    {
+        if (await db.Recepti.AnyAsync(ct))
+            return;
+
+        var proizvodi = await db.Products.Select(p => new { p.Name, p.Id }).ToListAsync(ct);
+        ReceptSastojak S(string naziv, string kolicina, string? proizvod, int redoslijed) => new()
+        {
+            Naziv = naziv, Kolicina = kolicina, Redoslijed = redoslijed,
+            // Proizvod koji ne postoji u bazi ostavlja sastojak bez veze (bez dugmeta).
+            ProductId = proizvod is null ? null : proizvodi.FirstOrDefault(p => p.Name == proizvod)?.Id,
+        };
+
+        db.Recepti.AddRange(
+            new Recept
+            {
+                Naslov = "Kajgana sa mladim sirom i paprikom", Slug = "kajgana-sa-mladim-sirom-i-paprikom",
+                Opis = "Brz i sit doručak od jaja, mladog sira i hrskave babure.",
+                VrijemeMinuta = 15, Porcije = 2, Tezina = TezinaRecepta.Lako, Objavljen = true,
+                Koraci = "Papriku operi, očisti od sjemenki i isjeci na sitne kocke, a luk sitno nasjeckaj.\n"
+                    + "Na zagrijanoj masnoći propirji luk i papriku dok ne omekšaju, oko pet minuta.\n"
+                    + "Razbij jaja, prelij preko povrća i miješaj na srednjoj vatri.\n"
+                    + "Kad se jaja skoro stegnu, dodaj izmrvljen mladi sir, posoli i odmah služi.",
+                Sastojci =
+                [
+                    S("Jaja iz slobodnog uzgoja", "4 kom", "Jaja iz slobodnog uzgoja", 0),
+                    S("Mladi kravlji sir", "100 g", "Mladi kravlji sir", 1),
+                    S("Babura paprika", "1 kom", "Babura paprika", 2),
+                    S("Crni luk", "1/2 glavice", "Crni luk", 3),
+                    S("So", "po ukusu", null, 4),
+                ],
+            },
+            new Recept
+            {
+                Naslov = "Krompir salata sa pavlakom", Slug = "krompir-salata-sa-pavlakom",
+                Opis = "Topla krompir salata sa lukom i domaćom pavlakom, uz svaku pečenu hranu.",
+                VrijemeMinuta = 35, Porcije = 4, Tezina = TezinaRecepta.Lako, Objavljen = true,
+                Koraci = "Krompir dobro operi i skuhaj u ljusci dvadesetak minuta, dok ne omekša.\n"
+                    + "Ocijedi ga, malo prohladi, oljušti i isjeci na kolutove.\n"
+                    + "Luk sitno nasjeckaj i pomiješaj sa još toplim krompirom.\n"
+                    + "Umiješaj pavlaku, posoli i pobiberi, pa ostavi desetak minuta da se sjedine okusi.",
+                Sastojci =
+                [
+                    S("Domaći krompir", "1 kg", "Domaći krompir", 0),
+                    S("Crni luk", "1 glavica", "Crni luk", 1),
+                    S("Domaća pavlaka", "200 g", "Domaća pavlaka", 2),
+                    S("So i biber", "po ukusu", null, 3),
+                ],
+            });
 
         await db.SaveChangesAsync(ct);
     }

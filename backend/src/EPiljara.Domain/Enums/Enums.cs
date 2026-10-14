@@ -65,6 +65,21 @@ public enum StatusSadrzaja
     Zakljucan,
 }
 
+/// <summary>Težina pripreme recepta. Na žicu ide kao ime vrijednosti („Lako", „Srednje", „Zahtjevno").</summary>
+public enum TezinaRecepta
+{
+    Lako,
+    Srednje,
+    Zahtjevno,
+}
+
+/// <summary>Ishod laboratorijske analize. Na žicu ide kao ime vrijednosti ("Uskladjeno", "NijeUskladjeno").</summary>
+public enum RezultatAnalize
+{
+    Uskladjeno,
+    NijeUskladjeno,
+}
+
 public static class UnitExtensions
 {
     public static string ToApi(this Unit unit) => unit switch
@@ -91,4 +106,13 @@ public enum StatusPretplate
     Aktivna,
     Pauzirana,
     Otkazana,
+}
+
+/// <summary>Stanje obrade prijave partnera. Na žicu ide kao ime vrijednosti ("Nova", "UObradi", "Prihvacena", "Odbijena").</summary>
+public enum StatusPrijave
+{
+    Nova,
+    UObradi,
+    Prihvacena,
+    Odbijena,
 }

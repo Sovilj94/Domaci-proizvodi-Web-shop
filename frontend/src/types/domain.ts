@@ -380,3 +380,106 @@ export interface Utisak {
   objavljen: boolean;
   redoslijed: number;
 }
+
+/* ---------- Recepti (backend `DTOs/ReceptiDtos.cs`) ---------- */
+
+/** Enum je na žici PascalCase string. */
+export type TezinaRecepta = "Lako" | "Srednje" | "Zahtjevno";
+
+export const TEZINA_TEKST: Record<TezinaRecepta, string> = {
+  Lako: "Lako",
+  Srednje: "Srednje",
+  Zahtjevno: "Zahtjevno",
+};
+
+/** `ReceptKratkoDto` — stavka javne liste. */
+export interface ReceptKratko {
+  id: string;
+  naslov: string;
+  slug: string;
+  opis: string;
+  slikaUrl?: string;
+  vrijemeMinuta: number;
+  porcije: number;
+  tezina: TezinaRecepta;
+}
+
+export interface SastojakRecepta {
+  naziv: string;
+  kolicina: string;
+  proizvod?: Product;
+}
+
+/** `ReceptDto` — javni detalj. */
+export interface Recept extends ReceptKratko {
+  koraci: string[];
+  sastojci: SastojakRecepta[];
+  objavljen: boolean;
+}
+
+export interface SastojakAdmin {
+  naziv: string;
+  kolicina: string;
+  productId?: string;
+}
+
+/** `ReceptAdminDto`. `koraci` je niz; ulaz ih prima kao jedan tekst. */
+export interface ReceptAdmin extends ReceptKratko {
+  koraci: string[];
+  sastojci: SastojakAdmin[];
+  objavljen: boolean;
+  kreiran: string;
+}
+
+/* ---------- Analize (backend `DTOs/AnalizeDtos.cs`) ---------- */
+
+export type RezultatAnalize = "Uskladjeno" | "NijeUskladjeno";
+
+export const REZULTAT_ANALIZE_TEKST: Record<RezultatAnalize, string> = {
+  Uskladjeno: "Usklađeno",
+  NijeUskladjeno: "Nije usklađeno",
+};
+
+/** `AnalizaDto`. `datumUzorkovanja` je "yyyy-MM-dd"; `brojIzvjestaja` i `napomena` su "" kad nisu uneseni. */
+export interface Analiza {
+  id: string;
+  producerId: string;
+  proizvodjac: string;
+  selo: string;
+  productId?: string;
+  proizvod?: string;
+  uzorak: string;
+  laboratorija: string;
+  brojIzvjestaja: string;
+  datumUzorkovanja: string;
+  ispitano: string;
+  rezultat: RezultatAnalize;
+  napomena: string;
+  pdfUrl?: string;
+  objavljena: boolean;
+}
+
+/* ---------- Partneri (backend `Features/Partneri`) ---------- */
+
+export type StatusPrijave = "Nova" | "UObradi" | "Prihvacena" | "Odbijena";
+
+export const STATUS_PRIJAVE_TEKST: Record<StatusPrijave, string> = {
+  Nova: "Nova",
+  UObradi: "U obradi",
+  Prihvacena: "Prihvaćena",
+  Odbijena: "Odbijena",
+};
+
+/** `PartnerPrijavaDto`. `gazdinstvo`, `email` i `adminNapomena` su "" kad nisu uneseni. */
+export interface PartnerPrijava {
+  id: string;
+  ime: string;
+  gazdinstvo: string;
+  mjesto: string;
+  telefon: string;
+  email: string;
+  proizvodi: string;
+  status: StatusPrijave;
+  adminNapomena: string;
+  kreirana: string;
+}
