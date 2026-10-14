@@ -53,6 +53,15 @@ export function useProducers() {
   });
 }
 
+export function useProducer(id: string) {
+  return useQuery({
+    queryKey: queryKeys.producer(id),
+    queryFn: () => catalogApi.producer(id),
+    enabled: !!id,
+    retry: false, // 404 je odgovor, ne kvar mreže — ne ponavljati
+  });
+}
+
 export function useDeliveryZones() {
   return useQuery({
     queryKey: queryKeys.zones(),
