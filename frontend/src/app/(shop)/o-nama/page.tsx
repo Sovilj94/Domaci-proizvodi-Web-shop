@@ -23,7 +23,7 @@ export default function ONamaPage() {
             sedmično.
           </p>
           <p>
-            Plaća se pouzećem, pri preuzimanju narudžbe. Ništa ne plaćaš unaprijed.
+            Plaća se pouzećem, pri dostavi. Ništa ne plaćaš unaprijed.
           </p>
           <p>
             Domaćini od kojih dolazi roba navedeni su poimence na stranici{" "}
