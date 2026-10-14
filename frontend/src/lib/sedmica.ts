@@ -27,7 +27,8 @@ export function isporukaTekst(d: Date): string {
  * odbrojavanje, FAQ i footer govore o narednoj.
  */
 export function aktivniKrug(s: Sedmica): { rok: Date; isporuka: Date; zaSljedecu: boolean } {
-  return s.rokIstekao
+  // Stariji backend ne šalje sljedeciRok/sljedecaIsporuka — bez rezerve bi nastao Invalid Date.
+  return s.rokIstekao && s.sljedeciRok && s.sljedecaIsporuka
     ? { rok: new Date(s.sljedeciRok), isporuka: new Date(s.sljedecaIsporuka), zaSljedecu: true }
     : { rok: new Date(s.rokNarucivanja), isporuka: new Date(s.datumIsporuke), zaSljedecu: false };
 }

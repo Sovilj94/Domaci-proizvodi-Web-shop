@@ -77,7 +77,7 @@ export function UtisakForm({
       mjesto: form.mjesto || undefined,
       tekst: form.tekst,
       objavljen: form.objavljen,
-      redoslijed: Number(form.redoslijed) || 0,
+      redoslijed: Math.trunc(Number(form.redoslijed)) || 0,
     });
   }
 

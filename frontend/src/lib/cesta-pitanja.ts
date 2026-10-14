@@ -35,7 +35,7 @@ export const CESTA_PITANJA: Pitanje[] = [
     pitanje: "Kada stiže dostava?",
     odgovor: ({ isporuka }) =>
       isporuka
-        ? `Sljedeća isporuka je u ${isporuka}. Dostavljamo u Banjoj Luci i okolini.`
+        ? `Sljedeća isporuka je u ${isporuka} Dostavljamo u Banjoj Luci i okolini.`
         : "Dostavljamo jednom sedmično, u Banjoj Luci i okolini.",
   },
   {
@@ -52,9 +52,9 @@ export const CESTA_PITANJA: Pitanje[] = [
     odgovor: ({ popust }) =>
       "Uz pretplatu ti korpica stiže svake sedmice bez novog naručivanja. " +
       (popust
-        ? `Prvih ${popust.odIsporuke - 1} isporuka plaćaš punu cijenu, a od ${popust.odIsporuke}. isporuke je korpica ${popust.procenat}% jeftinija. `
+        ? `Od ${popust.odIsporuke}. isporuke korpica je ${popust.procenat}% jeftinija. `
         : "") +
-      "Pauzu, promjenu paketa i otkaz zadaješ sam u Mom nalogu.",
+      "Pauzu, promjenu paketa i otkaz podešavaš u Mom nalogu.",
   },
   {
     pitanje: "Treba li mi nalog?",
@@ -84,10 +84,9 @@ export function kontekstPitanja(sedmica?: Sedmica, korpice?: Korpica[]): Konteks
       x.cijenaSaPretplatom < x.cijena,
   );
   if (sPopustom) {
-    k.popust = {
-      procenat: Math.round((1 - sPopustom.cijenaSaPretplatom! / sPopustom.cijena) * 100),
-      odIsporuke: sPopustom.isporukaDoPopusta! + 1,
-    };
+    const procenat = Math.round((1 - sPopustom.cijenaSaPretplatom! / sPopustom.cijena) * 100);
+    // Popust ispod 1% bi dao „0% jeftinija" — tada odgovor ostaje bez broja.
+    if (procenat >= 1) k.popust = { procenat, odIsporuke: sPopustom.isporukaDoPopusta! + 1 };
   }
 
   return k;

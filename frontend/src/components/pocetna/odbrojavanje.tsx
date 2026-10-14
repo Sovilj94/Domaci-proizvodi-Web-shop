@@ -26,6 +26,8 @@ function rastavi(ms: number) {
  * Kad brojač dođe do nule, sedmica se ponovo traži sa servera — server odlučuje da je rok
  * prošao i prebacuje na sljedeći krug. Dok odgovor ne stigne (ili ako je sat klijenta
  * ispred serverskog), piše „Rok je upravo istekao" umjesto nula ili negativnih brojeva.
+ * Dok je tako (istekao, a server još nije prebacio na sljedeći krug), sedmica se traži
+ * ponovo na svakih ~10 s; interval staje čim server prebaci krug ili se komponenta ukloni.
  */
 export function Odbrojavanje() {
   const { data } = useSedmica();
@@ -42,9 +44,17 @@ export function Odbrojavanje() {
   const preostalo = krug && sada !== null ? krug.rok.getTime() - sada : null;
   const istekao = preostalo !== null && preostalo <= 0;
 
+  const ceka = istekao && !krug?.zaSljedecu;
+
   useEffect(() => {
     if (istekao) qc.invalidateQueries({ queryKey: queryKeys.sedmica() });
   }, [istekao, qc]);
+
+  useEffect(() => {
+    if (!ceka) return;
+    const id = setInterval(() => qc.invalidateQueries({ queryKey: queryKeys.sedmica() }), 10_000);
+    return () => clearInterval(id);
+  }, [ceka, qc]);
 
   if (!krug || preostalo === null) return null;
 
@@ -58,7 +68,7 @@ export function Odbrojavanje() {
   ];
 
   return (
-    <div className="rounded-card border border-line bg-sand/60 p-4" aria-live="off">
+    <div className="rounded-card border border-line bg-sand/60 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-700">
         {krug.zaSljedecu ? "Ova sedmica je zatvorena — rok za sljedeću" : "Do roka za ovu sedmicu"}
       </p>
@@ -66,7 +76,7 @@ export function Odbrojavanje() {
       {istekao ? (
         <p className="mt-2 text-lg font-semibold text-ink">Rok je upravo istekao.</p>
       ) : (
-        <div className="mt-2 flex gap-2" role="timer">
+        <div className="mt-2 flex gap-2" role="timer" aria-label="Preostalo vrijeme do roka">
           {polja.map(([vrijednost, oznaka]) => (
             <div key={oznaka} className="min-w-14 rounded-[10px] bg-surface px-2 py-1.5 text-center">
               <span className="block font-display text-2xl font-bold tabular-nums text-ink">

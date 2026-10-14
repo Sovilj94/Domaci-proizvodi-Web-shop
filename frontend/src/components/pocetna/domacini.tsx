@@ -32,8 +32,8 @@ export function Domacini() {
               <div className="p-3.5">
                 <p className="text-sm font-semibold text-ink">{p.name}</p>
                 <p className="mt-0.5 text-xs text-muted">{p.village}</p>
-                {p.artikli.length > 0 && (
-                  <p className="mt-1.5 text-xs font-medium text-brand-700">{p.artikli.join(" · ")}</p>
+                {(p.artikli?.length ?? 0) > 0 && (
+                  <p className="mt-1.5 text-xs font-medium text-brand-700">{p.artikli?.join(" · ")}</p>
                 )}
                 <p className="mt-1.5 line-clamp-2 text-xs text-muted">{p.description}</p>
               </div>
