@@ -1,13 +1,17 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { PackageSearch } from "lucide-react";
 import { OrderReceipt } from "@/components/shop/order-receipt";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button";
-import { useTrackOrder } from "@/lib/api/hooks";
+import { OcjenaForma } from "@/components/ocjena/ocjena-forma";
+import { Zvjezdice } from "@/components/ocjena/zvjezdice";
+import { orderApi } from "@/lib/api/endpoints";
+import { queryKeys, useTrackOrder } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,6 +22,7 @@ import { cn } from "@/lib/utils";
  */
 export default function NarudzbaPage() {
   const token = String(useParams().token);
+  const qc = useQueryClient();
   const { data: order, isLoading, isError } = useTrackOrder(token);
 
   if (isLoading) return <LoadingBlock label="Učitavam narudžbu…" />;
@@ -39,5 +44,33 @@ export default function NarudzbaPage() {
     );
   }
 
-  return <OrderReceipt order={order} mode="pracenje" />;
+  return (
+    <>
+      <OrderReceipt order={order} mode="pracenje" />
+      {order.mozeSeOcijeniti && (
+        <section className="mx-auto mb-10 max-w-2xl px-4">
+          <div className="rounded-card bg-surface p-5 shadow-card">
+            <h2 className="mb-4 font-display text-lg font-bold text-ink">
+              Kako je prošla isporuka?
+            </h2>
+            <OcjenaForma
+              posalji={(i) => orderApi.ocijeniPrekoTokena(token, i)}
+              onUspjeh={() => qc.invalidateQueries({ queryKey: queryKeys.trackOrder(token) })}
+            />
+          </div>
+        </section>
+      )}
+      {order.ocjena && (
+        <section className="mx-auto mb-10 max-w-2xl px-4">
+          <div className="rounded-card bg-surface p-5 shadow-card">
+            <h2 className="mb-2 font-display text-lg font-bold text-ink">Tvoja ocjena</h2>
+            <Zvjezdice ocjena={order.ocjena.ocjena} velicina={24} />
+            {order.ocjena.komentar && (
+              <p className="mt-3 text-sm text-ink">{order.ocjena.komentar}</p>
+            )}
+          </div>
+        </section>
+      )}
+    </>
+  );
 }
