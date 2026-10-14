@@ -42,7 +42,7 @@ export default function ONamaPage() {
       <section className="mt-10">
         <h2 className="font-display text-2xl font-bold text-ink">Postani partner</h2>
         <p className="mt-4 text-muted">
-          Imaš gazdinstvo i želiš da tvoji proizvodi stignu do kupaca u gradu? Javi nam se
+          Imate gazdinstvo i želite da vaši proizvodi stignu do kupaca u gradu? Javite nam se
           preko{" "}
           <Link href="/postani-partner" className="font-medium text-brand-700 underline">
             prijave za partnere

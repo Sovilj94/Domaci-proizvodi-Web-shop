@@ -25,7 +25,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import { adminApi } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/hooks";
-import { narudzbeRijec } from "@/lib/orders";
+import { narudzbeRijec, prijaveRijec } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 
 type BadgeVrsta = "narudzbe" | "partneri";
@@ -91,7 +91,7 @@ function useBadgeCounts(): Record<BadgeVrsta, number> {
 function badgeLabel(vrsta: BadgeVrsta, count: number): string {
   return vrsta === "narudzbe"
     ? `${count} ${narudzbeRijec(count)} na čekanju`
-    : `${count} ${count === 1 ? "nova prijava" : "novih prijava"}`;
+    : `${count} ${prijaveRijec(count)}`;
 }
 
 function PendingBadge({ count, label, className }: { count: number; label: string; className?: string }) {

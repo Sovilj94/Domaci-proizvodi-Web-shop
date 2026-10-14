@@ -185,6 +185,31 @@ public class ReceptiTests
     }
 
     [Fact]
+    public async Task Update_prihvata_vec_vezan_proizvod_koji_je_u_medjuvremenu_obrisan()
+    {
+        using var t = new TestDb();
+        var (obican, _, _) = Postavi(t);
+        var kreiran = await new CreateReceptHandler(t.Db).Handle(new CreateReceptCommand(Ulaz(
+            sastojci: [new SastojakInput("Paprika", "1 kom", obican.Id)])), default);
+        t.Db.ChangeTracker.Clear();
+        t.Db.Products.Single(p => p.Id == obican.Id).IsDeleted = true;
+        t.Db.SaveChanges();
+        t.Db.ChangeTracker.Clear();
+
+        var rez = await new UpdateReceptHandler(t.Db).Handle(new UpdateReceptCommand(kreiran.Id, Ulaz(
+            naslov: "Novi naslov recepta",
+            sastojci: [new SastojakInput("Paprika", "1 kom", obican.Id)])), default);
+
+        Assert.Equal("Novi naslov recepta", rez.Naslov);
+        // Novi (nevezani) obrisan proizvod i dalje nije dozvoljen.
+        var drugi = Guid.NewGuid();
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new UpdateReceptHandler(t.Db).Handle(new UpdateReceptCommand(kreiran.Id, Ulaz(
+                sastojci: [new SastojakInput("X", "", drugi)])), default));
+        Assert.Equal("proizvod_ne_postoji", ex.Code);
+    }
+
+    [Fact]
     public async Task Update_i_delete_nepostojeceg_daju_404()
     {
         using var t = new TestDb();

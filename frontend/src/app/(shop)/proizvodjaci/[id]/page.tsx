@@ -50,7 +50,7 @@ export default function ProizvodjacDetaljPage() {
       </div>
 
       <section className="mt-12">
-        <h2 className="mb-6 font-display text-2xl font-bold text-ink">Iz njegove ponude</h2>
+        <h2 className="mb-6 font-display text-2xl font-bold text-ink">Iz ponude</h2>
         {products.isLoading ? (
           <ProductGridSkeleton count={4} />
         ) : products.data?.length ? (

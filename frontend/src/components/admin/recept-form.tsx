@@ -266,6 +266,9 @@ export function ReceptForm({
                           onChange={(e) => setSastojak(i, { productId: e.target.value })}
                         >
                           <option value="">— bez veze —</option>
+                          {s.productId && !ponuda.some((p) => p.id === s.productId) && (
+                            <option value={s.productId}>(nije u ponudi)</option>
+                          )}
                           {ponuda.map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name}

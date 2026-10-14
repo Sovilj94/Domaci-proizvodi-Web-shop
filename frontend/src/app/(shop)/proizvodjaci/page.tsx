@@ -14,7 +14,7 @@ export default function ProizvodjaciPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <SectionHeader
         naslov="Naši domaćini"
-        opis="Porodice i gazdinstva sa Manjače od kojih dolazi sve što prodajemo."
+        opis="Porodice i gazdinstva od kojih dolazi ono što prodajemo."
       />
       {producers.isLoading ? (
         <div className={MREZA}>

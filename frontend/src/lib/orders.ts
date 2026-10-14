@@ -33,6 +33,14 @@ export const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
  * Srpska deklinacija uz broj narudžbi: 1 narudžba, 2–4 narudžbe, 5+ narudžbi.
  * Izuzeci na 11–14 idu po pravilu za 5+ („11 narudžbi", ne „11 narudžba").
  */
+export function prijaveRijec(n: number): string {
+  const jedinice = n % 10;
+  const desetice = n % 100;
+  if (jedinice === 1 && desetice !== 11) return "nova prijava";
+  if (jedinice >= 2 && jedinice <= 4 && (desetice < 12 || desetice > 14)) return "nove prijave";
+  return "novih prijava";
+}
+
 export function narudzbeRijec(n: number): string {
   const jedinice = n % 10;
   const desetice = n % 100;

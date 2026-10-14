@@ -4,7 +4,7 @@ import { PartnerForma } from "@/components/partneri/partner-forma";
 export const metadata = { title: "Postani partner" };
 
 const PONUDA = [
-  "Otkup bez posrednika",
+  "Prodaja kupcima u gradu, bez posrednika",
   "Sedmični ritam koji se zna unaprijed",
   "Mjesto na stranici „Naši domaćini“",
 ];

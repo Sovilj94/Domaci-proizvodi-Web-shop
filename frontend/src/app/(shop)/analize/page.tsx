@@ -11,8 +11,7 @@ export default function AnalizePage() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="font-display text-3xl font-bold">Analize</h1>
       <p className="mt-1 max-w-2xl text-muted">
-        Uzorke onoga što prodajemo šaljemo na laboratorijsku analizu. Objavljujemo sve nalaze — i one koji nisu
-        usklađeni.
+        Ovdje objavljujemo nalaze laboratorijskih analiza uzoraka naših domaćina — i one koji nisu usklađeni.
       </p>
 
       <div className="mt-8">

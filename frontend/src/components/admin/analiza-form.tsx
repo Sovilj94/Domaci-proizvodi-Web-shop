@@ -184,6 +184,7 @@ export function AnalizaForm({
           <Field label="Datum uzorkovanja" required error={errors["input.datumUzorkovanja"]?.[0]}>
             <Input
               type="date"
+              required
               value={form.datumUzorkovanja}
               onChange={(e) => setForm({ ...form, datumUzorkovanja: e.target.value })}
             />
@@ -194,7 +195,7 @@ export function AnalizaForm({
               value={form.ispitano}
               onChange={(e) => setForm({ ...form, ispitano: e.target.value })}
               placeholder="npr. ostaci pesticida, teški metali"
-              maxLength={200}
+              maxLength={300}
             />
           </Field>
 
@@ -216,7 +217,7 @@ export function AnalizaForm({
               value={form.napomena}
               onChange={(e) => setForm({ ...form, napomena: e.target.value })}
               rows={3}
-              maxLength={500}
+              maxLength={1000}
             />
           </Field>
 

@@ -70,8 +70,12 @@ export default function ReceptDetaljPage() {
           <ul className="divide-y divide-line rounded-card border border-line bg-surface">
             {(recept.sastojci ?? []).map((s, i) => (
               <li key={i} className="flex flex-wrap items-baseline gap-x-2 px-4 py-3 text-ink">
-                <span className="text-ink/80">{s.kolicina}</span>
-                <span aria-hidden>—</span>
+                {s.kolicina && (
+                  <>
+                    <span className="text-ink/80">{s.kolicina}</span>
+                    <span aria-hidden>—</span>
+                  </>
+                )}
                 {s.proizvod ? (
                   <Link
                     href={`/products/${s.proizvod.slug}`}

@@ -70,7 +70,11 @@ public record PosaljiPrijavuCommand(PrijavaInput Input) : IRequest<PrijavaPrimlj
 
 public class PosaljiPrijavuValidator : AbstractValidator<PosaljiPrijavuCommand>
 {
-    public PosaljiPrijavuValidator() => RuleFor(x => x.Input).SetValidator(new PrijavaInputValidator());
+    public PosaljiPrijavuValidator()
+    {
+        RuleFor(x => x.Input).NotNull().WithMessage("Neispravan zahtjev.");
+        RuleFor(x => x.Input).SetValidator(new PrijavaInputValidator()).When(x => x.Input is not null);
+    }
 }
 
 public class PosaljiPrijavuHandler(IAppDbContext db) : IRequestHandler<PosaljiPrijavuCommand, PrijavaPrimljenaDto>
@@ -139,7 +143,11 @@ public record ObradiPrijavuCommand(Guid Id, ObradaInput Input) : IRequest<Partne
 
 public class ObradiPrijavuValidator : AbstractValidator<ObradiPrijavuCommand>
 {
-    public ObradiPrijavuValidator() => RuleFor(x => x.Input).SetValidator(new ObradaInputValidator());
+    public ObradiPrijavuValidator()
+    {
+        RuleFor(x => x.Input).NotNull().WithMessage("Neispravan zahtjev.");
+        RuleFor(x => x.Input).SetValidator(new ObradaInputValidator()).When(x => x.Input is not null);
+    }
 }
 
 public class ObradiPrijavuHandler(IAppDbContext db) : IRequestHandler<ObradiPrijavuCommand, PartnerPrijavaDto>

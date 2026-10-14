@@ -107,11 +107,12 @@ public class AnalizaInputValidator : AbstractValidator<AnalizaInput>
 
 internal static class AnalizaUpis
 {
-    public static async Task ProvjeriVezeAsync(IAppDbContext db, AnalizaInput input, CancellationToken ct)
+    public static async Task ProvjeriVezeAsync(IAppDbContext db, AnalizaInput input, CancellationToken ct,
+        Guid? vecVezaniProizvod = null)
     {
         if (!await db.Producers.AnyAsync(p => p.Id == input.ProducerId, ct))
             throw new DomainException("Proizvođač ne postoji.", "proizvodjac_ne_postoji");
-        if (input.ProductId.HasValue && !await db.Products.AnyAsync(p => p.Id == input.ProductId.Value, ct))
+        if (input.ProductId.HasValue && input.ProductId != vecVezaniProizvod && !await db.Products.AnyAsync(p => p.Id == input.ProductId.Value, ct))
             throw new DomainException("Proizvod ne postoji.", "proizvod_ne_postoji");
     }
 
@@ -143,7 +144,11 @@ public record CreateAnalizaCommand(AnalizaInput Input) : IRequest<AnalizaDto>;
 
 public class CreateAnalizaValidator : AbstractValidator<CreateAnalizaCommand>
 {
-    public CreateAnalizaValidator() => RuleFor(x => x.Input).SetValidator(new AnalizaInputValidator());
+    public CreateAnalizaValidator()
+    {
+        RuleFor(x => x.Input).NotNull().WithMessage("Neispravan zahtjev.");
+        RuleFor(x => x.Input).SetValidator(new AnalizaInputValidator()).When(x => x.Input is not null);
+    }
 }
 
 public class CreateAnalizaHandler(IAppDbContext db) : IRequestHandler<CreateAnalizaCommand, AnalizaDto>
@@ -163,7 +168,11 @@ public record UpdateAnalizaCommand(Guid Id, AnalizaInput Input) : IRequest<Anali
 
 public class UpdateAnalizaValidator : AbstractValidator<UpdateAnalizaCommand>
 {
-    public UpdateAnalizaValidator() => RuleFor(x => x.Input).SetValidator(new AnalizaInputValidator());
+    public UpdateAnalizaValidator()
+    {
+        RuleFor(x => x.Input).NotNull().WithMessage("Neispravan zahtjev.");
+        RuleFor(x => x.Input).SetValidator(new AnalizaInputValidator()).When(x => x.Input is not null);
+    }
 }
 
 public class UpdateAnalizaHandler(IAppDbContext db) : IRequestHandler<UpdateAnalizaCommand, AnalizaDto>
@@ -172,7 +181,8 @@ public class UpdateAnalizaHandler(IAppDbContext db) : IRequestHandler<UpdateAnal
     {
         var a = await db.Analize.FirstOrDefaultAsync(x => x.Id == cmd.Id, ct)
             ?? throw new NotFoundException("Analiza nije pronađena.");
-        await AnalizaUpis.ProvjeriVezeAsync(db, cmd.Input, ct);
+        // Već vezani proizvod prolazi i ako je u međuvremenu obrisan (soft-delete).
+        await AnalizaUpis.ProvjeriVezeAsync(db, cmd.Input, ct, a.ProductId);
         AnalizaUpis.Upisi(a, cmd.Input);
         await db.SaveChangesAsync(ct);
         return await AnalizaUpis.UcitajDtoAsync(db, a.Id, ct);

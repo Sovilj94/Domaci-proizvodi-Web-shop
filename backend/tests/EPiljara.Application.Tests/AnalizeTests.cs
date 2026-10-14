@@ -132,6 +132,40 @@ public class AnalizeTests
     }
 
     [Fact]
+    public async Task Update_prihvata_vec_vezan_proizvod_koji_je_u_medjuvremenu_obrisan()
+    {
+        using var t = new TestDb();
+        var p = NoviProizvodjac(t);
+        var kat = new Category { Name = "Med", Slug = "med" };
+        t.Db.Categories.Add(kat);
+        var pr = new Product
+        {
+            Name = "Med bagrem", Slug = "med-bagrem", Price = 10m, Unit = Unit.Kg, CategoryId = kat.Id,
+            ProducerId = p.Id, Stock = 5, IsAvailable = true, Vrsta = VrstaProizvoda.Obican,
+        };
+        t.Db.Products.Add(pr);
+        t.Db.SaveChanges();
+        var dto = await new CreateAnalizaHandler(t.Db).Handle(new CreateAnalizaCommand(Ulaz(p.Id, pr.Id)), default);
+        t.Db.ChangeTracker.Clear();
+        t.Db.Products.Single(x => x.Id == pr.Id).IsDeleted = true;
+        t.Db.SaveChanges();
+        t.Db.ChangeTracker.Clear();
+
+        var rez = await new UpdateAnalizaHandler(t.Db).Handle(
+            new UpdateAnalizaCommand(dto.Id, Ulaz(p.Id, pr.Id, uzorak: "Med livada")), default);
+
+        Assert.Equal("Med livada", rez.Uzorak);
+    }
+
+    [Fact]
+    public void Null_Input_daje_validacijsku_gresku_a_ne_NullReferenceException()
+    {
+        Assert.False(new CreateAnalizaValidator().Validate(new CreateAnalizaCommand(null!)).IsValid);
+        Assert.False(new EPiljara.Application.Features.Partneri.PosaljiPrijavuValidator()
+            .Validate(new EPiljara.Application.Features.Partneri.PosaljiPrijavuCommand(null!)).IsValid);
+    }
+
+    [Fact]
     public async Task Update_i_Delete_nepostojece_bacaju_NotFoundException()
     {
         using var t = new TestDb();

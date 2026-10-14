@@ -164,27 +164,33 @@ public class ReceptInputValidator : AbstractValidator<ReceptInput>
             .WithMessage("Vrijeme pripreme mora biti između 1 i 600 minuta.");
         RuleFor(x => x.Porcije).InclusiveBetween(1, 20)
             .WithMessage("Broj porcija mora biti između 1 i 20.");
-        RuleFor(x => x.Tezina).Must(v => Enum.TryParse<TezinaRecepta>(v, true, out _))
+        RuleFor(x => x.Tezina).Must(v => Enum.TryParse<TezinaRecepta>(v, true, out var t) && Enum.IsDefined(t))
             .WithMessage("Težina mora biti Lako, Srednje ili Zahtjevno.");
         RuleFor(x => (x.Koraci ?? "").Trim()).Length(10, 8000)
             .WithName("Koraci").OverridePropertyName("koraci")
             .WithMessage("Koraci moraju imati od 10 do 8000 znakova.");
         RuleFor(x => x.Sastojci).Must(s => s is null || s.Count <= 40)
             .WithMessage("Recept može imati najviše 40 sastojaka.");
-        RuleForEach(x => x.Sastojci).SetValidator(new SastojakInputValidator());
+        RuleForEach(x => x.Sastojci).NotNull().WithMessage("Sastojak nije ispravan.")
+            .SetValidator(new SastojakInputValidator());
     }
 }
 
 internal static class ReceptUpis
 {
     /// <summary>Svaki ProductId iz ulaza mora postojati — jednim upitom.</summary>
-    public static async Task ProvjeriProizvodeAsync(IAppDbContext db, ReceptInput input, CancellationToken ct)
+    public static async Task ProvjeriProizvodeAsync(IAppDbContext db, ReceptInput input, CancellationToken ct,
+        IReadOnlyCollection<Guid>? vecVezani = null)
     {
         var ids = (input.Sastojci ?? []).Where(s => s.ProductId.HasValue)
             .Select(s => s.ProductId!.Value).Distinct().ToList();
         if (ids.Count == 0) return;
-        var postoje = await db.Products.Where(p => ids.Contains(p.Id)).Select(p => p.Id).ToListAsync(ct);
-        if (postoje.Count != ids.Count)
+        // Već vezani proizvodi se prihvataju i kad su u međuvremenu obrisani (soft-delete),
+        // inače se takav recept ne bi mogao ni sačuvati; novi ids moraju postojati.
+        var provjeri = ids.Where(id => vecVezani is null || !vecVezani.Contains(id)).ToList();
+        if (provjeri.Count == 0) return;
+        var postoje = await db.Products.Where(p => provjeri.Contains(p.Id)).Select(p => p.Id).ToListAsync(ct);
+        if (postoje.Count != provjeri.Count)
             throw new DomainException("Sastojak pokazuje na proizvod koji ne postoji.", "proizvod_ne_postoji");
     }
 
@@ -215,7 +221,11 @@ public record CreateReceptCommand(ReceptInput Input) : IRequest<ReceptAdminDto>;
 
 public class CreateReceptValidator : AbstractValidator<CreateReceptCommand>
 {
-    public CreateReceptValidator() => RuleFor(x => x.Input).SetValidator(new ReceptInputValidator());
+    public CreateReceptValidator()
+    {
+        RuleFor(x => x.Input).NotNull().WithMessage("Neispravan zahtjev.");
+        RuleFor(x => x.Input).SetValidator(new ReceptInputValidator()).When(x => x.Input is not null);
+    }
 }
 
 public class CreateReceptHandler(IAppDbContext db) : IRequestHandler<CreateReceptCommand, ReceptAdminDto>
@@ -249,7 +259,11 @@ public record UpdateReceptCommand(Guid Id, ReceptInput Input) : IRequest<ReceptA
 
 public class UpdateReceptValidator : AbstractValidator<UpdateReceptCommand>
 {
-    public UpdateReceptValidator() => RuleFor(x => x.Input).SetValidator(new ReceptInputValidator());
+    public UpdateReceptValidator()
+    {
+        RuleFor(x => x.Input).NotNull().WithMessage("Neispravan zahtjev.");
+        RuleFor(x => x.Input).SetValidator(new ReceptInputValidator()).When(x => x.Input is not null);
+    }
 }
 
 public class UpdateReceptHandler(IAppDbContext db) : IRequestHandler<UpdateReceptCommand, ReceptAdminDto>
@@ -258,7 +272,8 @@ public class UpdateReceptHandler(IAppDbContext db) : IRequestHandler<UpdateRecep
     {
         var r = await db.Recepti.Include(x => x.Sastojci).FirstOrDefaultAsync(x => x.Id == cmd.Id, ct)
             ?? throw new NotFoundException("Recept nije pronađen.");
-        await ReceptUpis.ProvjeriProizvodeAsync(db, cmd.Input, ct);
+        var vezani = r.Sastojci.Where(s => s.ProductId.HasValue).Select(s => s.ProductId!.Value).ToList();
+        await ReceptUpis.ProvjeriProizvodeAsync(db, cmd.Input, ct, vezani);
 
         // Naslov se mijenja, slug ne — javni linkovi ostaju živi (spec O15).
         ReceptUpis.Upisi(r, cmd.Input);
