@@ -74,6 +74,12 @@ public class Order : Entity
     /// </summary>
     public Guid? PretplataId { get; set; }
 
+    /// <summary>
+    /// Ocjena isporuke. FK je na ocjeni (nema kolone na narudžbi); <c>ToDto</c> čita ovu
+    /// navigaciju, pa upiti koji pune <c>mozeSeOcijeniti</c> moraju je <c>Include</c>-ovati.
+    /// </summary>
+    public OcjenaIsporuke? Ocjena { get; set; }
+
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 
     /// <summary>Allowed forward transitions for the order status state machine.</summary>

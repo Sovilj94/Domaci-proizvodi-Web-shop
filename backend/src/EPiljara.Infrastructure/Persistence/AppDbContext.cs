@@ -29,6 +29,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
+    public DbSet<OcjenaIsporuke> OcjeneIsporuke => Set<OcjenaIsporuke>();
     public DbSet<Recept> Recepti => Set<Recept>();
     public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();
     public DbSet<Analiza> Analize => Set<Analiza>();
@@ -253,6 +254,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Tekst).HasMaxLength(500).IsRequired();
             // Javna lista filtrira po Objavljen i sortira po Redoslijed.
             e.HasIndex(x => new { x.Objavljen, x.Redoslijed });
+            e.HasOne(x => x.Ocjena).WithMany()
+                .HasForeignKey(x => x.OcjenaId).OnDelete(DeleteBehavior.SetNull);
+            // Od jedne ocjene najviše jedan utisak; filter jer je većina utisaka bez ocjene.
+            e.HasIndex(x => x.OcjenaId).IsUnique().HasFilter("\"OcjenaId\" IS NOT NULL");
+        });
+
+        b.Entity<OcjenaIsporuke>(e =>
+        {
+            e.Property(x => x.Komentar).HasMaxLength(1000).IsRequired();
+            // Jedna ocjena po narudžbi — i brana za dva istovremena zahtjeva.
+            e.HasIndex(x => x.OrderId).IsUnique();
+            e.HasOne(x => x.Order).WithOne(o => o.Ocjena)
+                .HasForeignKey<OcjenaIsporuke>(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.Kreirana);
         });
 
         b.Entity<Recept>(e =>

@@ -16,4 +16,8 @@ public class Utisak : Entity
     /// <summary>Manji ide prvi. Kod jednakih odlučuje <see cref="Kreiran"/>.</summary>
     public int Redoslijed { get; set; }
     public DateTime Kreiran { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Ocjena isporuke iz koje je utisak nastao; null za ručno unesene.</summary>
+    public Guid? OcjenaId { get; set; }
+    public OcjenaIsporuke? Ocjena { get; set; }
 }

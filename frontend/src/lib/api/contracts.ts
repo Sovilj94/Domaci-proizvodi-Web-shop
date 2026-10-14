@@ -19,6 +19,12 @@ export interface CreateOrderItemInput {
   quantity: number;
 }
 
+export interface OcjenaInput {
+  ocjena: number;
+  komentar?: string;
+  dozvolaZaObjavu: boolean;
+}
+
 export interface CreateOrderRequest {
   customer: {
     name: string;

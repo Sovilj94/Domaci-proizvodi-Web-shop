@@ -21,6 +21,7 @@ public class GetMyOrdersHandler(IAppDbContext db, ICurrentUser current)
             .Include(o => o.Items)
             .Include(o => o.DeliverySlot)
             .Include(o => o.DeliveryZone)
+            .Include(o => o.Ocjena)
             .Where(o => o.CustomerId == current.Id)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync(ct);
@@ -65,6 +66,7 @@ public class GetOrderByIdHandler(IAppDbContext db, ICurrentUser current)
             .Include(o => o.Items)
             .Include(o => o.DeliverySlot)
             .Include(o => o.DeliveryZone)
+            .Include(o => o.Ocjena)
             .FirstOrDefaultAsync(o => o.Id == q.Id, ct)
             ?? throw new NotFoundException("Narudžba nije pronađena.");
 
@@ -87,6 +89,7 @@ public class TrackOrderHandler(IAppDbContext db) : IRequestHandler<TrackOrderQue
             .Include(o => o.Items)
             .Include(o => o.DeliverySlot)
             .Include(o => o.DeliveryZone)
+            .Include(o => o.Ocjena)
             .FirstOrDefaultAsync(o => o.PublicToken == q.Token, ct)
             ?? throw new NotFoundException("Narudžba nije pronađena.");
 

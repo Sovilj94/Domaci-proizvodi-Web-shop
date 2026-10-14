@@ -283,6 +283,7 @@ function seedOrder(
     deliveryZoneName: zone.name,
     deliveryAddress: address,
     createdAt: new Date().toISOString(),
+    mozeSeOcijeniti: false,
   };
   db.orders.unshift(order);
   return order;
@@ -397,6 +398,7 @@ export function createOrder(
     deliveryAddress: req.deliveryAddress,
     note: req.note,
     createdAt: new Date().toISOString(),
+    mozeSeOcijeniti: false,
   };
   db.orders.unshift(order);
   return { order };

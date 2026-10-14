@@ -109,6 +109,16 @@ public static class MappingExtensions
         DeliveryAddress = o.DeliveryAddress,
         Note = o.Note,
         CreatedAt = o.CreatedAt,
+        Ocjena = o.Ocjena?.ToDto(),
+        MozeSeOcijeniti = o.Status == OrderStatus.Delivered && o.Ocjena is null,
+    };
+
+    public static OcjenaDto ToDto(this OcjenaIsporuke o) => new()
+    {
+        Ocjena = o.Ocjena,
+        Komentar = o.Komentar,
+        DozvolaZaObjavu = o.DozvolaZaObjavu,
+        Kreirana = o.Kreirana,
     };
 
     public static DriverDto ToDto(this Driver d) => new()

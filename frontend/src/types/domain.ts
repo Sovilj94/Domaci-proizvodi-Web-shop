@@ -122,6 +122,15 @@ export interface Order {
   deliveryAddress: string;
   note?: string;
   createdAt: string;
+  ocjena?: OcjenaIsporuke;
+  mozeSeOcijeniti: boolean;
+}
+
+export interface OcjenaIsporuke {
+  ocjena: number;
+  komentar: string;
+  dozvolaZaObjavu: boolean;
+  kreirana: string;
 }
 
 export interface RouteStop {

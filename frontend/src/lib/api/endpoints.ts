@@ -9,6 +9,7 @@ import type {
   GeocodeHit,
   Korpica,
   MojaKorpica,
+  OcjenaIsporuke,
   Order,
   OrderStatus,
   Pretplata,
@@ -42,6 +43,7 @@ import type {
   IzmijeniNacrtRequest,
   LoginRequest,
   MojaKorpicaDetalji,
+  OcjenaInput,
   PakerskaLista,
   PretplataInput,
   ProducerInput,
@@ -200,6 +202,16 @@ export const orderApi = {
 
   track: (token: string) =>
     apiFetch<Order>(`/orders/track/${token}`).then((r) => r.data),
+
+  ocijeni: (id: string, body: OcjenaInput) =>
+    apiFetch<OcjenaIsporuke>(`/orders/${id}/ocjena`, { method: "POST", body }).then((r) => r.data),
+
+  ocijeniPrekoTokena: (token: string, body: OcjenaInput) =>
+    apiFetch<OcjenaIsporuke>(`/orders/track/${token}/ocjena`, {
+      method: "POST",
+      body,
+      auth: false,
+    }).then((r) => r.data),
 };
 
 /* ---------- Auth ---------- */
