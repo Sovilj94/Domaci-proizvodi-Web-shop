@@ -6,12 +6,11 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grane | `main` i **`pocetna-p4`** (P4, gotova i recenzirana, **nije spojena** — merge čeka odobrenje). `redizajn-opcija3`, `adresar-mapa` i `pretplate-p3` su spojene i obrisane. |
-| HEAD `main` | `092223a` — STANJE poslije merge-a P3 |
-| HEAD `pocetna-p4` | vrh grane, 13 commita ispred `main`-a (spec, plan, 7 taskova, popravke recenzija, dokumentacija) |
+| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3` i `pocetna-p4` su spojene i obrisane. |
+| HEAD | `f099c57` — merge P4 (marketinška početna) |
 | Radno stablo | čisto |
-| Nespojeno | `pocetna-p4` |
-| `main` vs `origin/main` | **main je ispred za 12 commita (P2c i P3) — nije pushovan**, push čeka odobrenje. |
+| Nespojeno | ništa |
+| `main` vs `origin/main` | **main je ispred za P2c, P3 i P4 — nije pushovan**, push čeka odobrenje. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -68,7 +67,7 @@ Tri stvari iz P3 vrijedi znati prije nego se išta oko narudžbi dira:
 Stanje provjera na `main`-u: **`dotnet test` 199/199**, `tsc` čisto, `lint` čisto,
 `npm run build` ✓ 55/55 stranica.
 
-## Gotovo, na grani `pocetna-p4` (nije spojeno)
+## Gotovo i spojeno — P4 (merge `f099c57`, 2026-10-14)
 
 **P4 — Marketinška početna.** Početna `/` prodaje korpicu: hero „Domaće namirnice, svake
 sedmice na tvojim vratima" sa cijenom „već od X KM" (najjeftinija dostupna korpica) i
@@ -96,7 +95,7 @@ zadnja 24 h, rok sa minutama „6:30h"); **stvaran prelaz na nuli** na „Ova se
 zatvorena — rok za sljedeću"; utisak kroz API se pojavi na početnoj i nestane po brisanju;
 ključevi grešaka `input.*` na žici; 401 bez tokena.
 
-Stanje provjera na `pocetna-p4`: **`dotnet test` 215/215**, `tsc` čisto, `lint` čisto,
+Stanje provjera na `main`-u poslije P4: **`dotnet test` 215/215**, `tsc` čisto, `lint` čisto,
 `npm run build` ✓ 56/56 stranica.
 
 ## Popis — šta tačno postoji
@@ -160,7 +159,7 @@ zovu ga oba mjesta koja postavljaju `Delivered`), `lib/sedmica.ts` (P4 — imena
 
 ## Nije urađeno
 
-**Prvo: merge `pocetna-p4` u `main`** (čeka odobrenje), pa **P5** — Analize, Recepti, O nama,
+**Sljedeće na redu je P5** — Analize, Recepti, O nama,
 Postani partner. Zasebna stranica proizvođača (`/proizvodjaci/[id]`) je iz P4 prebačena u P5.
 
 **P5–P7** nisu dirani: Analize/Recepti/O nama/Postani partner; poeni, referral, promo kodovi,
