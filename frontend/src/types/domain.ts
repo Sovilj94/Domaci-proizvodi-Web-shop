@@ -38,6 +38,8 @@ export interface Producer {
   latitude?: number;
   longitude?: number;
   phone?: string;
+  /** Do četiri dostupna obična artikla, po imenu. Uvijek prisutno; [] kad nema. */
+  artikli: string[];
 }
 
 /** Lightweight producer summary embedded on a product. */

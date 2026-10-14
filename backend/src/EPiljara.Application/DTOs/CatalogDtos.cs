@@ -28,6 +28,11 @@ public record ProducerDto
     public double? Latitude { get; init; }
     public double? Longitude { get; init; }
     public string? Phone { get; init; }
+    /// <summary>
+    /// Do četiri imena dostupnih običnih artikala, po imenu — za karticu domaćina na
+    /// početnoj. Puni ga samo GetProducersHandler; ostali pozivaoci ToDto() dobijaju [].
+    /// </summary>
+    public IReadOnlyList<string> Artikli { get; init; } = [];
 }
 
 public record ProductDto
