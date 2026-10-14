@@ -29,6 +29,9 @@ public interface IAppDbContext
     /// <summary>Nalozi za ponavljanje korpice — vidi Pretplata entitet.</summary>
     DbSet<Pretplata> Pretplate { get; }
 
+    /// <summary>Utisci kupaca za početnu — vidi Utisak entitet.</summary>
+    DbSet<Utisak> Utisci { get; }
+
     /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
     DbSet<Magacin> Magacin { get; }
 

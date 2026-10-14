@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { catalogApi, deliveryApi, korpiceApi, orderApi, type ProductQuery } from "./endpoints";
+import { catalogApi, deliveryApi, korpiceApi, orderApi, utisciApi, type ProductQuery } from "./endpoints";
 
 export const queryKeys = {
   products: (q: ProductQuery) => ["products", q] as const,
@@ -17,6 +17,8 @@ export const queryKeys = {
   mojeKorpice: () => ["account", "korpice"] as const,
   mojaKorpica: (id: string) => ["account", "korpica", id] as const,
   pretplate: () => ["account", "pretplate"] as const,
+  utisci: () => ["utisci"] as const,
+  adminUtisci: () => ["admin", "utisci"] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {
@@ -105,5 +107,14 @@ export function useTrackOrder(token: string) {
     queryFn: () => orderApi.track(token),
     enabled: !!token,
     retry: false,
+  });
+}
+
+/** Objavljeni utisci za početnu. Greška nije kritična — sekcija se tada ne prikazuje. */
+export function useUtisci() {
+  return useQuery({
+    queryKey: queryKeys.utisci(),
+    queryFn: () => utisciApi.lista(),
+    staleTime: 5 * 60_000,
   });
 }

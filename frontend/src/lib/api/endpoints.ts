@@ -17,6 +17,7 @@ import type {
   SadrzajKorpice,
   Sedmica,
   TipKorpice,
+  Utisak,
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
@@ -44,6 +45,7 @@ import type {
   RegisterResponse,
   RezultatGenerisanja,
   SadrzajPregled,
+  UtisakInput,
 } from "./contracts";
 
 /**
@@ -88,6 +90,12 @@ export const korpiceApi = {
     apiFetch<SadrzajKorpice>(`/korpice/${slug}/sadrzaj`, { auth: false }).then((r) => r.data),
 
   sedmica: () => apiFetch<Sedmica>("/korpice/sedmica", { auth: false }).then((r) => r.data),
+};
+
+/* ---------- Utisci ---------- */
+
+export const utisciApi = {
+  lista: () => apiFetch<Utisak[]>("/utisci", { auth: false }).then((r) => r.data),
 };
 
 /* ---------- Admin: korpice ---------- */
@@ -314,6 +322,18 @@ export const adminApi = {
 
   deleteProducer: (id: string) =>
     apiFetch<string>(`/admin/producers/${id}`, { method: "DELETE" }).then(() => id),
+
+  /* Utisci */
+  utisci: () => apiFetch<Utisak[]>("/admin/utisci").then((r) => r.data),
+
+  createUtisak: (body: UtisakInput) =>
+    apiFetch<Utisak>("/admin/utisci", { method: "POST", body }).then((r) => r.data),
+
+  updateUtisak: (id: string, body: UtisakInput) =>
+    apiFetch<Utisak>(`/admin/utisci/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deleteUtisak: (id: string) =>
+    apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
 
   /* Drivers */
   drivers: () => apiFetch<Driver[]>("/admin/drivers").then((r) => r.data),

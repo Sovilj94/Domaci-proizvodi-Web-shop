@@ -1,4 +1,5 @@
 using EPiljara.Application.Features.Admin;
+using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Pretplate;
 using Microsoft.AspNetCore.Authorization;
@@ -170,4 +171,20 @@ public class AdminController : ApiControllerBase
     [HttpGet("admin/pretplate")]
     public async Task<IActionResult> Pretplate([FromQuery] string? status) =>
         Envelope(await Mediator.Send(new GetAdminPretplateQuery(status)));
+
+    [HttpGet("admin/utisci")]
+    public async Task<IActionResult> Utisci() =>
+        EnvelopeList(await Mediator.Send(new GetAdminUtisciQuery()));
+
+    [HttpPost("admin/utisci")]
+    public async Task<IActionResult> CreateUtisak([FromBody] UtisakInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreateUtisakCommand(input)));
+
+    [HttpPut("admin/utisci/{id:guid}")]
+    public async Task<IActionResult> UpdateUtisak(Guid id, [FromBody] UtisakInput input) =>
+        Envelope(await Mediator.Send(new UpdateUtisakCommand(id, input)));
+
+    [HttpDelete("admin/utisci/{id:guid}")]
+    public async Task<IActionResult> DeleteUtisak(Guid id) =>
+        Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
 }

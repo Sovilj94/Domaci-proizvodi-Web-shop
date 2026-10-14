@@ -368,3 +368,13 @@ export interface Pretplata {
   pauzaDoSedmica?: number;
   createdAt: string;
 }
+
+/** Preslikava `UtisakDto` (backend `DTOs/UtisciDtos.cs`). `mjesto` je "" kad nije uneseno. */
+export interface Utisak {
+  id: string;
+  ime: string;
+  mjesto: string;
+  tekst: string;
+  objavljen: boolean;
+  redoslijed: number;
+}
