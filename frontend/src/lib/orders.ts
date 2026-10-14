@@ -48,3 +48,12 @@ export function narudzbeRijec(n: number): string {
   if (jedinice >= 2 && jedinice <= 4 && (desetice < 12 || desetice > 14)) return "narudžbe";
   return "narudžbi";
 }
+
+/** Srpska množina: 1 ocjena, 2–4 ocjene, 5+ i 11–14 ocjena. */
+export function ocjeneRijec(n: number): string {
+  const jedinice = n % 10;
+  const desetice = n % 100;
+  if (jedinice === 1 && desetice !== 11) return "ocjena";
+  if (jedinice >= 2 && jedinice <= 4 && (desetice < 12 || desetice > 14)) return "ocjene";
+  return "ocjena";
+}
