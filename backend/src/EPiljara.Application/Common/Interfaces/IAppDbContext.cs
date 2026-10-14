@@ -32,6 +32,10 @@ public interface IAppDbContext
     /// <summary>Utisci kupaca za početnu — vidi Utisak entitet.</summary>
     DbSet<Utisak> Utisci { get; }
 
+    /// <summary>Recepti i njihovi sastojci — vidi Recept entitet.</summary>
+    DbSet<Recept> Recepti { get; }
+    DbSet<ReceptSastojak> ReceptSastojci { get; }
+
     /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
     DbSet<Magacin> Magacin { get; }
 

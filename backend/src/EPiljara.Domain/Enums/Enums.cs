@@ -65,6 +65,14 @@ public enum StatusSadrzaja
     Zakljucan,
 }
 
+/// <summary>Težina pripreme recepta. Na žicu ide kao ime vrijednosti („Lako", „Srednje", „Zahtjevno").</summary>
+public enum TezinaRecepta
+{
+    Lako,
+    Srednje,
+    Zahtjevno,
+}
+
 public static class UnitExtensions
 {
     public static string ToApi(this Unit unit) => unit switch

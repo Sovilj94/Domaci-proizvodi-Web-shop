@@ -1,4 +1,5 @@
 using EPiljara.Application.Features.Admin;
+using EPiljara.Application.Features.Recepti;
 using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Pretplate;
@@ -187,4 +188,20 @@ public class AdminController : ApiControllerBase
     [HttpDelete("admin/utisci/{id:guid}")]
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
+
+    [HttpGet("admin/recepti")]
+    public async Task<IActionResult> Recepti() =>
+        EnvelopeList(await Mediator.Send(new GetAdminRecepteQuery()));
+
+    [HttpPost("admin/recepti")]
+    public async Task<IActionResult> CreateRecept([FromBody] ReceptInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreateReceptCommand(input)));
+
+    [HttpPut("admin/recepti/{id:guid}")]
+    public async Task<IActionResult> UpdateRecept(Guid id, [FromBody] ReceptInput input) =>
+        Envelope(await Mediator.Send(new UpdateReceptCommand(id, input)));
+
+    [HttpDelete("admin/recepti/{id:guid}")]
+    public async Task<IActionResult> DeleteRecept(Guid id) =>
+        Envelope(await Mediator.Send(new DeleteReceptCommand(id)));
 }

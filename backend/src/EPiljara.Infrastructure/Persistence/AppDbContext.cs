@@ -29,6 +29,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
+    public DbSet<Recept> Recepti => Set<Recept>();
+    public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -249,6 +251,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Tekst).HasMaxLength(500).IsRequired();
             // Javna lista filtrira po Objavljen i sortira po Redoslijed.
             e.HasIndex(x => new { x.Objavljen, x.Redoslijed });
+        });
+
+        b.Entity<Recept>(e =>
+        {
+            e.Property(x => x.Naslov).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Slug).HasMaxLength(140).IsRequired();
+            e.HasIndex(x => x.Slug).IsUnique();
+            e.Property(x => x.Opis).HasMaxLength(500).IsRequired();
+            e.Property(x => x.SlikaUrl).HasMaxLength(500);
+            e.Property(x => x.Koraci).HasMaxLength(8000).IsRequired();
+            e.Property(x => x.Tezina).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => x.Objavljen);
+            e.HasMany(x => x.Sastojci).WithOne(s => s.Recept!)
+                .HasForeignKey(s => s.ReceptId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ReceptSastojak>(e =>
+        {
+            e.Property(x => x.Naziv).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Kolicina).HasMaxLength(40).IsRequired();
+            // Proizvod se može izgubiti ispod recepta — sastojak tada samo ostane bez dugmeta.
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<OrderItem>(e =>
