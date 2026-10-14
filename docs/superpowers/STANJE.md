@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-14 (P4)
+# Stanje projekta — 2026-10-14 (P4 i P5)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -6,11 +6,11 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3` i `pocetna-p4` su spojene i obrisane. |
-| HEAD | `f099c57` — merge P4 (marketinška početna) |
+| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4` i `p5-sadrzaj` su spojene i obrisane. |
+| HEAD | merge P5 (sadržaj) — vidi `git log -1` |
 | Radno stablo | čisto |
 | Nespojeno | ništa |
-| `main` vs `origin/main` | **main je ispred za P2c, P3 i P4 — nije pushovan**, push čeka odobrenje. |
+| `main` vs `origin/main` | **pushovan 2026-10-14** zajedno sa P2c–P5, na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -98,7 +98,7 @@ ključevi grešaka `input.*` na žici; 401 bez tokena.
 Stanje provjera na `main`-u poslije P4: **`dotnet test` 215/215**, `tsc` čisto, `lint` čisto,
 `npm run build` ✓ 56/56 stranica.
 
-## Gotovo, na grani `p5-sadrzaj` (nije spojeno)
+## Gotovo i spojeno — P5 (2026-10-14)
 
 **P5 — Proizvođači, O nama, Recepti, Analize, Postani partner.** Pet javnih stranica i tri admin
 ekrana:
@@ -126,9 +126,16 @@ ekrana:
 5. **Javni tekst** na ovim stranicama tvrdi samo ono što aplikacija radi. Dvije rečenice je
    završna recenzija morala ublažiti: „šaljemo uzorke… objavljujemo sve" i „otkup".
 
-Stanje provjera na `p5-sadrzaj`: **`dotnet test` 252/252**, `tsc` čisto, `lint` čisto,
-`npm run build` ✓ 64/64 stranica (i poslije talasa popravki). **Ručna provjera u pregledaču nije
-urađena** — sistem je zbog manjka memorije ugasio API, i nije ponovo dizan bez odobrenja.
+Stanje provjera na `main`-u poslije P5: **`dotnet test` 256/256**, `tsc` čisto, `lint` čisto,
+`npm run build` ✓ 64/64 stranica.
+
+Provjereno uživo (API + pregledač): prijava partnera 201, honeypot 201 bez upisa, `null` tijelo i
+prazan datum analize → 400 (ne 500), brisanje proizvođača sa analizom → 409; `/analize` prikazuje
+neusklađen nalaz i **ne renderuje `javascript:` link**; stranica domaćina sa artiklima i analizom,
+bez telefona, nepostojeći id → „nije pronađen"; recept → „Dodaj sastojke u korpu (4)" ubacio tačno
+četiri vezana proizvoda po jedan, „so" ne; svih pet stranica na 375px bez horizontalnog skrola;
+honeypot skriven i nefokusabilan. Ručni prolaz je našao englesku poruku validacije za telefon i
+stranicu bez `h1` — popravljeno prije merge-a. Test podaci (analiza, prijava) obrisani iz dev baze.
 
 ## Popis — šta tačno postoji
 
@@ -199,8 +206,7 @@ smije nuditi proizvod"), `components/analize/analiza-kartica.tsx` (P5 — `/anal
 
 ## Nije urađeno
 
-**Prvo: ručna provjera P5 u pregledaču** (treba podići API), pa **merge `p5-sadrzaj` u `main`**
-(čeka odobrenje), pa **P6** — poeni i referral, promo kodovi, ocjena isporuke (iz nje će utisak
+**Sljedeće na redu je P6** — poeni i referral, promo kodovi, ocjena isporuke (iz nje će utisak
 moći nastati sam).
 
 **P6–P7** nisu dirani: poeni, referral, promo kodovi, ocjena isporuke; višejezičnost.
