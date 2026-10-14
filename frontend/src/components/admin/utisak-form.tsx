@@ -56,7 +56,16 @@ export function UtisakForm({
       onClose();
     },
     onError: (err) => {
-      if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
+      // Greška vezana za polje ostaje ispod polja; sve ostalo (mreža, 401/403, 500,
+      // validacija pod drugim ključem) mora dati povratnu informaciju, inače forma tiho stoji.
+      if (err instanceof ApiRequestError) {
+        const poljaGreske = err.fieldErrors;
+        setErrors(poljaGreske);
+        if (Object.keys(poljaGreske).length > 0) return;
+        show(err.message, "error");
+        return;
+      }
+      show("Čuvanje nije uspjelo", "error");
     },
   });
 
