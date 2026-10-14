@@ -14,6 +14,7 @@ export const queryKeys = {
   order: (id: string) => ["order", id] as const,
   trackOrder: (token: string) => ["order", "track", token] as const,
   korpiceLista: () => ["korpice", "lista", undefined] as const,
+  sedmica: () => ["korpice", "sedmica"] as const,
   mojeKorpice: () => ["account", "korpice"] as const,
   mojaKorpica: (id: string) => ["account", "korpica", id] as const,
   pretplate: () => ["account", "pretplate"] as const,
@@ -116,5 +117,17 @@ export function useUtisci() {
     queryKey: queryKeys.utisci(),
     queryFn: () => utisciApi.lista(),
     staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * Tekuća sedmica i rok. Isti ključ koriste i `/korpice` i `/korpice/[slug]` (svojim
+ * inline upitom), pa TanStack spaja zahtjeve u jedan.
+ */
+export function useSedmica() {
+  return useQuery({
+    queryKey: queryKeys.sedmica(),
+    queryFn: korpiceApi.sedmica,
+    staleTime: 5 * 60 * 1000,
   });
 }
