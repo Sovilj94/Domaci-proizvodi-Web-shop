@@ -107,3 +107,12 @@ public enum StatusPretplate
     Pauzirana,
     Otkazana,
 }
+
+/// <summary>Stanje obrade prijave partnera. Na žicu ide kao ime vrijednosti ("Nova", "UObradi", "Prihvacena", "Odbijena").</summary>
+public enum StatusPrijave
+{
+    Nova,
+    UObradi,
+    Prihvacena,
+    Odbijena,
+}

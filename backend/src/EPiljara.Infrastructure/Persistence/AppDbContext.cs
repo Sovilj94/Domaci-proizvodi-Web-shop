@@ -32,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Recept> Recepti => Set<Recept>();
     public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();
     public DbSet<Analiza> Analize => Set<Analiza>();
+    public DbSet<PartnerPrijava> PartnerPrijave => Set<PartnerPrijava>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -292,6 +293,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.ProducerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Product).WithMany()
                 .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<PartnerPrijava>(e =>
+        {
+            e.Property(x => x.Ime).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Gazdinstvo).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Mjesto).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Telefon).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Proizvodi).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.AdminNapomena).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => new { x.Status, x.Kreirana });
         });
 
         b.Entity<OrderItem>(e =>

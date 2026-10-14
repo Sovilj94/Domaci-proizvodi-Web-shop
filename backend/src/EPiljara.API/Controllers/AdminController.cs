@@ -3,6 +3,7 @@ using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Recepti;
 using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Partneri;
 using EPiljara.Application.Features.Pretplate;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -217,6 +218,14 @@ public class AdminController : ApiControllerBase
     [HttpPut("admin/analize/{id:guid}")]
     public async Task<IActionResult> UpdateAnaliza(Guid id, [FromBody] AnalizaInput input) =>
         Envelope(await Mediator.Send(new UpdateAnalizaCommand(id, input)));
+
+    [HttpGet("admin/partneri")]
+    public async Task<IActionResult> Partneri([FromQuery] string? status) =>
+        EnvelopeList(await Mediator.Send(new GetAdminPartneriQuery(status)));
+
+    [HttpPatch("admin/partneri/{id:guid}")]
+    public async Task<IActionResult> ObradiPartnera(Guid id, [FromBody] ObradaInput input) =>
+        Envelope(await Mediator.Send(new ObradiPrijavuCommand(id, input)));
 
     [HttpDelete("admin/analize/{id:guid}")]
     public async Task<IActionResult> DeleteAnaliza(Guid id) =>
