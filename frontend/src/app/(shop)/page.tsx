@@ -2,92 +2,44 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
-import { SmartImage } from "@/components/ui/smart-image";
 import { ProductCard } from "@/components/shop/product-card";
 import { ProductGridSkeleton } from "@/components/shop/product-grid";
 import { BenefitCards } from "@/components/shop/benefit-cards";
 import { CategoryTile } from "@/components/shop/category-tile";
 import { SectionHeader } from "@/components/ui/section-header";
-import { buttonVariants } from "@/components/ui/button";
-import { useCategories, useProducers, useProducts } from "@/lib/api/hooks";
-import { cn } from "@/lib/utils";
+import { Sekcija } from "@/components/pocetna/sekcija";
+import { HeroKorpica } from "@/components/pocetna/hero-korpica";
+import { KakoFunkcionise } from "@/components/pocetna/kako-funkcionise";
+import { Domacini } from "@/components/pocetna/domacini";
+import { Utisci } from "@/components/pocetna/utisci";
+import { CestaPitanja } from "@/components/pocetna/cesta-pitanja";
+import { useCategories, useProducts } from "@/lib/api/hooks";
 
 /**
- * Početna po mockupu „Opcija 3": svijetla cijelom dužinom. Stari izgled je imao dvije
- * tamne sekcije (hero i izdvojeni proizvodi) — one su uklonjene, jer tamnu površinu na
- * mockupu nosi samo donji promo baner.
+ * Početna od P4 prodaje korpicu: hero sa odbrojavanjem, pa kako funkcioniše, pa izlog
+ * (kategorije, izdvojeni), domaćini, utisci i česta pitanja. Svijetla cijelom dužinom kao
+ * u redizajnu „Opcija 3" — tamnu površinu nosi samo donji promo baner.
  */
-
-/** Zajednički okvir sekcije: puna širina, unutrašnja kolona, isti ritam svuda. */
-function Section({
-  children,
-  className,
-  id,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  id?: string;
-}) {
-  return (
-    <section id={id} className={cn("px-4 py-8 sm:py-12", className)}>
-      <div className="mx-auto max-w-6xl">{children}</div>
-    </section>
-  );
-}
-
 export default function HomePage() {
   const categories = useCategories();
   const featured = useProducts({ featured: true });
-  const producers = useProducers();
 
   return (
     <div>
-      {/* ---------- Hero ---------- */}
-      <Section className="pt-6 sm:pt-6">
-        <div className="relative overflow-hidden rounded-card border border-line bg-surface">
-          <div className="grid items-center gap-6 md:grid-cols-2">
-            <div className="order-2 p-6 sm:p-10 md:order-1">
-              <span className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">
-                Zdrava ishrana
-              </span>
-              <h1 className="mt-3 font-display text-3xl font-bold leading-[1.1] text-ink sm:text-5xl">
-                Bolji izbori
-                <br />
-                za zdraviji život.
-              </h1>
-              <p className="mt-4 max-w-md text-sm text-muted sm:text-base">
-                Svježe, domaće i kvalitetne namirnice na jednom mjestu.
-              </p>
-              <Link
-                href="/products"
-                className={cn(buttonVariants({ size: "lg" }), "mt-6")}
-              >
-                Pogledaj ponudu
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <div className="relative order-1 h-56 md:order-2 md:h-[380px]">
-              <Image
-                src="/hero/hero-domacinstvo.jpg"
-                alt="Svježe povrće sa Manjače"
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-              />
-            </div>
-          </div>
-        </div>
-      </Section>
+      <Sekcija className="pt-6 sm:pt-6">
+        <HeroKorpica />
+      </Sekcija>
 
-      {/* ---------- Benefiti ---------- */}
-      <Section className="py-2 sm:py-2">
+      <Sekcija className="py-2 sm:py-2">
         <BenefitCards />
-      </Section>
+      </Sekcija>
+
+      <Sekcija>
+        <KakoFunkcionise />
+      </Sekcija>
 
       {/* ---------- Popularne kategorije ---------- */}
-      <Section>
+      <Sekcija>
         <SectionHeader naslov="Popularne kategorije" />
         {categories.isLoading ? (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
@@ -107,10 +59,10 @@ export default function HomePage() {
         ) : (
           <p className="text-muted">Kategorije trenutno nisu dostupne.</p>
         )}
-      </Section>
+      </Sekcija>
 
       {/* ---------- Izdvojeni proizvodi ---------- */}
-      <Section>
+      <Sekcija>
         <SectionHeader naslov="Izdvojeni proizvodi" link="/products" />
         {featured.isLoading ? (
           <ProductGridSkeleton />
@@ -125,51 +77,20 @@ export default function HomePage() {
         ) : (
           <p className="text-muted">Trenutno nema izdvojenih proizvoda.</p>
         )}
-      </Section>
+      </Sekcija>
 
-      {/* ---------- Domaćini ---------- */}
-      <Section id="domacini">
-        <SectionHeader
-          naslov="Naši domaćini"
-          opis="Ljudi koji stoje iza svakog proizvoda."
-        />
-        {producers.isLoading ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="overflow-hidden rounded-card border border-line bg-surface">
-                <div className="skeleton aspect-[4/3]" />
-                <div className="p-3.5">
-                  <div className="skeleton h-3 w-20 rounded" />
-                  <div className="skeleton mt-2 h-3 w-14 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : producers.data?.length ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
-            {producers.data?.slice(0, 4).map((p) => (
-              <div
-                key={p.id}
-                className="overflow-hidden rounded-card border border-line bg-surface"
-              >
-                <div className="relative aspect-[4/3] bg-sand">
-                  <SmartImage src={p.photoUrl} alt={p.name} sizes="(max-width: 640px) 50vw, 25vw" />
-                </div>
-                <div className="p-3.5">
-                  <p className="text-sm font-semibold text-ink">{p.name}</p>
-                  <p className="mt-0.5 text-xs text-muted">{p.village}</p>
-                  <p className="mt-1.5 line-clamp-2 text-xs text-muted">{p.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-muted">Podaci o domaćinima trenutno nisu dostupni.</p>
-        )}
-      </Section>
+      <Sekcija id="domacini">
+        <Domacini />
+      </Sekcija>
+
+      <Utisci />
+
+      <Sekcija>
+        <CestaPitanja />
+      </Sekcija>
 
       {/* ---------- Promo baner ---------- */}
-      <Section className="pb-14 sm:pb-14">
+      <Sekcija className="pb-14 sm:pb-14">
         <div className="relative overflow-hidden rounded-card">
           <Image
             src="/hero/hero-domacinstvo.jpg"
@@ -191,14 +112,14 @@ export default function HomePage() {
               Direktno od provjerenih proizvođača sa Manjače.
             </p>
             <Link
-              href="/products"
+              href="/korpice"
               className="mt-5 inline-flex h-11 items-center justify-center rounded-[10px] bg-white px-6 text-sm font-medium text-brand-700 transition hover:bg-cream"
             >
-              Saznaj više
+              Izaberi korpicu
             </Link>
           </div>
         </div>
-      </Section>
+      </Sekcija>
     </div>
   );
 }
