@@ -19,6 +19,8 @@ import type {
   TipKorpice,
   Utisak,
   Analiza,
+  PartnerPrijava,
+  StatusPrijave,
   Recept,
   ReceptAdmin,
   ReceptKratko,
@@ -51,6 +53,8 @@ import type {
   SadrzajPregled,
   UtisakInput,
   AnalizaInput,
+  PartnerPrijavaInput,
+  PartnerStatusInput,
   ReceptInput,
 } from "./contracts";
 
@@ -111,6 +115,15 @@ export const utisciApi = {
 export const analizeApi = {
   lista: (producer?: string) =>
     apiFetch<Analiza[]>("/analize", { auth: false, query: { producer } }).then((r) => r.data),
+};
+
+/* ---------- Partneri ---------- */
+
+export const partneriApi = {
+  posalji: (body: PartnerPrijavaInput) =>
+    apiFetch<{ primljena: boolean }>("/partneri/prijave", { method: "POST", body, auth: false }).then(
+      (r) => r.data,
+    ),
 };
 
 /* ---------- Recepti ---------- */
@@ -357,6 +370,13 @@ export const adminApi = {
 
   deleteUtisak: (id: string) =>
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
+
+  /* Partneri */
+  partneri: (status?: StatusPrijave) =>
+    apiFetch<PartnerPrijava[]>("/admin/partneri", { query: { status } }).then((r) => r.data),
+
+  azurirajPrijavu: (id: string, body: PartnerStatusInput) =>
+    apiFetch<PartnerPrijava>(`/admin/partneri/${id}`, { method: "PATCH", body }).then((r) => r.data),
 
   /* Analize */
   analize: () => apiFetch<Analiza[]>("/admin/analize").then((r) => r.data),

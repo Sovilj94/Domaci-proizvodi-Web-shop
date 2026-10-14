@@ -458,3 +458,28 @@ export interface Analiza {
   pdfUrl?: string;
   objavljena: boolean;
 }
+
+/* ---------- Partneri (backend `Features/Partneri`) ---------- */
+
+export type StatusPrijave = "Nova" | "UObradi" | "Prihvacena" | "Odbijena";
+
+export const STATUS_PRIJAVE_TEKST: Record<StatusPrijave, string> = {
+  Nova: "Nova",
+  UObradi: "U obradi",
+  Prihvacena: "Prihvaćena",
+  Odbijena: "Odbijena",
+};
+
+/** `PartnerPrijavaDto`. `gazdinstvo`, `email` i `adminNapomena` su "" kad nisu uneseni. */
+export interface PartnerPrijava {
+  id: string;
+  ime: string;
+  gazdinstvo: string;
+  mjesto: string;
+  telefon: string;
+  email: string;
+  proizvodi: string;
+  status: StatusPrijave;
+  adminNapomena: string;
+  kreirana: string;
+}

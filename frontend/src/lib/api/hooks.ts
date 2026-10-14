@@ -25,6 +25,7 @@ export const queryKeys = {
   adminRecepti: () => ["admin", "recepti"] as const,
   analize: (producer?: string) => ["analize", producer ?? "sve"] as const,
   adminAnalize: () => ["admin", "analize"] as const,
+  adminPartneri: (status?: string) => ["admin", "partneri", status ?? "sve"] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {

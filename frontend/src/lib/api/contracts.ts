@@ -3,6 +3,7 @@ import type {
   OrderStatus,
   PonudaArtikla,
   RezultatAnalize,
+  StatusPrijave,
   StatusSadrzaja,
   StavkaMojeKorpice,
   TezinaRecepta,
@@ -279,4 +280,21 @@ export interface AnalizaInput {
   napomena?: string;
   pdfUrl?: string;
   objavljena: boolean;
+}
+
+/** `web` je honeypot: ljudi ga ne vide, pa ostaje prazan. */
+export interface PartnerPrijavaInput {
+  ime: string;
+  gazdinstvo?: string;
+  mjesto: string;
+  telefon: string;
+  email?: string;
+  proizvodi: string;
+  web?: string;
+}
+
+/** Izostavljena `adminNapomena` ostavlja staru, "" je briše. */
+export interface PartnerStatusInput {
+  status: StatusPrijave;
+  adminNapomena?: string;
 }
