@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ChefHat,
   LayoutDashboard,
   LogOut,
   Package,
@@ -40,6 +41,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/categories", label: "Kategorije", icon: Tags },
   { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
   { href: "/admin/utisci", label: "Utisci", icon: Quote },
+  { href: "/admin/recepti", label: "Recepti", icon: ChefHat },
   { href: "/admin/drivers", label: "Vozači", icon: Users },
   { href: "/admin/dostava", label: "Dostava", icon: Truck },
   { href: "/admin/settings", label: "Magacin", icon: Warehouse },
