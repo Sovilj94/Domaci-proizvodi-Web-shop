@@ -267,6 +267,9 @@ public class GetTekucaSedmicaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
         var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd);
         var rok = isporuka.AddHours(-cutoffSati);
 
+        var (sljedecaGodina, sljedecaSedmica) = SedmicaHelper.Pomjeri(godina, sedmica, 1);
+        var sljedecaIsporuka = SedmicaHelper.DatumIsporuke(sljedecaGodina, sljedecaSedmica, dan, vrijemeOd);
+
         return new SedmicaDto
         {
             Godina = godina,
@@ -274,6 +277,8 @@ public class GetTekucaSedmicaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
             DatumIsporuke = isporuka,
             RokNarucivanja = rok,
             RokIstekao = DateTime.UtcNow > rok,
+            SljedecaIsporuka = sljedecaIsporuka,
+            SljedeciRok = sljedecaIsporuka.AddHours(-cutoffSati),
         };
     }
 }

@@ -165,4 +165,41 @@ public class KorpiceQueriesTests
         Assert.Equal(ocekivanaIsporuka, dto.DatumIsporuke);
         Assert.Equal(DateTimeKind.Utc, dto.DatumIsporuke.Kind);
     }
+
+    /// <summary>
+    /// Poslije roka checkout prodaje za narednu sedmicu (SedmicaZaNarudzbu), pa odbrojavanje
+    /// na početnoj treba rok te naredne sedmice. Računa se istim DatumIsporuke kao tekući,
+    /// samo za sedmicu više — zato je razlika tačno sedam dana.
+    /// </summary>
+    [Fact]
+    public async Task Sljedeci_krug_je_tacno_sedam_dana_poslije_tekuceg()
+    {
+        using var t = new TestDb();
+        t.Db.DeliverySlots.Add(new DeliverySlot
+        {
+            DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48,
+        });
+        t.Db.SaveChanges();
+
+        var dto = await new GetTekucaSedmicaHandler(t.Db, Opcije)
+            .Handle(new GetTekucaSedmicaQuery(), default);
+
+        Assert.Equal(dto.DatumIsporuke.AddDays(7), dto.SljedecaIsporuka);
+        Assert.Equal(dto.RokNarucivanja.AddDays(7), dto.SljedeciRok);
+        Assert.Equal(DateTimeKind.Utc, dto.SljedeciRok.Kind);
+    }
+
+    /// <summary>
+    /// 2026. ima 53 ISO sedmice. Sljedeći krug poslije 53. je prva sedmica 2027, a ne
+    /// „sedmica 54" — pin za par Pomjeri + DatumIsporuke koji handler koristi.
+    /// </summary>
+    [Fact]
+    public void Sljedeci_krug_prelazi_granicu_godine()
+    {
+        var (g, s) = SedmicaHelper.Pomjeri(2026, 53, 1);
+        var isporuka = SedmicaHelper.DatumIsporuke(g, s, DayOfWeek.Thursday, "16:00");
+
+        Assert.Equal((2027, 1), (g, s));
+        Assert.Equal(new DateTime(2027, 1, 7, 16, 0, 0, DateTimeKind.Utc), isporuka);
+    }
 }

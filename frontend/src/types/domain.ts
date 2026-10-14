@@ -277,6 +277,9 @@ export interface Sedmica {
   datumIsporuke: string;
   rokNarucivanja: string;
   rokIstekao: boolean;
+  /** Isporuka i rok NAREDNE sedmice (ISO 8601, UTC) — do njih broji odbrojavanje poslije roka. */
+  sljedecaIsporuka: string;
+  sljedeciRok: string;
 }
 
 /**

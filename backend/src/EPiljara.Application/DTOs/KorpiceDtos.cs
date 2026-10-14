@@ -56,6 +56,13 @@ public record SedmicaDto
     public DateTime DatumIsporuke { get; init; }
     public DateTime RokNarucivanja { get; init; }
     public bool RokIstekao { get; init; }
+
+    /// <summary>
+    /// Isporuka i rok NAREDNE sedmice. Poslije roka checkout prodaje za narednu sedmicu
+    /// (SedmicaHelper.SedmicaZaNarudzbu), pa odbrojavanje na početnoj tada broji do ovoga.
+    /// </summary>
+    public DateTime SljedecaIsporuka { get; init; }
+    public DateTime SljedeciRok { get; init; }
 }
 
 public record SadrzajPregledDto
