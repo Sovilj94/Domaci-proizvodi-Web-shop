@@ -98,6 +98,38 @@ ključevi grešaka `input.*` na žici; 401 bez tokena.
 Stanje provjera na `main`-u poslije P4: **`dotnet test` 215/215**, `tsc` čisto, `lint` čisto,
 `npm run build` ✓ 56/56 stranica.
 
+## Gotovo, na grani `p5-sadrzaj` (nije spojeno)
+
+**P5 — Proizvođači, O nama, Recepti, Analize, Postani partner.** Pet javnih stranica i tri admin
+ekrana:
+
+- `/proizvodjaci` i `/proizvodjaci/[id]`: domaćin, njegovi artikli i njegove objavljene analize.
+  Kartica domaćina na početnoj sada vodi tamo.
+- `/o-nama` sa kontaktom (`#kontakt`). Kontakt podaci su izvađeni u `lib/kontakt.ts`, a footer
+  dobija kolonu „E piljara".
+- `/recepti` i `/recepti/[slug]`: sastojci vezani za ponudu, dugme „Dodaj sastojke u korpu".
+  Admin ih uređuje na `/admin/recepti`.
+- `/analize`: laboratorijski nalazi sa bedžom usklađeno ili nije usklađeno i linkom na PDF.
+  Admin ih uređuje na `/admin/analize`.
+- `/postani-partner`: forma za domaćinstva, sa honeypotom i ograničenjem broja zahtjeva. Admin
+  obrađuje prijave na `/admin/partneri`, a navigacija pokazuje bedž sa brojem novih.
+
+Šta vrijedi znati prije nego se dira:
+
+1. **Analize se nikad ne seeduju**; nalaz koji nije usklađen objavljuje se isto kao usklađen.
+   Proizvođač sa analizama se ne može obrisati (409).
+2. **Recepti se seeduju samo u demo seedu** (dva). Slug recepta se nikad ne mijenja.
+3. **Sastojak nudi proizvod samo ako je običan i neobrisan.** Izmjena recepta ili analize
+   prihvata već vezan proizvod i kad je u međuvremenu obrisan.
+4. **Enumi na žici su PascalCase stringovi**, a ulaz se provjerava sa `TryParse` + `IsDefined`.
+   Svaki novi validator počinje sa `Input NotNull` (inače neispravan JSON daje 500).
+5. **Javni tekst** na ovim stranicama tvrdi samo ono što aplikacija radi. Dvije rečenice je
+   završna recenzija morala ublažiti: „šaljemo uzorke… objavljujemo sve" i „otkup".
+
+Stanje provjera na `p5-sadrzaj`: **`dotnet test` 252/252**, `tsc` čisto, `lint` čisto,
+`npm run build` ✓ 64/64 stranica (i poslije talasa popravki). **Ručna provjera u pregledaču nije
+urađena** — sistem je zbog manjka memorije ugasio API, i nije ponovo dizan bez odobrenja.
+
 ## Popis — šta tačno postoji
 
 Da se ne vadi iz koda pri nastavku.
@@ -126,22 +158,28 @@ DELETE /account/pretplate/{id}          drugi 204 bez tijela u API-ju
 Od P3 `KorpicaDto` nosi i `cijenaSaPretplatom` + `isporukaDoPopusta`; klijent popust ne računa.
 Od P4: `/korpice/sedmica` nosi i `sljedeciRok` + `sljedecaIsporuka`, `GET /producers` nosi
 `artikli` (do četiri dostupna obična artikla), i novi **`GET /utisci`** (samo objavljeni).
+Od P5: `GET /products?producer={id}`, `GET /recepti`, `GET /recepti/{slug}`,
+`GET /analize?producer=`, i **`POST /partneri/prijave`** (bez prijave, politika `auth`, honeypot `web`).
 
 **Admin** — `/admin/korpice/sadrzaj`, `/sadrzaj/generisi`, `/sadrzaj/{id}`,
 `/sadrzaj/{id}/objavi`, `/admin/korpice/pakerska-lista?godina=&sedmica=`,
 `/admin/pretplate?status=` (P3 — koliko je korpica obećano za narednu sedmicu i koliko njih
 još čeka sadržaj), `GET/POST /admin/utisci`, `PUT/DELETE /admin/utisci/{id}` (P4, ekran
-`/admin/utisci`).
+`/admin/utisci`). Od P5: `/admin/recepti`, `/admin/analize` (GET/POST, PUT/DELETE `{id}`),
+`GET /admin/partneri?status=`, `PATCH /admin/partneri/{id}` — ekrani istih imena.
 
-**Entiteti dodati kroz P1–P4** — `SedmicniSadrzaj`, `StavkaSadrzaja`, `KorpicaKategorija`
-(P1); `StavkaKorpiceNarudzbe` (P2b); `Pretplata` (P3); `Utisak` (P4, migracija `DodajUtiske`). `Product` je dobio `Vrsta`,
+**Entiteti dodati kroz P1–P5** — `SedmicniSadrzaj`, `StavkaSadrzaja`, `KorpicaKategorija`
+(P1); `StavkaKorpiceNarudzbe` (P2b); `Pretplata` (P3); `Utisak` (P4, migracija `DodajUtiske`);
+`Recept` + `ReceptSastojak`, `Analiza`, `PartnerPrijava` (P5, migracije `DodajRecepte`,
+`DodajAnalize`, `DodajPartnerPrijave`). `Product` je dobio `Vrsta`,
 `TipKorpice`, `Velicina`, `MozeUKorpicu`, `PrioritetUKorpici`, `Mjeseci`. `Order` je dobio
 `Godina`, `Sedmica` i `PretplataId`.
 
 **Ekrani kupca** (adresar od P2c nosi mapu u formi) — `/korpice`, `/korpice/[slug]` (od P3 ima
 i „Pretplati se"), `/moj-nalog` i pod njim `/podaci`, `/adrese`, `/narudzbe`, `/korpica`,
 `/pretplate`. `/orders` je serverski redirect na `/moj-nalog/narudzbe`. U navigaciji naloga
-više nema zaključanih stavki.
+više nema zaključanih stavki. Od P5 i `/proizvodjaci`, `/proizvodjaci/[id]`, `/o-nama`,
+`/recepti`, `/recepti/[slug]`, `/analize`, `/postani-partner` — linkovane iz footera.
 
 **Pozadinski poslovi** — `ZakljucavanjeSadrzajaService` (svakih 15 minuta zaključava sadržaje
 kojima je rok prošao), `PretplatneNarudzbeService` (svakih 15 minuta pravi pretplatne
@@ -155,15 +193,17 @@ pretplate), `PretplatnaCijena` (jedino mjesto sa pravilom popusta; zovu ga ekran
 `KorpicaDto` i `CreateOrderHandler`), `BrojacIsporuka` (jedino mjesto koje diže `BrojIsporuka`;
 zovu ga oba mjesta koja postavljaju `Delivered`), `lib/sedmica.ts` (P4 — imena dana u dva padeža,
 `rokTekst`, `isporukaTekst`, `aktivniKrug`; zovu ga traka roka, odbrojavanje, FAQ i footer),
-`lib/cesta-pitanja.ts` (P4 — pitanja i jedino izvođenje brojeva za njih).
+`lib/cesta-pitanja.ts` (P4 — pitanja i jedino izvođenje brojeva za njih), `lib/kontakt.ts` (P5 —
+telefon i adresa; footer i `/o-nama`), `ReceptPravila.SmijeUPrikaz` (P5 — jedino pravilo „sastojak
+smije nuditi proizvod"), `components/analize/analiza-kartica.tsx` (P5 — `/analize` i stranica domaćina).
 
 ## Nije urađeno
 
-**Sljedeće na redu je P5** — Analize, Recepti, O nama,
-Postani partner. Zasebna stranica proizvođača (`/proizvodjaci/[id]`) je iz P4 prebačena u P5.
+**Prvo: ručna provjera P5 u pregledaču** (treba podići API), pa **merge `p5-sadrzaj` u `main`**
+(čeka odobrenje), pa **P6** — poeni i referral, promo kodovi, ocjena isporuke (iz nje će utisak
+moći nastati sam).
 
-**P5–P7** nisu dirani: Analize/Recepti/O nama/Postani partner; poeni, referral, promo kodovi,
-ocjena isporuke (iz nje će u P6 utisak moći nastati sam); višejezičnost.
+**P6–P7** nisu dirani: poeni, referral, promo kodovi, ocjena isporuke; višejezičnost.
 
 ## Otvoreni nalazi, nošeni dalje
 
