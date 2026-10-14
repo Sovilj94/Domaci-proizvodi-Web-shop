@@ -388,6 +388,8 @@ export interface Utisak {
   tekst: string;
   objavljen: boolean;
   redoslijed: number;
+  /** True kad je utisak nastao iz ocjene isporuke. */
+  izOcjene: boolean;
 }
 
 /* ---------- Recepti (backend `DTOs/ReceptiDtos.cs`) ---------- */
@@ -491,4 +493,33 @@ export interface PartnerPrijava {
   status: StatusPrijave;
   adminNapomena: string;
   kreirana: string;
+}
+
+/* ---------- Admin ocjene (backend `DTOs/OcjeneAdminDtos.cs`) ---------- */
+
+export interface OcjeneSazetak {
+  /** Jedna decimala; 0 kad nema ocjena. */
+  prosjek: number;
+  broj: number;
+  /** Pet brojeva, indeks 0 = jedna zvjezdica. */
+  poBroju: number[];
+}
+
+export interface OcjenaAdmin {
+  id: string;
+  ocjena: number;
+  komentar: string;
+  dozvolaZaObjavu: boolean;
+  kreirana: string;
+  orderId: string;
+  kodNarudzbe: string;
+  kupac: string;
+  zona: string;
+  /** Utisak napravljen iz ove ocjene; izostavljen dok ga nema. */
+  utisakId?: string;
+}
+
+export interface OcjeneAdmin {
+  sazetak: OcjeneSazetak;
+  stavke: OcjenaAdmin[];
 }

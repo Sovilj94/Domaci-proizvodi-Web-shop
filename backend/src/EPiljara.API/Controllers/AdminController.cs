@@ -1,5 +1,6 @@
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Analize;
+using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Recepti;
 using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
@@ -190,6 +191,14 @@ public class AdminController : ApiControllerBase
     [HttpDelete("admin/utisci/{id:guid}")]
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
+
+    [HttpGet("admin/ocjene")]
+    public async Task<IActionResult> Ocjene([FromQuery] int? ocjena) =>
+        Envelope(await Mediator.Send(new GetAdminOcjeneQuery(ocjena)));
+
+    [HttpPost("admin/ocjene/{id:guid}/utisak")]
+    public async Task<IActionResult> NapraviUtisakIzOcjene(Guid id) =>
+        EnvelopeCreated(await Mediator.Send(new NapraviUtisakIzOcjeneCommand(id)));
 
     [HttpGet("admin/recepti")]
     public async Task<IActionResult> Recepti() =>

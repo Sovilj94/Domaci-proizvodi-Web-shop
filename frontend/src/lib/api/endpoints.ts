@@ -10,6 +10,7 @@ import type {
   Korpica,
   MojaKorpica,
   OcjenaIsporuke,
+  OcjeneAdmin,
   Order,
   OrderStatus,
   Pretplata,
@@ -379,6 +380,12 @@ export const adminApi = {
 
   updateUtisak: (id: string, body: UtisakInput) =>
     apiFetch<Utisak>(`/admin/utisci/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  ocjene: (ocjena?: number) =>
+    apiFetch<OcjeneAdmin>(`/admin/ocjene${ocjena ? `?ocjena=${ocjena}` : ""}`).then((r) => r.data),
+
+  napraviUtisak: (id: string) =>
+    apiFetch<Utisak>(`/admin/ocjene/${id}/utisak`, { method: "POST" }).then((r) => r.data),
 
   deleteUtisak: (id: string) =>
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),

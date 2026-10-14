@@ -20,6 +20,7 @@ export const queryKeys = {
   pretplate: () => ["account", "pretplate"] as const,
   utisci: () => ["utisci"] as const,
   adminUtisci: () => ["admin", "utisci"] as const,
+  adminOcjene: (ocjena?: number) => ["admin", "ocjene", ocjena ?? "sve"] as const,
   recepti: () => ["recepti"] as const,
   recept: (slug: string) => ["recepti", slug] as const,
   adminRecepti: () => ["admin", "recepti"] as const,

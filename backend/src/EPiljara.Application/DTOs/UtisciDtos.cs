@@ -8,4 +8,6 @@ public record UtisakDto
     public string Tekst { get; init; } = string.Empty;
     public bool Objavljen { get; init; }
     public int Redoslijed { get; init; }
+    /// <summary>True kad je utisak nastao iz ocjene isporuke (P6a).</summary>
+    public bool IzOcjene { get; init; }
 }
