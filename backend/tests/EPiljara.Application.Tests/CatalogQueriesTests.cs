@@ -66,4 +66,44 @@ public class CatalogQueriesTests
             .Handle(new GetProductBySlugQuery("babura-paprika"), default);
         Assert.Equal("Babura paprika", obican.Name);
     }
+
+    /// <summary>
+    /// Kartica domaćina na početnoj kaže šta on proizvodi. Korpica nije njegov proizvod
+    /// (seeder je za FK vezuje za prvog proizvođača), a nedostupan artikal kupac ne može
+    /// kupiti — nijedno ne ide u listu. Najviše četiri, po imenu.
+    /// </summary>
+    [Fact]
+    public async Task Proizvodjac_nosi_do_cetiri_dostupna_obicna_artikla_po_imenu()
+    {
+        using var t = new TestDb();
+        var (obican, _) = Postavi(t);   // "Babura paprika" + korpica, isti proizvođač
+        foreach (var (ime, dostupan) in new[]
+                 { ("Sir", true), ("Kajmak", true), ("Med", true), ("Ajvar", true), ("Pekmez", false) })
+        {
+            t.Db.Products.Add(new Product
+            {
+                Name = ime, Slug = ime.ToLowerInvariant(), Price = 5m, Unit = Unit.Kom,
+                CategoryId = obican.CategoryId, ProducerId = obican.ProducerId, Stock = 5,
+                IsAvailable = dostupan, Vrsta = VrstaProizvoda.Obican,
+            });
+        }
+        t.Db.SaveChanges();
+
+        var rez = await new GetProducersHandler(t.Db).Handle(new GetProducersQuery(), default);
+
+        var p = Assert.Single(rez);
+        Assert.Equal(["Ajvar", "Babura paprika", "Kajmak", "Med"], p.Artikli);
+    }
+
+    [Fact]
+    public async Task Proizvodjac_bez_artikala_ima_praznu_listu()
+    {
+        using var t = new TestDb();
+        t.Db.Producers.Add(new Producer { Name = "Porodica Bez", Village = "Ljubačevo" });
+        t.Db.SaveChanges();
+
+        var rez = await new GetProducersHandler(t.Db).Handle(new GetProducersQuery(), default);
+
+        Assert.Empty(Assert.Single(rez).Artikli);
+    }
 }

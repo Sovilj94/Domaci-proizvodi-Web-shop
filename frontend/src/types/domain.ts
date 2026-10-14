@@ -38,6 +38,8 @@ export interface Producer {
   latitude?: number;
   longitude?: number;
   phone?: string;
+  /** Do četiri dostupna obična artikla, po imenu. Uvijek prisutno; [] kad nema. */
+  artikli: string[];
 }
 
 /** Lightweight producer summary embedded on a product. */
@@ -277,6 +279,9 @@ export interface Sedmica {
   datumIsporuke: string;
   rokNarucivanja: string;
   rokIstekao: boolean;
+  /** Isporuka i rok NAREDNE sedmice (ISO 8601, UTC) — do njih broji odbrojavanje poslije roka. */
+  sljedecaIsporuka: string;
+  sljedeciRok: string;
 }
 
 /**
@@ -364,4 +369,14 @@ export interface Pretplata {
   pauzaDoGodina?: number;
   pauzaDoSedmica?: number;
   createdAt: string;
+}
+
+/** Preslikava `UtisakDto` (backend `DTOs/UtisciDtos.cs`). `mjesto` je "" kad nije uneseno. */
+export interface Utisak {
+  id: string;
+  ime: string;
+  mjesto: string;
+  tekst: string;
+  objavljen: boolean;
+  redoslijed: number;
 }

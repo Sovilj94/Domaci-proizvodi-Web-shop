@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-13 (P2c i P3 istog dana)
+# Stanje projekta — 2026-10-14 (P4)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -6,11 +6,12 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa` i `pretplate-p3` su spojene i obrisane. |
-| HEAD | `50b517f` — merge P3 (pretplate) |
+| Grane | `main` i **`pocetna-p4`** (P4, gotova i recenzirana, **nije spojena** — merge čeka odobrenje). `redizajn-opcija3`, `adresar-mapa` i `pretplate-p3` su spojene i obrisane. |
+| HEAD `main` | `092223a` — STANJE poslije merge-a P3 |
+| HEAD `pocetna-p4` | vrh grane, 13 commita ispred `main`-a (spec, plan, 7 taskova, popravke recenzija, dokumentacija) |
 | Radno stablo | čisto |
-| Nespojeno | ništa |
-| `main` vs `origin/main` | **main je ispred za P2c i P3 — nije pushovan**, push čeka odobrenje. |
+| Nespojeno | `pocetna-p4` |
+| `main` vs `origin/main` | **main je ispred za 12 commita (P2c i P3) — nije pushovan**, push čeka odobrenje. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -67,6 +68,37 @@ Tri stvari iz P3 vrijedi znati prije nego se išta oko narudžbi dira:
 Stanje provjera na `main`-u: **`dotnet test` 199/199**, `tsc` čisto, `lint` čisto,
 `npm run build` ✓ 55/55 stranica.
 
+## Gotovo, na grani `pocetna-p4` (nije spojeno)
+
+**P4 — Marketinška početna.** Početna `/` prodaje korpicu: hero „Domaće namirnice, svake
+sedmice na tvojim vratima" sa cijenom „već od X KM" (najjeftinija dostupna korpica) i
+**odbrojavanjem do roka**, pa „Kako funkcioniše" (tri koraka), postojeće kategorije i izdvojeni
+proizvodi, domaćini sa do četiri svoja artikla, **utisci kupaca** (unosi ih admin na
+`/admin/utisci`), **česta pitanja** i promo baner koji sad vodi na `/korpice`. Footer više ne
+piše zakucano „Narudžbe do utorka u 12h" nego rok sa servera.
+
+Šta vrijedi znati prije nego se dira:
+
+1. **Početna ne kuca brojeve.** Rok, dan isporuke i popust pretplate dolaze sa servera
+   (`/korpice/sedmica`, `KorpicaDto`). Rečenica kojoj treba broj ide kroz
+   `lib/cesta-pitanja.ts` (`kontekstPitanja`) ili `lib/sedmica.ts`.
+2. **Poslije roka početna govori o narednoj sedmici, `/korpice` i dalje o tekućoj.**
+   `SedmicaDto` od P4 nosi `SljedeciRok`/`SljedecaIsporuka`; `aktivniKrug()` bira krug koji
+   checkout stvarno prodaje. Izlog `/korpice` je namjerno ostavljen (spec O7) — otvoren nalaz.
+3. **Utisci se ne seeduju, ni u demo seedu.** Sekcija se ne prikazuje dok nijedan nije
+   objavljen. Izmišljen utisak na staging deployu je gori od prazne sekcije.
+4. **Odbrojavanje čita sat samo u efektu** (hidratacija) i, kad dođe do nule, traži sedmicu
+   ponovo svakih 10 s dok server ne potvrdi prelaz — inače bi se kod sata kupca koji žuri
+   zaglavilo na „Rok je upravo istekao".
+
+Provjereno uživo: desktop i 375px bez horizontalnog skrola; stanje prije roka (sekunde u
+zadnja 24 h, rok sa minutama „6:30h"); **stvaran prelaz na nuli** na „Ova sedmica je
+zatvorena — rok za sljedeću"; utisak kroz API se pojavi na početnoj i nestane po brisanju;
+ključevi grešaka `input.*` na žici; 401 bez tokena.
+
+Stanje provjera na `pocetna-p4`: **`dotnet test` 215/215**, `tsc` čisto, `lint` čisto,
+`npm run build` ✓ 56/56 stranica.
+
 ## Popis — šta tačno postoji
 
 Da se ne vadi iz koda pri nastavku.
@@ -93,14 +125,17 @@ DELETE /account/pretplate/{id}          drugi 204 bez tijela u API-ju
 
 **Javno** — `GET /korpice`, `/korpice/sedmica`, `/korpice/{slug}`, `/korpice/{slug}/sadrzaj`.
 Od P3 `KorpicaDto` nosi i `cijenaSaPretplatom` + `isporukaDoPopusta`; klijent popust ne računa.
+Od P4: `/korpice/sedmica` nosi i `sljedeciRok` + `sljedecaIsporuka`, `GET /producers` nosi
+`artikli` (do četiri dostupna obična artikla), i novi **`GET /utisci`** (samo objavljeni).
 
 **Admin** — `/admin/korpice/sadrzaj`, `/sadrzaj/generisi`, `/sadrzaj/{id}`,
 `/sadrzaj/{id}/objavi`, `/admin/korpice/pakerska-lista?godina=&sedmica=`,
 `/admin/pretplate?status=` (P3 — koliko je korpica obećano za narednu sedmicu i koliko njih
-još čeka sadržaj).
+još čeka sadržaj), `GET/POST /admin/utisci`, `PUT/DELETE /admin/utisci/{id}` (P4, ekran
+`/admin/utisci`).
 
-**Entiteti dodati kroz P1–P3** — `SedmicniSadrzaj`, `StavkaSadrzaja`, `KorpicaKategorija`
-(P1); `StavkaKorpiceNarudzbe` (P2b); `Pretplata` (P3). `Product` je dobio `Vrsta`,
+**Entiteti dodati kroz P1–P4** — `SedmicniSadrzaj`, `StavkaSadrzaja`, `KorpicaKategorija`
+(P1); `StavkaKorpiceNarudzbe` (P2b); `Pretplata` (P3); `Utisak` (P4, migracija `DodajUtiske`). `Product` je dobio `Vrsta`,
 `TipKorpice`, `Velicina`, `MozeUKorpicu`, `PrioritetUKorpici`, `Mjeseci`. `Order` je dobio
 `Godina`, `Sedmica` i `PretplataId`.
 
@@ -119,14 +154,17 @@ stvarno prave `Order`), `SedmicaHelper` (sve o sedmicama i rokovima), `lib/zone.
 (`pogodiZonu` — jedino pogađanje zone po imenu naselja; zovu ga checkout i forme adresara i
 pretplate), `PretplatnaCijena` (jedino mjesto sa pravilom popusta; zovu ga ekran, javni
 `KorpicaDto` i `CreateOrderHandler`), `BrojacIsporuka` (jedino mjesto koje diže `BrojIsporuka`;
-zovu ga oba mjesta koja postavljaju `Delivered`).
+zovu ga oba mjesta koja postavljaju `Delivered`), `lib/sedmica.ts` (P4 — imena dana u dva padeža,
+`rokTekst`, `isporukaTekst`, `aktivniKrug`; zovu ga traka roka, odbrojavanje, FAQ i footer),
+`lib/cesta-pitanja.ts` (P4 — pitanja i jedino izvođenje brojeva za njih).
 
 ## Nije urađeno
 
-**Sljedeće na redu je P4** — P3 (pretplate) je gotov i spojen.
+**Prvo: merge `pocetna-p4` u `main`** (čeka odobrenje), pa **P5** — Analize, Recepti, O nama,
+Postani partner. Zasebna stranica proizvođača (`/proizvodjaci/[id]`) je iz P4 prebačena u P5.
 
-**P4–P7** nisu dirani: marketinška početna; Analize/Recepti/O nama/Postani partner; poeni,
-referral, promo kodovi, ocjena isporuke; višejezičnost.
+**P5–P7** nisu dirani: Analize/Recepti/O nama/Postani partner; poeni, referral, promo kodovi,
+ocjena isporuke (iz nje će u P6 utisak moći nastati sam); višejezičnost.
 
 ## Otvoreni nalazi, nošeni dalje
 
@@ -144,7 +182,12 @@ Ništa od ovoga ne blokira ništa; sve je svjesno odloženo uz razlog.
 | Klijent predviđa količinu 1 za ponovo dodat šablonski artikal | `korpica-editor.tsx` | Zatvaranje traži da `PonudaArtiklaDto` nosi šablonsku količinu — izmjena ugovora backenda. Server ostaje mjerodavan; posljedica je samo da traka budžeta pokaže manje nego server. |
 | Razlika na pola feninga između JS i .NET zaokruživanja | `korpica-editor.tsx` | JS zaokružuje od nule, .NET na parno. Zabilježeno u komentaru, server mjerodavan. |
 | Vremenska zona na `DeliverySlot` | `SedmicaHelper` | **Naslijeđeno iz P1.** `TimeFrom` je „16:00" bez zone, backend ga gradi kao UTC, pa se rok zatvara dva sata kasnije od nominalnog. Prihvaćeno, zapisano u `CLAUDE.md`. |
-| `/korpice` izlog govori o tekućoj sedmici, a checkout prodaje za narednu | `GetTekucaSedmicaHandler` | Poslije isteka roka izlog piše „rok istekao" dok naplata ide za sljedeću sedmicu. Naplata je tačna; izlog zaostaje. |
+| `/korpice` izlog govori o tekućoj sedmici, a checkout prodaje za narednu | `GetTekucaSedmicaHandler`, `rok-traka.tsx` | Poslije isteka roka izlog piše „rok istekao" dok naplata ide za sljedeću sedmicu. Naplata je tačna; izlog zaostaje. **Od P4 je razlika vidljivija:** početna i footer poslije roka već govore o narednoj sedmici (`aktivniKrug`), traka na `/korpice` još o tekućoj. Popravka je da i izlog pređe na `aktivniKrug`, ali to mijenja i kad se gasi dugme „Naruči korpicu" — zato nije u P4 (spec O7). |
+| Hidratacijska greška u traci kategorija | `category-rail.tsx` | U dev konzoli: Suspense fallback renderuje `<div>`, komponenta `<nav>`. Postojala je i prije P4 (fajl nije diran); zaseban mali zadatak. |
+| Utisak nije vezan za kupca | `Utisak` | Ne može se dokazati da je utisak od stvarnog kupca — unosi ga admin. Veza dolazi sa ocjenom isporuke u P6, kao nullable kolona. |
+| Admin forme bez `label`/`htmlFor`, `role="dialog"` i Escape | `utisak-form.tsx`, `producer-form.tsx` i ostale | Nova forma utisaka prati postojeći obrazac; pristupačnost treba popraviti za sve admin forme odjednom. |
+| Rok u pregledaču se prikazuje u zoni pregledača | `lib/sedmica.ts` | Isti naslijeđeni problem kao „Vremenska zona na `DeliverySlot`" — rok 16:00 (UTC na serveru) se kupcu u BiH prikazuje kao 18h. Dosljedno je sa trenutkom kad se rok stvarno zatvara, ali ne sa nominalnim. |
+| Sitnice iz recenzija P4 | razno | Test granice godine ide na `SedmicaHelper`, ne kroz handler; update test utiska ne provjerava `Mjesto`/`Tekst`; nema testa za obrisan artikal u `Artikli`; mock vraća prazne `artikli`; red u footeru se pojavi tek kad stigne podatak. |
 | Četiri slaba testa | `SedmicaZaNarudzbuTests`, `CreateOrderSedmicaTests`, `AdminKorpiceTests` | Jedan dokazuje samo da funkcija ne puca; jedan je djelimično cirkularan; jedan ima suvišan assert; jedan je tautološki. Nijedan nije pogrešan, samo dokazuju manje nego što im ime obećava. |
 | Pet sitnica iz završne recenzije P2b | razno | Sedmica narudžbe ne gleda izabrani `DeliverySlot` iako seed nosi dva; mrtva `undefined` grana u praznom stanju admina; zastarjeli komentari. |
 
@@ -196,7 +239,15 @@ Pretplata je zato na „još 4 isporuke do niže cijene". Ako treba ispočetka: 
 `"Pretplate": { "SatiUnaprijed": 10000 }`, pa restart API-ja (prvi prolaz ide odmah po dizanju).
 **Vratiti poslije** — ostavljeno podešeno znači da narudžbe nastaju mjesecima unaprijed.
 
-**Dev server i API su ostavljeni upaljeni**, isti kakvi su i zatečeni: `npm run dev` i
+Iz P4: migracija `DodajUtiske` je **primijenjena** na dev bazu; tabela `Utisci` je prazna (privremeni
+utisak za provjeru je obrisan). `DeliverySlot` za četvrtak je tokom provjere odbrojavanja
+privremeno mijenjan i **vraćen** na `16:00` / `CutoffHours = 48`.
+
+**P4 sesija je zatekla sve ugašeno** (Docker nije radio). Na kraju su ostavljeni: Docker i
+`epiljara-postgres` upaljeni, **API upaljen** (`dotnet run`), **Next dev server ugašen** (zbog
+`npm run build`) — dići ga sa `npm run dev` u `frontend/`.
+
+Prije P4 je za predaju pisalo — **Dev server i API su ostavljeni upaljeni**, isti kakvi su i zatečeni: `npm run dev` i
 `dotnet run --project src/EPiljara.API` u zasebnim prozorima. Oba su usput morala biti ugašena —
 dev server zbog `npm run build`, API zbog toga što drži Debug DLL-ove zaključane dok traje
 `dotnet build` i `dotnet ef`.

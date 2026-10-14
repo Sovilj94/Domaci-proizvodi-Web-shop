@@ -68,6 +68,7 @@ function seed(): Db {
       latitude: 44.6321,
       longitude: 17.0954,
       phone: "+387 65 111 222",
+      artikli: [],
     },
     {
       id: "prod-maric",
@@ -79,6 +80,7 @@ function seed(): Db {
       latitude: 44.667,
       longitude: 17.02,
       phone: "+387 66 333 444",
+      artikli: [],
     },
     {
       id: "prod-jovanovic",
@@ -90,6 +92,7 @@ function seed(): Db {
       latitude: 44.6,
       longitude: 17.15,
       phone: "+387 65 555 666",
+      artikli: [],
     },
     {
       id: "prod-savic",
@@ -101,6 +104,7 @@ function seed(): Db {
       latitude: 44.72,
       longitude: 16.95,
       phone: "+387 66 777 888",
+      artikli: [],
     },
   ];
 

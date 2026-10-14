@@ -102,7 +102,21 @@ public class GetProducersHandler(IAppDbContext db)
     public async Task<IReadOnlyList<ProducerDto>> Handle(GetProducersQuery q, CancellationToken ct)
     {
         var producers = await db.Producers.OrderBy(p => p.Name).ToListAsync(ct);
-        return producers.Select(p => p.ToDto()).ToList();
+
+        // Jedan upit za sve proizvođače umjesto po jednog za svakog. Obrisane skida
+        // globalni filter na Product (IsDeleted); korpice i nedostupne skidamo ovdje.
+        var artikli = await db.Products
+            .Where(p => p.IsAvailable && p.Vrsta == VrstaProizvoda.Obican)
+            .OrderBy(p => p.Name)
+            .Select(p => new { p.ProducerId, p.Name })
+            .ToListAsync(ct);
+        var poProizvodjacu = artikli
+            .GroupBy(a => a.ProducerId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(a => a.Name).Take(4).ToList());
+
+        return producers
+            .Select(p => p.ToDto() with { Artikli = poProizvodjacu.GetValueOrDefault(p.Id) ?? [] })
+            .ToList();
     }
 }
 

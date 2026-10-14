@@ -28,6 +28,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
+    public DbSet<Utisak> Utisci => Set<Utisak>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -238,6 +239,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.DeliverySlot).WithMany()
                 .HasForeignKey(x => x.DeliverySlotId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<Utisak>(e =>
+        {
+            // Dužine prate validator (UtisakInputValidator) — baza je zadnja brana, ne prva.
+            e.Property(x => x.Ime).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Mjesto).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Tekst).HasMaxLength(500).IsRequired();
+            // Javna lista filtrira po Objavljen i sortira po Redoslijed.
+            e.HasIndex(x => new { x.Objavljen, x.Redoslijed });
         });
 
         b.Entity<OrderItem>(e =>

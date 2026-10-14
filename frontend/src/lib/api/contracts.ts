@@ -101,6 +101,14 @@ export interface ProducerInput {
   longitude?: number;
 }
 
+export interface UtisakInput {
+  ime: string;
+  mjesto?: string;
+  tekst: string;
+  objavljen: boolean;
+  redoslijed: number;
+}
+
 export interface AssignRouteRequest {
   date: string;
   driverId: string;

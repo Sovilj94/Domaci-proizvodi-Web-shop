@@ -1,13 +1,8 @@
 "use client";
 
 import { Truck } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { korpiceApi } from "@/lib/api/endpoints";
-
-// Dva padeža za dane u sedmici — "u" traži akuzativ, "do" traži genitiv, i nisu isti
-// oblik (npr. "petak" → "petka", ne "petaku"). Indeks je JS Date.getDay() (0 = nedjelja).
-const DANI_AKUZATIV = ["nedjelju", "ponedjeljak", "utorak", "srijedu", "četvrtak", "petak", "subotu"];
-const DANI_GENITIV = ["nedjelje", "ponedjeljka", "utorka", "srijede", "četvrtka", "petka", "subote"];
+import { useSedmica } from "@/lib/api/hooks";
+import { DANI_AKUZATIV, isporukaTekst, rokTekst } from "@/lib/sedmica";
 
 /**
  * Traka sa rokom za naručivanje, iznad naslova stranice. Dan i sat isporuke dolaze iz
@@ -18,11 +13,7 @@ const DANI_GENITIV = ["nedjelje", "ponedjeljka", "utorka", "srijede", "četvrtka
  * ponoćnog `datumIsporuke` (backend ga sad šalje sa stvarnim vremenom slota).
  */
 export function RokTraka() {
-  const { data } = useQuery({
-    queryKey: ["korpice", "sedmica"],
-    queryFn: korpiceApi.sedmica,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data } = useSedmica();
 
   if (!data) return null;
 
@@ -37,8 +28,7 @@ export function RokTraka() {
           <>Naručivanje za ovu sedmicu je zatvoreno. Sljedeća isporuka je u {DANI_AKUZATIV[isporuka.getDay()]}.</>
         ) : (
           <>
-            Poruči do {DANI_GENITIV[rok.getDay()]} u {rok.getHours()}h i korpica stiže u{" "}
-            {DANI_AKUZATIV[isporuka.getDay()]} {isporuka.getDate()}.{isporuka.getMonth() + 1}.
+            Poruči do {rokTekst(rok)} i korpica stiže u {isporukaTekst(isporuka)}
           </>
         )}
       </span>

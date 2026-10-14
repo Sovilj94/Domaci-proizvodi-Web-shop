@@ -940,6 +940,43 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.Utisak", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Ime")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("Kreiran")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Mjesto")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<bool>("Objavljen")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Redoslijed")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Tekst")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Objavljen", "Redoslijed");
+
+                    b.ToTable("Utisci");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Address", b =>
                 {
                     b.HasOne("EPiljara.Domain.Entities.DeliveryZone", "DeliveryZone")

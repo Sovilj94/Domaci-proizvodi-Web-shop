@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Clock, MapPin, Phone } from "lucide-react";
+import { MapPin, Phone } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
+import { FooterRok } from "@/components/layout/footer-rok";
 
 /**
  * Footer je taman, kao zadnji od naizmjeničnih pojaseva stranice. Sekundarni tekst
@@ -54,14 +55,11 @@ export function ShopFooter() {
             Dostava
           </h3>
           <ul className="space-y-2.5 text-sm text-muted-dark">
-            <li className="flex items-center gap-2">
-              <Clock className="h-4 w-4 shrink-0 text-sage" /> Narudžbe do utorka u 12h
-            </li>
+            <FooterRok />
             <li className="flex items-center gap-2">
               <MapPin className="h-4 w-4 shrink-0 text-sage" /> Centar · Borik · Lauš ·
               Starčevica
             </li>
-            <li className="pl-6">Dostava četvrtkom (petak po potrebi)</li>
           </ul>
         </div>
 

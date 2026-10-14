@@ -285,6 +285,32 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `GET /admin/pretplate` surfaces exactly that: how many baskets are promised for the next week and how many
   of them are still waiting for content.
 
+## Početna (P4)
+
+- **The home page sells the korpica and types no numbers of its own.** The deadline, the delivery day and
+  the subscription discount in the hero, the FAQ and the footer all come from the server:
+  `/korpice/sedmica` for the first two, `KorpicaDto.CijenaSaPretplatom`/`IsporukaDoPopusta` for the third.
+  The footer used to say "Narudžbe do utorka u 12h" as a literal that matched nothing in `DeliverySlot`;
+  a new sentence that needs a number reads it through `lib/cesta-pitanja.ts` (`kontekstPitanja`) or
+  `lib/sedmica.ts`, never from a string.
+- **After the deadline the home page talks about next week, `/korpice` still about this one.**
+  `SedmicaDto` carries `SljedeciRok`/`SljedecaIsporuka`, and `aktivniKrug()` in `lib/sedmica.ts` picks the
+  round checkout actually sells (`SedmicaZaNarudzbu`). The `/korpice` showcase and its deadline bar were
+  deliberately left on the current week (P4 spec, O7) — that inconsistency is a known open finding, not a
+  regression.
+- **Day names live in `lib/sedmica.ts`** — accusative after "u", genitive after "do", indexed by
+  `Date.getDay()`. `rokTekst` prints minutes when the deadline is not on the hour; "u 16h" for a 16:30
+  deadline was a lie the old banner told.
+- **Testimonials (`Utisak`) are entered by an admin at `/admin/utisci`, and none are seeded — not even in
+  the demo seed.** A made-up testimonial shown as real on a `Seed:Demo=true` deploy is worse than no
+  section; `Utisci` renders nothing (not even the section frame) until one is published. `GET /utisci`
+  returns only `Objavljen`, ordered by `Redoslijed` then `Kreiran` (`PoRedu`, shared with the admin list).
+- **`ProducerDto.Artikli`** is filled only by `GetProducersHandler` (one query, available ordinary products,
+  four per producer by name); every other `ToDto()` caller gets `[]`.
+- **The countdown reads the clock only in an effect.** The home page is a client component but Next still
+  prerenders it, so `Date.now()` in render is a hydration mismatch. At zero it invalidates
+  `["korpice","sedmica"]` and the server decides the round has moved on.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.
