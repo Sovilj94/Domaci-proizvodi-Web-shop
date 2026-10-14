@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
+import { analizeApi, catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
 
 export const queryKeys = {
   products: (q: ProductQuery) => ["products", q] as const,
@@ -23,6 +23,8 @@ export const queryKeys = {
   recepti: () => ["recepti"] as const,
   recept: (slug: string) => ["recepti", slug] as const,
   adminRecepti: () => ["admin", "recepti"] as const,
+  analize: (producer?: string) => ["analize", producer ?? "sve"] as const,
+  adminAnalize: () => ["admin", "analize"] as const,
 };
 
 export function useProducts(query: ProductQuery = {}) {
@@ -157,5 +159,13 @@ export function useRecept(slug: string) {
     queryFn: () => receptiApi.recept(slug),
     enabled: !!slug,
     retry: false, // 404 je odgovor, ne kvar mreže
+  });
+}
+
+/** Objavljene analize; `producer` sužava na jednog domaćina. */
+export function useAnalize(producer?: string) {
+  return useQuery({
+    queryKey: queryKeys.analize(producer),
+    queryFn: () => analizeApi.lista(producer),
   });
 }

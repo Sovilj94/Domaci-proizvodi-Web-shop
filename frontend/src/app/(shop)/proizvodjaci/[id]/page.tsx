@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProductGrid, ProductGridSkeleton } from "@/components/shop/product-grid";
-import { useProducer, useProducts } from "@/lib/api/hooks";
+import { AnalizaKartica } from "@/components/analize/analiza-kartica";
+import { useAnalize, useProducer, useProducts } from "@/lib/api/hooks";
 
 export default function ProizvodjacDetaljPage() {
   const id = String(useParams<{ id: string }>().id);
   const { data: producer, isLoading, isError } = useProducer(id);
   const products = useProducts({ producer: id });
+  const analize = useAnalize(id);
 
   if (isLoading) return <LoadingBlock />;
   if (isError || !producer) {
@@ -58,7 +60,19 @@ export default function ProizvodjacDetaljPage() {
         )}
       </section>
 
-      {/* Analize — Task 8 */}
+      {analize.data?.length ? (
+        <section className="mt-12">
+          <h2 className="mb-6 font-display text-2xl font-bold text-ink">Analize</h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            {analize.data.map((a) => (
+              <AnalizaKartica key={a.id} analiza={a} bezLinkaNaDomacina />
+            ))}
+          </div>
+          <Link href="/analize" className="mt-4 inline-block text-sm font-medium text-brand-700 hover:underline">
+            Sve analize →
+          </Link>
+        </section>
+      ) : null}
 
       <Link
         href="/proizvodjaci"

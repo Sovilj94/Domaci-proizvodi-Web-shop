@@ -2,6 +2,7 @@ import type {
   MojaKorpica,
   OrderStatus,
   PonudaArtikla,
+  RezultatAnalize,
   StatusSadrzaja,
   StavkaMojeKorpice,
   TezinaRecepta,
@@ -263,4 +264,19 @@ export interface ReceptInput {
   koraci: string;
   objavljen: boolean;
   sastojci?: SastojakInput[];
+}
+
+export interface AnalizaInput {
+  producerId: string;
+  productId?: string;
+  uzorak: string;
+  laboratorija: string;
+  brojIzvjestaja?: string;
+  /** "yyyy-MM-dd" — vrijednost `<input type="date">` šalje se neizmijenjena. */
+  datumUzorkovanja: string;
+  ispitano: string;
+  rezultat: RezultatAnalize;
+  napomena?: string;
+  pdfUrl?: string;
+  objavljena: boolean;
 }

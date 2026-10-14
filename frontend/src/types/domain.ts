@@ -430,3 +430,31 @@ export interface ReceptAdmin extends ReceptKratko {
   objavljen: boolean;
   kreiran: string;
 }
+
+/* ---------- Analize (backend `DTOs/AnalizeDtos.cs`) ---------- */
+
+export type RezultatAnalize = "Uskladjeno" | "NijeUskladjeno";
+
+export const REZULTAT_ANALIZE_TEKST: Record<RezultatAnalize, string> = {
+  Uskladjeno: "Usklađeno",
+  NijeUskladjeno: "Nije usklađeno",
+};
+
+/** `AnalizaDto`. `datumUzorkovanja` je "yyyy-MM-dd"; `brojIzvjestaja` i `napomena` su "" kad nisu uneseni. */
+export interface Analiza {
+  id: string;
+  producerId: string;
+  proizvodjac: string;
+  selo: string;
+  productId?: string;
+  proizvod?: string;
+  uzorak: string;
+  laboratorija: string;
+  brojIzvjestaja: string;
+  datumUzorkovanja: string;
+  ispitano: string;
+  rezultat: RezultatAnalize;
+  napomena: string;
+  pdfUrl?: string;
+  objavljena: boolean;
+}

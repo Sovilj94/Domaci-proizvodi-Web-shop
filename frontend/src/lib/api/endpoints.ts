@@ -18,6 +18,7 @@ import type {
   Sedmica,
   TipKorpice,
   Utisak,
+  Analiza,
   Recept,
   ReceptAdmin,
   ReceptKratko,
@@ -49,6 +50,7 @@ import type {
   RezultatGenerisanja,
   SadrzajPregled,
   UtisakInput,
+  AnalizaInput,
   ReceptInput,
 } from "./contracts";
 
@@ -102,6 +104,13 @@ export const korpiceApi = {
 
 export const utisciApi = {
   lista: () => apiFetch<Utisak[]>("/utisci", { auth: false }).then((r) => r.data),
+};
+
+/* ---------- Analize ---------- */
+
+export const analizeApi = {
+  lista: (producer?: string) =>
+    apiFetch<Analiza[]>("/analize", { auth: false, query: { producer } }).then((r) => r.data),
 };
 
 /* ---------- Recepti ---------- */
@@ -348,6 +357,18 @@ export const adminApi = {
 
   deleteUtisak: (id: string) =>
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
+
+  /* Analize */
+  analize: () => apiFetch<Analiza[]>("/admin/analize").then((r) => r.data),
+
+  createAnaliza: (body: AnalizaInput) =>
+    apiFetch<Analiza>("/admin/analize", { method: "POST", body }).then((r) => r.data),
+
+  updateAnaliza: (id: string, body: AnalizaInput) =>
+    apiFetch<Analiza>(`/admin/analize/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deleteAnaliza: (id: string) =>
+    apiFetch<string>(`/admin/analize/${id}`, { method: "DELETE" }).then(() => id),
 
   /* Recepti */
   recepti: () => apiFetch<ReceptAdmin[]>("/admin/recepti").then((r) => r.data),
