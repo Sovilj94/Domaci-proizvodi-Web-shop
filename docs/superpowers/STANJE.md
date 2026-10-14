@@ -9,7 +9,7 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 | Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4` i `p5-sadrzaj` su spojene i obrisane. |
 | HEAD | merge P5 (sadržaj) — vidi `git log -1` |
 | Radno stablo | čisto |
-| Nespojeno | ništa |
+| Nespojeno | `p6a-ocjena` (P6a, gotova i recenzirana; merge i push čekaju odobrenje) |
 | `main` vs `origin/main` | **pushovan 2026-10-14** zajedno sa P2c–P5, na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
@@ -206,10 +206,31 @@ smije nuditi proizvod"), `components/analize/analiza-kartica.tsx` (P5 — `/anal
 
 ## Nije urađeno
 
-**Sljedeće na redu je P6** — poeni i referral, promo kodovi, ocjena isporuke (iz nje će utisak
-moći nastati sam).
+**P6 je podijeljen na tri dijela** jer dva diraju iznos narudžbe: **P6a ocjena isporuke** (gotova
+na grani `p6a-ocjena`, vidi dolje), **P6b promo kodovi** (sljedeći — uvodi popust na narudžbi),
+**P6c poeni i referral** (troši poene kao popust, zavisi od P6b). Poslije toga **P7** višejezičnost.
 
-**P6–P7** nisu dirani: poeni, referral, promo kodovi, ocjena isporuke; višejezičnost.
+### P6a — Ocjena isporuke (grana `p6a-ocjena`, nije spojena)
+
+Kupac ocijeni isporučenu narudžbu jednom (1–5 zvjezdica, komentar, dozvola za objavu): sa nalogom iz
+„Mojih narudžbi" (`POST /orders/{id}/ocjena`), gost sa stranice praćenja
+(`POST /orders/track/{token}/ocjena`, politika `auth`). `OrderDto` nosi `ocjena?` i
+`mozeSeOcijeniti`. Admin `/admin/ocjene` (`GET /admin/ocjene?ocjena=`): prosjek, broj, raspodjela,
+filter, lista i „Napravi utisak" (`POST /admin/ocjene/{id}/utisak`) koji pravi **neobjavljen** utisak
+„Ime P." — samo uz dozvolu i komentar od bar 10 znakova. Entitet `OcjenaIsporuke`, `Utisak.OcjenaId`,
+migracija `DodajOcjeneIsporuke` (primijenjena na dev bazu).
+
+Provjere: `dotnet test` 285/285, `tsc`, `lint`, `npm run build` 65/65. Uživo: ocjena kroz UI stranice
+praćenja kao gost, druga ocjena 409, admin sažetak, utisak „Mujo M." (Centar, neobjavljen), javni
+`/utisci` prazan. U dev bazi je ostala **Mujina ocjena (4/5) na `EP-2610-0053`**, kao primjer za admin
+ekran; utisak iz nje je obrisan.
+
+Odloženo iz recenzija: obraćanje „ti/vi" se razlikuje između stranice praćenja i „Mojih narudžbi"
+(postojeće stranice već jesu različite — treba jedan prolaz kroz cijeli sajt); zahvala „Hvala na
+ocjeni!" se ne vidi jer refetch odmah prikaže „Tvoja ocjena"; admin putanje `Order.ToDto` ne učitavaju
+`Ocjena` (polje tamo nije u upotrebi).
+
+**P7** nije diran: višejezičnost.
 
 ## Otvoreni nalazi, nošeni dalje
 

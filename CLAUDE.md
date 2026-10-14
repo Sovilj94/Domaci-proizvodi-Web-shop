@@ -339,6 +339,23 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **Contact data lives in `frontend/src/lib/kontakt.ts`** (footer and `/o-nama#kontakt`). Public copy on the
   P5 pages states only what the app actually does; check a new sentence against the code before adding it.
 
+## Ocjena isporuke (P6a)
+
+- **`OrderDto.mozeSeOcijeniti` and `ocjena` come from the `Order.Ocjena` navigation.** The three customer
+  queries (`GetMyOrders`, `GetOrderById`, `TrackOrder`) `Include` it, each with its own test. A new
+  customer-facing order query that forgets the `Include` would offer a second rating for a rated order
+  (the server still refuses it with 409, but the screen lies). Admin/driver paths don't include it and
+  don't use the field.
+- **One final rating per order, only when `Delivered`.** The owner rates via `POST /orders/{id}/ocjena`
+  (a foreign order is a 404, never a 403); a guest via `POST /orders/track/{token}/ocjena` (rate-limited).
+  The unique index on `OrderId` is the race guard; a `DbUpdateException` is translated to 409 only after
+  re-checking that the row really exists — anything else is rethrown, not disguised as "already rated".
+- **A rating becomes a testimonial only with explicit consent and a comment of at least 10 characters**,
+  and only through the admin's „Napravi utisak". The `Utisak` is created **unpublished**, signed
+  „Ime P." (first word + initial of the last word) with the delivery zone as place; a full surname is never
+  written. `Utisak.OcjenaId` (filtered unique, `SetNull`) links them; deleting the testimonial frees the
+  rating.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.
