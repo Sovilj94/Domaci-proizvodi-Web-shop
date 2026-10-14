@@ -53,6 +53,27 @@ public class CatalogQueriesTests
     }
 
     [Fact]
+    public async Task Filter_po_proizvodjacu_vraca_samo_njegove_obicne_artikle()
+    {
+        using var t = new TestDb();
+        var (obican, _) = Postavi(t);   // paprika + korpica, isti proizvođač
+        var drugi = new Producer { Name = "Porodica Drugi", Village = "Ljubačevo" };
+        t.Db.Producers.Add(drugi);
+        t.Db.Products.Add(new Product
+        {
+            Name = "Tuđi sir", Slug = "tudji-sir", Price = 9m, Unit = Unit.Kg,
+            CategoryId = obican.CategoryId, ProducerId = drugi.Id, Stock = 3,
+            Vrsta = VrstaProizvoda.Obican,
+        });
+        t.Db.SaveChanges();
+
+        var rez = await new GetProductsHandler(t.Db)
+            .Handle(new GetProductsQuery(null, null, null, obican.ProducerId), default);
+
+        Assert.Equal(["babura-paprika"], rez.Select(p => p.Slug));
+    }
+
+    [Fact]
     public async Task Proizvod_po_slugu_ne_resolvuje_korpicu()
     {
         using var t = new TestDb();

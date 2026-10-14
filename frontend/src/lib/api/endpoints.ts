@@ -59,6 +59,8 @@ export interface ProductQuery {
   category?: string;
   search?: string;
   featured?: boolean;
+  /** id proizvođača — stranica domaćina */
+  producer?: string;
 }
 
 export const catalogApi = {

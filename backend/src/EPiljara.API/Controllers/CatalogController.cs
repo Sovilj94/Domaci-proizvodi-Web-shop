@@ -6,8 +6,10 @@ namespace EPiljara.API.Controllers;
 public class CatalogController : ApiControllerBase
 {
     [HttpGet("products")]
-    public async Task<IActionResult> GetProducts([FromQuery] string? category, [FromQuery] string? search, [FromQuery] bool? featured) =>
-        EnvelopeList(await Mediator.Send(new GetProductsQuery(category, search, featured)));
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] string? category, [FromQuery] string? search, [FromQuery] bool? featured,
+        [FromQuery] Guid? producer) =>
+        EnvelopeList(await Mediator.Send(new GetProductsQuery(category, search, featured, producer)));
 
     [HttpGet("products/{slug}")]
     public async Task<IActionResult> GetProduct(string slug) =>
