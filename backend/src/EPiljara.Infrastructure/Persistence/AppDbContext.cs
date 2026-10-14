@@ -31,6 +31,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Utisak> Utisci => Set<Utisak>();
     public DbSet<Recept> Recepti => Set<Recept>();
     public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();
+    public DbSet<Analiza> Analize => Set<Analiza>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -272,6 +273,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Naziv).HasMaxLength(100).IsRequired();
             e.Property(x => x.Kolicina).HasMaxLength(40).IsRequired();
             // Proizvod se može izgubiti ispod recepta — sastojak tada samo ostane bez dugmeta.
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<Analiza>(e =>
+        {
+            e.Property(x => x.Uzorak).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Laboratorija).HasMaxLength(120).IsRequired();
+            e.Property(x => x.BrojIzvjestaja).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Ispitano).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Napomena).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.PdfUrl).HasMaxLength(500);
+            e.Property(x => x.Rezultat).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(x => new { x.Objavljena, x.DatumUzorkovanja });
+            // Nalaz ne smije nestati ispod proizvođača — brisanje proizvođača se odbija (409).
+            e.HasOne(x => x.Producer).WithMany()
+                .HasForeignKey(x => x.ProducerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Product).WithMany()
                 .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.SetNull);
         });

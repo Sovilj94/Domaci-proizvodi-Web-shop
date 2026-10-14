@@ -73,6 +73,13 @@ public enum TezinaRecepta
     Zahtjevno,
 }
 
+/// <summary>Ishod laboratorijske analize. Na žicu ide kao ime vrijednosti ("Uskladjeno", "NijeUskladjeno").</summary>
+public enum RezultatAnalize
+{
+    Uskladjeno,
+    NijeUskladjeno,
+}
+
 public static class UnitExtensions
 {
     public static string ToApi(this Unit unit) => unit switch

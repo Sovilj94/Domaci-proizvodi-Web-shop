@@ -68,6 +68,72 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Addresses");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.Analiza", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BrojIzvjestaja")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateOnly>("DatumUzorkovanja")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Ispitano")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("Kreiran")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Laboratorija")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Napomena")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("Objavljena")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PdfUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ProducerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Rezultat")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Uzorak")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProducerId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("Objavljena", "DatumUzorkovanja");
+
+                    b.ToTable("Analize");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1084,6 +1150,24 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Navigation("DeliveryZone");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.Analiza", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.Producer", "Producer")
+                        .WithMany()
+                        .HasForeignKey("ProducerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Producer");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.DeliveryRoute", b =>
