@@ -91,13 +91,13 @@ export function OcjenaForma({
                 name="ocjena"
                 id={`ocjena-${n}`}
                 value={n}
+                aria-label={`${n} od 5`}
                 checked={ocjena === n}
                 onChange={() => setOcjena(n)}
                 className="peer sr-only"
               />
               <label
                 htmlFor={`ocjena-${n}`}
-                aria-label={`${n} od 5`}
                 onMouseEnter={() => setHover(n)}
                 className="block cursor-pointer rounded-md p-1 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400"
               >
@@ -152,6 +152,7 @@ export function OcjenaForma({
       <Button type="submit" disabled={ocjena === 0 || saljem}>
         {saljem ? "Šaljem…" : "Pošalji ocjenu"}
       </Button>
+      {ocjena === 0 && <p className="text-xs text-muted">Izaberite ocjenu zvjezdicama.</p>}
     </form>
   );
 }

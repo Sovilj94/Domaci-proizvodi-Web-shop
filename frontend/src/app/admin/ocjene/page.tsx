@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
@@ -43,6 +43,7 @@ function Red({ o }: { o: OcjenaAdmin }) {
   });
 
   const imaKomentar = o.komentar.trim().length > 0;
+  const dovoljnoZaUtisak = o.komentar.trim().length >= 10;
 
   return (
     <li className="space-y-2 p-4">
@@ -71,11 +72,13 @@ function Red({ o }: { o: OcjenaAdmin }) {
         </p>
       ) : (
         o.dozvolaZaObjavu &&
-        imaKomentar && (
+        (dovoljnoZaUtisak ? (
           <Button size="sm" onClick={() => napravi.mutate()} disabled={napravi.isPending}>
             {napravi.isPending ? "Pravim…" : "Napravi utisak"}
           </Button>
-        )
+        ) : (
+          <p className="text-sm text-muted">Komentar je prekratak za utisak.</p>
+        ))
       )}
     </li>
   );
@@ -86,6 +89,7 @@ export default function AdminOcjenePage() {
   const podaci = useQuery({
     queryKey: queryKeys.adminOcjene(filter),
     queryFn: () => adminApi.ocjene(filter),
+    placeholderData: keepPreviousData,
   });
   const sazetak = podaci.data?.sazetak;
 
@@ -110,7 +114,7 @@ export default function AdminOcjenePage() {
                   })
                 : "–"}
             </p>
-            <Zvjezdice ocjena={Math.round(sazetak.prosjek)} />
+            <Zvjezdice ocjena={Math.round(sazetak.prosjek)} ariaHidden />
             <p className="text-sm text-muted">
               {sazetak.broj} {ocjeneRijec(sazetak.broj)}
             </p>
@@ -151,6 +155,13 @@ export default function AdminOcjenePage() {
 
       {podaci.isLoading ? (
         <LoadingBlock />
+      ) : podaci.isError ? (
+        <div className="space-y-3 rounded-card bg-white p-6 shadow-card">
+          <p className="text-muted">Učitavanje ocjena nije uspjelo.</p>
+          <Button size="sm" onClick={() => podaci.refetch()}>
+            Pokušaj ponovo
+          </Button>
+        </div>
       ) : !podaci.data?.stavke.length ? (
         <p className="rounded-card bg-white p-6 text-muted shadow-card">Nema ocjena.</p>
       ) : (

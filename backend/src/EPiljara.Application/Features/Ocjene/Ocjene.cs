@@ -34,7 +34,11 @@ internal static class OcjenaPravila
         catch (DbUpdateException)
         {
             // Dva istovremena zahtjeva prođu AnyAsync; jedinstven indeks propusti samo prvi.
-            throw new ConflictException("Ova narudžba je već ocijenjena.", "vec_ocijenjeno");
+            // Konflikt prijavljujemo samo ako red zaista postoji; ostale greške propuštamo dalje.
+            db.OcjeneIsporuke.Entry(ocjena).State = EntityState.Detached;
+            if (await db.OcjeneIsporuke.AnyAsync(o => o.OrderId == order.Id, ct))
+                throw new ConflictException("Ova narudžba je već ocijenjena.", "vec_ocijenjeno");
+            throw;
         }
         return ocjena.ToDto();
     }
@@ -214,7 +218,11 @@ public class NapraviUtisakIzOcjeneHandler(IAppDbContext db)
         catch (DbUpdateException)
         {
             // Filtrirani jedinstveni indeks na Utisci.OcjenaId hvata istovremene zahtjeve.
-            throw new ConflictException("Utisak iz ove ocjene već postoji.", "utisak_vec_postoji");
+            // Konflikt prijavljujemo samo ako red zaista postoji; ostale greške propuštamo dalje.
+            db.Utisci.Entry(utisak).State = EntityState.Detached;
+            if (await db.Utisci.AnyAsync(u => u.OcjenaId == ocjena.Id, ct))
+                throw new ConflictException("Utisak iz ove ocjene već postoji.", "utisak_vec_postoji");
+            throw;
         }
         return utisak.ToDto();
     }
