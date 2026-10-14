@@ -48,9 +48,11 @@ public class PrijavaInputValidator : AbstractValidator<PrijavaInput>
             .WithName("Mjesto").OverridePropertyName("mjesto")
             .WithMessage("Mjesto mora imati od 2 do 80 znakova.");
         RuleFor(x => (x.Telefon ?? "").Trim()).Length(6, 30)
-            .Matches(@"^[0-9 +/()\-]*$")
             .WithName("Telefon").OverridePropertyName("telefon")
-            .WithMessage("Telefon mora imati od 6 do 30 znakova: cifre, razmak i znakovi + / ( ) -.");
+            .WithMessage("Telefon mora imati od 6 do 30 znakova.");
+        RuleFor(x => (x.Telefon ?? "").Trim()).Matches(@"^[0-9 +/()\-]*$")
+            .WithName("Telefon").OverridePropertyName("telefon")
+            .WithMessage("Telefon smije sadržati samo cifre, razmake i znakove + / ( ) -.");
         RuleFor(x => (x.Email ?? "").Trim()).MaximumLength(120)
             .WithName("Email").OverridePropertyName("email")
             .WithMessage("Mejl može imati najviše 120 znakova.");

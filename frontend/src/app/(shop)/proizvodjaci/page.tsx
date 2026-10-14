@@ -1,6 +1,5 @@
 "use client";
 
-import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DomacinKartica } from "@/components/pocetna/domacin-kartica";
 import { useProducers } from "@/lib/api/hooks";
@@ -12,10 +11,10 @@ export default function ProizvodjaciPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <SectionHeader
-        naslov="Naši domaćini"
-        opis="Porodice i gazdinstva od kojih dolazi ono što prodajemo."
-      />
+      <h1 className="font-display text-3xl font-bold">Naši domaćini</h1>
+      <p className="mb-8 mt-1 text-muted">
+        Porodice i gazdinstva od kojih dolazi ono što prodajemo.
+      </p>
       {producers.isLoading ? (
         <div className={MREZA}>
           {Array.from({ length: 8 }).map((_, i) => (

@@ -143,4 +143,33 @@ public class PartneriTests
         var kljucevi = new ValidationException(r.Errors).Errors.Keys.OrderBy(k => k).ToArray();
         Assert.Equal(["input.adminNapomena", "input.status"], kljucevi);
     }
+
+    [Fact]
+    public void Telefon_prekratak_vraca_srpsku_poruku()
+    {
+        var r = new PrijavaInputValidator().Validate(Ulaz(telefon: "12"));
+
+        var poruka = Assert.Single(r.Errors, e => e.PropertyName == "telefon").ErrorMessage;
+        Assert.Equal("Telefon mora imati od 6 do 30 znakova.", poruka);
+        Assert.DoesNotContain("must be", poruka);
+    }
+
+    [Fact]
+    public void Validatori_nemaju_engleske_default_poruke()
+    {
+        var dugo = new string('x', 2000);
+        var greske = new PrijavaInputValidator()
+            .Validate(new PrijavaInput("a", dugo, "b", "ab", dugo, "c", null)).Errors
+            .Concat(new ObradaInputValidator().Validate(new ObradaInput("99", dugo)).Errors)
+            .Concat(new PosaljiPrijavuValidator().Validate(new PosaljiPrijavuCommand(null!)).Errors)
+            .Concat(new ObradiPrijavuValidator().Validate(new ObradiPrijavuCommand(Guid.Empty, null!)).Errors)
+            .ToList();
+
+        Assert.NotEmpty(greske);
+        Assert.All(greske, e =>
+        {
+            Assert.DoesNotContain("must", e.ErrorMessage);
+            Assert.DoesNotContain("'", e.ErrorMessage);
+        });
+    }
 }

@@ -215,4 +215,23 @@ public class AnalizeTests
 
         Assert.Equal(["input.datumUzorkovanja", "input.uzorak"], kljucevi);
     }
+
+    [Fact]
+    public void Validatori_nemaju_engleske_default_poruke()
+    {
+        var dugo = new string('x', 2000);
+        var ulaz = new AnalizaInput(Guid.Empty, null, "a", "b", dugo, DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30),
+            "c", "99", dugo, dugo, true);
+        var greske = new AnalizaInputValidator().Validate(ulaz).Errors
+            .Concat(new CreateAnalizaValidator().Validate(new CreateAnalizaCommand(null!)).Errors)
+            .Concat(new UpdateAnalizaValidator().Validate(new UpdateAnalizaCommand(Guid.Empty, null!)).Errors)
+            .ToList();
+
+        Assert.NotEmpty(greske);
+        Assert.All(greske, e =>
+        {
+            Assert.DoesNotContain("must", e.ErrorMessage);
+            Assert.DoesNotContain("'", e.ErrorMessage);
+        });
+    }
 }

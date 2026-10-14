@@ -273,4 +273,23 @@ public class ReceptiTests
 
         Assert.Equal(["input.naslov", "input.sastojci[0].naziv"], kljucevi);
     }
+
+    [Fact]
+    public void Validatori_nemaju_engleske_default_poruke()
+    {
+        var dugo = new string('x', 9000);
+        var sastojci = Enumerable.Range(0, 41).Select(_ => new SastojakInput("   ", dugo, null)).ToList();
+        var ulaz = new ReceptInput("a", dugo, dugo, 0, 0, "x", "k", true, [.. sastojci, null!]);
+        var greske = new ReceptInputValidator().Validate(ulaz).Errors
+            .Concat(new CreateReceptValidator().Validate(new CreateReceptCommand(null!)).Errors)
+            .Concat(new UpdateReceptValidator().Validate(new UpdateReceptCommand(Guid.Empty, null!)).Errors)
+            .ToList();
+
+        Assert.NotEmpty(greske);
+        Assert.All(greske, e =>
+        {
+            Assert.DoesNotContain("must", e.ErrorMessage);
+            Assert.DoesNotContain("'", e.ErrorMessage);
+        });
+    }
 }
