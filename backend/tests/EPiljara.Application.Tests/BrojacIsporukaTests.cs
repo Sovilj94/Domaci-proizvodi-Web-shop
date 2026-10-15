@@ -13,6 +13,9 @@ namespace EPiljara.Application.Tests;
 /// </summary>
 public class BrojacIsporukaTests
 {
+    private static readonly Microsoft.Extensions.Options.IOptions<EPiljara.Application.Features.Poeni.PoeniOpcije> PoeniOpts =
+        Microsoft.Extensions.Options.Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije());
+
     private sealed class Scena : IDisposable
     {
         private readonly TestDb _t;
@@ -104,7 +107,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync();
 
-        await new UpdateOrderStatusHandler(s.Ctx, Microsoft.Extensions.Options.Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()))
+        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts)
             .Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
 
         Assert.Equal(3, await s.BrojIsporukaAsync());
@@ -115,7 +118,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync();
 
-        await new UpdateStopStatusHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver), Microsoft.Extensions.Options.Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()))
+        await new UpdateStopStatusHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver), PoeniOpts)
             .Handle(new UpdateStopStatusCommand(s.Narudzba.Id, "Delivered"), default);
 
         Assert.Equal(3, await s.BrojIsporukaAsync());
@@ -129,7 +132,7 @@ public class BrojacIsporukaTests
     public async Task Ponovno_oznacavanje_isporucenog_ne_broji_drugi_put()
     {
         using var s = await Scena.SpremiAsync();
-        var handler = new UpdateOrderStatusHandler(s.Ctx, Microsoft.Extensions.Options.Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()));
+        var handler = new UpdateOrderStatusHandler(s.Ctx, PoeniOpts);
 
         await handler.Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
         await handler.Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
@@ -142,7 +145,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync();
 
-        await new UpdateOrderStatusHandler(s.Ctx, Microsoft.Extensions.Options.Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()))
+        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts)
             .Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "FailedDelivery"), default);
 
         Assert.Equal(2, await s.BrojIsporukaAsync());
@@ -153,7 +156,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync(pretplatna: false);
 
-        await new UpdateOrderStatusHandler(s.Ctx, Microsoft.Extensions.Options.Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()))
+        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts)
             .Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
 
         Assert.Equal(2, await s.BrojIsporukaAsync());

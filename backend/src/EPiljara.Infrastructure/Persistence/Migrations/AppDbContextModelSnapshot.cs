@@ -758,6 +758,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("OrderId", "Vrsta")
+                        .IsUnique()
+                        .HasFilter("\"OrderId\" IS NOT NULL");
+
                     b.ToTable("PoeniStavke");
                 });
 

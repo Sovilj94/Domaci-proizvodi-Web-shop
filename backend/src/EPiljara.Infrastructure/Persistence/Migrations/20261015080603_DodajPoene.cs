@@ -87,6 +87,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PoeniStavke_OrderId_Vrsta",
+                table: "PoeniStavke",
+                columns: new[] { "OrderId", "Vrsta" },
+                unique: true,
+                filter: "\"OrderId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PoeniStavke_UserId",
                 table: "PoeniStavke",
                 column: "UserId");

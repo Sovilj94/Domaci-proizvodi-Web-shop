@@ -275,6 +275,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(24);
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.OrderId);
+            // Dvije istovremene promjene statusa bi obje prošle AnyAsync provjeru; jedinstven
+            // par (narudžba, vrsta) je zadnja brana protiv dvostrukog upisa iste nagrade/povrata.
+            e.HasIndex(x => new { x.OrderId, x.Vrsta }).IsUnique().HasFilter("\"OrderId\" IS NOT NULL");
             e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.SetNull);
             // PreporuceniId namjerno bez FK: brisanje preporučenog ne smije brisati tuđu nagradu.

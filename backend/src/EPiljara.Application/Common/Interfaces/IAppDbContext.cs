@@ -29,10 +29,10 @@ public interface IAppDbContext
     /// <summary>Nalozi za ponavljanje korpice — vidi Pretplata entitet.</summary>
     DbSet<Pretplata> Pretplate { get; }
 
-    /// <summary>Utisci kupaca za početnu — vidi Utisak entitet.</summary>
     /// <summary>Knjiga poena — vidi PoeniStavka entitet.</summary>
     DbSet<PoeniStavka> PoeniStavke { get; }
 
+    /// <summary>Utisci kupaca za početnu — vidi Utisak entitet.</summary>
     DbSet<Utisak> Utisci { get; }
     DbSet<OcjenaIsporuke> OcjeneIsporuke { get; }
 

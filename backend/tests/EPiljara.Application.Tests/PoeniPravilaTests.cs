@@ -149,6 +149,19 @@ public class PoeniPravilaTests
 
         await Pozovi(t, order, OrderStatus.Delivered);
         Assert.Empty(t.Db.PoeniStavke);
+
+        // Kontrola (zarada je i dalje 0, pa jedino provjera postojanja preporučioca odlučuje):
+        // isti kupac sa preporučiocem koji postoji dobija obje nagrade. Bez ove kontrole prazna
+        // knjiga gore ne bi dokazivala da je upravo Users.AnyAsync zaustavio upis.
+        var a = new User { Name = "A", Email = "a@x.ba" };
+        t.Db.Users.Add(a);
+        await t.Db.SaveChangesAsync();
+        await t.Db.Database.ExecuteSqlRawAsync(
+            "UPDATE Users SET PreporucioId = {0} WHERE Id = {1}", a.Id, kupac.Id);
+        t.Db.ChangeTracker.Clear();
+        var svjez = await t.Db.Orders.FirstAsync(o => o.Id == order.Id);
+        await Pozovi(t, svjez, OrderStatus.Delivered);
+        Assert.Equal(2, await t.Db.PoeniStavke.CountAsync());
     }
 
     [Theory]
