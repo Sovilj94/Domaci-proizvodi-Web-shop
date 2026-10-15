@@ -185,6 +185,8 @@ export interface AuthUser {
   address?: string;
   deliveryZoneId?: string;
   role: UserRole;
+  /** Pismo naloga (P7); stariji mock ga ne šalje. */
+  pismo?: "Latinica" | "Cirilica";
 }
 
 export interface AuthResult {

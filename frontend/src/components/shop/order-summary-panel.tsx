@@ -54,7 +54,9 @@ export function OrderSummaryPanel({
         </div>
         {popust > 0 && (
           <div className="flex justify-between text-brand-700">
-            <dt>Popust{promoKod ? ` (${promoKod})` : ""}</dt>
+            <dt>
+              Popust{promoKod && <> (<span translate="no">{promoKod}</span>)</>}
+            </dt>
             <dd className="font-medium">−{formatPrice(popust)}</dd>
           </div>
         )}

@@ -1,4 +1,5 @@
 import type { ApiError, ApiMeta, ApiResponse } from "./envelope";
+import { procitajPismo } from "@/lib/pismo/pismo";
 
 /**
  * Base URL for the REST API. In development this defaults to the same-origin
@@ -73,6 +74,8 @@ export async function apiFetch<T>(
 ): Promise<ApiResult<T>> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
+  // Server po ovome bira pismo mejla i Vibera za narudžbu, zahtjev gosta i novi nalog.
+  if (procitajPismo() === "cir") headers["X-Pismo"] = "cir";
 
   if (auth) {
     const token = getToken();

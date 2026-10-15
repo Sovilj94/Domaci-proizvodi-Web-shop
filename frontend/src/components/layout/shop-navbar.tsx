@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, LogOut, Menu, Search, User, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { CartButton } from "@/components/shop/cart-button";
+import { PismoPrekidac } from "@/components/pismo/pismo-prekidac";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export function ShopNavbar() {
@@ -56,6 +57,7 @@ export function ShopNavbar() {
                 Admin
               </Link>
             )}
+            <PismoPrekidac className="hidden rounded-[10px] px-3 py-2 text-sm font-medium text-muted hover:bg-sand hover:text-ink md:inline-flex" />
             <CartButton />
 
             {!loading &&
@@ -153,6 +155,7 @@ export function ShopNavbar() {
                 Prijava
               </Link>
             )}
+            <PismoPrekidac className="rounded-[10px] px-3 py-2.5 text-left text-sm font-medium text-ink hover:bg-sand" />
           </nav>
         </div>
       )}
