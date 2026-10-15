@@ -201,16 +201,16 @@ public static class DbSeeder
 
         // ----- Users -----
         var admin = new User { Name = "E piljara Admin", Email = "admin@epiljara.ba", Phone = "+387 51 000 000", Role = UserRole.Admin, PasswordHash = hasher.Hash("admin123") };
-        var mujo = new User { Name = "Mujo Mujić", Email = "mujo@example.com", Phone = "+387 65 123 456", Address = "Kralja Petra I 12, Banja Luka", DeliveryZoneId = centar.Id, Role = UserRole.Customer, PasswordHash = hasher.Hash("mujo123") };
+        var marko = new User { Name = "Marko Marković", Email = "marko@example.com", Phone = "+387 65 123 456", Address = "Kralja Petra I 12, Banja Luka", DeliveryZoneId = centar.Id, Role = UserRole.Customer, PasswordHash = hasher.Hash("marko123") };
         var driverUser = new User { Name = "Mladen Vozač", Email = "vozac@epiljara.ba", Phone = "+387 65 900 100", Role = UserRole.Driver, PasswordHash = hasher.Hash("vozac123") };
 
         // Extra demo customers so route stops show varied names/addresses.
-        var fata = new User { Name = "Fata Hadžić", Email = "fata@example.com", Phone = "+387 65 222 333", Address = "Cara Lazara 5, Banja Luka", DeliveryZoneId = borik.Id, Role = UserRole.Customer, PasswordHash = hasher.Hash("fata123") };
-        var haso = new User { Name = "Haso Begić", Email = "haso@example.com", Phone = "+387 65 444 555", Address = "Vojvode Momčila 22, Banja Luka", DeliveryZoneId = laus.Id, Role = UserRole.Customer, PasswordHash = hasher.Hash("haso123") };
+        var jelena = new User { Name = "Jelena Petrović", Email = "jelena@example.com", Phone = "+387 65 222 333", Address = "Cara Lazara 5, Banja Luka", DeliveryZoneId = borik.Id, Role = UserRole.Customer, PasswordHash = hasher.Hash("jelena123") };
+        var dragan = new User { Name = "Dragan Stojanović", Email = "dragan@example.com", Phone = "+387 65 444 555", Address = "Vojvode Momčila 22, Banja Luka", DeliveryZoneId = laus.Id, Role = UserRole.Customer, PasswordHash = hasher.Hash("dragan123") };
         var ana = new User { Name = "Ana Kovač", Email = "ana@example.com", Phone = "+387 65 666 777", Address = "Starine Novaka 14, Banja Luka", DeliveryZoneId = starcevica.Id, Role = UserRole.Customer, PasswordHash = hasher.Hash("ana123") };
-        foreach (var u in new[] { admin, mujo, driverUser, fata, haso, ana })
+        foreach (var u in new[] { admin, marko, driverUser, jelena, dragan, ana })
             u.EmailConfirmed = true; // demo accounts are pre-confirmed so they can log in
-        db.Users.AddRange(admin, mujo, driverUser, fata, haso, ana);
+        db.Users.AddRange(admin, marko, driverUser, jelena, dragan, ana);
 
         // ----- Drivers (Mladen linked to the driver user for the mobile app) -----
         var mladen = new Driver { Name = "Mladen (kombi 1)", Phone = "+387 65 900 100", User = driverUser };
@@ -222,31 +222,31 @@ public static class DbSeeder
         var seq = 1;
         db.Orders.AddRange(
             // --- Centar ---
-            Order(ref seq, mujo, centar, cet, "Kralja Petra I 12, Banja Luka", OrderStatus.Confirmed,
+            Order(ref seq, marko, centar, cet, "Kralja Petra I 12, Banja Luka", OrderStatus.Confirmed,
                 (findProduct("Domaći krompir"), 5m), (findProduct("Mladi kravlji sir"), 1m), (findProduct("Jaja iz slobodnog uzgoja"), 10m)),
             Order(ref seq, ana, centar, cet, "Veselina Masleše 30, Banja Luka", OrderStatus.Confirmed,
                 (findProduct("Paradajz iz plastenika"), 2m), (findProduct("Domaća pavlaka"), 1m)),
-            Order(ref seq, haso, centar, pet, "Gospodska 4, Banja Luka", OrderStatus.OutForDelivery,
+            Order(ref seq, dragan, centar, pet, "Gospodska 4, Banja Luka", OrderStatus.OutForDelivery,
                 (findProduct("Bagremov med"), 1m), (findProduct("Suha slanina"), 1m)),
             // --- Borik ---
-            Order(ref seq, mujo, borik, cet, "Bulevar 42, Banja Luka", OrderStatus.Packing,
+            Order(ref seq, marko, borik, cet, "Bulevar 42, Banja Luka", OrderStatus.Packing,
                 (findProduct("Livadski med"), 2m), (findProduct("Jabuka idared"), 3m)),
-            Order(ref seq, fata, borik, cet, "Cara Lazara 5, Banja Luka", OrderStatus.Confirmed,
+            Order(ref seq, jelena, borik, cet, "Cara Lazara 5, Banja Luka", OrderStatus.Confirmed,
                 (findProduct("Domaća kobasica"), 1m), (findProduct("Crni luk"), 3m)),
             Order(ref seq, ana, borik, pet, "Reljina 18, Banja Luka", OrderStatus.Packing,
                 (findProduct("Mrkva"), 2m), (findProduct("Džem od šljive"), 2m)),
             // --- Lauš ---
-            Order(ref seq, haso, laus, cet, "Vojvode Momčila 22, Banja Luka", OrderStatus.Confirmed,
+            Order(ref seq, dragan, laus, cet, "Vojvode Momčila 22, Banja Luka", OrderStatus.Confirmed,
                 (findProduct("Šljiva požegača"), 4m), (findProduct("Kajmak"), 1m)),
-            Order(ref seq, fata, laus, pet, "Braće Pišteljića 9, Banja Luka", OrderStatus.OutForDelivery,
+            Order(ref seq, jelena, laus, pet, "Braće Pišteljića 9, Banja Luka", OrderStatus.OutForDelivery,
                 (findProduct("Babura paprika"), 3m), (findProduct("Svježe kravlje mlijeko"), 3m)),
             // --- Starčevica ---
             Order(ref seq, ana, starcevica, cet, "Starine Novaka 14, Banja Luka", OrderStatus.Confirmed,
                 (findProduct("Domaći krompir"), 4m), (findProduct("Livadski med"), 1m)),
-            Order(ref seq, haso, starcevica, pet, "Kozarska 7, Banja Luka", OrderStatus.Packing,
+            Order(ref seq, dragan, starcevica, pet, "Kozarska 7, Banja Luka", OrderStatus.Packing,
                 (findProduct("Jaja iz slobodnog uzgoja"), 20m), (findProduct("Mladi kravlji sir"), 2m)),
             // --- Not yet assignable (Pending) — stays out of the route menu ---
-            Order(ref seq, mujo, starcevica, cet, "Carice Milice 8, Banja Luka", OrderStatus.Pending,
+            Order(ref seq, marko, starcevica, cet, "Carice Milice 8, Banja Luka", OrderStatus.Pending,
                 (findProduct("Kajmak"), 1m), (findProduct("Svježe kravlje mlijeko"), 4m)));
 
         // ----- Pretplata (P3) -----
@@ -256,7 +256,7 @@ public static class DbSeeder
         // izveden podatak i demo baza ne mora da ima istoriju koja ga potkrepljuje.
         db.Pretplate.Add(new Pretplata
         {
-            UserId = mujo.Id,
+            UserId = marko.Id,
             ProductId = db.Products.Local.First(p =>
                 p.Vrsta == VrstaProizvoda.Korpica
                 && p.TipKorpice == TipKorpice.Domacinska

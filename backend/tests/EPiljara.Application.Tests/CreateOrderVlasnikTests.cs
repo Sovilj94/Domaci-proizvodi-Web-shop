@@ -45,7 +45,7 @@ public class CreateOrderVlasnikTests
     private static CreateOrderCommand Komanda(
         Guid zonaId, Guid slotId, Guid productId,
         Guid? customerId = null, Guid? pretplataId = null) =>
-        new(new CustomerInput("Mujo", "mujo@example.com", "065"),
+        new(new CustomerInput("Marko", "marko@example.com", "065"),
             zonaId, slotId, "Testna 1", null,
             [new OrderItemInput(productId, 1m)],
             CustomerId: customerId, PretplataId: pretplataId);

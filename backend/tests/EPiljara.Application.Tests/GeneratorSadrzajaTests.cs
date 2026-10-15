@@ -15,7 +15,7 @@ public class GeneratorSadrzajaTests
     private static Product Postavi(TestDb t, int[] mjeseciArtikala, int brojArtikala = 10, decimal stock = 100m)
     {
         var kat = new Category { Name = "Povrće", Slug = "povrce" };
-        var proiz = new Producer { Name = "Mujo Mujić", Village = "Stričići" };
+        var proiz = new Producer { Name = "Marko Marković", Village = "Stričići" };
         t.Db.Categories.Add(kat);
         t.Db.Producers.Add(proiz);
 
@@ -48,7 +48,7 @@ public class GeneratorSadrzajaTests
     private static Product PostaviSkupeKomade(TestDb t, decimal cijenaArtikla, int brojArtikala = 10)
     {
         var kat = new Category { Name = "Suhomesnato", Slug = "suhomesnato" };
-        var proiz = new Producer { Name = "Mujo Mujić", Village = "Stričići" };
+        var proiz = new Producer { Name = "Marko Marković", Village = "Stričići" };
         t.Db.Categories.Add(kat);
         t.Db.Producers.Add(proiz);
 

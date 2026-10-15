@@ -11,7 +11,7 @@ public class ObjavaSadrzajaTests
     private static (SedmicniSadrzaj, Product) Postavi(TestDb t, decimal cijenaArtikla = 4m)
     {
         var kat = new Category { Name = "Povrće", Slug = "povrce" };
-        var proiz = new Producer { Name = "Mujo Mujić", Village = "Stričići" };
+        var proiz = new Producer { Name = "Marko Marković", Village = "Stričići" };
         t.Db.Categories.Add(kat);
         t.Db.Producers.Add(proiz);
 
@@ -60,7 +60,7 @@ public class ObjavaSadrzajaTests
         Assert.NotNull(s.ObjavljenU);
 
         var stavka = Assert.Single(dto.Stavke);
-        Assert.Equal("Mujo Mujić", stavka.ProizvodjacNaziv);
+        Assert.Equal("Marko Marković", stavka.ProizvodjacNaziv);
         Assert.Equal("Stričići", stavka.ProizvodjacSelo);
     }
 

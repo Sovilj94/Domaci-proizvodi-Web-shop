@@ -47,13 +47,13 @@ public class PoeniPravilaTests
         var t = new TestDb();
         var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
         var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
-        var kupac = new User { Name = "Mujo", Email = $"{Guid.NewGuid():N}@x.ba" };
+        var kupac = new User { Name = "Marko", Email = $"{Guid.NewGuid():N}@x.ba" };
         t.Db.AddRange(zona, slot, kupac);
         await t.Db.SaveChangesAsync();
         var order = new Order
         {
             Code = "EP-0001", PublicToken = Guid.NewGuid().ToString("N"),
-            CustomerId = gost ? null : kupac.Id, CustomerName = "Mujo", Status = status,
+            CustomerId = gost ? null : kupac.Id, CustomerName = "Marko", Status = status,
             DeliveryAddress = "Testna 1", DeliverySlotId = slot.Id, DeliveryZoneId = zona.Id,
             Subtotal = subtotal,
         };
@@ -125,7 +125,7 @@ public class PoeniPravilaTests
         var druga = new Order
         {
             Code = "EP-0002", PublicToken = Guid.NewGuid().ToString("N"), CustomerId = kupac.Id,
-            CustomerName = "Mujo", Status = OrderStatus.OutForDelivery, DeliveryAddress = "T",
+            CustomerName = "Marko", Status = OrderStatus.OutForDelivery, DeliveryAddress = "T",
             DeliverySlotId = order.DeliverySlotId, DeliveryZoneId = order.DeliveryZoneId, Subtotal = 10m,
         };
         t.Db.Orders.Add(druga);

@@ -38,7 +38,7 @@ public class BrojacIsporukaTests
             var proiz = new Producer { Name = "Marko", Village = "Manjača" };
             var kupac = new User
             {
-                Name = "Mujo", Email = "mujo@test.local", PasswordHash = "x", Role = UserRole.Customer,
+                Name = "Marko", Email = "marko@test.local", PasswordHash = "x", Role = UserRole.Customer,
             };
             var vozacKorisnik = new User
             {
@@ -65,7 +65,7 @@ public class BrojacIsporukaTests
             var order = new Order
             {
                 Code = "EP-2610-0001", PublicToken = Guid.NewGuid().ToString("N"),
-                CustomerId = kupac.Id, CustomerName = "Mujo",
+                CustomerId = kupac.Id, CustomerName = "Marko",
                 Status = OrderStatus.OutForDelivery,
                 Subtotal = 25m, DeliveryFee = 3m, TotalAmount = 28m,
                 DeliverySlotId = slot.Id, DeliveryZoneId = zona.Id,

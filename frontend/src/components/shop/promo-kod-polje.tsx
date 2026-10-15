@@ -41,7 +41,7 @@ export function PromoKodPolje({
       {primijenjen ? (
         <div className="flex items-center justify-between gap-3 rounded-xl bg-cream px-4 py-3 text-sm">
           <span className="min-w-0 truncate">
-            <span className="font-medium">Promo kod {primijenjen}</span>{" "}
+            <span className="font-medium">Promo kod {provjera.data?.kod ?? primijenjen.toUpperCase()}</span>{" "}
             {provjera.isFetching ? (
               <span className="text-muted">Provjeravam…</span>
             ) : provjera.data ? (

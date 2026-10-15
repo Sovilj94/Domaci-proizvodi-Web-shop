@@ -44,7 +44,7 @@ public class CreateOrderSedmicaTests
         using var _ = t;
 
         var cmd = new CreateOrderCommand(
-            new CustomerInput("Mujo", "mujo@example.com", "065"),
+            new CustomerInput("Marko", "marko@example.com", "065"),
             zonaId, slotId, "Testna 1", null,
             [new OrderItemInput(productId, 1m)]);
 

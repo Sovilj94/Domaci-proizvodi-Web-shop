@@ -97,7 +97,7 @@ build (`/login`, `/register` i `/admin/dostava` su zato izvučene u internu komp
 `<Suspense fallback={<LoadingBlock />}>`) — a oba prethodna alata su prolazila čisto. Zeleni `tsc` +
 `lint` nisu dokaz da se frontend može isporučiti.
 
-Demo accounts: `admin@epiljara.ba` / `admin123` · `mujo@example.com` / `mujo123` · `vozac@epiljara.ba` / `vozac123`.
+Demo accounts: `admin@epiljara.ba` / `admin123` · `marko@example.com` / `marko123` · `vozac@epiljara.ba` / `vozac123`.
 
 ## The contract is the architecture
 

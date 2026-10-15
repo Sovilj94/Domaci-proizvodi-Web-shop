@@ -14,7 +14,7 @@ public class OcjeneAdminTests
     private static int _brojac;
 
     private static async Task<OcjenaIsporuke> DodajAsync(TestDb t, int ocjena, string komentar = "",
-        bool dozvola = false, string kupac = "Mujo Mujić", string zona = "Centar", DateTime? kreirana = null)
+        bool dozvola = false, string kupac = "Marko Marković", string zona = "Centar", DateTime? kreirana = null)
     {
         var z = await t.Db.DeliveryZones.FirstOrDefaultAsync(x => x.Name == zona);
         if (z is null)

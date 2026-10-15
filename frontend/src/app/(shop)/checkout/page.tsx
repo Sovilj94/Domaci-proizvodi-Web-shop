@@ -637,8 +637,13 @@ export default function CheckoutPage() {
               <span className="font-display text-lg font-bold">
                 {formatPrice(selectedZone ? total : subtotal)}
               </span>
+              {/* Različiti `key`-evi su obavezni. Bez njih React zadrži isti <button> i samo mu
+                  promijeni `type` u "submit" — a to se desi usred klika na „Nastavi" u koraku 2,
+                  prije nego pregledač odluči da li klik šalje formu. Narudžba bi tako nastala
+                  bez koraka 3, pa kupac nikad ne bi vidio promo kod ni poene. */}
               {step < 3 ? (
                 <Button
+                  key="nastavi"
                   type="button"
                   onClick={() => setStep((s) => s + 1)}
                   disabled={(step === 1 && !step1Valid) || (step === 2 && !step2Valid)}
@@ -646,7 +651,7 @@ export default function CheckoutPage() {
                   Nastavi <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={!canOrder || activeMutation.isPending || (!!promoKod && promo.isFetching)}>
+                <Button key="naruci" type="submit" disabled={!canOrder || activeMutation.isPending || (!!promoKod && promo.isFetching)}>
                   {activeMutation.isPending ? "Šaljem…" : "Naruči"}
                 </Button>
               )}

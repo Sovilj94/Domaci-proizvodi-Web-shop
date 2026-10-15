@@ -16,7 +16,7 @@ public class KorpiceQueriesTests
     private static SedmicniSadrzaj Postavi(TestDb t, StatusSadrzaja status, int godina, int sedmica)
     {
         var kat = new Category { Name = "Povrće", Slug = "povrce" };
-        var proiz = new Producer { Name = "Mujo Mujić", Village = "Stričići" };
+        var proiz = new Producer { Name = "Marko Marković", Village = "Stričići" };
         t.Db.Categories.Add(kat);
         t.Db.Producers.Add(proiz);
 
@@ -93,7 +93,7 @@ public class KorpiceQueriesTests
 
         var stavka = Assert.Single(dto.Stavke);
         Assert.Equal("Paradajz", stavka.Naziv);
-        Assert.Equal("Mujo Mujić", stavka.ProizvodjacNaziv);
+        Assert.Equal("Marko Marković", stavka.ProizvodjacNaziv);
         Assert.Equal("Stričići", stavka.ProizvodjacSelo);
         Assert.Equal("kg", stavka.Jedinica);
     }

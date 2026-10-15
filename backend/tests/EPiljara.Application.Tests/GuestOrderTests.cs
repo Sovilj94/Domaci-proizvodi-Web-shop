@@ -61,7 +61,7 @@ public class GuestOrderTests
     {
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
-        var kupac = new User { Name = "Mujo", Email = "mujo@test.local", PasswordHash = "x" };
+        var kupac = new User { Name = "Marko", Email = "marko@test.local", PasswordHash = "x" };
         t.Db.Users.Add(kupac);
         t.Db.SaveChanges();
 

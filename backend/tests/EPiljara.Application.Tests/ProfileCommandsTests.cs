@@ -8,11 +8,11 @@ namespace EPiljara.Application.Tests;
 
 public class ProfileCommandsTests
 {
-    private static User Korisnik(TestDb t, string email = "mujo@test.local")
+    private static User Korisnik(TestDb t, string email = "marko@test.local")
     {
         var u = new User
         {
-            Name = "Mujo Mujić",
+            Name = "Marko Marković",
             Email = email,
             Phone = "065111222",
             PasswordHash = "x",
@@ -30,13 +30,13 @@ public class ProfileCommandsTests
         var u = Korisnik(t);
 
         var dto = await new AzurirajProfilHandler(t.Db, new FakeCurrentUser(u.Id))
-            .Handle(new AzurirajProfilCommand("Haso Hasić", "065999888"), default);
+            .Handle(new AzurirajProfilCommand("Dragan Hasić", "065999888"), default);
 
-        Assert.Equal("Haso Hasić", dto.Name);
+        Assert.Equal("Dragan Hasić", dto.Name);
         Assert.Equal("065999888", dto.Phone);
 
         var iz_baze = await t.Db.Users.AsNoTracking().SingleAsync(x => x.Id == u.Id);
-        Assert.Equal("Haso Hasić", iz_baze.Name);
+        Assert.Equal("Dragan Hasić", iz_baze.Name);
         Assert.Equal("065999888", iz_baze.Phone);
     }
 
@@ -47,10 +47,10 @@ public class ProfileCommandsTests
         var u = Korisnik(t);
 
         await new AzurirajProfilHandler(t.Db, new FakeCurrentUser(u.Id))
-            .Handle(new AzurirajProfilCommand("Haso Hasić", "065999888"), default);
+            .Handle(new AzurirajProfilCommand("Dragan Hasić", "065999888"), default);
 
         var iz_baze = await t.Db.Users.AsNoTracking().SingleAsync(x => x.Id == u.Id);
-        Assert.Equal("mujo@test.local", iz_baze.Email);
+        Assert.Equal("marko@test.local", iz_baze.Email);
         Assert.Equal(UserRole.Customer, iz_baze.Role);
     }
 
@@ -65,7 +65,7 @@ public class ProfileCommandsTests
             .Handle(new AzurirajProfilCommand("Novo Ime", "065000000"), default);
 
         var drugi = await t.Db.Users.AsNoTracking().SingleAsync(x => x.Id == tudji.Id);
-        Assert.Equal("Mujo Mujić", drugi.Name);
+        Assert.Equal("Marko Marković", drugi.Name);
         Assert.Equal("065111222", drugi.Phone);
     }
 
@@ -81,8 +81,8 @@ public class ProfileCommandsTests
     [Theory]
     [InlineData("", "065111222")]
     [InlineData("   ", "065111222")]
-    [InlineData("Mujo", "")]
-    [InlineData("Mujo", "   ")]
+    [InlineData("Marko", "")]
+    [InlineData("Marko", "   ")]
     public void Prazno_ime_ili_telefon_ne_prolaze_validaciju(string ime, string telefon)
     {
         var rezultat = new AzurirajProfilValidator()
@@ -102,7 +102,7 @@ public class ProfileCommandsTests
     public void Ispravan_unos_prolazi_validaciju()
     {
         var rezultat = new AzurirajProfilValidator()
-            .Validate(new AzurirajProfilCommand("Mujo Mujić", "065111222"));
+            .Validate(new AzurirajProfilCommand("Marko Marković", "065111222"));
         Assert.True(rezultat.IsValid);
     }
 }

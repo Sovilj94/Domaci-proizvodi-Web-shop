@@ -190,14 +190,14 @@ function seed(): Db {
       password: "admin123",
     },
     {
-      id: "user-mujo",
-      name: "Mujo Mujić",
-      email: "mujo@example.com",
+      id: "user-marko",
+      name: "Marko Marković",
+      email: "marko@example.com",
       phone: "+387 65 123 456",
       address: "Kralja Petra I 12, Banja Luka",
       deliveryZoneId: "zone-centar",
       role: "customer",
-      password: "mujo123",
+      password: "marko123",
     },
   ];
 
@@ -218,16 +218,16 @@ function seed(): Db {
   };
 
   // A couple of seed orders so the admin dashboard isn't empty on first run.
-  seedOrder(db, "user-mujo", "zone-centar", "slot-cet", "Kralja Petra I 12, Banja Luka", "Confirmed", [
+  seedOrder(db, "user-marko", "zone-centar", "slot-cet", "Kralja Petra I 12, Banja Luka", "Confirmed", [
     ["p-krompir", 5],
     ["p-sir", 1],
     ["p-jaja", 10],
   ]);
-  seedOrder(db, "user-mujo", "zone-borik", "slot-cet", "Bulevar 42, Banja Luka", "Packing", [
+  seedOrder(db, "user-marko", "zone-borik", "slot-cet", "Bulevar 42, Banja Luka", "Packing", [
     ["p-med-livadski", 2],
     ["p-jabuka", 3],
   ]);
-  seedOrder(db, "user-mujo", "zone-starcevica", "slot-cet", "Carice Milice 8, Banja Luka", "Pending", [
+  seedOrder(db, "user-marko", "zone-starcevica", "slot-cet", "Carice Milice 8, Banja Luka", "Pending", [
     ["p-kajmak", 1],
     ["p-mlijeko", 4],
   ]);

@@ -44,7 +44,7 @@ public class PoeniNarudzbeTests
 
         public async Task<Guid> KupacSaPoenimaAsync(int poena)
         {
-            var u = new User { Name = "Mujo", Email = $"{Guid.NewGuid():N}@test.local", PasswordHash = "x" };
+            var u = new User { Name = "Marko", Email = $"{Guid.NewGuid():N}@test.local", PasswordHash = "x" };
             T.Db.Users.Add(u);
             if (poena != 0)
                 T.Db.PoeniStavke.Add(new PoeniStavka { UserId = u.Id, Iznos = poena, Vrsta = VrstaPoena.Korekcija });
@@ -66,7 +66,7 @@ public class PoeniNarudzbeTests
                 Options.Create(new PoeniOpcije()));
 
         public CreateOrderCommand Komanda(bool poeni, string? kod = null, Guid? customerId = null) =>
-            new(new CustomerInput("Mujo", "mujo@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,
+            new(new CustomerInput("Marko", "marko@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,
                 [new OrderItemInput(Proizvod.Id, 1m)], CustomerId: customerId, PromoKod: kod, IskoristiPoene: poeni);
 
         public void Dispose() => T.Dispose();
@@ -208,7 +208,7 @@ public class PoeniNarudzbeTests
     public void Zahtjev_sa_zice_prenosi_IskoristiPoene()
     {
         var zahtjev = new CreateOrderRequest(
-            new CustomerInput("Mujo", null, "065"), Guid.NewGuid(), Guid.NewGuid(), "Testna 1", null,
+            new CustomerInput("Marko", null, "065"), Guid.NewGuid(), Guid.NewGuid(), "Testna 1", null,
             [], IskoristiPoene: true);
 
         zahtjev.ToCommand().IskoristiPoene.Should().BeTrue();
@@ -216,13 +216,13 @@ public class PoeniNarudzbeTests
 
     private static Order SaPoenima() => new()
     {
-        Code = "EP-1", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
+        Code = "EP-1", CustomerName = "Marko", DeliveryAddress = "Testna 1",
         Subtotal = 20m, DeliveryFee = 3m, IskoristeniPoeni = 300, PoeniPopust = 15m, TotalAmount = 8m,
     };
 
     private static Order BezPoena() => new()
     {
-        Code = "EP-2", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
+        Code = "EP-2", CustomerName = "Marko", DeliveryAddress = "Testna 1",
         Subtotal = 20m, DeliveryFee = 3m, TotalAmount = 23m,
     };
 
