@@ -13,6 +13,7 @@ import type {
   OcjeneAdmin,
   Order,
   OrderStatus,
+  MojiPoeni,
   Pretplata,
   Producer,
   Product,
@@ -287,6 +288,8 @@ export const accountApi = {
       method: "PUT",
       body: { productIds },
     }).then((r) => r.data),
+
+  poeni: () => apiFetch<MojiPoeni>("/account/poeni").then((r) => r.data),
 
   pretplate: () => apiFetch<Pretplata[]>("/account/pretplate").then((r) => r.data),
 

@@ -48,6 +48,7 @@ export interface RegisterRequest {
   password: string;
   address?: string;
   deliveryZoneId?: string;
+  preporukaKod?: string;
 }
 
 export interface LoginRequest {

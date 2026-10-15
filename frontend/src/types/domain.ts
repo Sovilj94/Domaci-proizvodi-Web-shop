@@ -547,3 +547,23 @@ export interface PromoKod {
   mozeSeObrisati: boolean;
   kreiran: string;
 }
+
+export interface PoeniStavka {
+  /** Pozitivan = zarađeno, negativan = potrošeno. */
+  iznos: number;
+  vrsta: string;
+  opis: string;
+  orderCode?: string | null;
+  kreirana: string;
+}
+
+/** Preslikava `MojiPoeniDto` (backend `DTOs/PoeniDtos.cs`). */
+export interface MojiPoeni {
+  stanje: number;
+  vrijednostPoenaKM: number;
+  vrijednostKM: number;
+  nagradaPreporuka: number;
+  preporukaKod: string;
+  brojPreporuka: number;
+  istorija: PoeniStavka[];
+}
