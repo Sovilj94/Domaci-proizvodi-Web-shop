@@ -28,6 +28,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
+    public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
     public DbSet<OcjenaIsporuke> OcjeneIsporuke => Set<OcjenaIsporuke>();
     public DbSet<Recept> Recepti => Set<Recept>();
@@ -160,6 +161,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Email).HasMaxLength(256).IsRequired();
             e.Property(x => x.Role).HasConversion<string>().HasMaxLength(16);
             e.HasIndex(x => x.Email).IsUnique();
+            e.Property(x => x.PreporukaKod).HasMaxLength(8);
+            // Filter jer većina naloga nema kod; bez njega bi null kodovi branili jedan drugog.
+            e.HasIndex(x => x.PreporukaKod).IsUnique().HasFilter("\"PreporukaKod\" IS NOT NULL");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.PreporucioId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<Address>(e =>
@@ -220,6 +226,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // Ekran pretplate traži njene narudžbe; bez indeksa je to skeniranje svih.
             e.HasIndex(x => x.PretplataId);
             e.Property(x => x.Popust).HasPrecision(10, 2);
+            e.Property(x => x.PoeniPopust).HasPrecision(10, 2);
             e.Property(x => x.PromoKod).HasMaxLength(30);
             // Kod se ne briše dok ga neka narudžba pamti; ugasi se preko Aktivan.
             e.HasOne<PromoKod>().WithMany()
@@ -261,6 +268,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.DeliverySlot).WithMany()
                 .HasForeignKey(x => x.DeliverySlotId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<PoeniStavka>(e =>
+        {
+            e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(24);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.OrderId);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.SetNull);
+            // PreporuceniId namjerno bez FK: brisanje preporučenog ne smije brisati tuđu nagradu.
         });
 
         b.Entity<Utisak>(e =>

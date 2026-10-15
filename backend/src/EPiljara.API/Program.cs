@@ -62,6 +62,8 @@ builder.Services.Configure<KorpiceOpcije>(
     builder.Configuration.GetSection(KorpiceOpcije.Sekcija));
 
 // ----- Pretplate (prag popusta, koliko unaprijed se pravi narudžba) -----
+builder.Services.Configure<EPiljara.Application.Features.Poeni.PoeniOpcije>(
+    builder.Configuration.GetSection(EPiljara.Application.Features.Poeni.PoeniOpcije.Sekcija));
 builder.Services.Configure<PretplateOpcije>(
     builder.Configuration.GetSection(PretplateOpcije.Sekcija));
 

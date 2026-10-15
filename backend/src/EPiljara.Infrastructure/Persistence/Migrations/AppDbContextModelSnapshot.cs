@@ -552,6 +552,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<int>("Godina")
                         .HasColumnType("integer");
 
+                    b.Property<int>("IskoristeniPoeni")
+                        .HasColumnType("integer");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
 
@@ -561,6 +564,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal>("PoeniPopust")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
 
                     b.Property<decimal>("Popust")
                         .HasPrecision(10, 2)
@@ -717,6 +724,41 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status", "Kreirana");
 
                     b.ToTable("PartnerPrijave");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.PoeniStavka", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Iznos")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Kreirana")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PreporuceniId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Vrsta")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PoeniStavke");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Pretplata", b =>
@@ -1257,6 +1299,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("PreporucioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PreporukaKod")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -1266,6 +1315,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("PreporucioId");
+
+                    b.HasIndex("PreporukaKod")
+                        .IsUnique()
+                        .HasFilter("\"PreporukaKod\" IS NOT NULL");
 
                     b.ToTable("Users");
                 });
@@ -1470,6 +1525,20 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.PoeniStavka", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EPiljara.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Pretplata", b =>
                 {
                     b.HasOne("EPiljara.Domain.Entities.DeliverySlot", "DeliverySlot")
@@ -1606,6 +1675,14 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("SedmicniSadrzaj");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.User", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("PreporucioId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Utisak", b =>

@@ -34,6 +34,10 @@ public class Order : Entity
     public string? PromoKod { get; set; }
     public decimal Popust { get; set; }
 
+    /// <summary>Poeni potrošeni na ovu narudžbu i njihova vrijednost u KM; već su u TotalAmount.</summary>
+    public int IskoristeniPoeni { get; set; }
+    public decimal PoeniPopust { get; set; }
+
     public Guid DeliverySlotId { get; set; }
     public DeliverySlot? DeliverySlot { get; set; }
 

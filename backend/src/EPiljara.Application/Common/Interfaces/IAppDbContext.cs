@@ -30,6 +30,9 @@ public interface IAppDbContext
     DbSet<Pretplata> Pretplate { get; }
 
     /// <summary>Utisci kupaca za početnu — vidi Utisak entitet.</summary>
+    /// <summary>Knjiga poena — vidi PoeniStavka entitet.</summary>
+    DbSet<PoeniStavka> PoeniStavke { get; }
+
     DbSet<Utisak> Utisci { get; }
     DbSet<OcjenaIsporuke> OcjeneIsporuke { get; }
 

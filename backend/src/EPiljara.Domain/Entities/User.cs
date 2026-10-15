@@ -22,4 +22,9 @@ public class User : Entity
     public bool EmailConfirmed { get; set; }
     /// <summary>One-time token e-mailed at registration; cleared once confirmed.</summary>
     public string? EmailConfirmationToken { get; set; }
+
+    /// <summary>Lični kod za preporuke (do 8 znakova); null dok ga nalog ne zatraži.</summary>
+    public string? PreporukaKod { get; set; }
+    /// <summary>Ko je ovog kupca preporučio. SetNull: brisanje preporučioca ne briše kupca.</summary>
+    public Guid? PreporucioId { get; set; }
 }
