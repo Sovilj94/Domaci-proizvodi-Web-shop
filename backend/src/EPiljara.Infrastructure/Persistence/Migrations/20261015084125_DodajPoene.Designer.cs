@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EPiljara.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261015080603_DodajPoene")]
+    [Migration("20261015084125_DodajPoene")]
     partial class DodajPoene
     {
         /// <inheritdoc />
@@ -759,11 +759,18 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PoeniStavke_UserId_PreporukaNovi")
+                        .HasFilter("\"Vrsta\" = 'PreporukaNovi'");
 
                     b.HasIndex("OrderId", "Vrsta")
                         .IsUnique()
-                        .HasFilter("\"OrderId\" IS NOT NULL");
+                        .HasFilter("\"OrderId\" IS NOT NULL AND \"Vrsta\" <> 'Korekcija'");
+
+                    b.HasIndex("PreporuceniId", "Vrsta")
+                        .IsUnique()
+                        .HasFilter("\"PreporuceniId\" IS NOT NULL");
 
                     b.ToTable("PoeniStavke");
                 });

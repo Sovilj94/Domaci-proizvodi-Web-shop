@@ -204,6 +204,17 @@ public class PoeniPravilaTests
     }
 
     [Fact]
+    public async Task Isporucena_narudzba_admina_ne_pise_poene()
+    {
+        var (t, kupac, order) = await PripremiAsync();
+        using var _t = t;
+        kupac.Role = UserRole.Admin;
+        await t.Db.SaveChangesAsync();
+        await Pozovi(t, order, OrderStatus.Delivered);
+        Assert.Empty(t.Db.PoeniStavke);
+    }
+
+    [Fact]
     public async Task Handler_za_Delivered_upise_isporuku()
     {
         var (t, _, order) = await PripremiAsync();

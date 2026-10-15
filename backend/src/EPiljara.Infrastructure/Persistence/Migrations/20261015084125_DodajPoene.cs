@@ -91,12 +91,21 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                 table: "PoeniStavke",
                 columns: new[] { "OrderId", "Vrsta" },
                 unique: true,
-                filter: "\"OrderId\" IS NOT NULL");
+                filter: "\"OrderId\" IS NOT NULL AND \"Vrsta\" <> 'Korekcija'");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PoeniStavke_UserId",
+                name: "IX_PoeniStavke_PreporuceniId_Vrsta",
                 table: "PoeniStavke",
-                column: "UserId");
+                columns: new[] { "PreporuceniId", "Vrsta" },
+                unique: true,
+                filter: "\"PreporuceniId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PoeniStavke_UserId_PreporukaNovi",
+                table: "PoeniStavke",
+                column: "UserId",
+                unique: true,
+                filter: "\"Vrsta\" = 'PreporukaNovi'");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Users_Users_PreporucioId",

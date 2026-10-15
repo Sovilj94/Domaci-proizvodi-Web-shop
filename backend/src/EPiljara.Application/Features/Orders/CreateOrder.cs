@@ -218,7 +218,10 @@ public class CreateOrderHandler(
         // Poeni poslije promo koda (O5) i samo za prijavljenog kupca — gost nema knjigu poena.
         var iskoristeniPoeni = 0;
         var poeniPopust = 0m;
-        if (cmd.IskoristiPoene && customerId is { } kupacId)
+        // Troši samo nalog kupca: admin koji unosi telefonsku narudžbu pod svojim nalogom
+        // (CustomerId je njegov) ne smije potrošiti svoje poene.
+        if (cmd.IskoristiPoene && customerId is { } kupacId
+            && await db.Users.AnyAsync(u => u.Id == kupacId && u.Role == UserRole.Customer, ct))
         {
             var stanje = await PoeniPravila.StanjeAsync(db, kupacId, ct);
             (iskoristeniPoeni, poeniPopust) = PoeniPravila.ZaTrosenje(stanje, subtotal - popust, poeniOpcije.Value);

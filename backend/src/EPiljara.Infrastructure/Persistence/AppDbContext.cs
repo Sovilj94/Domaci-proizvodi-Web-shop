@@ -277,7 +277,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(x => x.OrderId);
             // Dvije istovremene promjene statusa bi obje prošle AnyAsync provjeru; jedinstven
             // par (narudžba, vrsta) je zadnja brana protiv dvostrukog upisa iste nagrade/povrata.
-            e.HasIndex(x => new { x.OrderId, x.Vrsta }).IsUnique().HasFilter("\"OrderId\" IS NOT NULL");
+            e.HasIndex(x => new { x.OrderId, x.Vrsta }).IsUnique().HasFilter("\"OrderId\" IS NOT NULL AND \"Vrsta\" <> 'Korekcija'");
+            // Korekcija je izuzeta: za istu narudžbu je smije biti više ručnih ispravki.
+            // Nagrada za preporuku jednom po preporučenom: AnyAsync ne hvata dvije istovremene
+            // isporuke različitih narudžbi, pa to čuva baza. Drugi indeks je par (PreporuceniId, Vrsta)
+            // jer oba reda (PreporukaNovi i PreporukaPreporucio) nose isti PreporuceniId.
+            e.HasIndex(x => x.UserId).IsUnique().HasFilter("\"Vrsta\" = 'PreporukaNovi'")
+                .HasDatabaseName("IX_PoeniStavke_UserId_PreporukaNovi");
+            e.HasIndex(x => new { x.PreporuceniId, x.Vrsta }).IsUnique().HasFilter("\"PreporuceniId\" IS NOT NULL");
             e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.SetNull);
             // PreporuceniId namjerno bez FK: brisanje preporučenog ne smije brisati tuđu nagradu.

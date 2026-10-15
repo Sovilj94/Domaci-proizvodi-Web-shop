@@ -92,6 +92,24 @@ public class PoeniNarudzbeTests
     }
 
     [Fact]
+    public async Task Admin_sa_poenima_ne_troši_ih_na_telefonskoj_narudzbi()
+    {
+        using var o = await Okruzenje.NapraviAsync();
+        var admin = await o.KupacSaPoenimaAsync(300);
+        var u = await o.T.Db.Users.SingleAsync(x => x.Id == admin);
+        u.Role = UserRole.Admin;
+        await o.T.Db.SaveChangesAsync();
+
+        var dto = await o.Handler(admin).Handle(o.Komanda(true), default);
+
+        dto.IskoristeniPoeni.Should().Be(0);
+        dto.PoeniPopust.Should().Be(0m);
+        o.T.Db.ChangeTracker.Clear();
+        (await PoeniPravila.StanjeAsync(o.T.Db, admin, default)).Should().Be(300);
+        (await o.T.Db.PoeniStavke.CountAsync(s => s.Vrsta == VrstaPoena.Iskoristeno)).Should().Be(0);
+    }
+
+    [Fact]
     public async Task Poeni_su_ogranicen_robom()
     {
         using var o = await Okruzenje.NapraviAsync();

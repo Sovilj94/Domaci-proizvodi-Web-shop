@@ -135,12 +135,12 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
                   <dd className="font-medium">−{formatPrice(order.popust)}</dd>
                 </div>
               )}
-        {order.poeniPopust > 0 && (
-          <div className="flex justify-between text-brand-700">
-            <dt>Poeni ({order.iskoristeniPoeni})</dt>
-            <dd className="font-medium">−{formatPrice(order.poeniPopust)}</dd>
-          </div>
-        )}
+              {order.poeniPopust > 0 && (
+                <div className="flex justify-between text-brand-700">
+                  <dt>Poeni ({order.iskoristeniPoeni})</dt>
+                  <dd className="font-medium">−{formatPrice(order.poeniPopust)}</dd>
+                </div>
+              )}
               <div className="flex justify-between border-t border-line pt-2 text-base">
                 <dt className="font-semibold">Ukupno</dt>
                 <dd className="font-display font-bold">{formatPrice(order.totalAmount)}</dd>

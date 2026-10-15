@@ -125,6 +125,19 @@ public class BrojacIsporukaTests
         Assert.Equal(3, await s.BrojIsporukaAsync());
     }
 
+    [Fact]
+    public async Task Vozac_koji_zatvori_stanicu_upise_poene_za_isporuku()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        await new UpdateStopStatusHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver), PoeniOpts)
+            .Handle(new UpdateStopStatusCommand(s.Narudzba.Id, "Delivered"), default);
+
+        s.Ctx.ChangeTracker.Clear();
+        var stavka = await s.Ctx.PoeniStavke.AsNoTracking().SingleAsync();
+        Assert.Equal((VrstaPoena.Isporuka, 25, s.Narudzba.Id), (stavka.Vrsta, stavka.Iznos, stavka.OrderId));
+    }
+
     /// <summary>
     /// Admin koji dvaput klikne isti status ne smije kupcu pokloniti isporuku — popust bi
     /// stigao prerano, a razlika se vidi tek na računu.

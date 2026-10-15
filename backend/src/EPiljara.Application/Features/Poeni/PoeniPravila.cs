@@ -20,7 +20,9 @@ public static class PoeniPravila
         if (stanje <= 0 || robaPoslijePromo <= 0) return (0, 0m);
         // Cijele KM: kupac vidi „−12 KM", ne „−12,35 KM", a poeni se troše u okruglim blokovima.
         var popust = Math.Floor(Math.Min(stanje * o.VrijednostPoenaKM, robaPoslijePromo));
-        var poena = (int)(popust / o.VrijednostPoenaKM);
+        // VrijednostPoenaKM mora dijeliti 1 KM bez ostatka (0.05, 0.1, 0.5...); inače poeni i KM
+        // ne idu u cijelim blokovima. Round štiti samo od decimalnog šuma, ne od lošeg podešavanja.
+        var poena = (int)Math.Round(popust / o.VrijednostPoenaKM);
         return (poena, popust);
     }
 
@@ -40,6 +42,12 @@ public static class PoeniPravila
 
         if (novi == OrderStatus.Delivered)
         {
+            // Admin i vozač unose telefonske narudžbe pod SVOJIM nalogom (vidi komentar o CustomerId
+            // u CreateOrder.cs), pa bi zarada i bonus za preporuku završili kod osoblja, ne kod kupca.
+            // Zato se zarađuje samo na nalogu kupca. Povrat ispod ostaje bezuslovan: vraća ono što
+            // je stvarno potrošeno.
+            if (!await db.Users.AnyAsync(u => u.Id == kupacId && u.Role == UserRole.Customer, ct)) return;
+
             var vecIsporuka = await db.PoeniStavke
                 .AnyAsync(s => s.OrderId == order.Id && s.Vrsta == VrstaPoena.Isporuka, ct);
             if (vecIsporuka) return;
