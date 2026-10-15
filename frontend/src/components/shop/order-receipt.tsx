@@ -129,6 +129,12 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
                 <dt className="text-muted">Trošak dostave</dt>
                 <dd className="font-medium">{formatPrice(order.deliveryFee)}</dd>
               </div>
+              {order.popust > 0 && (
+                <div className="flex justify-between text-brand-700">
+                  <dt>Popust{order.promoKod ? ` (${order.promoKod})` : ""}</dt>
+                  <dd className="font-medium">−{formatPrice(order.popust)}</dd>
+                </div>
+              )}
               <div className="flex justify-between border-t border-line pt-2 text-base">
                 <dt className="font-semibold">Ukupno</dt>
                 <dd className="font-display font-bold">{formatPrice(order.totalAmount)}</dd>

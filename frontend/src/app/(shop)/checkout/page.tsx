@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,6 +17,7 @@ import { AddressChooser } from "@/components/shop/address-chooser";
 import { CheckEmail } from "@/components/shop/check-email";
 import { OrderReceipt } from "@/components/shop/order-receipt";
 import { OrderSummaryPanel } from "@/components/shop/order-summary-panel";
+import { PromoKodPolje } from "@/components/shop/promo-kod-polje";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import {
@@ -26,7 +27,7 @@ import {
   useMyAddresses,
   useProducts,
 } from "@/lib/api/hooks";
-import { orderApi } from "@/lib/api/endpoints";
+import { orderApi, promoApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import { pogodiZonu } from "@/lib/zone";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
@@ -125,6 +126,7 @@ export default function CheckoutPage() {
   }, [products.data, korpice.isSuccess, korpice.data, items, reconcile, show]);
 
   const [step, setStep] = useState(1);
+  const [promoKod, setPromoKod] = useState<string | null>(null);
   const [form, setForm] = useState({
     ime: "",
     prezime: "",
@@ -198,7 +200,20 @@ export default function CheckoutPage() {
     [zones.data, form.zoneId],
   );
   const deliveryFee = selectedZone?.deliveryFee ?? 0;
-  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
+  // Popust računa server (provjera koda) — klijent ga samo prikazuje.
+  const promo = useQuery({
+    queryKey: ["promo", promoKod, form.email, items.map((i) => [i.productId, i.quantity])],
+    queryFn: () =>
+      promoApi.provjeri({
+        kod: promoKod!,
+        email: form.email || undefined,
+        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      }),
+    enabled: !!promoKod && items.length > 0,
+    retry: false,
+  });
+  const popust = promo.data?.popust ?? 0;
+  const total = Math.round((subtotal - popust + deliveryFee) * 100) / 100;
   const belowMin = selectedZone ? subtotal < selectedZone.minOrderAmount : false;
 
   // Backend i dalje prima jedno ime i jednu adresu — admin, dispečerski ekran i
@@ -270,6 +285,8 @@ export default function CheckoutPage() {
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       latitude: coords?.lat,
       longitude: coords?.lon,
+      // Kod koji je server odbio (promo.isError) se ne šalje i ne blokira narudžbu.
+      promoKod: promo.data ? promoKod ?? undefined : undefined,
     };
     if (gost) {
       guestMutation.mutate(body);
@@ -496,6 +513,19 @@ export default function CheckoutPage() {
                 </p>
               </div>
 
+              <PromoKodPolje
+                primijenjen={promoKod}
+                provjera={promo}
+                onPrimijeni={setPromoKod}
+                onUkloni={() => setPromoKod(null)}
+                greskaSlanja={
+                  activeMutation.error instanceof ApiRequestError &&
+                  activeMutation.error.apiError.code === "promo_kod_nevazeci"
+                    ? activeMutation.error.message
+                    : undefined
+                }
+              />
+
               {belowMin && selectedZone && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                   Minimalna narudžba za zonu {selectedZone.name} je{" "}
@@ -504,6 +534,7 @@ export default function CheckoutPage() {
               )}
               {activeMutation.isError &&
                 activeMutation.error instanceof ApiRequestError &&
+                activeMutation.error.apiError.code !== "promo_kod_nevazeci" &&
                 Object.keys(activeMutation.error.fieldErrors).length === 0 && (
                   <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                     {activeMutation.error.message}
@@ -521,6 +552,8 @@ export default function CheckoutPage() {
               deliveryFee={deliveryFee}
               total={total}
               zoneName={selectedZone?.name}
+              popust={popust}
+              promoKod={promo.data?.kod}
             />
           </div>
 
@@ -564,6 +597,8 @@ export default function CheckoutPage() {
             deliveryFee={deliveryFee}
             total={total}
             zoneName={selectedZone?.name}
+            popust={popust}
+            promoKod={promo.data?.kod}
           />
         </aside>
       </div>

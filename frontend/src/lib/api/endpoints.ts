@@ -47,6 +47,7 @@ import type {
   OcjenaInput,
   PakerskaLista,
   PretplataInput,
+  ProvjeraPromoKoda,
   ProducerInput,
   ProductInput,
   ProfileInput,
@@ -507,4 +508,17 @@ export const geocodeApi = {
       auth: false,
       query: { lat: String(lat), lon: String(lon) },
     }).then((r) => r.data ?? null),
+};
+
+/* ---------- Promo kodovi ---------- */
+
+export const promoApi = {
+  provjeri: (body: {
+    kod: string;
+    email?: string;
+    items: { productId: string; quantity: number }[];
+  }) =>
+    apiFetch<ProvjeraPromoKoda>("/promo-kodovi/provjera", { method: "POST", body }).then(
+      (r) => r.data,
+    ),
 };

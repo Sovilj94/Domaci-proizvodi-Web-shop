@@ -38,6 +38,7 @@ export interface CreateOrderRequest {
   items: CreateOrderItemInput[];
   latitude?: number;
   longitude?: number;
+  promoKod?: string;
 }
 
 export interface RegisterRequest {
@@ -303,4 +304,11 @@ export interface PartnerPrijavaInput {
 export interface PartnerStatusInput {
   status: StatusPrijave;
   adminNapomena?: string;
+}
+
+export interface ProvjeraPromoKoda {
+  kod: string;
+  opis: string;
+  popust: number;
+  subtotal: number;
 }

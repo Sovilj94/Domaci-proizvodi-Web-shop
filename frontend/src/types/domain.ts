@@ -114,6 +114,8 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
+  popust: number;
+  promoKod?: string | null;
   totalAmount: number;
   deliverySlotId: string;
   deliverySlot?: DeliverySlot;
