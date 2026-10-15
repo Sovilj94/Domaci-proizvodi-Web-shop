@@ -16,8 +16,8 @@ public class OrdersController : ApiControllerBase
     /// </summary>
     [Authorize]
     [HttpPost("orders")]
-    public async Task<IActionResult> Create([FromBody] CreateOrderCommand command) =>
-        EnvelopeCreated(await Mediator.Send(command));
+    public async Task<IActionResult> Create([FromBody] CreateOrderRequest request) =>
+        EnvelopeCreated(await Mediator.Send(request.ToCommand()));
 
     /// <summary>Gost šalje narudžbu — narudžba ne nastaje dok ne klikne link iz mejla.</summary>
     [HttpPost("orders/guest-request")]

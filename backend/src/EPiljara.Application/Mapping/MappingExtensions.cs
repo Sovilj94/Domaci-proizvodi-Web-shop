@@ -101,6 +101,8 @@ public static class MappingExtensions
         Items = o.Items.Select(x => x.ToDto()).ToList(),
         Subtotal = o.Subtotal,
         DeliveryFee = o.DeliveryFee,
+        Popust = o.Popust,
+        PromoKod = o.PromoKod,
         TotalAmount = o.TotalAmount,
         DeliverySlotId = o.DeliverySlotId,
         DeliverySlot = o.DeliverySlot?.ToDto(),

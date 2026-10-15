@@ -269,6 +269,25 @@ public static class DbSeeder
 
         await db.SaveChangesAsync(ct);
         await SeedReceptiAsync(db, ct);
+        await SeedPromoKodoviAsync(db, ct);
+    }
+
+    /// <summary>Demo promo kod; idempotentno kao i recepti, i samo u demo seedu.</summary>
+    private static async Task SeedPromoKodoviAsync(AppDbContext db, CancellationToken ct)
+    {
+        if (await db.PromoKodovi.AnyAsync(ct))
+            return;
+
+        db.PromoKodovi.Add(new PromoKod
+        {
+            Kod = "DOBRODOSLI",
+            Opis = "Dobrodošlica — 10 % na prvu narudžbu",
+            Tip = TipPopusta.Procenat,
+            Vrijednost = 10m,
+            SamoNoviKupci = true,
+            Aktivan = true,
+        });
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>Dva demo recepta (spec O3); sastojci se vezuju za seed proizvode po imenu.</summary>

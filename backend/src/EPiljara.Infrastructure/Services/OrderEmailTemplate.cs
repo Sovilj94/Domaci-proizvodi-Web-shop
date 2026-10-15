@@ -66,6 +66,14 @@ public static class OrderEmailTemplate
 
         var deliveryWindow = DeliveryWindow(order.DeliverySlot);
 
+        // Red popusta samo kad ga ima — bez koda mejl ostaje isti kao prije.
+        var popustRow = order.Popust > 0
+            ? $$"""
+                <tr><td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Muted}}">Popust{{(string.IsNullOrWhiteSpace(order.PromoKod) ? "" : " (" + Enc(order.PromoKod) + ")")}}</td>
+                    <td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Green}};text-align:right">−{{Money(order.Popust)}}</td></tr>
+                """
+            : "";
+
         var trackRow = string.IsNullOrWhiteSpace(trackUrl)
             ? ""
             : $"""
@@ -102,6 +110,7 @@ public static class OrderEmailTemplate
                         <td style="padding:10px 0 4px;font:400 14px Arial,sans-serif;color:{{Ink}};text-align:right">{{Money(order.Subtotal)}}</td></tr>
                     <tr><td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Muted}}">Dostava{{(order.DeliveryZone is not null ? " · " + Enc(order.DeliveryZone.Name) : "")}}</td>
                         <td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Ink}};text-align:right">{{Money(order.DeliveryFee)}}</td></tr>
+                    {{popustRow}}
                     <tr><td style="padding:12px 0 0;font:800 17px Arial,sans-serif;color:{{Ink}};border-top:1px solid {{Line}}">Ukupno</td>
                         <td style="padding:12px 0 0;font:800 17px Arial,sans-serif;color:{{Ink}};text-align:right;border-top:1px solid {{Line}}">{{Money(order.TotalAmount)}}</td></tr>
                   </table>

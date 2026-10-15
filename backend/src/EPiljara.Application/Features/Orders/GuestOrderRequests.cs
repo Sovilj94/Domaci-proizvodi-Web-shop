@@ -2,6 +2,7 @@ using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.PromoKodovi;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
@@ -21,7 +22,8 @@ public record CreateGuestOrderRequestCommand(
     string? Note,
     IReadOnlyList<OrderItemInput> Items,
     double? Latitude = null,
-    double? Longitude = null) : IRequest<GuestOrderRequestDto>;
+    double? Longitude = null,
+    string? PromoKod = null) : IRequest<GuestOrderRequestDto>;
 
 public record GuestOrderRequestDto(DateTime ExpiresAt);
 
@@ -96,6 +98,9 @@ public class CreateGuestOrderRequestValidator : AbstractValidator<CreateGuestOrd
             .WithMessage("Napomena je predugačka.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
         RuleForEach(x => x.Items).Must(i => i.Quantity > 0).WithMessage("Neispravna količina.");
+        RuleFor(x => x.PromoKod).MaximumLength(30)
+            .When(x => x.PromoKod is not null)
+            .WithMessage("Promo kod je predugačak.");
     }
 }
 
@@ -148,6 +153,16 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
                 $"Minimalna narudžba za zonu {zone.Name} je {zone.MinOrderAmount:0.##} KM.",
                 "below_minimum");
 
+        // Gost nema nalog; kod se prepoznaje po e-mailu. Konačna provjera je pri potvrdi (O11).
+        PromoKod? promo = null;
+        var popust = 0m;
+        if (!string.IsNullOrWhiteSpace(cmd.PromoKod))
+        {
+            promo = await PromoKodPravila.ProvjeriAsync(db, cmd.PromoKod, subtotal,
+                new KupacZaPromo(null, cmd.Customer.Email), LokalniDatum.Danas(), ct);
+            popust = PromoKodPravila.Popust(promo, subtotal);
+        }
+
         var request = new GuestOrderRequest
         {
             Token = Guid.NewGuid().ToString("N"),
@@ -166,7 +181,10 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
             Items = items,
             Subtotal = subtotal,
             DeliveryFee = zone.DeliveryFee,
-            TotalAmount = Math.Round(subtotal + zone.DeliveryFee, 2),
+            PromoKodId = promo?.Id,
+            PromoKod = promo?.Kod,
+            Popust = popust,
+            TotalAmount = Math.Round(subtotal - popust + zone.DeliveryFee, 2),
         };
 
         db.GuestOrderRequests.Add(request);
@@ -257,6 +275,25 @@ public class ConfirmGuestOrderHandler(
         var (godina, sedmica) =
             SedmicaHelper.SedmicaZaNarudzbu(danIsporuke, vrijemeIsporuke, cutoffSati);
 
+        // Ponovna provjera (O11): bez nje bi gost sa pet zahtjeva istim e-mailom iskoristio
+        // „jednom po kupcu" pet puta. Popust se ne preračunava — kupac plaća ono što je vidio.
+        if (zahtjev.PromoKod is not null)
+        {
+            try
+            {
+                await PromoKodPravila.ProvjeriAsync(db, zahtjev.PromoKod, zahtjev.Subtotal,
+                    new KupacZaPromo(null, zahtjev.CustomerEmail), LokalniDatum.Danas(), ct);
+            }
+            catch (DomainException e) when (e.Code == PromoKodPravila.Greska)
+            {
+                db.GuestOrderRequests.Remove(zahtjev);
+                await db.SaveChangesAsync(ct);
+                throw new ConflictException(
+                    $"{e.Message} Narudžba nije primljena — vrati se u korpu i pošalji je ponovo.",
+                    PromoKodPravila.Greska);
+            }
+        }
+
         var items = new List<OrderItem>();
         foreach (var stavka in zahtjev.Items)
         {
@@ -303,6 +340,9 @@ public class ConfirmGuestOrderHandler(
             // kad je poslao formu, to je i smisao snimka.
             Subtotal = zahtjev.Subtotal,
             DeliveryFee = zahtjev.DeliveryFee,
+            PromoKodId = zahtjev.PromoKodId,
+            PromoKod = zahtjev.PromoKod,
+            Popust = zahtjev.Popust,
             TotalAmount = zahtjev.TotalAmount,
             DeliverySlotId = zahtjev.DeliverySlotId,
             DeliverySlot = zahtjev.DeliverySlot,

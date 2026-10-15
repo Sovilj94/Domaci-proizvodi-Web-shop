@@ -24,6 +24,9 @@ public record OrderDto
     public IReadOnlyList<OrderItemDto> Items { get; init; } = [];
     public decimal Subtotal { get; init; }
     public decimal DeliveryFee { get; init; }
+    /// <summary>Već uračunat u TotalAmount.</summary>
+    public decimal Popust { get; init; }
+    public string? PromoKod { get; init; }
     public decimal TotalAmount { get; init; }
     public Guid DeliverySlotId { get; init; }
     public DeliverySlotDto? DeliverySlot { get; init; }
