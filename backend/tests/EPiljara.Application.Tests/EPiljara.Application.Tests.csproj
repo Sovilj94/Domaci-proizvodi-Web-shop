@@ -18,6 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Ugovor pravila preslovljavanja sa frontendom (preslovi.ts); vidi docs/pismo-vektori.json. -->
+    <None Include="..\..\..\docs\pismo-vektori.json" Link="pismo-vektori.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\EPiljara.Application\EPiljara.Application.csproj" />
     <ProjectReference Include="..\..\src\EPiljara.Infrastructure\EPiljara.Infrastructure.csproj" />
   </ItemGroup>
