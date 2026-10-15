@@ -356,6 +356,28 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   written. `Utisak.OcjenaId` (filtered unique, `SetNull`) links them; deleting the testimonial frees the
   rating.
 
+## Promo kodovi (P6b)
+
+- **All promo rules live in `PromoKodPravila`** (`Features/PromoKodovi`): `Normalizuj`, `Popust`,
+  `ProvjeriAsync`. The checkout preview (`POST /promo-kodovi/provjera`), `CreateOrderHandler`,
+  `CreateGuestOrderRequestHandler` and `ConfirmGuestOrderHandler` all call it — never re-implement a rule.
+  Failures are `DomainException(..., "promo_kod_nevazeci")`; the guest confirm turns one into a 409 and
+  deletes the request.
+- **Money:** the discount applies to goods only and never exceeds `Subtotal`; the zone minimum and the code
+  minimum compare against `Subtotal` *before* the discount; `TotalAmount = Subtotal − Popust + DeliveryFee`.
+  `Order`/`GuestOrderRequest` snapshot `PromoKodId`, `PromoKod` (text) and `Popust`. Any new screen that
+  shows an order's breakdown must show the `Popust` row.
+- **Cancelled orders never consume a code** (limit, once-per-customer, new-customers-only), but **any**
+  order — cancelled included — blocks deleting the code (`Order.PromoKodId` FK is `Restrict`; the DTO's
+  `mozeSeObrisati` mirrors that). The code text is immutable after creation.
+- **Dates** (`VaziOd`/`VaziDo`, `DateOnly`, inclusive) compare against `LokalniDatum.Danas()` (Sarajevo).
+- **`POST /orders` binds `CreateOrderRequest`, not `CreateOrderCommand`.** The command carries
+  `CustomerId`/`PretplataId` for the subscription job only; binding it from the body let a logged-in user
+  order on someone else's account or at subscription prices. Never bind a command that has server-only
+  fields straight from the wire.
+- The checkout asks the server for the discount (query only on step 3, `staleTime` 60 s). The preview sits
+  under the shared `"auth"` rate limit, so never fire it per keystroke.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.

@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-14 (P4 i P5)
+# Stanje projekta — 2026-10-15 (P4–P6b)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -9,7 +9,7 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 | Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4` i `p5-sadrzaj` su spojene i obrisane. |
 | HEAD | merge P5 (sadržaj) — vidi `git log -1` |
 | Radno stablo | čisto |
-| Nespojeno | `p6a-ocjena` (P6a, gotova i recenzirana; merge i push čekaju odobrenje) |
+| Nespojeno | `p6a-ocjena` (P6a) i `p6b-promo` (P6b, napravljena **na** `p6a-ocjena`) — obje gotove i recenzirane; merge i push čekaju odobrenje. Spaja se `p6b-promo` (nosi i P6a) ili redom. |
 | `main` vs `origin/main` | **pushovan 2026-10-14** zajedno sa P2c–P5, na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
@@ -230,7 +230,31 @@ Odloženo iz recenzija: obraćanje „ti/vi" se razlikuje između stranice prać
 ocjeni!" se ne vidi jer refetch odmah prikaže „Tvoja ocjena"; admin putanje `Order.ToDto` ne učitavaju
 `Ocjena` (polje tamo nije u upotrebi).
 
-**P7** nije diran: višejezičnost.
+### P6b — Promo kodovi (grana `p6b-promo`, nije spojena)
+
+Admin pravi kodove na `/admin/promo-kodovi` (procenat 1–90 ili iznos, važi od/do po datumu u Sarajevu,
+minimum robe, ukupni limit, „jednom po kupcu", „samo prva narudžba", uključen/isključen; kod se ne
+mijenja, briše se samo nekorišćen). Kupac i gost upisuju kod u koraku 3 checkouta; popust računa server
+(`POST /promo-kodovi/provjera`, politika `auth`). Narudžba pamti `PromoKodId`/`PromoKod`/`Popust`,
+`TotalAmount = Subtotal − Popust + DeliveryFee`; red „Popust (KOD)" je na potvrdi, praćenju, admin
+kartici, u mejlu, mejlu gosta i Viberu. Gost: kod se ponovo provjerava pri potvrdi iz mejla (409 i
+brisanje zahtjeva ako više ne važi). Migracija `DodajPromoKodove` (**nije primijenjena na dev bazu** —
+primjenjuje je API pri startu ili `dotnet ef database update`). Demo seed: `DOBRODOSLI` (10 %, samo nova
+narudžba).
+
+**Bezbjednosna popravka u P6b:** `POST /orders` je vezivao komandu direktno iz tijela, pa je prijavljeni
+kupac mogao poslati `customerId` (narudžba na tuđem nalogu) ili `pretplataId` (pretplatna cijena). Sada
+prima `CreateOrderRequest` bez ta dva polja. Rupa postoji na `main` i na `origin` dok se P6b ne spoji.
+
+Provjere: `dotnet test` 352/352, `tsc`, `lint`, `npm run build`. **Ručna provjera kroz UI nije rađena**
+(API i dev server nisu dizani zbog memorije).
+
+Odloženo: limit koda se može preći za jedan pri istovremenim narudžbama (O10); javna provjera koda otkriva
+da li je e-mail ranije naručivao (isto otkriva i zahtjev gosta; pod limitom); pregled na checkoutu i
+narudžba računaju subtotal svaki u svojoj petlji.
+
+**P6c** (poeni i referral) sljedeći — troši poene kroz isti `Popust` mehanizam. **P7** nije diran:
+višejezičnost.
 
 ## Otvoreni nalazi, nošeni dalje
 
