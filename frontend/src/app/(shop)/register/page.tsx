@@ -32,7 +32,10 @@ function RegisterForm() {
   // to bounce a customer to another site. Registration itself doesn't log anyone in (email
   // confirmation is required first), so `next` rides along on the links back to login instead
   // of an immediate redirect.
-  const preporuka = searchParams.get("preporuka")?.trim() || null;
+  // Lični kod ima tačno 8 znakova. Duži ili okrnjen parametar iz linka bi server odbio
+  // greškom polja koje forma nema, pa bi registracija tiho pala — takav kod se ne šalje.
+  const sirovaPreporuka = searchParams.get("preporuka")?.trim().toUpperCase() ?? "";
+  const preporuka = /^[A-Z0-9]{8}$/.test(sirovaPreporuka) ? sirovaPreporuka : null;
   const next = searchParams.get("next");
   const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
   const loginHref = safeNext ? `/login?next=${encodeURIComponent(safeNext)}` : "/login";
