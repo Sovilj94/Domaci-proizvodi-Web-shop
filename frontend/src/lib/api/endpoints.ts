@@ -20,6 +20,7 @@ import type {
   Sedmica,
   TipKorpice,
   Utisak,
+  PromoKod,
   Analiza,
   PartnerPrijava,
   StatusPrijave,
@@ -56,6 +57,7 @@ import type {
   RezultatGenerisanja,
   SadrzajPregled,
   UtisakInput,
+  PromoKodInput,
   AnalizaInput,
   PartnerPrijavaInput,
   PartnerStatusInput,
@@ -387,6 +389,18 @@ export const adminApi = {
 
   napraviUtisak: (id: string) =>
     apiFetch<Utisak>(`/admin/ocjene/${id}/utisak`, { method: "POST" }).then((r) => r.data),
+
+  /* Promo kodovi */
+  promoKodovi: () => apiFetch<PromoKod[]>("/admin/promo-kodovi").then((r) => r.data),
+
+  createPromoKod: (body: PromoKodInput) =>
+    apiFetch<PromoKod>("/admin/promo-kodovi", { method: "POST", body }).then((r) => r.data),
+
+  updatePromoKod: (id: string, body: PromoKodInput) =>
+    apiFetch<PromoKod>(`/admin/promo-kodovi/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deletePromoKod: (id: string) =>
+    apiFetch<string>(`/admin/promo-kodovi/${id}`, { method: "DELETE" }).then(() => id),
 
   deleteUtisak: (id: string) =>
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),

@@ -525,3 +525,23 @@ export interface OcjeneAdmin {
   sazetak: OcjeneSazetak;
   stavke: OcjenaAdmin[];
 }
+
+export type PromoTip = "Procenat" | "Iznos";
+
+export interface PromoKod {
+  id: string;
+  kod: string;
+  opis: string;
+  tip: PromoTip;
+  vrijednost: number;
+  minIznos: number | null;
+  /** "yyyy-MM-dd" ili null (bez granice). */
+  vaziOd: string | null;
+  vaziDo: string | null;
+  maxKoristenja: number | null;
+  jednomPoKupcu: boolean;
+  samoNoviKupci: boolean;
+  aktivan: boolean;
+  brojKoristenja: number;
+  kreiran: string;
+}

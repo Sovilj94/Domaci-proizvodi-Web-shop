@@ -312,3 +312,17 @@ export interface ProvjeraPromoKoda {
   popust: number;
   subtotal: number;
 }
+
+export interface PromoKodInput {
+  kod: string;
+  opis: string;
+  tip: "Procenat" | "Iznos";
+  vrijednost: number;
+  minIznos: number | null;
+  vaziOd: string | null;
+  vaziDo: string | null;
+  maxKoristenja: number | null;
+  jednomPoKupcu: boolean;
+  samoNoviKupci: boolean;
+  aktivan: boolean;
+}
