@@ -36,6 +36,14 @@ public class GuestOrderRequest : Entity
     public decimal DeliveryFee { get; set; }
     public decimal TotalAmount { get; set; }
 
+    /// <summary>
+    /// Snimak promo koda iz trenutka slanja forme — prikaz ne zavisi od tabele kodova.
+    /// <c>Popust</c> je već uračunat u <c>TotalAmount</c>.
+    /// </summary>
+    public Guid? PromoKodId { get; set; }
+    public string? PromoKod { get; set; }
+    public decimal Popust { get; set; }
+
     public ICollection<GuestOrderRequestItem> Items { get; set; } = new List<GuestOrderRequestItem>();
 
     public bool Istekao(DateTime sada) => ExpiresAt <= sada;

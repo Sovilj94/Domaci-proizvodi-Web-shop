@@ -351,6 +351,17 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("text");
 
+                    b.Property<decimal>("Popust")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<string>("PromoKod")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("PromoKodId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("Subtotal")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -371,6 +382,8 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.HasIndex("DeliveryZoneId");
 
                     b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("PromoKodId");
 
                     b.HasIndex("Token")
                         .IsUnique();
@@ -549,7 +562,18 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<decimal>("Popust")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<Guid?>("PretplataId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PromoKod")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("PromoKodId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("PublicToken")
@@ -588,6 +612,8 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.HasIndex("DeliveryZoneId");
 
                     b.HasIndex("PretplataId");
+
+                    b.HasIndex("PromoKodId");
 
                     b.HasIndex("PublicToken")
                         .IsUnique();
@@ -907,6 +933,64 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.HasIndex("Vrsta");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.PromoKod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Aktivan")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("JednomPoKupcu")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kod")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("Kreiran")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("MaxKoristenja")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("MinIznos")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<string>("Opis")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("SamoNoviKupci")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Tip")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateOnly?>("VaziDo")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("VaziOd")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Vrijednost")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kod")
+                        .IsUnique();
+
+                    b.ToTable("PromoKodovi");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Recept", b =>
@@ -1308,6 +1392,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("EPiljara.Domain.Entities.PromoKod", null)
+                        .WithMany()
+                        .HasForeignKey("PromoKodId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("DeliverySlot");
 
                     b.Navigation("DeliveryZone");
@@ -1359,6 +1448,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasForeignKey("DeliveryZoneId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.PromoKod", null)
+                        .WithMany()
+                        .HasForeignKey("PromoKodId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DeliverySlot");
 

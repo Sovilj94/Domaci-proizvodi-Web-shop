@@ -46,6 +46,9 @@ public interface IAppDbContext
     /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
     DbSet<Magacin> Magacin { get; }
 
+    /// <summary>Promo kodovi za popust na robu — vidi PromoKod entitet.</summary>
+    DbSet<PromoKod> PromoKodovi { get; }
+
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
     DatabaseFacade Database { get; }
 

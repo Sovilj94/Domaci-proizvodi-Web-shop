@@ -35,6 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Analiza> Analize => Set<Analiza>();
     public DbSet<PartnerPrijava> PartnerPrijave => Set<PartnerPrijava>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
+    public DbSet<PromoKod> PromoKodovi => Set<PromoKod>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -218,6 +219,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             // Ekran pretplate traži njene narudžbe; bez indeksa je to skeniranje svih.
             e.HasIndex(x => x.PretplataId);
+            e.Property(x => x.Popust).HasPrecision(10, 2);
+            e.Property(x => x.PromoKod).HasMaxLength(30);
+            // Kod se ne briše dok ga neka narudžba pamti; ugasi se preko Aktivan.
+            e.HasOne<PromoKod>().WithMany()
+                .HasForeignKey(o => o.PromoKodId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(o => o.PromoKodId);
+        });
+
+        b.Entity<PromoKod>(e =>
+        {
+            e.Property(x => x.Kod).HasMaxLength(30).IsRequired();
+            e.HasIndex(x => x.Kod).IsUnique();
+            e.Property(x => x.Opis).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Tip).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Vrijednost).HasPrecision(10, 2);
+            e.Property(x => x.MinIznos).HasPrecision(10, 2);
         });
 
         b.Entity<Pretplata>(e =>
@@ -366,6 +383,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             b.Property(r => r.Subtotal).HasPrecision(10, 2);
             b.Property(r => r.DeliveryFee).HasPrecision(10, 2);
             b.Property(r => r.TotalAmount).HasPrecision(10, 2);
+            b.Property(r => r.Popust).HasPrecision(10, 2);
+            b.Property(r => r.PromoKod).HasMaxLength(30);
+            // Zahtjev živi 15 minuta; brisanje koda ga ne smije oboriti, samo gubi vezu.
+            b.HasOne<PromoKod>().WithMany()
+                .HasForeignKey(r => r.PromoKodId).OnDelete(DeleteBehavior.SetNull);
+            b.HasIndex(r => r.PromoKodId);
             b.HasOne(r => r.DeliveryZone).WithMany()
                 .HasForeignKey(r => r.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(r => r.DeliverySlot).WithMany()

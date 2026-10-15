@@ -26,6 +26,14 @@ public class Order : Entity
     public decimal DeliveryFee { get; set; }
     public decimal TotalAmount { get; set; }
 
+    /// <summary>
+    /// Snimak primijenjenog promo koda — prikaz narudžbe ne zavisi od tabele kodova.
+    /// <c>Popust</c> je već uračunat u <c>TotalAmount</c>.
+    /// </summary>
+    public Guid? PromoKodId { get; set; }
+    public string? PromoKod { get; set; }
+    public decimal Popust { get; set; }
+
     public Guid DeliverySlotId { get; set; }
     public DeliverySlot? DeliverySlot { get; set; }
 
