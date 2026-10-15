@@ -141,7 +141,7 @@ public static class LokalniDatum
 
 Pripremi `TestDb` sa zonom i slotom (kao u `OcjeneTests.PripremiAsync`) i pomoćnikom koji dodaje `Order` sa zadatim `CustomerId`, `CustomerEmail`, `Status`, `PromoKodId`. Testovi (svaki `[Fact]`, imena opisna na srpskom):
 
-- `Popust`: `Procenat 10` na `33.35` → `3.34` (`Math.Round(3.335m, 2)` = 3.34 banker's? — **koristi `Math.Round(x, 2, MidpointRounding.AwayFromZero)`**, očekivano `3.34`; 15 % na `10.10` → `1.52` (1.515 → 1.52)); `Iznos 5` na `20` → `5`; `Iznos 5` na `4` → `4`.
+- `Popust` (zaokruživanje `MidpointRounding.AwayFromZero`): `Procenat 10` na `33.25` → `3.33` (3.325; banker's bi dao 3.32); `Iznos 5` na `20` → `5`; `Iznos 5` na `4` → `4`.
 - `Normalizuj(" dobrodosli10 ")` → `"DOBRODOSLI10"`.
 - `ProvjeriAsync` vraća kod za `" jesen5 "` kad u bazi postoji `JESEN5`.
 - Nepostojeći → poruka „Promo kod ne postoji ili nije aktivan."; `Aktivan = false` → ista poruka; oba `Code == "promo_kod_nevazeci"`.
@@ -333,7 +333,7 @@ public async Task<IActionResult> Provjeri([FromBody] ProvjeriPromoKodQuery query
 - Modify: `backend/src/EPiljara.API/Controllers/OrdersController.cs`, `Requests.cs`
 - Modify: `backend/src/EPiljara.Infrastructure/Services/OrderEmailTemplate.cs`, `GuestOrderEmailTemplate.cs`, `ViberMessage.cs`
 - Modify: `backend/src/EPiljara.Infrastructure/Persistence/DbSeeder.cs`
-- Test: `backend/tests/EPiljara.Application.Tests/PromoKodNarudzbeTests.cs`, `backend/tests/EPiljara.API.Tests/…` ako postoji API test projekat (provjeri `ls backend/tests`), inače test u Application.Tests nad `CreateOrderRequest.ToCommand` premješten u Application (vidi Step 1)
+- Test: `backend/tests/EPiljara.Application.Tests/PromoKodNarudzbeTests.cs` (jedini test projekat; `CreateOrderRequest` živi u Application baš da bi ga ovaj projekat testirao — vidi Step 1)
 
 **Interfaces:**
 - Consumes: Task 1 pravila; Task 2 ništa.

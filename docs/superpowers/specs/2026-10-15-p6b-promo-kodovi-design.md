@@ -36,7 +36,7 @@ narudžbe koji P6c (poeni) ponovo koristi. Danas narudžba ima samo `Subtotal + 
 |---|---|---|
 | O1 | Popust se računa **samo na robu** (`Subtotal`), nikad na dostavu; nikad veći od `Subtotal` | Kod „−5 KM" na korpi od 4 KM daje 4 KM, ne 5. |
 | O2 | **Minimum zone** (`MinOrderAmount`) i **minimum koda** se porede sa `Subtotal` **prije** popusta | Kupac sa 30 KM robe i 20 % popusta prolazi minimum od 30 KM iako plaća 24 KM za robu. |
-| O3 | Tipovi: `Procenat` (1–90) i `Iznos` (> 0, ≤ 1000 KM); popust = `Math.Round(Subtotal × p / 100, 2)` ili `min(Iznos, Subtotal)` | Procenat iznad 90 nije dozvoljen — 100 % je besplatna roba, to nije promo nego greška u kucanju. |
+| O3 | Tipovi: `Procenat` (1–90) i `Iznos` (> 0, ≤ 1000 KM); popust = `Math.Round(Subtotal × p / 100, 2, AwayFromZero)` ili `min(Iznos, Subtotal)` | Procenat iznad 90 nije dozvoljen — 100 % je besplatna roba, to nije promo nego greška u kucanju. |
 | O4 | Kod je **velikim slovima**, `A–Z`, `0–9`, `-`, dužine 3–30; unos kupca se trimuje i diže u velika slova prije poređenja | Kupac koji ukuca „dobrodosli10" dobije isti kod; dva koda koja se razlikuju samo po velikim slovima ne mogu postojati. |
 | O5 | Kod se **ne mijenja** poslije kreiranja; sve ostalo se mijenja | Pogrešno ukucan kod se gasi i pravi novi. |
 | O6 | Rok je `VaziOd`/`VaziDo` (`DateOnly?`, oba uključiva), po **lokalnom datumu u Sarajevu** (`Europe/Sarajevo`) | Kod „do 31.10." važi i u 23:59 tog dana po našem vremenu, nezavisno od UTC servera. |
