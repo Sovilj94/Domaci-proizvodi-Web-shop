@@ -110,6 +110,9 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
             .WithMessage(GeoBounds.OutsideMessage);
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
         RuleForEach(x => x.Items).Must(i => i.Quantity > 0).WithMessage("Neispravna količina.");
+        RuleFor(x => x.PromoKod).MaximumLength(30)
+            .When(x => x.PromoKod is not null)
+            .WithMessage("Promo kod je predugačak.");
     }
 }
 

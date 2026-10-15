@@ -37,7 +37,7 @@ public static class GuestOrderEmailTemplate
 
         var popustRed = request.Popust > 0
             ? $$"""
-                <tr><td style="font:400 14px Arial,sans-serif;color:{{Muted}};text-align:right;padding-top:12px">
+                <tr><td style="font:600 14px Arial,sans-serif;color:{{Ink}};text-align:right;padding-top:12px">
                   Popust{{(string.IsNullOrWhiteSpace(request.PromoKod) ? "" : " (" + Enc(request.PromoKod) + ")")}}: −{{Money(request.Popust)}}
                 </td></tr>
                 """

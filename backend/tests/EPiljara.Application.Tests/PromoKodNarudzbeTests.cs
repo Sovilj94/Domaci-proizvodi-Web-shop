@@ -214,31 +214,70 @@ public class PromoKodNarudzbeTests
         cmd.PromoKod.Should().Be("JESEN5");
     }
 
-    [Fact]
-    public void Sablon_mejla_i_viber_prikazuju_popust_samo_kad_ga_ima()
+
+    private static Order NarudzbaSaPopustom() => new()
     {
-        var sa = new Order
+        Code = "EP-1", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
+        Subtotal = 20m, DeliveryFee = 3m, Popust = 5m, PromoKod = "JESEN5", TotalAmount = 18m,
+    };
+
+    private static Order NarudzbaBezPopusta() => new()
+    {
+        Code = "EP-2", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
+        Subtotal = 20m, DeliveryFee = 3m, TotalAmount = 23m,
+    };
+
+    [Fact]
+    public void Mejl_narudzbe_prikazuje_popust_samo_kad_ga_ima()
+    {
+        OrderEmailTemplate.Build(NarudzbaSaPopustom()).Should().Contain("JESEN5").And.Contain("KM 5,00");
+        OrderEmailTemplate.Build(NarudzbaBezPopusta()).Should().NotContain("Popust");
+    }
+
+    [Fact]
+    public void Mejl_gosta_prikazuje_popust_samo_kad_ga_ima()
+    {
+        var sa = new GuestOrderRequest
         {
-            Code = "EP-1", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
             Subtotal = 20m, DeliveryFee = 3m, Popust = 5m, PromoKod = "JESEN5", TotalAmount = 18m,
         };
-        var bez = new Order
-        {
-            Code = "EP-2", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
-            Subtotal = 20m, DeliveryFee = 3m, TotalAmount = 23m,
-        };
-
-        OrderEmailTemplate.Build(sa).Should().Contain("JESEN5").And.Contain("KM 5,00");
-        OrderEmailTemplate.Build(bez).Should().NotContain("Popust");
-        ViberMessage.Build(sa).Should().Contain("Popust (JESEN5): −KM 5,00");
-        ViberMessage.Build(bez).Should().NotContain("Popust");
-
-        var zahtjev = new GuestOrderRequest
-        {
-            Subtotal = 20m, DeliveryFee = 3m, Popust = 5m, PromoKod = "JESEN5", TotalAmount = 18m,
-        };
-        GuestOrderEmailTemplate.Build(zahtjev, "https://x/y").Should().Contain("JESEN5").And.Contain("KM 5,00");
+        GuestOrderEmailTemplate.Build(sa, "https://x/y").Should().Contain("JESEN5").And.Contain("KM 5,00");
         GuestOrderEmailTemplate.Build(new GuestOrderRequest { TotalAmount = 23m }, "https://x/y")
             .Should().NotContain("Popust");
+    }
+
+    [Fact]
+    public void Viber_prikazuje_popust_samo_kad_ga_ima()
+    {
+        ViberMessage.Build(NarudzbaSaPopustom()).Should().Contain("Popust (JESEN5): −KM 5,00");
+        ViberMessage.Build(NarudzbaBezPopusta()).Should().NotContain("Popust");
+    }
+
+    private static CustomerInput Kupac => new("Mujo", "m@example.com", "065");
+
+    [Theory]
+    [InlineData(31, false)]
+    [InlineData(30, true)]
+    public void Validator_narudzbe_ogranicava_promo_kod_na_30_znakova(int duzina, bool valjan)
+    {
+        var cmd = new CreateOrderCommand(Kupac, Guid.NewGuid(), Guid.NewGuid(), "Testna 1", null,
+            [new OrderItemInput(Guid.NewGuid(), 1m)], PromoKod: new string('A', duzina));
+
+        var rezultat = new CreateOrderValidator().Validate(cmd);
+
+        rezultat.Errors.Any(e => e.PropertyName == nameof(CreateOrderCommand.PromoKod)).Should().Be(!valjan);
+    }
+
+    [Theory]
+    [InlineData(31, false)]
+    [InlineData(30, true)]
+    public void Validator_zahtjeva_gosta_ogranicava_promo_kod_na_30_znakova(int duzina, bool valjan)
+    {
+        var cmd = new CreateGuestOrderRequestCommand(Kupac, Guid.NewGuid(), Guid.NewGuid(), "Testna 1", null,
+            [new OrderItemInput(Guid.NewGuid(), 1m)], PromoKod: new string('A', duzina));
+
+        var rezultat = new CreateGuestOrderRequestValidator().Validate(cmd);
+
+        rezultat.Errors.Any(e => e.PropertyName == nameof(CreateOrderCommand.PromoKod)).Should().Be(!valjan);
     }
 }
