@@ -328,6 +328,11 @@ Odloženo / poznato:
 - Tekst koji je kupac unio prikazuje se preslovljen (ime, adresa: „Kralja Petra I" → „Краља Петра И").
 - Stranice bez sopstvenog `metadata.title` (nalog, checkout) imaju podrazumijevani naslov — postojalo i prije.
 - Pretraživači indeksiraju samo latinicu (svjesno, spec).
+- Nepostojeća ruta (Nextova podrazumijevana 404, van `(shop)` layouta) je na ćirilici 1,5 s prazna pa se
+  pokaže latinicom — provajder se tamo ne montira, pa CSS čeka rezervni izlaz. Rješenje je sopstveni
+  `not-found.tsx` pod `(shop)`.
+- Na ćirilici svaki zahtjev nosi `X-Pismo`, pa na produkciji sa API-jem na drugom domenu dobija CORS
+  preflight. CORS ga dozvoljava (`AllowAnyHeader`); cijena je jedan dodatni zahtjev po pozivu.
 - Snimci ekrana preko Chrome ekstenzije su tokom provjere padali (renderer „ne odgovara"), ali stranice
   rade — provjera je rađena skriptama; to je osobina alata, ne aplikacije (provjereno i na latinici).
 
