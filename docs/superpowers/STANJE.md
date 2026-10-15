@@ -6,11 +6,11 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4` i `p5-sadrzaj` su spojene i obrisane. |
-| HEAD | merge P5 (sadržaj) — vidi `git log -1` |
+| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4`, `p5-sadrzaj`, `p6a-ocjena`, `p6b-promo` i `p6c-poeni` su spojene i obrisane (i `origin/p6b-promo`). |
+| HEAD | merge P6a–P6c (`3b84dc4`) — vidi `git log -1` |
 | Radno stablo | čisto |
-| Nespojeno | lanac `p6a-ocjena` → `p6b-promo` → `p6c-poeni` (svaka napravljena na prethodnoj), sve gotove i recenzirane. `p6b-promo` je pushovana na `origin` (2026-10-15); `main` nije diran. Merge čeka odobrenje — spajanjem `p6c-poeni` ulaze sve tri. |
-| `main` vs `origin/main` | **pushovan 2026-10-14** zajedno sa P2c–P5, na korisnikov zahtjev. |
+| Nespojeno | ništa |
+| `main` vs `origin/main` | **pushovan 2026-10-15** (P6a–P6c), na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -210,7 +210,7 @@ smije nuditi proizvod"), `components/analize/analiza-kartica.tsx` (P5 — `/anal
 na grani `p6a-ocjena`, vidi dolje), **P6b promo kodovi** (sljedeći — uvodi popust na narudžbi),
 **P6c poeni i referral** (troši poene kao popust, zavisi od P6b). Poslije toga **P7** višejezičnost.
 
-### P6a — Ocjena isporuke (grana `p6a-ocjena`, nije spojena)
+### P6a — Ocjena isporuke (spojena u main 2026-10-15)
 
 Kupac ocijeni isporučenu narudžbu jednom (1–5 zvjezdica, komentar, dozvola za objavu): sa nalogom iz
 „Mojih narudžbi" (`POST /orders/{id}/ocjena`), gost sa stranice praćenja
@@ -230,7 +230,7 @@ Odloženo iz recenzija: obraćanje „ti/vi" se razlikuje između stranice prać
 ocjeni!" se ne vidi jer refetch odmah prikaže „Tvoja ocjena"; admin putanje `Order.ToDto` ne učitavaju
 `Ocjena` (polje tamo nije u upotrebi).
 
-### P6b — Promo kodovi (grana `p6b-promo`, nije spojena)
+### P6b — Promo kodovi (spojena u main 2026-10-15)
 
 Admin pravi kodove na `/admin/promo-kodovi` (procenat 1–90 ili iznos, važi od/do po datumu u Sarajevu,
 minimum robe, ukupni limit, „jednom po kupcu", „samo prva narudžba", uključen/isključen; kod se ne
@@ -244,7 +244,7 @@ narudžba).
 
 **Bezbjednosna popravka u P6b:** `POST /orders` je vezivao komandu direktno iz tijela, pa je prijavljeni
 kupac mogao poslati `customerId` (narudžba na tuđem nalogu) ili `pretplataId` (pretplatna cijena). Sada
-prima `CreateOrderRequest` bez ta dva polja. Rupa postoji na `main` i na `origin` dok se P6b ne spoji.
+prima `CreateOrderRequest` bez ta dva polja. Zatvorena na `main` i `origin` spajanjem 2026-10-15.
 
 Provjere: `dotnet test` 352/352, `tsc`, `lint`, `npm run build`. **Ručna provjera kroz UI nije rađena**
 (API i dev server nisu dizani zbog memorije).
@@ -253,7 +253,7 @@ Odloženo: limit koda se može preći za jedan pri istovremenim narudžbama (O10
 da li je e-mail ranije naručivao (isto otkriva i zahtjev gosta; pod limitom); pregled na checkoutu i
 narudžba računaju subtotal svaki u svojoj petlji.
 
-### P6c — Poeni i preporuke (grana `p6c-poeni`, napravljena na `p6b-promo`, nije spojena)
+### P6c — Poeni i preporuke (spojena u main 2026-10-15)
 
 Kupac sa nalogom (uloga `Customer`) dobija 1 poen po cijeloj KM plaćene robe kad narudžba pređe u
 `Delivered` (admin ili vozač); 20 poena = 1 KM. Na checkoutu (korak 3) checkbox „Iskoristi poene"
