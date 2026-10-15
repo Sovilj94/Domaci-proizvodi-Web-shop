@@ -378,6 +378,23 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - The checkout asks the server for the discount (query only on step 3, `staleTime` 60 s). The preview sits
   under the shared `"auth"` rate limit, so never fire it per keystroke.
 
+## Poeni i preporuke (P6c)
+
+- **Points are a ledger (`PoeniStavka`); the balance is always `SUM(Iznos)`** — never add a balance column,
+  never edit or delete an entry. All rules live in `PoeniPravila` (`StanjeAsync`, `ZaTrosenje`,
+  `ZaradaZaNarudzbu`, `ZabiljeziPromjenuStatusaAsync`).
+- **Any code that changes an order's status must call `PoeniPravila.ZabiljeziPromjenuStatusaAsync` next to
+  `BrojacIsporuka.ZabiljeziAsync`, before `TransitionTo`** (today: `AdminOrders`, `DriverFeature`). It
+  writes earnings and the referral bonus on `Delivered`, and refunds spent points on `Cancelled`.
+  Idempotency is enforced by unique indexes: `(OrderId, Vrsta)` (except `Korekcija`), one `PreporukaNovi`
+  per user, and one entry per `(PreporuceniId, Vrsta)`. A concurrent duplicate fails the save rather than
+  paying twice.
+- **Only `Role == Customer` earns or spends.** Admin and driver place phone orders under their own account
+  (`CustomerId` = the logged-in user), and those must never pay points out to staff.
+- `TotalAmount = Subtotal − Popust − PoeniPopust + DeliveryFee`; points come after the promo discount, in
+  whole KM, never on delivery. The checkout mirrors `ZaTrosenje` for display (spec O14) — change both
+  together. `VrijednostPoenaKM` must divide 1 KM.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.

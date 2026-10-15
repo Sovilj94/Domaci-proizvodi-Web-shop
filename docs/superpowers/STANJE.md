@@ -9,7 +9,7 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 | Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4` i `p5-sadrzaj` su spojene i obrisane. |
 | HEAD | merge P5 (sadržaj) — vidi `git log -1` |
 | Radno stablo | čisto |
-| Nespojeno | `p6a-ocjena` (P6a) i `p6b-promo` (P6b, napravljena **na** `p6a-ocjena`) — obje gotove i recenzirane; merge i push čekaju odobrenje. Spaja se `p6b-promo` (nosi i P6a) ili redom. |
+| Nespojeno | lanac `p6a-ocjena` → `p6b-promo` → `p6c-poeni` (svaka napravljena na prethodnoj), sve gotove i recenzirane. `p6b-promo` je pushovana na `origin` (2026-10-15); `main` nije diran. Merge čeka odobrenje — spajanjem `p6c-poeni` ulaze sve tri. |
 | `main` vs `origin/main` | **pushovan 2026-10-14** zajedno sa P2c–P5, na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
@@ -253,8 +253,24 @@ Odloženo: limit koda se može preći za jedan pri istovremenim narudžbama (O10
 da li je e-mail ranije naručivao (isto otkriva i zahtjev gosta; pod limitom); pregled na checkoutu i
 narudžba računaju subtotal svaki u svojoj petlji.
 
-**P6c** (poeni i referral) sljedeći — troši poene kroz isti `Popust` mehanizam. **P7** nije diran:
-višejezičnost.
+### P6c — Poeni i preporuke (grana `p6c-poeni`, napravljena na `p6b-promo`, nije spojena)
+
+Kupac sa nalogom (uloga `Customer`) dobija 1 poen po cijeloj KM plaćene robe kad narudžba pređe u
+`Delivered` (admin ili vozač); 20 poena = 1 KM. Na checkoutu (korak 3) checkbox „Iskoristi poene"
+troši najveći cijeli broj KM koji poeni pokrivaju, poslije promo popusta, nikad na dostavu; otkaz
+vraća potrošeno. Knjiga `PoeniStavka` (stanje = zbir). Lični kod preporuke (8 znakova, pravi se pri
+prvom otvaranju `/moj-nalog/poeni`), link `/register?preporuka=KOD`; kad preporučeni primi prvu
+isporuku, oboje dobiju po 100 poena (baza indeksima čuva jednu nagradu po preporučenom). Narudžbe koje
+admin/vozač unesu sa svog naloga ne zarađuju i ne troše poene. Red „Poeni (N)" na svim prikazima,
+mejlu i Viberu. Migracija `DodajPoene` (nije primijenjena — API je primjenjuje pri startu).
+
+Provjere: `dotnet test` 395/395, `tsc`, `lint`, `npm run build`. **Ručna provjera kroz UI nije rađena.**
+
+Odloženo: dvije istovremene narudžbe istog kupca mogu potrošiti iste poene (O8); istovremena dvostruka
+promjena statusa iste narudžbe drugom zahtjevu vraća 500 (jedinstveni indeks — bolje nego dupli poeni);
+nema admin ekrana za korekciju poena ni isteka poena; preporuka ne radi kroz Google/Facebook prijavu.
+
+**P7** nije diran: višejezičnost.
 
 ## Otvoreni nalazi, nošeni dalje
 

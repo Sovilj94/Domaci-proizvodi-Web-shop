@@ -101,6 +101,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                 filter: "\"PreporuceniId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PoeniStavke_UserId",
+                table: "PoeniStavke",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PoeniStavke_UserId_PreporukaNovi",
                 table: "PoeniStavke",
                 column: "UserId",
