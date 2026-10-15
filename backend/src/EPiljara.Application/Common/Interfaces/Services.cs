@@ -11,6 +11,12 @@ public interface ICurrentUser
     UserRole? Role { get; }
     bool IsAuthenticated { get; }
     bool IsInRole(UserRole role);
+
+    /// <summary>
+    /// Pismo kojim tekući zahtjev traži odgovor (zaglavlje <c>X-Pismo</c>). Bez zahtjeva —
+    /// pozadinski posao — uvijek latinica; posao pretplata zato čita pismo vlasnika sa naloga.
+    /// </summary>
+    Pismo Pismo { get; }
 }
 
 public interface IJwtTokenService

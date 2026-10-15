@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { DM_Sans, Playfair_Display } from "next/font/google";
+import { DM_Sans, Onest, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { PISMO_SKRIPTA } from "@/lib/pismo/pismo";
 
 /*
  * latin-ext nije opcion: cijeli sajt je na srpskom, a bez tog subseta č, ć, š, ž i đ
@@ -20,9 +21,23 @@ const dmSans = DM_Sans({
  */
 const playfair = Playfair_Display({
   variable: "--font-playfair",
-  subsets: ["latin", "latin-ext"],
+  // `cyrillic` za P7; subset ne mijenja šta se preload-uje za latinicu.
+  subsets: ["latin", "latin-ext", "cyrillic"],
   weight: ["400", "600", "700"],
   display: "swap",
+});
+
+/*
+ * DM Sans nema ćirilicu (provjereno u next/font podacima). Na ćirilici tijelo prelazi na
+ * Onest — sličnog geometrijskog karaktera — preko `--font-sans` u globals.css. Bez
+ * preload-a, da kupac na latinici ne plaća njegovo preuzimanje.
+ */
+const onest = Onest({
+  variable: "--font-onest",
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -38,7 +53,15 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="bs" className={`${dmSans.variable} ${playfair.variable} h-full`}>
+    // suppressHydrationWarning: skripta ispod mijenja `lang` i `data-pismo` prije hidratacije.
+    <html
+      lang="sr-Latn"
+      className={`${dmSans.variable} ${playfair.variable} ${onest.variable} h-full`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: PISMO_SKRIPTA }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>

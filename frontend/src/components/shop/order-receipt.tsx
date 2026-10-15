@@ -131,7 +131,9 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
               </div>
               {order.popust > 0 && (
                 <div className="flex justify-between text-brand-700">
-                  <dt>Popust{order.promoKod ? ` (${order.promoKod})` : ""}</dt>
+                  <dt>
+                    Popust{order.promoKod && <> (<span translate="no">{order.promoKod}</span>)</>}
+                  </dt>
                   <dd className="font-medium">−{formatPrice(order.popust)}</dd>
                 </div>
               )}

@@ -21,4 +21,10 @@ public class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
     public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated ?? false;
 
     public bool IsInRole(UserRole role) => Role == role;
+
+    /// <summary>`X-Pismo: cir` (bez obzira na velika slova) je ćirilica; sve ostalo, i odsustvo, latinica.</summary>
+    public Pismo Pismo =>
+        string.Equals(accessor.HttpContext?.Request.Headers["X-Pismo"].ToString(), "cir", StringComparison.OrdinalIgnoreCase)
+            ? Pismo.Cirilica
+            : Pismo.Latinica;
 }

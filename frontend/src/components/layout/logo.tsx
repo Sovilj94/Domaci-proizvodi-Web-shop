@@ -17,7 +17,13 @@ export function Logo({
   className?: string;
 }) {
   return (
-    <Link href={href} className={cn("inline-flex items-center gap-2.5", className)}>
+    // translate="no": logotip ostaje latinicom i na ćirilici (P7) — tekst je razbijen na
+    // dva elementa, pa ga pravilo za naziv u preslovi.ts ne prepoznaje kao cjelinu.
+    <Link
+      href={href}
+      translate="no"
+      className={cn("inline-flex items-center gap-2.5", className)}
+    >
       <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-600 text-white shadow-sm">
         <Sprout className="h-[18px] w-[18px]" />
       </span>

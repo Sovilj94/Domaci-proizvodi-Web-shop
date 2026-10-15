@@ -166,7 +166,7 @@ public class MojiPoeniTests
         new("Novi Kupac", "novi@test.local", "065", "lozinka1", null, null, kod);
 
     private static Task RegistrujAsync(TestDb t, string? kod) =>
-        new RegisterHandler(t.Db, new FakeHasher(), new FakeEmail()).Handle(Registracija(kod), default);
+        new RegisterHandler(t.Db, new FakeHasher(), new FakeEmail(), new FakeCurrentUser(null)).Handle(Registracija(kod), default);
 
     private sealed class FakeHasher : EPiljara.Application.Common.Interfaces.IPasswordHasher
     {

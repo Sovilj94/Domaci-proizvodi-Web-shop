@@ -178,6 +178,7 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
             Note = cmd.Note,
             Latitude = cmd.Latitude,
             Longitude = cmd.Longitude,
+            Pismo = current.Pismo,
             Items = items,
             Subtotal = subtotal,
             DeliveryFee = zone.DeliveryFee,
@@ -357,6 +358,7 @@ public class ConfirmGuestOrderHandler(
             Sedmica = sedmica,
             Latitude = zahtjev.Latitude,
             Longitude = zahtjev.Longitude,
+            Pismo = zahtjev.Pismo,
         };
 
         db.Orders.Add(order);

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MapPin, Phone } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { FooterRok } from "@/components/layout/footer-rok";
+import { PismoPrekidac } from "@/components/pismo/pismo-prekidac";
 import { KONTAKT } from "@/lib/kontakt";
 
 /**
@@ -104,7 +105,7 @@ export function ShopFooter() {
           <ul className="space-y-2.5 text-sm text-muted-dark">
             <li className="flex items-center gap-2">
               <Phone className="h-4 w-4 shrink-0 text-sage" />
-              <a href={KONTAKT.telefonHref} className="transition hover:text-cream">
+              <a href={KONTAKT.telefonHref} translate="no" className="transition hover:text-cream">
                 {KONTAKT.telefon}
               </a>
             </li>
@@ -116,9 +117,10 @@ export function ShopFooter() {
       </div>
 
       <div className="border-t border-white/10 py-6">
-        <p className="mx-auto max-w-6xl px-4 text-xs text-muted-dark">
-          © {new Date().getFullYear()} E piljara. Svježe sa Manjače.
-        </p>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 text-xs text-muted-dark">
+          <p>© {new Date().getFullYear()} E piljara. Svježe sa Manjače.</p>
+          <PismoPrekidac className="font-medium hover:text-cream" />
+        </div>
       </div>
     </footer>
   );

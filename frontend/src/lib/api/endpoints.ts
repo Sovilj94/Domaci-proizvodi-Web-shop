@@ -31,6 +31,8 @@ import type {
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
+import { pismoNaZici, type Pismo } from "@/lib/pismo/pismo";
+import { uLatinicu } from "@/lib/pismo/preslovi";
 import type {
   AddressInput,
   AssignDriverRequest,
@@ -81,8 +83,12 @@ export interface ProductQuery {
 }
 
 export const catalogApi = {
+  // Nazivi u bazi su latinični; upit kucan ćirilicom se vraća u latinicu (P7).
   products: (q: ProductQuery = {}) =>
-    apiFetch<Product[]>("/products", { auth: false, query: { ...q } }).then((r) => r.data),
+    apiFetch<Product[]>("/products", {
+      auth: false,
+      query: { ...q, search: q.search ? uLatinicu(q.search) : q.search },
+    }).then((r) => r.data),
   product: (slug: string) =>
     apiFetch<Product>(`/products/${slug}`, { auth: false }).then((r) => r.data),
   categories: () =>
@@ -258,6 +264,10 @@ export const authApi = {
 /* ---------- Nalog ---------- */
 
 export const accountApi = {
+  /** Pismo naloga — njime idu mejlovi i pretplatne narudžbe (P7). */
+  postaviPismo: (pismo: Pismo) =>
+    apiFetch<AuthUser>("/account/pismo", { method: "PUT", body: { pismo: pismoNaZici(pismo) } }).then((r) => r.data),
+
   adrese: () => apiFetch<Address[]>("/account/addresses").then((r) => r.data),
 
   dodajAdresu: (body: AddressInput) =>

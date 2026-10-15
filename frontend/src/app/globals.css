@@ -93,6 +93,27 @@ body {
   height: 100%;
 }
 
+/*
+ * P7 — ćirilica. Font: DM Sans nema ćirilična slova (vidi app/layout.tsx).
+ * Skrivanje: dok PismoProvider ne presloži stranicu, latinica se ne smije vidjeti.
+ * `data-pismo` postavlja skripta u <head>, `data-pismo-spremno` provajder. Animacija je
+ * rezervni izlaz kad JS ne stigne: stranica se pokaže poslije 1,5 s u svakom slučaju.
+ */
+html[data-pismo="cir"] {
+  --font-sans: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+}
+
+html[data-pismo="cir"]:not([data-pismo-spremno]) body {
+  visibility: hidden;
+  animation: pismo-rezerva 0s 1.5s forwards;
+}
+
+@keyframes pismo-rezerva {
+  to {
+    visibility: visible;
+  }
+}
+
 body {
   background: var(--color-cream);
   color: var(--color-ink);

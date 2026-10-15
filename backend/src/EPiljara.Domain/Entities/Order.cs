@@ -86,6 +86,9 @@ public class Order : Entity
     /// </summary>
     public Guid? PretplataId { get; set; }
 
+    /// <summary>Pismo kupca u trenutku narudžbe — njime idu mejl i Viber.</summary>
+    public Pismo Pismo { get; set; } = Pismo.Latinica;
+
     /// <summary>
     /// Ocjena isporuke. FK je na ocjeni (nema kolone na narudžbi); <c>ToDto</c> čita ovu
     /// navigaciju, pa upiti koji pune <c>mozeSeOcijeniti</c> moraju je <c>Include</c>-ovati.

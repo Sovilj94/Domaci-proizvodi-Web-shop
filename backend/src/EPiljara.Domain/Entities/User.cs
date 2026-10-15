@@ -27,4 +27,7 @@ public class User : Entity
     public string? PreporukaKod { get; set; }
     /// <summary>Ko je ovog kupca preporučio. SetNull: brisanje preporučioca ne briše kupca.</summary>
     public Guid? PreporucioId { get; set; }
+
+    /// <summary>Pismo za mejlove i pretplatne narudžbe; mijenja se `PUT /account/pismo`.</summary>
+    public Pismo Pismo { get; set; } = Pismo.Latinica;
 }

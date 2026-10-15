@@ -4,6 +4,7 @@ import { CategoryRail, CategoryRailSkeleton } from "@/components/layout/category
 import { ShopFooter } from "@/components/layout/shop-footer";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { CartDrawer } from "@/components/shop/cart-drawer";
+import { PismoProvider } from "@/components/pismo/pismo-provider";
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,6 +23,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       <ShopFooter />
       <MobileTabBar />
       <CartDrawer />
+      <PismoProvider />
     </>
   );
 }

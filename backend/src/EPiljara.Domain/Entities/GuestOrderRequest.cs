@@ -44,6 +44,9 @@ public class GuestOrderRequest : Entity
     public string? PromoKod { get; set; }
     public decimal Popust { get; set; }
 
+    /// <summary>Pismo gosta; prenosi se na narudžbu pri potvrdi.</summary>
+    public Pismo Pismo { get; set; } = Pismo.Latinica;
+
     public ICollection<GuestOrderRequestItem> Items { get; set; } = new List<GuestOrderRequestItem>();
 
     public bool Istekao(DateTime sada) => ExpiresAt <= sada;

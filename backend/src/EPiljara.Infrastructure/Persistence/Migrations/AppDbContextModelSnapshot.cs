@@ -351,6 +351,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("text");
 
+                    b.Property<string>("Pismo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Latinica");
+
                     b.Property<decimal>("Popust")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -564,6 +571,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Pismo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Latinica");
 
                     b.Property<decimal>("PoeniPopust")
                         .HasPrecision(10, 2)
@@ -1310,6 +1324,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Phone")
                         .HasColumnType("text");
+
+                    b.Property<string>("Pismo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Latinica");
 
                     b.Property<Guid?>("PreporucioId")
                         .HasColumnType("uuid");

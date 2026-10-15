@@ -2,6 +2,7 @@ using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
+using EPiljara.Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,39 @@ public class AzurirajProfilHandler(IAppDbContext db, ICurrentUser current)
 
         korisnik.Name = c.Ime.Trim();
         korisnik.Phone = c.Telefon.Trim();
+
+        await db.SaveChangesAsync(ct);
+        return korisnik.ToAuthDto();
+    }
+}
+
+/// <summary>
+/// Prijavljeni kupac pamti pismo na nalogu (P7), da mejlovi i pretplatne narudžbe — koje se
+/// šalju bez zahtjeva iz pregledača — stignu na pismu koje je izabrao. Tijelo: { pismo: "Cirilica" }.
+/// </summary>
+public record PostaviPismoCommand(string Pismo) : IRequest<AuthUserDto>;
+
+public class PostaviPismoValidator : AbstractValidator<PostaviPismoCommand>
+{
+    internal static bool Validno(string? pismo, out Pismo rez) =>
+        Enum.TryParse(pismo, out rez) && Enum.IsDefined(rez) && !int.TryParse(pismo, out _);
+
+    public PostaviPismoValidator()
+    {
+        RuleFor(x => x.Pismo).Must(p => Validno(p, out _)).WithMessage("Nepoznato pismo.");
+    }
+}
+
+public class PostaviPismoHandler(IAppDbContext db, ICurrentUser current)
+    : IRequestHandler<PostaviPismoCommand, AuthUserDto>
+{
+    public async Task<AuthUserDto> Handle(PostaviPismoCommand c, CancellationToken ct)
+    {
+        var korisnik = await db.Users.FirstOrDefaultAsync(u => u.Id == current.Id, ct)
+            ?? throw new NotFoundException("Korisnik nije pronađen.");
+
+        PostaviPismoValidator.Validno(c.Pismo, out var pismo);
+        korisnik.Pismo = pismo;
 
         await db.SaveChangesAsync(ct);
         return korisnik.ToAuthDto();

@@ -28,12 +28,9 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
         var trackUrl = string.IsNullOrWhiteSpace(order.PublicToken)
             ? null
             : $"{baseUrl}/narudzba/{order.PublicToken}";
-        return SendHtmlAsync(
-            order.CustomerEmail,
-            $"Potvrda narudžbe {order.Code} — E piljara",
-            OrderEmailTemplate.Build(order, trackUrl),
-            $"potvrda narudžbe {order.Code}",
-            cancellationToken);
+        var (naslov, html) = PismoPoruke.Primijeni(
+            order.Pismo, $"Potvrda narudžbe {order.Code} — E piljara", OrderEmailTemplate.Build(order, trackUrl));
+        return SendHtmlAsync(order.CustomerEmail, naslov, html, $"potvrda narudžbe {order.Code}", cancellationToken);
     }
 
     public Task SendEmailConfirmationAsync(User user, string token, CancellationToken cancellationToken = default)
@@ -43,12 +40,9 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
 
         var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var link = $"{baseUrl}/confirm-email?token={Uri.EscapeDataString(token)}";
-        return SendHtmlAsync(
-            user.Email,
-            "Potvrdite email adresu — E piljara",
-            ConfirmEmailTemplate.Build(user, link),
-            "potvrda email adrese",
-            cancellationToken);
+        var (naslov, html) = PismoPoruke.Primijeni(
+            user.Pismo, "Potvrdite email adresu — E piljara", ConfirmEmailTemplate.Build(user, link));
+        return SendHtmlAsync(user.Email, naslov, html, "potvrda email adrese", cancellationToken);
     }
 
     // Za razliku od potvrde narudžbe, ovaj mejl ne smije tiho pasti: bez njega
@@ -58,12 +52,9 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
     {
         var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var link = $"{baseUrl}/potvrda/{request.Token}";
-        return SendHtmlOrThrowAsync(
-            request.CustomerEmail,
-            "Potvrdi svoju narudžbu — E piljara",
-            GuestOrderEmailTemplate.Build(request, link),
-            "potvrda narudžbe gosta",
-            cancellationToken);
+        var (naslov, html) = PismoPoruke.Primijeni(
+            request.Pismo, "Potvrdi svoju narudžbu — E piljara", GuestOrderEmailTemplate.Build(request, link));
+        return SendHtmlOrThrowAsync(request.CustomerEmail, naslov, html, "potvrda narudžbe gosta", cancellationToken);
     }
 
     private async Task SendHtmlAsync(string to, string subject, string html, string what, CancellationToken ct)
