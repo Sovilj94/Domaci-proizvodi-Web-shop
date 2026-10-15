@@ -19,6 +19,11 @@ public class ProvjeriPromoKodValidator : AbstractValidator<ProvjeriPromoKodQuery
         RuleFor(x => x.Kod).NotEmpty().WithMessage("Unesite promo kod.")
             .MaximumLength(30).WithMessage("Promo kod je predugačak.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
+        // Javni endpoint: bez ovoga bi null stavka dala 500, a količina <= 0 negativan subtotal.
+        RuleForEach(x => x.Items).Must(i => i is not null && i.Quantity > 0).WithMessage("Neispravna količina.");
+        RuleFor(x => x.Items.Count).LessThanOrEqualTo(100).When(x => x.Items is not null)
+            .WithName("Items").OverridePropertyName("items")
+            .WithMessage("Korpa ima previše stavki.");
     }
 }
 

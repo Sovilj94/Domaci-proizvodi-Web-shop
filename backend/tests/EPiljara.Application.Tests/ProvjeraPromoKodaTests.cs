@@ -93,7 +93,7 @@ public class ProvjeraPromoKodaTests
     }
 
     [Fact]
-    public async Task Prijavljen_kupac_se_prepoznaje_po_id_i_emailu()
+    public async Task Prijavljen_kupac_se_prepoznaje_i_po_emailu_ranije_narudzbe()
     {
         using var o = new Okruzenje();
         o.Kod(k => k.SamoNoviKupci = true);
@@ -140,5 +140,29 @@ public class ProvjeraPromoKodaTests
         var poruke = r.Errors.Select(e => e.ErrorMessage).ToArray();
         Assert.Contains("Unesite promo kod.", poruke);
         Assert.Contains("Korpa je prazna.", poruke);
+    }
+
+    [Fact]
+    public void Validator_odbija_nula_kolicinu_i_null_stavku()
+    {
+        var id = Guid.NewGuid();
+        var nula = new ProvjeriPromoKodValidator().Validate(
+            new ProvjeriPromoKodQuery("JESEN5", null, [new OrderItemInput(id, 0m)]));
+        var nul = new ProvjeriPromoKodValidator().Validate(
+            new ProvjeriPromoKodQuery("JESEN5", null, [null!]));
+
+        Assert.Equal("Neispravna količina.", Assert.Single(nula.Errors).ErrorMessage);
+        Assert.Equal("Neispravna količina.", Assert.Single(nul.Errors).ErrorMessage);
+    }
+
+    [Fact]
+    public void Validator_odbija_previse_stavki_i_null_stavke()
+    {
+        var stavke = Enumerable.Range(0, 101).Select(_ => new OrderItemInput(Guid.NewGuid(), 1m)).ToList();
+        var r = new ProvjeriPromoKodValidator().Validate(new ProvjeriPromoKodQuery("JESEN5", null, stavke));
+        Assert.Equal("Korpa ima previše stavki.", Assert.Single(r.Errors).ErrorMessage);
+
+        var bez = new ProvjeriPromoKodValidator().Validate(new ProvjeriPromoKodQuery("JESEN5", null, null!));
+        Assert.Equal("Korpa je prazna.", Assert.Single(bez.Errors).ErrorMessage);
     }
 }

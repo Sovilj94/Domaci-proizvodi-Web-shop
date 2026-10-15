@@ -12,6 +12,10 @@ namespace EPiljara.Application.Features.PromoKodovi;
 
 internal static class PromoKodMapiranje
 {
+    /// <summary>Jedina definicija „računa se u limit": narudžbe sa kodom koje nisu otkazane.</summary>
+    public static IQueryable<Order> NeotkazaneSaKodom(this IQueryable<Order> q) =>
+        q.Where(o => o.PromoKodId != null && o.Status != OrderStatus.Cancelled);
+
     public static PromoKodDto ToDto(this PromoKod k, int brojKoristenja) => new()
     {
         Id = k.Id,
@@ -41,7 +45,7 @@ public class GetAdminPromoKodoviHandler(IAppDbContext db)
         var kodovi = await db.PromoKodovi.OrderByDescending(k => k.Kreiran).ToListAsync(ct);
         // Jedan grupisani upit umjesto brojanja po kodu; otkazane se ne broje jer ne troše limit.
         var brojevi = await db.Orders
-            .Where(o => o.PromoKodId != null && o.Status != OrderStatus.Cancelled)
+            .NeotkazaneSaKodom()
             .GroupBy(o => o.PromoKodId!.Value)
             .Select(g => new { Id = g.Key, Broj = g.Count() })
             .ToDictionaryAsync(x => x.Id, x => x.Broj, ct);
@@ -170,8 +174,8 @@ public class UpdatePromoKodHandler(IAppDbContext db) : IRequestHandler<UpdatePro
         // Kod iz ulaza se ignoriše (nepromjenjiv); admin forma ga ionako vraća nepromijenjenog.
         CreatePromoKodHandler.Upisi(kod, cmd.Input);
         await db.SaveChangesAsync(ct);
-        var broj = await db.Orders.CountAsync(
-            o => o.PromoKodId == kod.Id && o.Status != OrderStatus.Cancelled, ct);
+        var broj = await db.Orders.NeotkazaneSaKodom().CountAsync(
+            o => o.PromoKodId == kod.Id, ct);
         return kod.ToDto(broj);
     }
 }
