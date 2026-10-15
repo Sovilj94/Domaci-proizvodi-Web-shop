@@ -253,6 +253,10 @@ export default function CheckoutPage() {
     },
     onError: (err) => {
       if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
+      // Server je odbio kod: skini ga, da zastareli popust nestane i kod se ne šalje ponovo.
+      if (err instanceof ApiRequestError && err.apiError.code === "promo_kod_nevazeci") {
+        setPromoKod(null);
+      }
     },
   });
 
@@ -268,6 +272,10 @@ export default function CheckoutPage() {
     },
     onError: (err) => {
       if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
+      // Server je odbio kod: skini ga, da zastareli popust nestane i kod se ne šalje ponovo.
+      if (err instanceof ApiRequestError && err.apiError.code === "promo_kod_nevazeci") {
+        setPromoKod(null);
+      }
     },
   });
 
@@ -516,8 +524,14 @@ export default function CheckoutPage() {
               <PromoKodPolje
                 primijenjen={promoKod}
                 provjera={promo}
-                onPrimijeni={setPromoKod}
-                onUkloni={() => setPromoKod(null)}
+                onPrimijeni={(kod) => {
+                  activeMutation.reset();
+                  setPromoKod(kod);
+                }}
+                onUkloni={() => {
+                  activeMutation.reset();
+                  setPromoKod(null);
+                }}
                 greskaSlanja={
                   activeMutation.error instanceof ApiRequestError &&
                   activeMutation.error.apiError.code === "promo_kod_nevazeci"
@@ -582,7 +596,7 @@ export default function CheckoutPage() {
                   Nastavi <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={!canOrder || activeMutation.isPending}>
+                <Button type="submit" disabled={!canOrder || activeMutation.isPending || (!!promoKod && promo.isFetching)}>
                   {activeMutation.isPending ? "Šaljem…" : "Naruči"}
                 </Button>
               )}
