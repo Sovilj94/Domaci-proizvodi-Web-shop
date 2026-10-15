@@ -338,6 +338,9 @@ Odloženo / poznato:
 
 ## Otvoreni nalazi, nošeni dalje
 
+> **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
+> prijedlogom redoslijeda). Tabela ispod je istorijski zapis razloga.
+
 Ništa od ovoga ne blokira ništa; sve je svjesno odloženo uz razlog.
 
 | Nalaz | Gdje | Zašto je odloženo |
