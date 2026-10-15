@@ -53,7 +53,7 @@ public class PretplatneNarudzbeTests
             var proizvodjac = new Producer { Name = "Marko", Village = "Manjača" };
             var kupac = new User
             {
-                Name = "Mujo Mujić", Email = "mujo@test.local", Phone = "065 111 222",
+                Name = "Marko Marković", Email = "marko@test.local", Phone = "065 111 222",
                 PasswordHash = "x", Role = UserRole.Customer,
             };
             var korpica = new Product
@@ -328,7 +328,7 @@ public class PretplatneNarudzbeTests
         using var s = await Scena.SpremiAsync();
         var drugiKupac = new User
         {
-            Name = "Haso Hasić", Email = "haso@test.local", Phone = "065 333 444",
+            Name = "Dragan Hasić", Email = "dragan@test.local", Phone = "065 333 444",
             PasswordHash = "x", Role = UserRole.Customer,
         };
         s.Db.Users.Add(drugiKupac);

@@ -16,7 +16,7 @@ public class MojiPoeniTests
 {
     private const string Abeceda = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-    private static async Task<User> KorisnikAsync(TestDb t, string ime = "Mujo Mujić")
+    private static async Task<User> KorisnikAsync(TestDb t, string ime = "Marko Marković")
     {
         var u = new User { Name = ime, Email = $"{Guid.NewGuid():N}@test.local", PasswordHash = "x" };
         t.Db.Users.Add(u);

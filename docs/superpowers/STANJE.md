@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-15 (P4–P6b)
+# Stanje projekta — 2026-10-15 (P4–P6c, živa provjera P6)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -221,7 +221,7 @@ filter, lista i „Napravi utisak" (`POST /admin/ocjene/{id}/utisak`) koji pravi
 migracija `DodajOcjeneIsporuke` (primijenjena na dev bazu).
 
 Provjere: `dotnet test` 285/285, `tsc`, `lint`, `npm run build` 65/65. Uživo: ocjena kroz UI stranice
-praćenja kao gost, druga ocjena 409, admin sažetak, utisak „Mujo M." (Centar, neobjavljen), javni
+praćenja kao gost, druga ocjena 409, admin sažetak, utisak „Marko M." (Centar, neobjavljen), javni
 `/utisci` prazan. U dev bazi je ostala **Mujina ocjena (4/5) na `EP-2610-0053`**, kao primjer za admin
 ekran; utisak iz nje je obrisan.
 
@@ -270,6 +270,34 @@ Odloženo: dvije istovremene narudžbe istog kupca mogu potrošiti iste poene (O
 promjena statusa iste narudžbe drugom zahtjevu vraća 500 (jedinstveni indeks — bolje nego dupli poeni);
 nema admin ekrana za korekciju poena ni isteka poena; preporuka ne radi kroz Google/Facebook prijavu.
 
+### Živa provjera P6b/P6c i popravka checkouta (2026-10-15, grana `fix-checkout-korak3`)
+
+Prvi put pokrenuto uživo. Obje migracije (`DodajPromoKodove`, `DodajPoene`) su sada **primijenjene** na dev
+bazu (API pri startu).
+
+**API, 17/17:** kod se normalizuje (` smokeX ` → `SMOKEX`), provjera 200 / nepostojeći 4xx, popust 10 %,
+`total = sub − popust − poeni + dostava`, „jednom po kupcu" odbija drugu narudžbu, `customerId`/`pretplataId`
+iz tijela se ignorišu, isporuka daje `floor(roba)` poena i ponovni `Delivered` ne daje duplo, trošenje u
+koracima od 20, poeni ne pokrivaju dostavu, otkaz vraća poene, korišćen kod se ne briše (409).
+
+**Nađena i popravljena greška od prvog commita (avgust):** klik mišem na „Nastavi" u koraku 2 checkouta
+**slao je narudžbu** — korak 3 se nikad nije vidio. React je zadržavao isti `<button>` i usred klika mu
+mijenjao `type` u `submit`. Do P6b je to bilo tiho (korak 3 je bio samo pregled); od P6b su na koraku 3
+promo kod i poeni, pa ih kupac mišem nije mogao ni vidjeti. Programski `.click()` grešku ne pokazuje — samo
+pravi klik. Popravka: različiti `key` na dva dugmeta. Provjereno pravim klikom (0 slanja, korak 3 se vidi),
+pa narudžba kroz UI sa kodom i poenima: 40 − 5 − 1 + 3 = 37 KM, red „Popust (UITEST5)" i „Poeni (20)" na
+potvrdi. Uz to: traka primijenjenog koda prikazuje normalizovan kod, ne onaj otkucan malim slovima.
+
+**Demo korisnici preimenovani** (na zahtjev korisnika): Mujo Mujić → **Marko Marković**
+(`marko@example.com`/`marko123`), Fata Hadžić → **Jelena Petrović** (`jelena@`/`jelena123`), Haso Begić →
+**Dragan Stojanović** (`dragan@`/`dragan123`). Promijenjeno u seedu, mock store-u, napomeni na prijavi,
+testovima, README, CLAUDE.md i u dev bazi (korisnici sa novim heševima lozinki, imena i mejlovi na
+narudžbama). Istorijski planovi/specovi i `.superpowers/` zapisi namjerno nisu dirani. Jedan JSON uzorak u
+testu vozačke aplikacije (`EPiljaraVozac`, „Haso Begić") nije mijenjan jer je taj repo na tuđoj radnoj grani
+`dizajn-po-mockupu`.
+
+Provjere: `dotnet test` 395/395, `tsc`, `lint`, `npm run build` ✓.
+
 **P7** nije diran: višejezičnost.
 
 ## Otvoreni nalazi, nošeni dalje
@@ -317,12 +345,12 @@ Nisu obrisani namjerno: to je jedino mjesto gdje piše šta je odlučeno umjesto
   `AppDbContextFactory`: oba projekta na `src/EPiljara.Infrastructure`, `--configuration Release`.
 - `npm run build` dijeli `.next` sa dev serverom. Build sa upaljenim dev serverom ostavlja
   stanje u kojem svaka ruta vraća 500. Ugasiti server, obrisati `.next`, pa build.
-- Seed lozinke: `admin@epiljara.ba`/`admin123`, `mujo@example.com`/`mujo123`.
+- Seed lozinke: `admin@epiljara.ba`/`admin123`, `marko@example.com`/`marko123`, `vozac@epiljara.ba`/`vozac123`.
 
 ## Podaci koje sam ostavio u dev bazi
 
 Sedmica 42/2026 je generisana i objavljena za „Malu domaćinsku korpicu", i na njoj stoji
-narudžba `EP-2610-0052` (Mujo) čiji sam sadržaj mijenjao kroz ekran dok sam ga provjeravao.
+narudžba `EP-2610-0052` (Marko) čiji sam sadržaj mijenjao kroz ekran dok sam ga provjeravao.
 Rok za izmjenu te korpice je bio `2026-10-13 16:00`, pa je vjerovatno ispao iz prozora za
 uređivanje — to je očekivano, ne kvar. Ako treba svježa korpica za ručnu provjeru,
 generisati i objaviti novu sedmicu kroz admin endpointe.
@@ -357,3 +385,8 @@ Prije P4 je za predaju pisalo — **Dev server i API su ostavljeni upaljeni**, i
 `dotnet run --project src/EPiljara.API` u zasebnim prozorima. Oba su usput morala biti ugašena —
 dev server zbog `npm run build`, API zbog toga što drži Debug DLL-ove zaključane dok traje
 `dotnet build` i `dotnet ef`.
+
+Iz žive provjere P6 (2026-10-15): narudžba **`EP-2610-0054`** (Marko, kod `SMOKE39006`, `Delivered`) daje Marku
+**36 poena** — ostavljena kao primjer za `/moj-nalog/poeni` i admin promo kodove. `EP-2610-0055`–`0058` su
+test narudžbe, sve **otkazane**. Kodovi `SMOKE39006` i `UITEST5` su korišćeni pa se ne mogu obrisati (stoje
+aktivni; isključiti na `/admin/promo-kodovi` ako smetaju). API i Next dev server su ostavljeni **upaljeni**.

@@ -56,7 +56,7 @@ public class PromoKodNarudzbeTests
                 Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
 
         public CreateOrderCommand Komanda(string? kod, decimal kolicina = 1m) =>
-            new(new CustomerInput("Mujo", "mujo@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,
+            new(new CustomerInput("Marko", "marko@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,
                 [new OrderItemInput(Proizvod.Id, kolicina)], PromoKod: kod);
 
         public Task ZahtjevAsync(string? kod, string email = "gost@example.com") =>
@@ -216,7 +216,7 @@ public class PromoKodNarudzbeTests
     public void Tudji_customerId_i_pretplataId_iz_tijela_se_ignorisu()
     {
         var json = $$"""
-            {"customer":{"name":"Mujo","email":"m@example.com","phone":"065"},
+            {"customer":{"name":"Marko","email":"m@example.com","phone":"065"},
              "customerId":"{{Guid.NewGuid()}}","pretplataId":"{{Guid.NewGuid()}}",
              "deliveryZoneId":"{{Guid.NewGuid()}}","deliverySlotId":"{{Guid.NewGuid()}}",
              "deliveryAddress":"Testna 1","note":null,"items":[],"promoKod":"JESEN5"}
@@ -234,13 +234,13 @@ public class PromoKodNarudzbeTests
 
     private static Order NarudzbaSaPopustom() => new()
     {
-        Code = "EP-1", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
+        Code = "EP-1", CustomerName = "Marko", DeliveryAddress = "Testna 1",
         Subtotal = 20m, DeliveryFee = 3m, Popust = 5m, PromoKod = "JESEN5", TotalAmount = 18m,
     };
 
     private static Order NarudzbaBezPopusta() => new()
     {
-        Code = "EP-2", CustomerName = "Mujo", DeliveryAddress = "Testna 1",
+        Code = "EP-2", CustomerName = "Marko", DeliveryAddress = "Testna 1",
         Subtotal = 20m, DeliveryFee = 3m, TotalAmount = 23m,
     };
 
@@ -270,7 +270,7 @@ public class PromoKodNarudzbeTests
         ViberMessage.Build(NarudzbaBezPopusta()).Should().NotContain("Popust");
     }
 
-    private static CustomerInput Kupac => new("Mujo", "m@example.com", "065");
+    private static CustomerInput Kupac => new("Marko", "m@example.com", "065");
 
     [Theory]
     [InlineData(31, false)]

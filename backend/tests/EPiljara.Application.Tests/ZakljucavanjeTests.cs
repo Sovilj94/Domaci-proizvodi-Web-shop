@@ -23,7 +23,7 @@ public class ZakljucavanjeTests
     private static SedmicniSadrzaj Sadrzaj(TestDb t, StatusSadrzaja status, int godina, int sedmica)
     {
         var kat = new Category { Name = "Povrće", Slug = $"povrce-{Guid.NewGuid():N}" };
-        var proiz = new Producer { Name = "Mujo Mujić", Village = "Stričići" };
+        var proiz = new Producer { Name = "Marko Marković", Village = "Stričići" };
         t.Db.Categories.Add(kat);
         t.Db.Producers.Add(proiz);
         var k = new Product

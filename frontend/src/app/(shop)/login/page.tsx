@@ -199,7 +199,7 @@ function LoginForm() {
         <div className="mt-4 rounded-xl bg-honey-100 p-3 text-xs text-ink/70">
           <p className="font-semibold">Demo nalozi</p>
           <p>Admin: admin@epiljara.ba / admin123</p>
-          <p>Kupac: mujo@example.com / mujo123</p>
+          <p>Kupac: marko@example.com / marko123</p>
         </div>
       </div>
     </div>

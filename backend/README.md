@@ -43,7 +43,7 @@ Or run everything in Docker: `docker compose up -d` (API on :5080).
 | Role   | Email             | Password |
 |--------|-------------------|----------|
 | Admin  | admin@epiljara.ba | admin123 |
-| Kupac  | mujo@example.com  | mujo123  |
+| Kupac  | marko@example.com  | marko123  |
 | Vozač  | vozac@epiljara.ba | vozac123 |
 
 ## Endpoints (base `http://localhost:5080`)

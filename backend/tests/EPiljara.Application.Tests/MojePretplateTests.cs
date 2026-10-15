@@ -35,8 +35,8 @@ public class MojePretplateTests
             var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48, Label = "Četvrtak 16–20" };
             var kat = new Category { Name = "Mješovito", Slug = "mjesovito" };
             var proiz = new Producer { Name = "Marko", Village = "Manjača" };
-            var kupac = new User { Name = "Mujo", Email = "mujo@test.local", PasswordHash = "x", Role = UserRole.Customer };
-            var drugi = new User { Name = "Haso", Email = "haso@test.local", PasswordHash = "x", Role = UserRole.Customer };
+            var kupac = new User { Name = "Marko", Email = "marko@test.local", PasswordHash = "x", Role = UserRole.Customer };
+            var drugi = new User { Name = "Dragan", Email = "dragan@test.local", PasswordHash = "x", Role = UserRole.Customer };
 
             Product Korp(string naziv, string slug, VelicinaKorpice v) => new()
             {

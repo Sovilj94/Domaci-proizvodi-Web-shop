@@ -9,7 +9,7 @@ public class SedmicniSadrzajTests
     private static Product Korpica(TestDb t)
     {
         var kat = new Category { Name = "Povrće", Slug = "povrce" };
-        var proiz = new Producer { Name = "Mujo Mujić", Village = "Stričići" };
+        var proiz = new Producer { Name = "Marko Marković", Village = "Stričići" };
         t.Db.Categories.Add(kat);
         t.Db.Producers.Add(proiz);
         var k = new Product

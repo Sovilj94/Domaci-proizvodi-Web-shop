@@ -27,7 +27,7 @@ public class OcjeneTests
         var order = new Order
         {
             Code = "EP-0001", PublicToken = Guid.NewGuid().ToString("N"), CustomerId = kupac,
-            CustomerName = "Mujo Mujić", Status = status, DeliveryAddress = "Testna 1",
+            CustomerName = "Marko Marković", Status = status, DeliveryAddress = "Testna 1",
             DeliverySlotId = slot.Id, DeliveryZoneId = zona.Id,
         };
         t.Db.Orders.Add(order);
