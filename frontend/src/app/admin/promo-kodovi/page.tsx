@@ -21,7 +21,7 @@ function datum(iso: string): string {
 }
 
 function popust(p: PromoKod): string {
-  return p.tip === "Procenat" ? `${p.vrijednost} %` : formatPrice(p.vrijednost);
+  return p.tip === "Procenat" ? `${String(p.vrijednost).replace(".", ",")} %` : formatPrice(p.vrijednost);
 }
 
 function vazenje(p: PromoKod): string {
@@ -225,7 +225,7 @@ export default function AdminPromoKodoviPage() {
             {lista.map((p) => (
               <li key={p.id} className="rounded-card bg-white p-4 shadow-card">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+                  <div className="min-w-0 break-words">
                     <p className="font-mono font-semibold">{p.kod}</p>
                     {p.opis && <p className="text-sm text-muted">{p.opis}</p>}
                   </div>

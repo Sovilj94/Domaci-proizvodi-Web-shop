@@ -40,21 +40,18 @@ const PRAZNO: FormState = {
   aktivan: true,
 };
 
-/** Prazno je null; "5,5" i "5.5" su oba ispravan unos. */
+/** Prazno je null, nevažeći unos NaN; "5,5" i "5.5" su oba ispravan unos. */
 function broj(v: string): number | null {
   const t = v.trim().replace(",", ".");
   if (t === "") return null;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
+  const n = /^d+(.d+)?$/.test(t) ? Number(t) : NaN;
+  return Number.isFinite(n) ? n : NaN;
 }
 
-/** Ključ greške dolazi kao "input.kod" ili "Input.Tip", pa se poredi bez obzira na velika slova. */
+const POLJA = ["kod", "opis", "tip", "vrijednost", "minIznos", "vaziOd", "vaziDo", "maxKoristenja"];
+
 function greska(errors: Record<string, string[]>, polje: string): string | undefined {
-  const cilj = `input.${polje}`.toLowerCase();
-  for (const [k, v] of Object.entries(errors)) {
-    if (k.toLowerCase() === cilj) return v[0];
-  }
-  return undefined;
+  return errors[`input.${polje}`]?.[0];
 }
 
 export function PromoKodForm({
@@ -109,7 +106,8 @@ export function PromoKodForm({
         }
         const poljaGreske = err.fieldErrors;
         setErrors(poljaGreske);
-        if (Object.keys(poljaGreske).length > 0) return;
+        // Greška bez vidljivog polja (druga vrsta greške ili nepoznat ključ) ide u toast.
+        if (POLJA.some((p) => greska(poljaGreske, p))) return;
         show(err.message, "error");
         return;
       }
@@ -120,16 +118,28 @@ export function PromoKodForm({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
+    const vrijednost = broj(form.vrijednost);
+    const minIznos = broj(form.minIznos);
     const limit = broj(form.maxKoristenja);
+    const nova: Record<string, string[]> = {};
+    if (vrijednost === null) nova["input.vrijednost"] = ["Unesite vrijednost popusta."];
+    else if (Number.isNaN(vrijednost)) nova["input.vrijednost"] = ["Unesite broj."];
+    if (minIznos !== null && Number.isNaN(minIznos)) nova["input.minIznos"] = ["Unesite broj."];
+    if (limit !== null && (Number.isNaN(limit) || !Number.isInteger(limit)))
+      nova["input.maxKoristenja"] = ["Unesite broj."];
+    if (Object.keys(nova).length > 0) {
+      setErrors(nova);
+      return;
+    }
     mutation.mutate({
       kod: form.kod.trim(),
       opis: form.opis.trim(),
       tip: form.tip,
-      vrijednost: broj(form.vrijednost) ?? 0,
-      minIznos: broj(form.minIznos),
+      vrijednost: vrijednost!,
+      minIznos,
       vaziOd: form.vaziOd || null,
       vaziDo: form.vaziDo || null,
-      maxKoristenja: limit == null ? null : Math.trunc(limit),
+      maxKoristenja: limit,
       jednomPoKupcu: form.jednomPoKupcu,
       samoNoviKupci: form.samoNoviKupci,
       aktivan: form.aktivan,
@@ -198,10 +208,8 @@ export function PromoKodForm({
             error={greska(errors, "vrijednost")}
           >
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
-              min={0}
-              step="0.01"
               value={form.vrijednost}
               onChange={(e) => setForm({ ...form, vrijednost: e.target.value })}
             />
@@ -209,17 +217,15 @@ export function PromoKodForm({
 
           <Field label="Minimalan iznos robe (KM)" error={greska(errors, "minIznos")}>
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
-              min={0}
-              step="0.01"
               value={form.minIznos}
               onChange={(e) => setForm({ ...form, minIznos: e.target.value })}
               placeholder="bez minimuma"
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Važi od" error={greska(errors, "vaziOd")}>
               <Input
                 type="date"
@@ -239,9 +245,8 @@ export function PromoKodForm({
 
           <Field label="Limit korišćenja" error={greska(errors, "maxKoristenja")}>
             <Input
-              type="number"
-              min={1}
-              step={1}
+              type="text"
+              inputMode="numeric"
               value={form.maxKoristenja}
               onChange={(e) => setForm({ ...form, maxKoristenja: e.target.value })}
               placeholder="bez limita"
