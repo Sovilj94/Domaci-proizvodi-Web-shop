@@ -21,7 +21,7 @@ public class LoggingViberService(ILogger<LoggingViberService> logger) : IViberSe
 
         logger.LogInformation(
             "Viber → {Phone} (narudžba {Code}):\n{Message}",
-            order.CustomerPhone, order.Code, ViberMessage.Build(order));
+            order.CustomerPhone, order.Code, PismoPoruke.Tekst(order.Pismo, ViberMessage.Build(order)));
         return Task.CompletedTask;
     }
 }
