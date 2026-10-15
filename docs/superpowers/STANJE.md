@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-15 (P4–P6c, živa provjera P6)
+# Stanje projekta — 2026-10-15 (P1–P7 gotovi)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -6,11 +6,11 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4`, `p5-sadrzaj`, `p6a-ocjena`, `p6b-promo` i `p6c-poeni` su spojene i obrisane (i `origin/p6b-promo`). |
-| HEAD | merge P6a–P6c (`3b84dc4`) — vidi `git log -1` |
+| Grana | `main` + **`p7-cirilica`** (nespojena, čeka korisnikovo odobrenje merge-a). Sve ranije grane su spojene i obrisane. |
+| HEAD `main` | merge `fix-checkout-korak3` (`1a9d1fd`) |
 | Radno stablo | čisto |
-| Nespojeno | ništa |
-| `main` vs `origin/main` | **pushovan 2026-10-15** (P6a–P6c), na korisnikov zahtjev. |
+| Nespojeno | `p7-cirilica` — vidi „P7" ispod |
+| `main` vs `origin/main` | **pushovan 2026-10-15** (`1a9d1fd`), na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -202,7 +202,9 @@ zovu ga oba mjesta koja postavljaju `Delivered`), `lib/sedmica.ts` (P4 — imena
 `rokTekst`, `isporukaTekst`, `aktivniKrug`; zovu ga traka roka, odbrojavanje, FAQ i footer),
 `lib/cesta-pitanja.ts` (P4 — pitanja i jedino izvođenje brojeva za njih), `lib/kontakt.ts` (P5 —
 telefon i adresa; footer i `/o-nama`), `ReceptPravila.SmijeUPrikaz` (P5 — jedino pravilo „sastojak
-smije nuditi proizvod"), `components/analize/analiza-kartica.tsx` (P5 — `/analize` i stranica domaćina).
+smije nuditi proizvod"), `components/analize/analiza-kartica.tsx` (P5 — `/analize` i stranica domaćina),
+`lib/pismo/preslovi.ts` + `Cirilica.cs` (P7 — jedina pravila preslovljavanja; ugovor je
+`docs/pismo-vektori.json`), `PismoPoruke` (P7 — jedino mjesto gdje mejl i Viber prelaze na pismo).
 
 ## Nije urađeno
 
@@ -298,7 +300,36 @@ testu vozačke aplikacije (`EPiljaraVozac`, „Haso Begić") nije mijenjan jer j
 
 Provjere: `dotnet test` 395/395, `tsc`, `lint`, `npm run build` ✓.
 
-**P7** nije diran: višejezičnost.
+### P7 — Ćirilica (grana `p7-cirilica`, nespojena)
+
+Spec `specs/2026-10-15-p7-cirilica-design.md`, plan `plans/2026-10-15-p7-cirilica.md`. Korisnik je
+izabrao **latinicu + ćirilicu** (bez engleskog) za **kupčev dio i mejlove**; admin ostaje latinica.
+
+Ćirilica nastaje **preslovljavanjem izlaza**: u pregledaču nad DOM-om `(shop)` layouta poslije
+hidratacije (`PismoProvider` → `lib/pismo/dom.ts`), na serveru nad gotovim HTML-om mejla
+(`PismoPoruke` → `Cirilica.UCirilicuHtml`). Prekidač „Ћирилица"/„Latinica" je u navigaciji i
+podnožju; pismo je u kolačiću `pismo`, a do API-ja ide zaglavljem `X-Pismo: cir`. Novo:
+`PUT /account/pismo` (`{ pismo: "Cirilica" }`, vraća `AuthUserDto` koji sad nosi `pismo`),
+`Pismo` na `User`/`Order`/`GuestOrderRequest`, migracija `DodajPismo` (**primijenjena** na dev bazu),
+`ICurrentUser.Pismo`, font Onest za ćirilicu (DM Sans je nema), `npm test` (`node --test`).
+
+Provjere: `dotnet test` 472/472, `npm test` 75/75, `tsc`, `lint`, `npm run build`. Uživo, na ćirilici:
+21 kupčeva stranica skenirana skriptom — latinicom ostaju samo „E piljara" i brojevi narudžbi; checkout
+do kraja (`EP-2610-0059`, `Order.Pismo = Cirilica`), mejl u Mailpitu na ćirilici sa netaknutim linkom,
+mejl gosta na ćirilici, prekidač u oba smjera (i `User.Pismo` u bazi), admin latinica i pri punom
+učitavanju i pri klijentskoj navigaciji iz prodavnice, 375 px bez horizontalnog skrola.
+
+Nađeno i popravljeno uživo: kod sa tačkom na kraju (`EP-2610-0059.`) se preslovljavao; logotip je
+bio „Е пиљара"; admin je postajao ćiriličan pri klijentskoj navigaciji iz prodavnice. Uz to je u
+`dom.ts` ugrađen osigurač: više od 500 poziva posmatrača u sekundi ga gasi i ostavlja trag u konzoli.
+
+Odloženo / poznato:
+- Prijava na novom uređaju ne preuzima pismo naloga (`AuthUserDto.pismo` postoji, klijent ga još ne čita).
+- Tekst koji je kupac unio prikazuje se preslovljen (ime, adresa: „Kralja Petra I" → „Краља Петра И").
+- Stranice bez sopstvenog `metadata.title` (nalog, checkout) imaju podrazumijevani naslov — postojalo i prije.
+- Pretraživači indeksiraju samo latinicu (svjesno, spec).
+- Snimci ekrana preko Chrome ekstenzije su tokom provjere padali (renderer „ne odgovara"), ali stranice
+  rade — provjera je rađena skriptama; to je osobina alata, ne aplikacije (provjereno i na latinici).
 
 ## Otvoreni nalazi, nošeni dalje
 
@@ -390,3 +421,6 @@ Iz žive provjere P6 (2026-10-15): narudžba **`EP-2610-0054`** (Marko, kod `SMO
 **36 poena** — ostavljena kao primjer za `/moj-nalog/poeni` i admin promo kodove. `EP-2610-0055`–`0058` su
 test narudžbe, sve **otkazane**. Kodovi `SMOKE39006` i `UITEST5` su korišćeni pa se ne mogu obrisati (stoje
 aktivni; isključiti na `/admin/promo-kodovi` ako smetaju). API i Next dev server su ostavljeni **upaljeni**.
+
+Iz P7 (2026-10-15): narudžba `EP-2610-0059` (Marko, ćirilica) je test i **otkazana**; zahtjev gosta
+`nikola@example.com` (ćirilica) ističe sam za 15 minuta. Markov nalog i kolačić u Chromeu su vraćeni na latinicu.

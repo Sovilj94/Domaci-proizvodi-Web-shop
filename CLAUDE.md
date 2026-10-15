@@ -34,6 +34,7 @@ npm run dev      # http://localhost:3000
 npm run build
 npm run lint     # eslint
 npx tsc --noEmit # typecheck (there is no "typecheck" script; use this)
+npm test         # node --test over src/**/*.test.ts (today: latinica↔ćirilica vectors)
 ```
 
 **Backend** (needs .NET 9 SDK — pinned to 9.0.310 in global.json; Docker for Postgres):
@@ -394,6 +395,30 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - `TotalAmount = Subtotal − Popust − PoeniPopust + DeliveryFee`; points come after the promo discount, in
   whole KM, never on delivery. The checkout mirrors `ZaTrosenje` for display (spec O14) — change both
   together. `VrijednostPoenaKM` must divide 1 KM.
+
+## Ćirilica (P7)
+
+One language, two scripts. Cyrillic is produced by **transliterating output**, never by translating
+source text — there is no message catalog and no Cyrillic column anywhere.
+
+- **Browser:** `PismoProvider` (mounted only by `(shop)/layout.tsx`) runs `lib/pismo/dom.ts` after
+  hydration — first pass plus a `MutationObserver`. It only changes `nodeValue`/attributes, never
+  replaces nodes. A `<head>` script sets `data-pismo`/`lang` before paint and CSS hides `<body>` until
+  `data-pismo-spremno` (1.5 s CSS fallback). Root layout must **not** read the `pismo` cookie on the
+  server — that would make every static page dynamic.
+- **Text that must stay Latin gets `translate="no"`** (logo, promo codes, phone). The rules in
+  `preslovi.ts` already keep e-mail, URLs, words with q/w/x/y, ALL-CAPS codes with a digit or hyphen
+  (`EP-2610-0054`) and the brand list. A code with no digit (e.g. `DOBRODOSLI`) is NOT protected by
+  the rules — mark its render site.
+- **Admin stays Latin** via `data-admin translate="no"` on its layout root (`app/admin/layout.tsx`). The
+  observer sees admin nodes before React unmounts the provider on client navigation, so unmount order
+  alone is not enough.
+- **Server:** `X-Pismo: cir` (sent by `lib/api/client.ts`) → `ICurrentUser.Pismo` → stored on `Order`,
+  `GuestOrderRequest`, `User` (`PUT /account/pismo`). Subscription orders take the owner's `User.Pismo`.
+  Mail and Viber go through `PismoPoruke` — templates stay Latin-only.
+- **`preslovi.ts` and `Cirilica.cs` implement the same rules; `docs/pismo-vektori.json` is the contract**
+  both test suites read. Change a rule → change both files and add a vector.
+- Body font on Cyrillic is Onest (DM Sans has no Cyrillic glyphs).
 
 ## Backend (Clean Architecture + CQRS)
 
