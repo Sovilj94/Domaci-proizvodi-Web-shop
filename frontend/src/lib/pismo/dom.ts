@@ -60,7 +60,29 @@ export function pokreniPreslovljavanje(koren: HTMLElement): () => void {
   obidji(koren);
   naslov();
 
+  /*
+   * Osigurač: kad bi se nešto na stranici prepiralo sa preslovljavanjem (upiše latinicu
+   * čim je mi preslovimo), posmatrač bi se vrtio dok ne zamrzne pregledač. Previše
+   * poziva u jednoj sekundi = gašenje i trag u konzoli; stranica ostaje upotrebljiva.
+   */
+  let prozor = 0;
+  let poziva = 0;
   const posmatrac = new MutationObserver((izmjene) => {
+    const sad = performance.now();
+    if (sad - prozor > 1000) {
+      prozor = sad;
+      poziva = 0;
+    }
+    if (++poziva > 500) {
+      posmatrac.disconnect();
+      console.error("[pismo] preslovljavanje zaustavljeno — petlja", izmjene.slice(0, 5).map((m) => ({
+        tip: m.type,
+        cvor: m.target.nodeName,
+        tekst: (m.target.textContent ?? "").slice(0, 80),
+        roditelj: (m.target.parentElement ?? (m.target as Element)).outerHTML?.slice(0, 200),
+      })));
+      return;
+    }
     for (const m of izmjene) {
       if (m.type === "characterData") tekst(m.target as Text);
       else if (m.type === "attributes") atributi(m.target as Element);

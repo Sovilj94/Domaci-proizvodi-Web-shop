@@ -37,7 +37,10 @@ const NAZIV = "E piljara";
 const TOKEN = /[\p{L}\p{N}@._:/+-]+|[^\p{L}\p{N}@._:/+-]+/gu;
 const IMA_SLOVO = /\p{L}/u;
 
-function ostajeLatinica(rijec: string): boolean {
+function ostajeLatinica(token: string): boolean {
+  // Tačka ili dvotačka na kraju rečenice ulazi u token (dio je znakova e-pošte/URL-a), pa
+  // se pravila provjeravaju nad jezgrom: „EP-2610-0059." je i dalje kod.
+  const rijec = token.replace(/[._:/+-]+$/, "");
   if (/[qwxyQWXY]/.test(rijec)) return true;
   if (rijec.includes("@") || rijec.includes("://") || rijec.toLowerCase().startsWith("www.")) return true;
   // Kod: samo velika slova, cifre i crtice, i bar jedna cifra ili crtica (EP-2610-0054, UITEST5).

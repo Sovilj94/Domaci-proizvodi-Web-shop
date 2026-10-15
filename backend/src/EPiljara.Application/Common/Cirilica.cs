@@ -74,8 +74,11 @@ public static partial class Cirilica
 
     private static bool ImaSlovo(string s) => s.Any(char.IsLetter);
 
-    private static bool OstajeLatinica(string rijec)
+    private static bool OstajeLatinica(string token)
     {
+        // Tačka ili dvotačka na kraju rečenice ulazi u token, pa se pravila provjeravaju nad
+        // jezgrom: „EP-2610-0059." je i dalje kod.
+        var rijec = token.TrimEnd('.', '_', ':', '/', '+', '-');
         if (rijec.IndexOfAny(['q', 'w', 'x', 'y', 'Q', 'W', 'X', 'Y']) >= 0) return true;
         if (rijec.Contains('@') || rijec.Contains("://") || rijec.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return true;
         if (KodOblik().IsMatch(rijec) && rijec.Any(c => char.IsDigit(c) || c == '-')) return true;

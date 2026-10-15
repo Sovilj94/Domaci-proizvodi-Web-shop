@@ -15,6 +15,8 @@
   { "lat": "konjugacija", "cir": "конјугација" },
   { "lat": "injekcija", "cir": "инјекција" },
   { "lat": "Broj narudžbe EP-2610-0054", "cir": "Број наруџбе EP-2610-0054" },
+  { "lat": "Ovo je potvrda narudžbe EP-2610-0059. Hvala!", "cir": "Ово је потврда наруџбе EP-2610-0059. Хвала!" },
+  { "lat": "Kod: UITEST5, važi do petka", "cir": "Код: UITEST5, важи до петка" },
   { "lat": "Popust (UITEST5)", "cir": "Попуст (UITEST5)" },
   { "lat": "Potvrda je poslana na marko@example.com.", "cir": "Потврда је послана на marko@example.com." },
   { "lat": "Posjeti https://epiljara.ba/korpice danas", "cir": "Посјети https://epiljara.ba/korpice данас" },
