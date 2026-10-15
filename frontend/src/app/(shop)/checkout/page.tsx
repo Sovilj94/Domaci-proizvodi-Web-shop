@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -24,8 +24,10 @@ import {
   useDeliverySlots,
   useDeliveryZones,
   useKorpiceList,
+  useMojiPoeni,
   useMyAddresses,
   useProducts,
+  queryKeys,
 } from "@/lib/api/hooks";
 import { orderApi, promoApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
@@ -79,6 +81,7 @@ const STEPS = [
 export default function CheckoutPage() {
   const { items, subtotal, clear, hydrated, reconcile } = useCart();
   const { user } = useAuth();
+  const qc = useQueryClient();
   const { show } = useToast();
   const zones = useDeliveryZones();
   const slots = useDeliverySlots();
@@ -127,6 +130,7 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(1);
   const [promoKod, setPromoKod] = useState<string | null>(null);
+  const [koristiPoene, setKoristiPoene] = useState(false);
   const [form, setForm] = useState({
     ime: "",
     prezime: "",
@@ -219,7 +223,20 @@ export default function CheckoutPage() {
     retry: false,
   });
   const popust = promo.data?.popust ?? 0;
-  const total = Math.round((subtotal - popust + deliveryFee) * 100) / 100;
+  // Poeni (samo prijavljeni). Ista formula kao server (`PoeniPravila.ZaTrosenje`): bez poena ili
+  // robe nema popusta; popust je cijeli broj KM, najviše koliko poeni vrijede, a ne više od robe
+  // (subtotal − promo popust). Poena se troši tačno koliko pokriva taj popust.
+  const poeni = useMojiPoeni(!!user);
+  const stanjePoena = poeni.data?.stanje ?? 0;
+  const vrijednostPoena = poeni.data?.vrijednostPoenaKM ?? 0;
+  const roba = subtotal - popust;
+  const popustPoena =
+    stanjePoena > 0 && roba > 0 && vrijednostPoena > 0
+      ? Math.floor(Math.min(stanjePoena * vrijednostPoena, roba))
+      : 0;
+  const poenaZaTrosenje = vrijednostPoena > 0 ? Math.round(popustPoena / vrijednostPoena) : 0;
+  const poeniPopust = koristiPoene ? popustPoena : 0;
+  const total = Math.round((subtotal - popust - poeniPopust + deliveryFee) * 100) / 100;
   const belowMin = selectedZone ? subtotal < selectedZone.minOrderAmount : false;
 
   // Backend i dalje prima jedno ime i jednu adresu — admin, dispečerski ekran i
@@ -254,6 +271,7 @@ export default function CheckoutPage() {
     mutationFn: (body: CreateOrderRequest) => orderApi.create(body),
     onSuccess: (order) => {
       clear();
+      qc.invalidateQueries({ queryKey: queryKeys.mojiPoeni() });
       setPlaced(order);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
@@ -305,7 +323,7 @@ export default function CheckoutPage() {
     if (gost) {
       guestMutation.mutate(body);
     } else {
-      mutation.mutate(body);
+      mutation.mutate({ ...body, iskoristiPoene: koristiPoene && popustPoena > 0 });
     }
   }
 
@@ -546,6 +564,30 @@ export default function CheckoutPage() {
                 }
               />
 
+              {user && stanjePoena > 0 && (
+                popustPoena > 0 ? (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={koristiPoene}
+                      onChange={(e) => {
+                        activeMutation.reset();
+                        setKoristiPoene(e.target.checked);
+                      }}
+                      className="h-4 w-4 accent-brand-600"
+                    />
+                    <span>
+                      Iskoristi poene ({poenaZaTrosenje} poena = −{formatPrice(popustPoena)})
+                    </span>
+                  </label>
+                ) : (
+                  <p className="text-sm text-muted">
+                    Imaš {stanjePoena} poena — treba ti bar {Math.round(1 / vrijednostPoena)} za
+                    popust od 1 KM.
+                  </p>
+                )
+              )}
+
               {belowMin && selectedZone && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                   Minimalna narudžba za zonu {selectedZone.name} je{" "}
@@ -574,6 +616,8 @@ export default function CheckoutPage() {
               zoneName={selectedZone?.name}
               popust={popust}
               promoKod={promo.data?.kod}
+              poeniPopust={poeniPopust}
+              iskoristeniPoeni={poenaZaTrosenje}
             />
           </div>
 
@@ -619,6 +663,8 @@ export default function CheckoutPage() {
             zoneName={selectedZone?.name}
             popust={popust}
             promoKod={promo.data?.kod}
+            poeniPopust={poeniPopust}
+            iskoristeniPoeni={poenaZaTrosenje}
           />
         </aside>
       </div>

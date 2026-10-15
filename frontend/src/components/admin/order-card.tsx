@@ -106,6 +106,12 @@ export function OrderCard({
                   <span>−{formatPrice(order.popust)}</span>
                 </div>
               )}
+                {order.poeniPopust > 0 && (
+                  <div className="flex justify-between text-brand-700">
+                    <span>Poeni ({order.iskoristeniPoeni})</span>
+                    <span>−{formatPrice(order.poeniPopust)}</span>
+                  </div>
+                )}
               <div className="flex justify-between font-display text-base font-bold">
                 <span>Ukupno</span>
                 <span>{formatPrice(order.totalAmount)}</span>

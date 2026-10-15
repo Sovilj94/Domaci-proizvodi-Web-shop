@@ -115,6 +115,8 @@ export interface Order {
   subtotal: number;
   deliveryFee: number;
   popust: number;
+  iskoristeniPoeni: number;
+  poeniPopust: number;
   promoKod?: string | null;
   totalAmount: number;
   deliverySlotId: string;

@@ -39,6 +39,7 @@ export interface CreateOrderRequest {
   latitude?: number;
   longitude?: number;
   promoKod?: string;
+  iskoristiPoene?: boolean;
 }
 
 export interface RegisterRequest {
