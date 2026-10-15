@@ -6,11 +6,11 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` + **`p7-cirilica`** (nespojena, čeka korisnikovo odobrenje merge-a). Sve ranije grane su spojene i obrisane. |
-| HEAD `main` | merge `fix-checkout-korak3` (`1a9d1fd`) |
+| Grana | `main` i samo ona. Sve grane, zaključno sa `p7-cirilica`, su spojene i obrisane. |
+| HEAD `main` | merge P7 (`7993626`) — vidi `git log -1` |
 | Radno stablo | čisto |
-| Nespojeno | `p7-cirilica` — vidi „P7" ispod |
-| `main` vs `origin/main` | **pushovan 2026-10-15** (`1a9d1fd`), na korisnikov zahtjev. |
+| Nespojeno | ništa |
+| `main` vs `origin/main` | **pushovan 2026-10-15** (P7), na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -300,7 +300,7 @@ testu vozačke aplikacije (`EPiljaraVozac`, „Haso Begić") nije mijenjan jer j
 
 Provjere: `dotnet test` 395/395, `tsc`, `lint`, `npm run build` ✓.
 
-### P7 — Ćirilica (grana `p7-cirilica`, nespojena)
+### P7 — Ćirilica (spojena u main 2026-10-15)
 
 Spec `specs/2026-10-15-p7-cirilica-design.md`, plan `plans/2026-10-15-p7-cirilica.md`. Korisnik je
 izabrao **latinicu + ćirilicu** (bez engleskog) za **kupčev dio i mejlove**; admin ostaje latinica.
