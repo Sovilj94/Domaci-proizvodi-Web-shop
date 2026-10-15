@@ -18,6 +18,7 @@ internal static class UtisakMapiranje
         Tekst = u.Tekst,
         Objavljen = u.Objavljen,
         Redoslijed = u.Redoslijed,
+        IzOcjene = u.OcjenaId != null,
     };
 
     /// <summary>Jedini redoslijed utisaka — i početna i admin ih vide istim redom.</summary>

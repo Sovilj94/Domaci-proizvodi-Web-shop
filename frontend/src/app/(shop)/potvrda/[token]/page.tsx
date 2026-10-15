@@ -57,8 +57,11 @@ export default function PotvrdaPage() {
           // NIJE nastala, a poruka servera imenuje korpicu za koju sadržaj te sedmice nije
           // objavljen. Sedmica se računa na potvrdu, ne na slanje forme, pa ovo može puknuti
           // i kad je forma prošla bez greške — vidi ConfirmGuestOrderHandler.
+          // `promo_kod_nevazeci` (kod ugašen/istekao/iskorišten između slanja i potvrde) takođe
+          // znači da narudžba NIJE nastala; poruka servera kaže zašto.
           (e.apiError.code === "product_unavailable" ||
-            e.apiError.code === "korpica_bez_sadrzaja")
+            e.apiError.code === "korpica_bez_sadrzaja" ||
+            e.apiError.code === "promo_kod_nevazeci")
         ) {
           setState({ kind: "unavailable", message: e.message });
         } else {

@@ -1,11 +1,13 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Driver;
 
@@ -79,7 +81,7 @@ public class GetDriverRoutesHandler(IAppDbContext db, ICurrentUser current)
 
 public record UpdateStopStatusCommand(Guid OrderId, string Status) : IRequest<OrderDto>;
 
-public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current)
+public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOptions<PoeniOpcije> poeni)
     : IRequestHandler<UpdateStopStatusCommand, OrderDto>
 {
     private static readonly HashSet<OrderStatus> Allowed = [OrderStatus.Delivered, OrderStatus.FailedDelivery];
@@ -108,6 +110,8 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current)
         // a ispod se status mijenja i po tri puta. Drugo mjesto koje postavlja Delivered je
         // admin panel (AdminOrders); otuda pomoćnik, a ne dvije kopije istog uslova.
         await BrojacIsporuka.ZabiljeziAsync(db, order, status, ct);
+        // Poeni se upisuju uz stari status, u isti SaveChanges kao i prelaz (kao i brojač).
+        await PoeniPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, poeni.Value, ct);
 
         // Ruta se može dodijeliti narudžbi koja je još Confirmed/Packing (vidi ASSIGNABLE
         // u admin panelu). Mašina stanja dozvoljava Delivered samo iz OutForDelivery, pa je

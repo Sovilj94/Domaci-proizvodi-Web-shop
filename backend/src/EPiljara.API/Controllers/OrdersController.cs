@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Orders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,8 +16,8 @@ public class OrdersController : ApiControllerBase
     /// </summary>
     [Authorize]
     [HttpPost("orders")]
-    public async Task<IActionResult> Create([FromBody] CreateOrderCommand command) =>
-        EnvelopeCreated(await Mediator.Send(command));
+    public async Task<IActionResult> Create([FromBody] CreateOrderRequest request) =>
+        EnvelopeCreated(await Mediator.Send(request.ToCommand()));
 
     /// <summary>Gost šalje narudžbu — narudžba ne nastaje dok ne klikne link iz mejla.</summary>
     [HttpPost("orders/guest-request")]
@@ -50,4 +51,16 @@ public class OrdersController : ApiControllerBase
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Track(string token) =>
         Envelope(await Mediator.Send(new TrackOrderQuery(token)));
+
+    /// <summary>Vlasnik ocjenjuje svoju isporučenu narudžbu. Tuđa narudžba daje 404.</summary>
+    [Authorize]
+    [HttpPost("orders/{id:guid}/ocjena")]
+    public async Task<IActionResult> Ocijeni(Guid id, [FromBody] OcjenaInput input) =>
+        EnvelopeCreated(await Mediator.Send(new OcijeniNarudzbuCommand(id, input)));
+
+    /// <summary>Gost ocjenjuje sa stranice praćenja; token je jedina zaštita, pa stroži limit.</summary>
+    [HttpPost("orders/track/{token}/ocjena")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> OcijeniPrekoTokena(string token, [FromBody] OcjenaInput input) =>
+        EnvelopeCreated(await Mediator.Send(new OcijeniPrekoTokenaCommand(token, input)));
 }

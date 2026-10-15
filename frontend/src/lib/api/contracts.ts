@@ -19,6 +19,12 @@ export interface CreateOrderItemInput {
   quantity: number;
 }
 
+export interface OcjenaInput {
+  ocjena: number;
+  komentar?: string;
+  dozvolaZaObjavu: boolean;
+}
+
 export interface CreateOrderRequest {
   customer: {
     name: string;
@@ -32,6 +38,8 @@ export interface CreateOrderRequest {
   items: CreateOrderItemInput[];
   latitude?: number;
   longitude?: number;
+  promoKod?: string;
+  iskoristiPoene?: boolean;
 }
 
 export interface RegisterRequest {
@@ -41,6 +49,7 @@ export interface RegisterRequest {
   password: string;
   address?: string;
   deliveryZoneId?: string;
+  preporukaKod?: string;
 }
 
 export interface LoginRequest {
@@ -297,4 +306,25 @@ export interface PartnerPrijavaInput {
 export interface PartnerStatusInput {
   status: StatusPrijave;
   adminNapomena?: string;
+}
+
+export interface ProvjeraPromoKoda {
+  kod: string;
+  opis: string;
+  popust: number;
+  subtotal: number;
+}
+
+export interface PromoKodInput {
+  kod: string;
+  opis: string;
+  tip: "Procenat" | "Iznos";
+  vrijednost: number;
+  minIznos: number | null;
+  vaziOd: string | null;
+  vaziDo: string | null;
+  maxKoristenja: number | null;
+  jednomPoKupcu: boolean;
+  samoNoviKupci: boolean;
+  aktivan: boolean;
 }

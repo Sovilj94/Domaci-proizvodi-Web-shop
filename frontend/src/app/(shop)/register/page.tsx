@@ -32,6 +32,10 @@ function RegisterForm() {
   // to bounce a customer to another site. Registration itself doesn't log anyone in (email
   // confirmation is required first), so `next` rides along on the links back to login instead
   // of an immediate redirect.
+  // Lični kod ima tačno 8 znakova. Duži ili okrnjen parametar iz linka bi server odbio
+  // greškom polja koje forma nema, pa bi registracija tiho pala — takav kod se ne šalje.
+  const sirovaPreporuka = searchParams.get("preporuka")?.trim().toUpperCase() ?? "";
+  const preporuka = /^[A-Z0-9]{8}$/.test(sirovaPreporuka) ? sirovaPreporuka : null;
   const next = searchParams.get("next");
   const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
   const loginHref = safeNext ? `/login?next=${encodeURIComponent(safeNext)}` : "/login";
@@ -65,6 +69,7 @@ function RegisterForm() {
         password: form.password,
         address: form.address || undefined,
         deliveryZoneId: form.deliveryZoneId || undefined,
+        preporukaKod: preporuka ?? undefined,
       });
       setSentTo(res.email);
     } catch (err) {
@@ -137,6 +142,11 @@ function RegisterForm() {
       <div className="mt-6 w-full rounded-card bg-surface p-7 shadow-card">
         <h1 className="font-display text-2xl font-bold">Registracija</h1>
         <p className="mt-1 text-sm text-muted">Otvorite nalog i pratite svoje narudžbe.</p>
+        {preporuka && (
+          <p className="mt-4 rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
+            Preporučio te prijatelj — kad primiš prvu isporuku, dobijaš poene na nalogu.
+          </p>
+        )}
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           <Field label="Ime i prezime" required error={errors.name?.[0]}>

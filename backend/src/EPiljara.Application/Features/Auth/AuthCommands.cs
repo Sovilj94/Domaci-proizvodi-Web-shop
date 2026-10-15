@@ -18,7 +18,8 @@ public record RegisterCommand(
     string Phone,
     string Password,
     string? Address,
-    Guid? DeliveryZoneId) : IRequest<RegisterResultDto>;
+    Guid? DeliveryZoneId,
+    string? PreporukaKod = null) : IRequest<RegisterResultDto>;
 
 public class RegisterValidator : AbstractValidator<RegisterCommand>
 {
@@ -28,6 +29,10 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
         RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Unesite ispravan email.");
         RuleFor(x => x.Phone).NotEmpty().WithMessage("Telefon je obavezan.");
         RuleFor(x => x.Password).MinimumLength(6).WithMessage("Lozinka mora imati najmanje 6 znakova.");
+        RuleFor(x => (x.PreporukaKod ?? "").Trim()).MaximumLength(8)
+            .OverridePropertyName("preporukaKod")
+            .When(x => x.PreporukaKod is not null)
+            .WithMessage("Kod preporuke je predugačak.");
     }
 }
 
@@ -39,6 +44,16 @@ public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailSer
         var normalizedEmail = cmd.Email.Trim().ToLowerInvariant();
         if (await db.Users.AnyAsync(u => u.Email == normalizedEmail, ct))
             throw new ConflictException("Nalog sa ovim emailom već postoji.", "email_taken");
+
+        // Preporuka je dodatak, ne uslov: nepoznat ili pogrešno prepisan kod ne smije spriječiti
+        // registraciju, pa se tiho ignoriše (O10). Poeni se dodjeljuju tek prvom isporukom.
+        Guid? preporucioId = null;
+        if (!string.IsNullOrWhiteSpace(cmd.PreporukaKod))
+        {
+            var kod = cmd.PreporukaKod.Trim().ToUpperInvariant();
+            preporucioId = await db.Users.Where(u => u.PreporukaKod == kod)
+                .Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
+        }
 
         var token = Guid.NewGuid().ToString("N");
         var user = new User
@@ -52,6 +67,7 @@ public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailSer
             Role = UserRole.Customer,
             EmailConfirmed = false,
             EmailConfirmationToken = token,
+            PreporucioId = preporucioId,
         };
 
         db.Users.Add(user);

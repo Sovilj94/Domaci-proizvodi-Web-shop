@@ -339,6 +339,62 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **Contact data lives in `frontend/src/lib/kontakt.ts`** (footer and `/o-nama#kontakt`). Public copy on the
   P5 pages states only what the app actually does; check a new sentence against the code before adding it.
 
+## Ocjena isporuke (P6a)
+
+- **`OrderDto.mozeSeOcijeniti` and `ocjena` come from the `Order.Ocjena` navigation.** The three customer
+  queries (`GetMyOrders`, `GetOrderById`, `TrackOrder`) `Include` it, each with its own test. A new
+  customer-facing order query that forgets the `Include` would offer a second rating for a rated order
+  (the server still refuses it with 409, but the screen lies). Admin/driver paths don't include it and
+  don't use the field.
+- **One final rating per order, only when `Delivered`.** The owner rates via `POST /orders/{id}/ocjena`
+  (a foreign order is a 404, never a 403); a guest via `POST /orders/track/{token}/ocjena` (rate-limited).
+  The unique index on `OrderId` is the race guard; a `DbUpdateException` is translated to 409 only after
+  re-checking that the row really exists — anything else is rethrown, not disguised as "already rated".
+- **A rating becomes a testimonial only with explicit consent and a comment of at least 10 characters**,
+  and only through the admin's „Napravi utisak". The `Utisak` is created **unpublished**, signed
+  „Ime P." (first word + initial of the last word) with the delivery zone as place; a full surname is never
+  written. `Utisak.OcjenaId` (filtered unique, `SetNull`) links them; deleting the testimonial frees the
+  rating.
+
+## Promo kodovi (P6b)
+
+- **All promo rules live in `PromoKodPravila`** (`Features/PromoKodovi`): `Normalizuj`, `Popust`,
+  `ProvjeriAsync`. The checkout preview (`POST /promo-kodovi/provjera`), `CreateOrderHandler`,
+  `CreateGuestOrderRequestHandler` and `ConfirmGuestOrderHandler` all call it — never re-implement a rule.
+  Failures are `DomainException(..., "promo_kod_nevazeci")`; the guest confirm turns one into a 409 and
+  deletes the request.
+- **Money:** the discount applies to goods only and never exceeds `Subtotal`; the zone minimum and the code
+  minimum compare against `Subtotal` *before* the discount; `TotalAmount = Subtotal − Popust + DeliveryFee`.
+  `Order`/`GuestOrderRequest` snapshot `PromoKodId`, `PromoKod` (text) and `Popust`. Any new screen that
+  shows an order's breakdown must show the `Popust` row.
+- **Cancelled orders never consume a code** (limit, once-per-customer, new-customers-only), but **any**
+  order — cancelled included — blocks deleting the code (`Order.PromoKodId` FK is `Restrict`; the DTO's
+  `mozeSeObrisati` mirrors that). The code text is immutable after creation.
+- **Dates** (`VaziOd`/`VaziDo`, `DateOnly`, inclusive) compare against `LokalniDatum.Danas()` (Sarajevo).
+- **`POST /orders` binds `CreateOrderRequest`, not `CreateOrderCommand`.** The command carries
+  `CustomerId`/`PretplataId` for the subscription job only; binding it from the body let a logged-in user
+  order on someone else's account or at subscription prices. Never bind a command that has server-only
+  fields straight from the wire.
+- The checkout asks the server for the discount (query only on step 3, `staleTime` 60 s). The preview sits
+  under the shared `"auth"` rate limit, so never fire it per keystroke.
+
+## Poeni i preporuke (P6c)
+
+- **Points are a ledger (`PoeniStavka`); the balance is always `SUM(Iznos)`** — never add a balance column,
+  never edit or delete an entry. All rules live in `PoeniPravila` (`StanjeAsync`, `ZaTrosenje`,
+  `ZaradaZaNarudzbu`, `ZabiljeziPromjenuStatusaAsync`).
+- **Any code that changes an order's status must call `PoeniPravila.ZabiljeziPromjenuStatusaAsync` next to
+  `BrojacIsporuka.ZabiljeziAsync`, before `TransitionTo`** (today: `AdminOrders`, `DriverFeature`). It
+  writes earnings and the referral bonus on `Delivered`, and refunds spent points on `Cancelled`.
+  Idempotency is enforced by unique indexes: `(OrderId, Vrsta)` (except `Korekcija`), one `PreporukaNovi`
+  per user, and one entry per `(PreporuceniId, Vrsta)`. A concurrent duplicate fails the save rather than
+  paying twice.
+- **Only `Role == Customer` earns or spends.** Admin and driver place phone orders under their own account
+  (`CustomerId` = the logged-in user), and those must never pay points out to staff.
+- `TotalAmount = Subtotal − Popust − PoeniPopust + DeliveryFee`; points come after the promo discount, in
+  whole KM, never on delivery. The checkout mirrors `ZaTrosenje` for display (spec O14) — change both
+  together. `VrijednostPoenaKM` must divide 1 KM.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.

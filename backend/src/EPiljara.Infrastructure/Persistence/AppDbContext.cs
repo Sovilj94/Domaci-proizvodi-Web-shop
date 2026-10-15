@@ -28,12 +28,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
+    public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
+    public DbSet<OcjenaIsporuke> OcjeneIsporuke => Set<OcjenaIsporuke>();
     public DbSet<Recept> Recepti => Set<Recept>();
     public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();
     public DbSet<Analiza> Analize => Set<Analiza>();
     public DbSet<PartnerPrijava> PartnerPrijave => Set<PartnerPrijava>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
+    public DbSet<PromoKod> PromoKodovi => Set<PromoKod>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -158,6 +161,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Email).HasMaxLength(256).IsRequired();
             e.Property(x => x.Role).HasConversion<string>().HasMaxLength(16);
             e.HasIndex(x => x.Email).IsUnique();
+            e.Property(x => x.PreporukaKod).HasMaxLength(8);
+            // Filter jer većina naloga nema kod; bez njega bi null kodovi branili jedan drugog.
+            e.HasIndex(x => x.PreporukaKod).IsUnique().HasFilter("\"PreporukaKod\" IS NOT NULL");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.PreporucioId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<Address>(e =>
@@ -217,6 +225,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             // Ekran pretplate traži njene narudžbe; bez indeksa je to skeniranje svih.
             e.HasIndex(x => x.PretplataId);
+            e.Property(x => x.Popust).HasPrecision(10, 2);
+            e.Property(x => x.PoeniPopust).HasPrecision(10, 2);
+            e.Property(x => x.PromoKod).HasMaxLength(30);
+            // Kod se ne briše dok ga neka narudžba pamti; ugasi se preko Aktivan.
+            e.HasOne<PromoKod>().WithMany()
+                .HasForeignKey(o => o.PromoKodId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(o => o.PromoKodId);
+        });
+
+        b.Entity<PromoKod>(e =>
+        {
+            e.Property(x => x.Kod).HasMaxLength(30).IsRequired();
+            e.HasIndex(x => x.Kod).IsUnique();
+            e.Property(x => x.Opis).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Tip).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Vrijednost).HasPrecision(10, 2);
+            e.Property(x => x.MinIznos).HasPrecision(10, 2);
         });
 
         b.Entity<Pretplata>(e =>
@@ -245,6 +270,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.DeliverySlotId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        b.Entity<PoeniStavka>(e =>
+        {
+            e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(24);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.OrderId);
+            // Dvije istovremene promjene statusa bi obje prošle AnyAsync provjeru; jedinstven
+            // par (narudžba, vrsta) je zadnja brana protiv dvostrukog upisa iste nagrade/povrata.
+            e.HasIndex(x => new { x.OrderId, x.Vrsta }).IsUnique().HasFilter("\"OrderId\" IS NOT NULL AND \"Vrsta\" <> 'Korekcija'");
+            // Korekcija je izuzeta: za istu narudžbu je smije biti više ručnih ispravki.
+            // Nagrada za preporuku jednom po preporučenom: AnyAsync ne hvata dvije istovremene
+            // isporuke različitih narudžbi, pa to čuva baza. Drugi indeks je par (PreporuceniId, Vrsta)
+            // jer oba reda (PreporukaNovi i PreporukaPreporucio) nose isti PreporuceniId.
+            // Imenovan indeks: EF indekse prepoznaje po listi kolona, pa bi neimenovan drugi
+            // HasIndex(UserId) pregazio običan indeks iznad koji koristi StanjeAsync.
+            e.HasIndex(x => x.UserId, "IX_PoeniStavke_UserId_PreporukaNovi")
+                .IsUnique().HasFilter("\"Vrsta\" = 'PreporukaNovi'");
+            e.HasIndex(x => new { x.PreporuceniId, x.Vrsta }).IsUnique().HasFilter("\"PreporuceniId\" IS NOT NULL");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.SetNull);
+            // PreporuceniId namjerno bez FK: brisanje preporučenog ne smije brisati tuđu nagradu.
+        });
+
         b.Entity<Utisak>(e =>
         {
             // Dužine prate validator (UtisakInputValidator) — baza je zadnja brana, ne prva.
@@ -253,6 +300,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Tekst).HasMaxLength(500).IsRequired();
             // Javna lista filtrira po Objavljen i sortira po Redoslijed.
             e.HasIndex(x => new { x.Objavljen, x.Redoslijed });
+            e.HasOne(x => x.Ocjena).WithMany()
+                .HasForeignKey(x => x.OcjenaId).OnDelete(DeleteBehavior.SetNull);
+            // Od jedne ocjene najviše jedan utisak; filter jer je većina utisaka bez ocjene.
+            e.HasIndex(x => x.OcjenaId).IsUnique().HasFilter("\"OcjenaId\" IS NOT NULL");
+        });
+
+        b.Entity<OcjenaIsporuke>(e =>
+        {
+            e.Property(x => x.Komentar).HasMaxLength(1000).IsRequired();
+            // Jedna ocjena po narudžbi — i brana za dva istovremena zahtjeva.
+            e.HasIndex(x => x.OrderId).IsUnique();
+            e.HasOne(x => x.Order).WithOne(o => o.Ocjena)
+                .HasForeignKey<OcjenaIsporuke>(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.Kreirana);
         });
 
         b.Entity<Recept>(e =>
@@ -351,6 +412,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             b.Property(r => r.Subtotal).HasPrecision(10, 2);
             b.Property(r => r.DeliveryFee).HasPrecision(10, 2);
             b.Property(r => r.TotalAmount).HasPrecision(10, 2);
+            b.Property(r => r.Popust).HasPrecision(10, 2);
+            b.Property(r => r.PromoKod).HasMaxLength(30);
+            // Zahtjev živi 15 minuta; brisanje koda ga ne smije oboriti, samo gubi vezu.
+            b.HasOne<PromoKod>().WithMany()
+                .HasForeignKey(r => r.PromoKodId).OnDelete(DeleteBehavior.SetNull);
+            b.HasIndex(r => r.PromoKodId);
             b.HasOne(r => r.DeliveryZone).WithMany()
                 .HasForeignKey(r => r.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(r => r.DeliverySlot).WithMany()

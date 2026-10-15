@@ -12,12 +12,20 @@ export function OrderSummaryPanel({
   deliveryFee,
   total,
   zoneName,
+  popust = 0,
+  promoKod,
+  poeniPopust = 0,
+  iskoristeniPoeni = 0,
 }: {
   items: CartItem[];
   subtotal: number;
   deliveryFee: number;
   total: number;
   zoneName?: string;
+  popust?: number;
+  promoKod?: string;
+  poeniPopust?: number;
+  iskoristeniPoeni?: number;
 }) {
   return (
     <div className="space-y-4 rounded-card bg-surface p-5 shadow-card">
@@ -44,6 +52,18 @@ export function OrderSummaryPanel({
           <dt className="text-muted">Dostava{zoneName ? ` (${zoneName})` : ""}</dt>
           <dd className="font-medium">{formatPrice(deliveryFee)}</dd>
         </div>
+        {popust > 0 && (
+          <div className="flex justify-between text-brand-700">
+            <dt>Popust{promoKod ? ` (${promoKod})` : ""}</dt>
+            <dd className="font-medium">−{formatPrice(popust)}</dd>
+          </div>
+        )}
+        {poeniPopust > 0 && (
+          <div className="flex justify-between text-brand-700">
+            <dt>Poeni ({iskoristeniPoeni})</dt>
+            <dd className="font-medium">−{formatPrice(poeniPopust)}</dd>
+          </div>
+        )}
         <div className="flex justify-between border-t border-line pt-2 text-base">
           <dt className="font-semibold">Ukupno</dt>
           <dd className="font-display font-bold">{formatPrice(total)}</dd>

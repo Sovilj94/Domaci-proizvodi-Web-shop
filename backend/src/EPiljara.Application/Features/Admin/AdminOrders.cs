@@ -1,11 +1,13 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Admin;
 
@@ -80,7 +82,7 @@ public class GetAdminOrdersHandler(IAppDbContext db)
 
 public record UpdateOrderStatusCommand(Guid Id, string Status) : IRequest<OrderDto>;
 
-public class UpdateOrderStatusHandler(IAppDbContext db)
+public class UpdateOrderStatusHandler(IAppDbContext db, IOptions<PoeniOpcije> poeni)
     : IRequestHandler<UpdateOrderStatusCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(UpdateOrderStatusCommand cmd, CancellationToken ct)
@@ -99,6 +101,8 @@ public class UpdateOrderStatusHandler(IAppDbContext db)
         // Drugo mjesto koje postavlja Delivered je vozačev DriverFeature — otuda pomoćnik,
         // a ne dvije kopije istog uslova.
         await BrojacIsporuka.ZabiljeziAsync(db, order, status, ct);
+        // Poeni se upisuju uz stari status, u isti SaveChanges kao i prelaz (kao i brojač).
+        await PoeniPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, poeni.Value, ct);
 
         order.TransitionTo(status);
         await db.SaveChangesAsync(ct);

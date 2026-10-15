@@ -9,8 +9,11 @@ import type {
   GeocodeHit,
   Korpica,
   MojaKorpica,
+  OcjenaIsporuke,
+  OcjeneAdmin,
   Order,
   OrderStatus,
+  MojiPoeni,
   Pretplata,
   Producer,
   Product,
@@ -18,6 +21,7 @@ import type {
   Sedmica,
   TipKorpice,
   Utisak,
+  PromoKod,
   Analiza,
   PartnerPrijava,
   StatusPrijave,
@@ -42,8 +46,10 @@ import type {
   IzmijeniNacrtRequest,
   LoginRequest,
   MojaKorpicaDetalji,
+  OcjenaInput,
   PakerskaLista,
   PretplataInput,
+  ProvjeraPromoKoda,
   ProducerInput,
   ProductInput,
   ProfileInput,
@@ -52,6 +58,7 @@ import type {
   RezultatGenerisanja,
   SadrzajPregled,
   UtisakInput,
+  PromoKodInput,
   AnalizaInput,
   PartnerPrijavaInput,
   PartnerStatusInput,
@@ -200,6 +207,16 @@ export const orderApi = {
 
   track: (token: string) =>
     apiFetch<Order>(`/orders/track/${token}`).then((r) => r.data),
+
+  ocijeni: (id: string, body: OcjenaInput) =>
+    apiFetch<OcjenaIsporuke>(`/orders/${id}/ocjena`, { method: "POST", body }).then((r) => r.data),
+
+  ocijeniPrekoTokena: (token: string, body: OcjenaInput) =>
+    apiFetch<OcjenaIsporuke>(`/orders/track/${token}/ocjena`, {
+      method: "POST",
+      body,
+      auth: false,
+    }).then((r) => r.data),
 };
 
 /* ---------- Auth ---------- */
@@ -271,6 +288,8 @@ export const accountApi = {
       method: "PUT",
       body: { productIds },
     }).then((r) => r.data),
+
+  poeni: () => apiFetch<MojiPoeni>("/account/poeni").then((r) => r.data),
 
   pretplate: () => apiFetch<Pretplata[]>("/account/pretplate").then((r) => r.data),
 
@@ -367,6 +386,24 @@ export const adminApi = {
 
   updateUtisak: (id: string, body: UtisakInput) =>
     apiFetch<Utisak>(`/admin/utisci/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  ocjene: (ocjena?: number) =>
+    apiFetch<OcjeneAdmin>(`/admin/ocjene${ocjena ? `?ocjena=${ocjena}` : ""}`).then((r) => r.data),
+
+  napraviUtisak: (id: string) =>
+    apiFetch<Utisak>(`/admin/ocjene/${id}/utisak`, { method: "POST" }).then((r) => r.data),
+
+  /* Promo kodovi */
+  promoKodovi: () => apiFetch<PromoKod[]>("/admin/promo-kodovi").then((r) => r.data),
+
+  createPromoKod: (body: PromoKodInput) =>
+    apiFetch<PromoKod>("/admin/promo-kodovi", { method: "POST", body }).then((r) => r.data),
+
+  updatePromoKod: (id: string, body: PromoKodInput) =>
+    apiFetch<PromoKod>(`/admin/promo-kodovi/${id}`, { method: "PUT", body }).then((r) => r.data),
+
+  deletePromoKod: (id: string) =>
+    apiFetch<string>(`/admin/promo-kodovi/${id}`, { method: "DELETE" }).then(() => id),
 
   deleteUtisak: (id: string) =>
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
@@ -488,4 +525,17 @@ export const geocodeApi = {
       auth: false,
       query: { lat: String(lat), lon: String(lon) },
     }).then((r) => r.data ?? null),
+};
+
+/* ---------- Promo kodovi ---------- */
+
+export const promoApi = {
+  provjeri: (body: {
+    kod: string;
+    email?: string;
+    items: { productId: string; quantity: number }[];
+  }) =>
+    apiFetch<ProvjeraPromoKoda>("/promo-kodovi/provjera", { method: "POST", body }).then(
+      (r) => r.data,
+    ),
 };

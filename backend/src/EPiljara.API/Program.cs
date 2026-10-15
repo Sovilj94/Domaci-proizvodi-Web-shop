@@ -61,6 +61,10 @@ builder.Services.Configure<ApiBehaviorOptions>(o => o.SuppressModelStateInvalidF
 builder.Services.Configure<KorpiceOpcije>(
     builder.Configuration.GetSection(KorpiceOpcije.Sekcija));
 
+// ----- Poeni (poeni po KM, vrijednost poena, nagrada za preporuku) -----
+builder.Services.Configure<EPiljara.Application.Features.Poeni.PoeniOpcije>(
+    builder.Configuration.GetSection(EPiljara.Application.Features.Poeni.PoeniOpcije.Sekcija));
+
 // ----- Pretplate (prag popusta, koliko unaprijed se pravi narudžba) -----
 builder.Services.Configure<PretplateOpcije>(
     builder.Configuration.GetSection(PretplateOpcije.Sekcija));

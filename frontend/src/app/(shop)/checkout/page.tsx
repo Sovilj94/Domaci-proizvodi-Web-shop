@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,16 +17,19 @@ import { AddressChooser } from "@/components/shop/address-chooser";
 import { CheckEmail } from "@/components/shop/check-email";
 import { OrderReceipt } from "@/components/shop/order-receipt";
 import { OrderSummaryPanel } from "@/components/shop/order-summary-panel";
+import { PromoKodPolje } from "@/components/shop/promo-kod-polje";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import {
   useDeliverySlots,
   useDeliveryZones,
   useKorpiceList,
+  useMojiPoeni,
   useMyAddresses,
   useProducts,
+  queryKeys,
 } from "@/lib/api/hooks";
-import { orderApi } from "@/lib/api/endpoints";
+import { orderApi, promoApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import { pogodiZonu } from "@/lib/zone";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
@@ -78,6 +81,7 @@ const STEPS = [
 export default function CheckoutPage() {
   const { items, subtotal, clear, hydrated, reconcile } = useCart();
   const { user } = useAuth();
+  const qc = useQueryClient();
   const { show } = useToast();
   const zones = useDeliveryZones();
   const slots = useDeliverySlots();
@@ -125,6 +129,8 @@ export default function CheckoutPage() {
   }, [products.data, korpice.isSuccess, korpice.data, items, reconcile, show]);
 
   const [step, setStep] = useState(1);
+  const [promoKod, setPromoKod] = useState<string | null>(null);
+  const [koristiPoene, setKoristiPoene] = useState(false);
   const [form, setForm] = useState({
     ime: "",
     prezime: "",
@@ -198,7 +204,39 @@ export default function CheckoutPage() {
     [zones.data, form.zoneId],
   );
   const deliveryFee = selectedZone?.deliveryFee ?? 0;
-  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
+  // Popust računa server (provjera koda) — klijent ga samo prikazuje.
+  // Provjera ide tek na koraku 3 (e-mail je tada gotov, ne po svakom tasteru); prijavljenom
+  // se e-mail ne šalje jer server koristi nalog. Keš i bez refetch-a na fokus štede
+  // dijeljeni "auth" limit (10/min).
+  const promoEmail = user ? undefined : form.email.trim() || undefined;
+  const promo = useQuery({
+    queryKey: ["promo", promoKod, promoEmail, items.map((i) => [i.productId, i.quantity])],
+    queryFn: () =>
+      promoApi.provjeri({
+        kod: promoKod!,
+        email: promoEmail,
+        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      }),
+    enabled: !!promoKod && items.length > 0 && step === 3,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+  const popust = promo.data?.popust ?? 0;
+  // Poeni (samo prijavljeni). Ista formula kao server (`PoeniPravila.ZaTrosenje`): bez poena ili
+  // robe nema popusta; popust je cijeli broj KM, najviše koliko poeni vrijede, a ne više od robe
+  // (subtotal − promo popust). Poena se troši tačno koliko pokriva taj popust.
+  const poeni = useMojiPoeni(!!user);
+  const stanjePoena = poeni.data?.stanje ?? 0;
+  const vrijednostPoena = poeni.data?.vrijednostPoenaKM ?? 0;
+  const roba = subtotal - popust;
+  const popustPoena =
+    stanjePoena > 0 && roba > 0 && vrijednostPoena > 0
+      ? Math.floor(Math.min(stanjePoena * vrijednostPoena, roba))
+      : 0;
+  const poenaZaTrosenje = vrijednostPoena > 0 ? Math.round(popustPoena / vrijednostPoena) : 0;
+  const poeniPopust = koristiPoene ? popustPoena : 0;
+  const total = Math.round((subtotal - popust - poeniPopust + deliveryFee) * 100) / 100;
   const belowMin = selectedZone ? subtotal < selectedZone.minOrderAmount : false;
 
   // Backend i dalje prima jedno ime i jednu adresu — admin, dispečerski ekran i
@@ -233,11 +271,16 @@ export default function CheckoutPage() {
     mutationFn: (body: CreateOrderRequest) => orderApi.create(body),
     onSuccess: (order) => {
       clear();
+      qc.invalidateQueries({ queryKey: queryKeys.mojiPoeni() });
       setPlaced(order);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     onError: (err) => {
       if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
+      // Server je odbio kod: skini ga, da zastareli popust nestane i kod se ne šalje ponovo.
+      if (err instanceof ApiRequestError && err.apiError.code === "promo_kod_nevazeci") {
+        setPromoKod(null);
+      }
     },
   });
 
@@ -253,6 +296,10 @@ export default function CheckoutPage() {
     },
     onError: (err) => {
       if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
+      // Server je odbio kod: skini ga, da zastareli popust nestane i kod se ne šalje ponovo.
+      if (err instanceof ApiRequestError && err.apiError.code === "promo_kod_nevazeci") {
+        setPromoKod(null);
+      }
     },
   });
 
@@ -270,11 +317,13 @@ export default function CheckoutPage() {
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       latitude: coords?.lat,
       longitude: coords?.lon,
+      // Kod koji je server odbio (promo.isError) se ne šalje i ne blokira narudžbu.
+      promoKod: promo.data ? promoKod ?? undefined : undefined,
     };
     if (gost) {
       guestMutation.mutate(body);
     } else {
-      mutation.mutate(body);
+      mutation.mutate({ ...body, iskoristiPoene: koristiPoene && popustPoena > 0 });
     }
   }
 
@@ -496,6 +545,49 @@ export default function CheckoutPage() {
                 </p>
               </div>
 
+              <PromoKodPolje
+                primijenjen={promoKod}
+                provjera={promo}
+                onPrimijeni={(kod) => {
+                  activeMutation.reset();
+                  setPromoKod(kod);
+                }}
+                onUkloni={() => {
+                  activeMutation.reset();
+                  setPromoKod(null);
+                }}
+                greskaSlanja={
+                  activeMutation.error instanceof ApiRequestError &&
+                  activeMutation.error.apiError.code === "promo_kod_nevazeci"
+                    ? activeMutation.error.message
+                    : undefined
+                }
+              />
+
+              {user && stanjePoena > 0 && (
+                popustPoena > 0 ? (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={koristiPoene}
+                      onChange={(e) => {
+                        activeMutation.reset();
+                        setKoristiPoene(e.target.checked);
+                      }}
+                      className="h-4 w-4 accent-brand-600"
+                    />
+                    <span>
+                      Iskoristi poene ({poenaZaTrosenje} poena = −{formatPrice(popustPoena)})
+                    </span>
+                  </label>
+                ) : (
+                  <p className="text-sm text-muted">
+                    Imaš {stanjePoena} poena — treba ti bar {Math.round(1 / vrijednostPoena)} za
+                    popust od 1 KM.
+                  </p>
+                )
+              )}
+
               {belowMin && selectedZone && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                   Minimalna narudžba za zonu {selectedZone.name} je{" "}
@@ -504,6 +596,7 @@ export default function CheckoutPage() {
               )}
               {activeMutation.isError &&
                 activeMutation.error instanceof ApiRequestError &&
+                activeMutation.error.apiError.code !== "promo_kod_nevazeci" &&
                 Object.keys(activeMutation.error.fieldErrors).length === 0 && (
                   <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                     {activeMutation.error.message}
@@ -521,6 +614,10 @@ export default function CheckoutPage() {
               deliveryFee={deliveryFee}
               total={total}
               zoneName={selectedZone?.name}
+              popust={popust}
+              promoKod={promo.data?.kod}
+              poeniPopust={poeniPopust}
+              iskoristeniPoeni={poenaZaTrosenje}
             />
           </div>
 
@@ -549,7 +646,7 @@ export default function CheckoutPage() {
                   Nastavi <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={!canOrder || activeMutation.isPending}>
+                <Button type="submit" disabled={!canOrder || activeMutation.isPending || (!!promoKod && promo.isFetching)}>
                   {activeMutation.isPending ? "Šaljem…" : "Naruči"}
                 </Button>
               )}
@@ -564,6 +661,10 @@ export default function CheckoutPage() {
             deliveryFee={deliveryFee}
             total={total}
             zoneName={selectedZone?.name}
+            popust={popust}
+            promoKod={promo.data?.kod}
+            poeniPopust={poeniPopust}
+            iskoristeniPoeni={poenaZaTrosenje}
           />
         </aside>
       </div>

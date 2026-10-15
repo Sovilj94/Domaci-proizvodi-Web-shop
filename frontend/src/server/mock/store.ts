@@ -276,6 +276,9 @@ function seedOrder(
     items,
     subtotal,
     deliveryFee: zone.deliveryFee,
+    popust: 0,
+    iskoristeniPoeni: 0,
+    poeniPopust: 0,
     totalAmount: round(subtotal + zone.deliveryFee),
     deliverySlotId: slotId,
     deliverySlot: db.slots.find((s) => s.id === slotId),
@@ -283,6 +286,7 @@ function seedOrder(
     deliveryZoneName: zone.name,
     deliveryAddress: address,
     createdAt: new Date().toISOString(),
+    mozeSeOcijeniti: false,
   };
   db.orders.unshift(order);
   return order;
@@ -389,6 +393,9 @@ export function createOrder(
     items,
     subtotal,
     deliveryFee: zone.deliveryFee,
+    popust: 0,
+    iskoristeniPoeni: 0,
+    poeniPopust: 0,
     totalAmount: round(subtotal + zone.deliveryFee),
     deliverySlotId: slot.id,
     deliverySlot: slot,
@@ -397,6 +404,7 @@ export function createOrder(
     deliveryAddress: req.deliveryAddress,
     note: req.note,
     createdAt: new Date().toISOString(),
+    mozeSeOcijeniti: false,
   };
   db.orders.unshift(order);
   return { order };

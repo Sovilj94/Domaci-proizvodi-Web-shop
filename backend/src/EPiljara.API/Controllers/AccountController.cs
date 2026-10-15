@@ -1,5 +1,6 @@
 using EPiljara.Application.Features.Account;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Pretplate;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +14,10 @@ public class AccountController : ApiControllerBase
     [HttpPut("account/profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] AzurirajProfilCommand command) =>
         Envelope(await Mediator.Send(command));
+
+    [HttpGet("account/poeni")]
+    public async Task<IActionResult> MojiPoeni() =>
+        Envelope(await Mediator.Send(new GetMojiPoeniQuery()));
 
     [HttpGet("account/korpice")]
     public async Task<IActionResult> MojeKorpice() =>

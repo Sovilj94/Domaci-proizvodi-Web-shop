@@ -1,6 +1,8 @@
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Analize;
+using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Recepti;
+using EPiljara.Application.Features.PromoKodovi;
 using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Partneri;
@@ -190,6 +192,30 @@ public class AdminController : ApiControllerBase
     [HttpDelete("admin/utisci/{id:guid}")]
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
+
+    [HttpGet("admin/promo-kodovi")]
+    public async Task<IActionResult> PromoKodovi() =>
+        EnvelopeList(await Mediator.Send(new GetAdminPromoKodoviQuery()));
+
+    [HttpPost("admin/promo-kodovi")]
+    public async Task<IActionResult> CreatePromoKod([FromBody] PromoKodInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreatePromoKodCommand(input)));
+
+    [HttpPut("admin/promo-kodovi/{id:guid}")]
+    public async Task<IActionResult> UpdatePromoKod(Guid id, [FromBody] PromoKodInput input) =>
+        Envelope(await Mediator.Send(new UpdatePromoKodCommand(id, input)));
+
+    [HttpDelete("admin/promo-kodovi/{id:guid}")]
+    public async Task<IActionResult> DeletePromoKod(Guid id) =>
+        Envelope(await Mediator.Send(new DeletePromoKodCommand(id)));
+
+    [HttpGet("admin/ocjene")]
+    public async Task<IActionResult> Ocjene([FromQuery] int? ocjena) =>
+        Envelope(await Mediator.Send(new GetAdminOcjeneQuery(ocjena)));
+
+    [HttpPost("admin/ocjene/{id:guid}/utisak")]
+    public async Task<IActionResult> NapraviUtisakIzOcjene(Guid id) =>
+        EnvelopeCreated(await Mediator.Send(new NapraviUtisakIzOcjeneCommand(id)));
 
     [HttpGet("admin/recepti")]
     public async Task<IActionResult> Recepti() =>

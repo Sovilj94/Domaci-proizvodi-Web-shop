@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Orders;
@@ -39,7 +40,7 @@ public class CreateOrderVlasnikTests
 
     private static CreateOrderHandler Handler(TestDb t, Guid? prijavljen) =>
         new(t.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
-            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()));
+            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
 
     private static CreateOrderCommand Komanda(
         Guid zonaId, Guid slotId, Guid productId,

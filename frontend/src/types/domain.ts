@@ -114,6 +114,10 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
+  popust: number;
+  iskoristeniPoeni: number;
+  poeniPopust: number;
+  promoKod?: string | null;
   totalAmount: number;
   deliverySlotId: string;
   deliverySlot?: DeliverySlot;
@@ -122,6 +126,15 @@ export interface Order {
   deliveryAddress: string;
   note?: string;
   createdAt: string;
+  ocjena?: OcjenaIsporuke;
+  mozeSeOcijeniti: boolean;
+}
+
+export interface OcjenaIsporuke {
+  ocjena: number;
+  komentar: string;
+  dozvolaZaObjavu: boolean;
+  kreirana: string;
 }
 
 export interface RouteStop {
@@ -379,6 +392,8 @@ export interface Utisak {
   tekst: string;
   objavljen: boolean;
   redoslijed: number;
+  /** True kad je utisak nastao iz ocjene isporuke. */
+  izOcjene: boolean;
 }
 
 /* ---------- Recepti (backend `DTOs/ReceptiDtos.cs`) ---------- */
@@ -482,4 +497,75 @@ export interface PartnerPrijava {
   status: StatusPrijave;
   adminNapomena: string;
   kreirana: string;
+}
+
+/* ---------- Admin ocjene (backend `DTOs/OcjeneAdminDtos.cs`) ---------- */
+
+export interface OcjeneSazetak {
+  /** Jedna decimala; 0 kad nema ocjena. */
+  prosjek: number;
+  broj: number;
+  /** Pet brojeva, indeks 0 = jedna zvjezdica. */
+  poBroju: number[];
+}
+
+export interface OcjenaAdmin {
+  id: string;
+  ocjena: number;
+  komentar: string;
+  dozvolaZaObjavu: boolean;
+  kreirana: string;
+  orderId: string;
+  kodNarudzbe: string;
+  kupac: string;
+  zona: string;
+  /** Utisak napravljen iz ove ocjene; izostavljen dok ga nema. */
+  utisakId?: string;
+}
+
+export interface OcjeneAdmin {
+  sazetak: OcjeneSazetak;
+  stavke: OcjenaAdmin[];
+}
+
+export type PromoTip = "Procenat" | "Iznos";
+
+export interface PromoKod {
+  id: string;
+  kod: string;
+  opis: string;
+  tip: PromoTip;
+  vrijednost: number;
+  minIznos: number | null;
+  /** "yyyy-MM-dd" ili null (bez granice). */
+  vaziOd: string | null;
+  vaziDo: string | null;
+  maxKoristenja: number | null;
+  jednomPoKupcu: boolean;
+  samoNoviKupci: boolean;
+  aktivan: boolean;
+  brojKoristenja: number;
+  /** Nijedna narudžba (ni otkazana) ne referencira kod. */
+  mozeSeObrisati: boolean;
+  kreiran: string;
+}
+
+export interface PoeniStavka {
+  /** Pozitivan = zarađeno, negativan = potrošeno. */
+  iznos: number;
+  vrsta: string;
+  opis: string;
+  orderCode?: string | null;
+  kreirana: string;
+}
+
+/** Preslikava `MojiPoeniDto` (backend `DTOs/PoeniDtos.cs`). */
+export interface MojiPoeni {
+  stanje: number;
+  vrijednostPoenaKM: number;
+  vrijednostKM: number;
+  nagradaPreporuka: number;
+  preporukaKod: string;
+  brojPreporuka: number;
+  istorija: PoeniStavka[];
 }

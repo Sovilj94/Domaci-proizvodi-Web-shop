@@ -1,18 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, MapPin, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useMyOrders } from "@/lib/api/hooks";
+import { OcjenaForma } from "@/components/ocjena/ocjena-forma";
+import { Zvjezdice } from "@/components/ocjena/zvjezdice";
+import { orderApi } from "@/lib/api/endpoints";
+import { queryKeys, useMyOrders } from "@/lib/api/hooks";
 import { formatDateTime, formatPrice, unitSuffix } from "@/lib/utils";
 
 export default function OrdersPage() {
   const { user } = useAuth();
   const orders = useMyOrders(!!user);
+  const qc = useQueryClient();
+  const [otvorena, setOtvorena] = useState<string | null>(null);
 
   /*
     Ekran je prenesen iz `/orders` bez redizajna, ali je tamo bio samostalna stranica i nosio
@@ -67,6 +74,27 @@ export default function OrdersPage() {
                     {formatPrice(o.totalAmount)}
                   </span>
                 </div>
+
+                {o.ocjena && (
+                  <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+                    <span className="text-sm text-muted">Vaša ocjena</span>
+                    <Zvjezdice ocjena={o.ocjena.ocjena} />
+                  </div>
+                )}
+                {o.mozeSeOcijeniti && (
+                  <div className="mt-3 border-t border-line pt-3">
+                    {otvorena === o.id ? (
+                      <OcjenaForma
+                        posalji={(i) => orderApi.ocijeni(o.id, i)}
+                        onUspjeh={() => qc.invalidateQueries({ queryKey: queryKeys.myOrders() })}
+                      />
+                    ) : (
+                      <Button variant="secondary" onClick={() => setOtvorena(o.id)}>
+                        Ocijeni isporuku
+                      </Button>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

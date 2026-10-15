@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-14 (P4 i P5)
+# Stanje projekta — 2026-10-15 (P4–P6b)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -9,7 +9,7 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 | Grana | `main` i samo ona. `redizajn-opcija3`, `adresar-mapa`, `pretplate-p3`, `pocetna-p4` i `p5-sadrzaj` su spojene i obrisane. |
 | HEAD | merge P5 (sadržaj) — vidi `git log -1` |
 | Radno stablo | čisto |
-| Nespojeno | ništa |
+| Nespojeno | lanac `p6a-ocjena` → `p6b-promo` → `p6c-poeni` (svaka napravljena na prethodnoj), sve gotove i recenzirane. `p6b-promo` je pushovana na `origin` (2026-10-15); `main` nije diran. Merge čeka odobrenje — spajanjem `p6c-poeni` ulaze sve tri. |
 | `main` vs `origin/main` | **pushovan 2026-10-14** zajedno sa P2c–P5, na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
@@ -206,10 +206,71 @@ smije nuditi proizvod"), `components/analize/analiza-kartica.tsx` (P5 — `/anal
 
 ## Nije urađeno
 
-**Sljedeće na redu je P6** — poeni i referral, promo kodovi, ocjena isporuke (iz nje će utisak
-moći nastati sam).
+**P6 je podijeljen na tri dijela** jer dva diraju iznos narudžbe: **P6a ocjena isporuke** (gotova
+na grani `p6a-ocjena`, vidi dolje), **P6b promo kodovi** (sljedeći — uvodi popust na narudžbi),
+**P6c poeni i referral** (troši poene kao popust, zavisi od P6b). Poslije toga **P7** višejezičnost.
 
-**P6–P7** nisu dirani: poeni, referral, promo kodovi, ocjena isporuke; višejezičnost.
+### P6a — Ocjena isporuke (grana `p6a-ocjena`, nije spojena)
+
+Kupac ocijeni isporučenu narudžbu jednom (1–5 zvjezdica, komentar, dozvola za objavu): sa nalogom iz
+„Mojih narudžbi" (`POST /orders/{id}/ocjena`), gost sa stranice praćenja
+(`POST /orders/track/{token}/ocjena`, politika `auth`). `OrderDto` nosi `ocjena?` i
+`mozeSeOcijeniti`. Admin `/admin/ocjene` (`GET /admin/ocjene?ocjena=`): prosjek, broj, raspodjela,
+filter, lista i „Napravi utisak" (`POST /admin/ocjene/{id}/utisak`) koji pravi **neobjavljen** utisak
+„Ime P." — samo uz dozvolu i komentar od bar 10 znakova. Entitet `OcjenaIsporuke`, `Utisak.OcjenaId`,
+migracija `DodajOcjeneIsporuke` (primijenjena na dev bazu).
+
+Provjere: `dotnet test` 285/285, `tsc`, `lint`, `npm run build` 65/65. Uživo: ocjena kroz UI stranice
+praćenja kao gost, druga ocjena 409, admin sažetak, utisak „Mujo M." (Centar, neobjavljen), javni
+`/utisci` prazan. U dev bazi je ostala **Mujina ocjena (4/5) na `EP-2610-0053`**, kao primjer za admin
+ekran; utisak iz nje je obrisan.
+
+Odloženo iz recenzija: obraćanje „ti/vi" se razlikuje između stranice praćenja i „Mojih narudžbi"
+(postojeće stranice već jesu različite — treba jedan prolaz kroz cijeli sajt); zahvala „Hvala na
+ocjeni!" se ne vidi jer refetch odmah prikaže „Tvoja ocjena"; admin putanje `Order.ToDto` ne učitavaju
+`Ocjena` (polje tamo nije u upotrebi).
+
+### P6b — Promo kodovi (grana `p6b-promo`, nije spojena)
+
+Admin pravi kodove na `/admin/promo-kodovi` (procenat 1–90 ili iznos, važi od/do po datumu u Sarajevu,
+minimum robe, ukupni limit, „jednom po kupcu", „samo prva narudžba", uključen/isključen; kod se ne
+mijenja, briše se samo nekorišćen). Kupac i gost upisuju kod u koraku 3 checkouta; popust računa server
+(`POST /promo-kodovi/provjera`, politika `auth`). Narudžba pamti `PromoKodId`/`PromoKod`/`Popust`,
+`TotalAmount = Subtotal − Popust + DeliveryFee`; red „Popust (KOD)" je na potvrdi, praćenju, admin
+kartici, u mejlu, mejlu gosta i Viberu. Gost: kod se ponovo provjerava pri potvrdi iz mejla (409 i
+brisanje zahtjeva ako više ne važi). Migracija `DodajPromoKodove` (**nije primijenjena na dev bazu** —
+primjenjuje je API pri startu ili `dotnet ef database update`). Demo seed: `DOBRODOSLI` (10 %, samo nova
+narudžba).
+
+**Bezbjednosna popravka u P6b:** `POST /orders` je vezivao komandu direktno iz tijela, pa je prijavljeni
+kupac mogao poslati `customerId` (narudžba na tuđem nalogu) ili `pretplataId` (pretplatna cijena). Sada
+prima `CreateOrderRequest` bez ta dva polja. Rupa postoji na `main` i na `origin` dok se P6b ne spoji.
+
+Provjere: `dotnet test` 352/352, `tsc`, `lint`, `npm run build`. **Ručna provjera kroz UI nije rađena**
+(API i dev server nisu dizani zbog memorije).
+
+Odloženo: limit koda se može preći za jedan pri istovremenim narudžbama (O10); javna provjera koda otkriva
+da li je e-mail ranije naručivao (isto otkriva i zahtjev gosta; pod limitom); pregled na checkoutu i
+narudžba računaju subtotal svaki u svojoj petlji.
+
+### P6c — Poeni i preporuke (grana `p6c-poeni`, napravljena na `p6b-promo`, nije spojena)
+
+Kupac sa nalogom (uloga `Customer`) dobija 1 poen po cijeloj KM plaćene robe kad narudžba pređe u
+`Delivered` (admin ili vozač); 20 poena = 1 KM. Na checkoutu (korak 3) checkbox „Iskoristi poene"
+troši najveći cijeli broj KM koji poeni pokrivaju, poslije promo popusta, nikad na dostavu; otkaz
+vraća potrošeno. Knjiga `PoeniStavka` (stanje = zbir). Lični kod preporuke (8 znakova, pravi se pri
+prvom otvaranju `/moj-nalog/poeni`), link `/register?preporuka=KOD`; kad preporučeni primi prvu
+isporuku, oboje dobiju po 100 poena (baza indeksima čuva jednu nagradu po preporučenom). Narudžbe koje
+admin/vozač unesu sa svog naloga ne zarađuju i ne troše poene. Red „Poeni (N)" na svim prikazima,
+mejlu i Viberu. Migracija `DodajPoene` (nije primijenjena — API je primjenjuje pri startu).
+
+Provjere: `dotnet test` 395/395, `tsc`, `lint`, `npm run build`. **Ručna provjera kroz UI nije rađena.**
+
+Odloženo: dvije istovremene narudžbe istog kupca mogu potrošiti iste poene (O8); istovremena dvostruka
+promjena statusa iste narudžbe drugom zahtjevu vraća 500 (jedinstveni indeks — bolje nego dupli poeni);
+nema admin ekrana za korekciju poena ni isteka poena; preporuka ne radi kroz Google/Facebook prijavu.
+
+**P7** nije diran: višejezičnost.
 
 ## Otvoreni nalazi, nošeni dalje
 

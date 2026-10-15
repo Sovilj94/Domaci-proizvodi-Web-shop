@@ -29,8 +29,12 @@ public interface IAppDbContext
     /// <summary>Nalozi za ponavljanje korpice — vidi Pretplata entitet.</summary>
     DbSet<Pretplata> Pretplate { get; }
 
+    /// <summary>Knjiga poena — vidi PoeniStavka entitet.</summary>
+    DbSet<PoeniStavka> PoeniStavke { get; }
+
     /// <summary>Utisci kupaca za početnu — vidi Utisak entitet.</summary>
     DbSet<Utisak> Utisci { get; }
+    DbSet<OcjenaIsporuke> OcjeneIsporuke { get; }
 
     /// <summary>Recepti i njihovi sastojci — vidi Recept entitet.</summary>
     DbSet<Recept> Recepti { get; }
@@ -44,6 +48,9 @@ public interface IAppDbContext
 
     /// <summary>Tabela sa jednim redom — polazište tura. Vidi Magacin entitet.</summary>
     DbSet<Magacin> Magacin { get; }
+
+    /// <summary>Promo kodovi za popust na robu — vidi PromoKod entitet.</summary>
+    DbSet<PromoKod> PromoKodovi { get; }
 
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
     DatabaseFacade Database { get; }

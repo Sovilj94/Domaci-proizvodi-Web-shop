@@ -20,6 +20,11 @@ public static class ViberMessage
             sb.AppendLine(
                 $"• {it.Quantity.ToString("0.##", CultureInfo.InvariantCulture)} {it.Unit.ToApi()} {it.ProductName}");
         sb.AppendLine();
+        if (order.Popust > 0)
+            sb.AppendLine(
+                $"Popust{(string.IsNullOrWhiteSpace(order.PromoKod) ? "" : $" ({order.PromoKod})")}: −{Money(order.Popust)}");
+        if (order.PoeniPopust > 0)
+            sb.AppendLine($"Poeni ({order.IskoristeniPoeni}): −{Money(order.PoeniPopust)}");
         sb.AppendLine($"Ukupno: {Money(order.TotalAmount)} (plaćanje pouzećem)");
         sb.AppendLine($"Dostava: {order.DeliveryAddress}");
         if (order.DeliverySlot?.Label is { } slot)

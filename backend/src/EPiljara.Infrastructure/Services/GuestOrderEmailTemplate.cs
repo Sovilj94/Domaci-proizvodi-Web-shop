@@ -35,6 +35,14 @@ public static class GuestOrderEmailTemplate
                 """);
         }
 
+        var popustRed = request.Popust > 0
+            ? $$"""
+                <tr><td style="font:600 14px Arial,sans-serif;color:{{Ink}};text-align:right;padding-top:12px">
+                  Popust{{(string.IsNullOrWhiteSpace(request.PromoKod) ? "" : " (" + Enc(request.PromoKod) + ")")}}: −{{Money(request.Popust)}}
+                </td></tr>
+                """
+            : "";
+
         return $$"""
             <!doctype html>
             <html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -56,6 +64,7 @@ public static class GuestOrderEmailTemplate
                     <tr><td>
                       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{{stavke}}</table>
                     </td></tr>
+                    {{popustRed}}
                     <tr><td style="font:700 16px Arial,sans-serif;color:{{Ink}};text-align:right;padding-top:12px;border-top:1px solid #eceeeb">
                       Ukupno: {{Money(request.TotalAmount)}}
                     </td></tr>

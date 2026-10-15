@@ -24,6 +24,12 @@ public record OrderDto
     public IReadOnlyList<OrderItemDto> Items { get; init; } = [];
     public decimal Subtotal { get; init; }
     public decimal DeliveryFee { get; init; }
+    /// <summary>Već uračunat u TotalAmount.</summary>
+    public decimal Popust { get; init; }
+    public string? PromoKod { get; init; }
+    /// <summary>Već uračunat u TotalAmount.</summary>
+    public int IskoristeniPoeni { get; init; }
+    public decimal PoeniPopust { get; init; }
     public decimal TotalAmount { get; init; }
     public Guid DeliverySlotId { get; init; }
     public DeliverySlotDto? DeliverySlot { get; init; }
@@ -32,4 +38,16 @@ public record OrderDto
     public string DeliveryAddress { get; init; } = string.Empty;
     public string? Note { get; init; }
     public DateTime CreatedAt { get; init; }
+    /// <summary>Odsutno dok narudžba nije ocijenjena.</summary>
+    public OcjenaDto? Ocjena { get; init; }
+    /// <summary>Isporučena i još neocijenjena.</summary>
+    public bool MozeSeOcijeniti { get; init; }
+}
+
+public record OcjenaDto
+{
+    public int Ocjena { get; init; }
+    public string Komentar { get; init; } = string.Empty;
+    public bool DozvolaZaObjavu { get; init; }
+    public DateTime Kreirana { get; init; }
 }

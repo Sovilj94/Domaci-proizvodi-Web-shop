@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Features.Korpice;
@@ -108,7 +109,7 @@ internal sealed class Scena
     public Task<OrderDto> Naruci() =>
         new CreateOrderHandler(
                 _t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()))
+                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()))
             .Handle(Komanda(), default);
 
     public CreateOrderCommand Komanda() => new(

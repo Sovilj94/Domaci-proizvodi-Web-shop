@@ -100,6 +100,18 @@ export function OrderCard({
                 <span>Dostava</span>
                 <span>{formatPrice(order.deliveryFee)}</span>
               </div>
+              {order.popust > 0 && (
+                <div className="flex justify-between text-brand-700">
+                  <span>Popust{order.promoKod ? ` (${order.promoKod})` : ""}</span>
+                  <span>−{formatPrice(order.popust)}</span>
+                </div>
+              )}
+              {order.poeniPopust > 0 && (
+                <div className="flex justify-between text-brand-700">
+                  <span>Poeni ({order.iskoristeniPoeni})</span>
+                  <span>−{formatPrice(order.poeniPopust)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-display text-base font-bold">
                 <span>Ukupno</span>
                 <span>{formatPrice(order.totalAmount)}</span>

@@ -101,6 +101,10 @@ public static class MappingExtensions
         Items = o.Items.Select(x => x.ToDto()).ToList(),
         Subtotal = o.Subtotal,
         DeliveryFee = o.DeliveryFee,
+        Popust = o.Popust,
+        PromoKod = o.PromoKod,
+        IskoristeniPoeni = o.IskoristeniPoeni,
+        PoeniPopust = o.PoeniPopust,
         TotalAmount = o.TotalAmount,
         DeliverySlotId = o.DeliverySlotId,
         DeliverySlot = o.DeliverySlot?.ToDto(),
@@ -109,6 +113,16 @@ public static class MappingExtensions
         DeliveryAddress = o.DeliveryAddress,
         Note = o.Note,
         CreatedAt = o.CreatedAt,
+        Ocjena = o.Ocjena?.ToDto(),
+        MozeSeOcijeniti = o.Status == OrderStatus.Delivered && o.Ocjena is null,
+    };
+
+    public static OcjenaDto ToDto(this OcjenaIsporuke o) => new()
+    {
+        Ocjena = o.Ocjena,
+        Komentar = o.Komentar,
+        DozvolaZaObjavu = o.DozvolaZaObjavu,
+        Kreirana = o.Kreirana,
     };
 
     public static DriverDto ToDto(this Driver d) => new()

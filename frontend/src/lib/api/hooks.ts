@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { analizeApi, catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
+import { accountApi, analizeApi, catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
 
 export const queryKeys = {
   products: (q: ProductQuery) => ["products", q] as const,
@@ -18,8 +18,11 @@ export const queryKeys = {
   mojeKorpice: () => ["account", "korpice"] as const,
   mojaKorpica: (id: string) => ["account", "korpica", id] as const,
   pretplate: () => ["account", "pretplate"] as const,
+  mojiPoeni: () => ["account", "poeni"] as const,
   utisci: () => ["utisci"] as const,
   adminUtisci: () => ["admin", "utisci"] as const,
+  adminPromoKodovi: () => ["admin", "promo-kodovi"] as const,
+  adminOcjene: (ocjena?: number) => ["admin", "ocjene", ocjena ?? "sve"] as const,
   recepti: () => ["recepti"] as const,
   recept: (slug: string) => ["recepti", slug] as const,
   adminRecepti: () => ["admin", "recepti"] as const,
@@ -168,5 +171,13 @@ export function useAnalize(producer?: string) {
   return useQuery({
     queryKey: queryKeys.analize(producer),
     queryFn: () => analizeApi.lista(producer),
+  });
+}
+
+export function useMojiPoeni(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.mojiPoeni(),
+    queryFn: () => accountApi.poeni(),
+    enabled,
   });
 }

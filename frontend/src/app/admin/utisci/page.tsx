@@ -81,6 +81,11 @@ export default function AdminUtisciPage() {
                       >
                         {u.objavljen ? "Objavljen" : "Skriven"}
                       </span>
+                      {u.izOcjene && (
+                        <span className="ml-2 rounded-full bg-honey-100 px-2 py-0.5 text-xs font-medium text-ink">
+                          iz ocjene
+                        </span>
+                      )}
                     </p>
                     <p className="mt-1 line-clamp-2 text-sm text-muted">{u.tekst}</p>
                     <p className="mt-1 text-xs text-muted">Redoslijed: {u.redoslijed}</p>
