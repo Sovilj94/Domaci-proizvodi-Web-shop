@@ -44,6 +44,31 @@ public class PromoKodoviAdminTests
     }
 
     [Fact]
+    public async Task Kod_koristen_samo_na_otkazanoj_narudzbi_ima_nula_koristenja_ali_se_ne_brise()
+    {
+        using var t = new TestDb();
+        var dto = await new CreatePromoKodHandler(t.Db).Handle(new CreatePromoKodCommand(Ulaz()), default);
+        DodajNarudzbu(t, dto.Id, OrderStatus.Cancelled, "EP-0001");
+
+        var lista = await new GetAdminPromoKodoviHandler(t.Db).Handle(new GetAdminPromoKodoviQuery(), default);
+
+        var k = Assert.Single(lista);
+        Assert.Equal(0, k.BrojKoristenja);
+        Assert.False(k.MozeSeObrisati);
+    }
+
+    [Fact]
+    public async Task Kod_bez_narudzbi_moze_se_obrisati()
+    {
+        using var t = new TestDb();
+        await new CreatePromoKodHandler(t.Db).Handle(new CreatePromoKodCommand(Ulaz()), default);
+
+        var lista = await new GetAdminPromoKodoviHandler(t.Db).Handle(new GetAdminPromoKodoviQuery(), default);
+
+        Assert.True(Assert.Single(lista).MozeSeObrisati);
+    }
+
+    [Fact]
     public async Task Create_normalizuje_kod()
     {
         using var t = new TestDb();

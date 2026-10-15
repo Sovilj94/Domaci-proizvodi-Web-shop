@@ -15,6 +15,7 @@ public static class DbSeeder
         if (await db.Categories.AnyAsync(ct))
         {
             await SeedReceptiAsync(db, ct);
+            await SeedPromoKodoviAsync(db, ct);
             return;
         }
 

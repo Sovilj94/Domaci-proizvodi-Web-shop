@@ -16,7 +16,7 @@ internal static class PromoKodMapiranje
     public static IQueryable<Order> NeotkazaneSaKodom(this IQueryable<Order> q) =>
         q.Where(o => o.PromoKodId != null && o.Status != OrderStatus.Cancelled);
 
-    public static PromoKodDto ToDto(this PromoKod k, int brojKoristenja) => new()
+    public static PromoKodDto ToDto(this PromoKod k, int brojKoristenja, bool mozeSeObrisati) => new()
     {
         Id = k.Id,
         Kod = k.Kod,
@@ -31,6 +31,7 @@ internal static class PromoKodMapiranje
         SamoNoviKupci = k.SamoNoviKupci,
         Aktivan = k.Aktivan,
         BrojKoristenja = brojKoristenja,
+        MozeSeObrisati = mozeSeObrisati,
         Kreiran = k.Kreiran,
     };
 }
@@ -49,7 +50,14 @@ public class GetAdminPromoKodoviHandler(IAppDbContext db)
             .GroupBy(o => o.PromoKodId!.Value)
             .Select(g => new { Id = g.Key, Broj = g.Count() })
             .ToDictionaryAsync(x => x.Id, x => x.Broj, ct);
-        return kodovi.Select(k => k.ToDto(brojevi.GetValueOrDefault(k.Id))).ToList();
+        // Za brisanje se računaju i otkazane (FK je Restrict) — drugi grupisani upit, ne N+1.
+        var saNarudzbama = (await db.Orders
+            .Where(o => o.PromoKodId != null)
+            .Select(o => o.PromoKodId!.Value)
+            .Distinct()
+            .ToListAsync(ct)).ToHashSet();
+        return kodovi.Select(k => k.ToDto(
+            brojevi.GetValueOrDefault(k.Id), !saNarudzbama.Contains(k.Id))).ToList();
     }
 }
 
@@ -132,7 +140,7 @@ public class CreatePromoKodHandler(IAppDbContext db) : IRequestHandler<CreatePro
                 throw Postoji();
             throw;
         }
-        return kod.ToDto(0);
+        return kod.ToDto(0, true);
     }
 
     private static ConflictException Postoji() =>
@@ -176,7 +184,8 @@ public class UpdatePromoKodHandler(IAppDbContext db) : IRequestHandler<UpdatePro
         await db.SaveChangesAsync(ct);
         var broj = await db.Orders.NeotkazaneSaKodom().CountAsync(
             o => o.PromoKodId == kod.Id, ct);
-        return kod.ToDto(broj);
+        var saNarudzbom = await db.Orders.AnyAsync(o => o.PromoKodId == kod.Id, ct);
+        return kod.ToDto(broj, !saNarudzbom);
     }
 }
 

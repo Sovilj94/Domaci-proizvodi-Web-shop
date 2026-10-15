@@ -201,15 +201,21 @@ export default function CheckoutPage() {
   );
   const deliveryFee = selectedZone?.deliveryFee ?? 0;
   // Popust računa server (provjera koda) — klijent ga samo prikazuje.
+  // Provjera ide tek na koraku 3 (e-mail je tada gotov, ne po svakom tasteru); prijavljenom
+  // se e-mail ne šalje jer server koristi nalog. Keš i bez refetch-a na fokus štede
+  // dijeljeni "auth" limit (10/min).
+  const promoEmail = user ? undefined : form.email.trim() || undefined;
   const promo = useQuery({
-    queryKey: ["promo", promoKod, form.email, items.map((i) => [i.productId, i.quantity])],
+    queryKey: ["promo", promoKod, promoEmail, items.map((i) => [i.productId, i.quantity])],
     queryFn: () =>
       promoApi.provjeri({
         kod: promoKod!,
-        email: form.email || undefined,
+        email: promoEmail,
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       }),
-    enabled: !!promoKod && items.length > 0,
+    enabled: !!promoKod && items.length > 0 && step === 3,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
     retry: false,
   });
   const popust = promo.data?.popust ?? 0;

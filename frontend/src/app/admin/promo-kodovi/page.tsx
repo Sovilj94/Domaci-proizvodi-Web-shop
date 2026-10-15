@@ -145,7 +145,7 @@ export default function AdminPromoKodoviPage() {
         >
           <Power className="h-4 w-4" />
         </button>
-        {p.brojKoristenja === 0 && (
+        {p.mozeSeObrisati && (
           <button
             onClick={() => setConfirmId(p.id)}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-red-50 hover:text-red-600"

@@ -44,7 +44,7 @@ const PRAZNO: FormState = {
 function broj(v: string): number | null {
   const t = v.trim().replace(",", ".");
   if (t === "") return null;
-  const n = /^d+(.d+)?$/.test(t) ? Number(t) : NaN;
+  const n = /^\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
   return Number.isFinite(n) ? n : NaN;
 }
 

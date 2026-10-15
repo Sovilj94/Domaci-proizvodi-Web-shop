@@ -51,7 +51,7 @@ public static class PromoKodPravila
             await aktivne.CountAsync(o => o.PromoKodId == kod.Id, ct) >= max)
             throw new DomainException("Promo kod je iskorišten.", Greska);
 
-        var email = string.IsNullOrWhiteSpace(kupac.Email) ? null : kupac.Email.Trim().ToLower();
+        var email = string.IsNullOrWhiteSpace(kupac.Email) ? null : kupac.Email.Trim().ToLowerInvariant();
         if (kupac.CustomerId is null && email is null)
             return kod; // nema po čemu prepoznati kupca; konačna provjera pri slanju ima e-mail
 

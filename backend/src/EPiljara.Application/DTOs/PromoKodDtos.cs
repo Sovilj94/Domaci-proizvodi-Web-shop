@@ -16,6 +16,8 @@ public record PromoKodDto
     public bool Aktivan { get; init; }
     /// <summary>Neotkazane narudžbe sa ovim kodom — isti broj koji provjerava limit.</summary>
     public int BrojKoristenja { get; init; }
+    /// <summary>Nijedna narudžba (ni otkazana) ne referencira kod — isto pravilo kao brisanje.</summary>
+    public bool MozeSeObrisati { get; init; }
     public DateTime Kreiran { get; init; }
 }
 

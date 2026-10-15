@@ -149,6 +149,22 @@ public class PromoKodNarudzbeTests
     }
 
     [Fact]
+    public async Task Potvrda_uzima_id_koda_iz_provjerenog_koda_kad_je_veza_na_zahtjevu_pukla()
+    {
+        using var o = await Okruzenje.NapraviAsync();
+        var kod = await o.KodAsync();
+        await o.ZahtjevAsync("JESEN5");
+        var zahtjev = await o.T.Db.GuestOrderRequests.SingleAsync();
+        // Simulira SetNull: kod je obrisan i ponovo kreiran, zahtjev je ostao bez Id-a.
+        zahtjev.PromoKodId = null;
+        await o.T.Db.SaveChangesAsync();
+
+        await o.PotvrdiAsync(zahtjev.Token);
+
+        (await o.T.Db.Orders.SingleAsync()).PromoKodId.Should().Be(kod.Id);
+    }
+
+    [Fact]
     public async Task Gost_jednom_po_kupcu_drugu_potvrdu_odbija_i_brise_zahtjev()
     {
         using var o = await Okruzenje.NapraviAsync();

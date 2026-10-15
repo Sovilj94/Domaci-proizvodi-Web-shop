@@ -277,11 +277,14 @@ public class ConfirmGuestOrderHandler(
 
         // Ponovna provjera (O11): bez nje bi gost sa pet zahtjeva istim e-mailom iskoristio
         // „jednom po kupcu" pet puta. Popust se ne preračunava — kupac plaća ono što je vidio.
+        // Id koda se uzima iz provjerenog koda, ne iz zahtjeva: FK na zahtjevu je SetNull,
+        // pa bi obrisan i ponovo kreiran kod ostavio narudžbu bez veze sa kodom.
+        PromoKod? provjeren = null;
         if (zahtjev.PromoKod is not null)
         {
             try
             {
-                await PromoKodPravila.ProvjeriAsync(db, zahtjev.PromoKod, zahtjev.Subtotal,
+                provjeren = await PromoKodPravila.ProvjeriAsync(db, zahtjev.PromoKod, zahtjev.Subtotal,
                     new KupacZaPromo(null, zahtjev.CustomerEmail), LokalniDatum.Danas(), ct);
             }
             catch (DomainException e) when (e.Code == PromoKodPravila.Greska)
@@ -340,7 +343,7 @@ public class ConfirmGuestOrderHandler(
             // kad je poslao formu, to je i smisao snimka.
             Subtotal = zahtjev.Subtotal,
             DeliveryFee = zahtjev.DeliveryFee,
-            PromoKodId = zahtjev.PromoKodId,
+            PromoKodId = provjeren?.Id ?? zahtjev.PromoKodId,
             PromoKod = zahtjev.PromoKod,
             Popust = zahtjev.Popust,
             TotalAmount = zahtjev.TotalAmount,

@@ -543,5 +543,7 @@ export interface PromoKod {
   samoNoviKupci: boolean;
   aktivan: boolean;
   brojKoristenja: number;
+  /** Nijedna narudžba (ni otkazana) ne referencira kod. */
+  mozeSeObrisati: boolean;
   kreiran: string;
 }
