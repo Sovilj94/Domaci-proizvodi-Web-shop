@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Poeni;
 using System.Text.Json;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Orders;
@@ -52,7 +53,7 @@ public class PromoKodNarudzbeTests
 
         public CreateOrderHandler Handler(Guid? prijavljen) =>
             new(T.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
-                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()));
+                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
 
         public CreateOrderCommand Komanda(string? kod, decimal kolicina = 1m) =>
             new(new CustomerInput("Mujo", "mujo@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,

@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Orders;
@@ -34,7 +35,7 @@ public class CreateOrderSedmicaTests
 
     private static CreateOrderHandler Handler(TestDb t) =>
         new(t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()));
+            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
 
     [Fact]
     public async Task Narudzba_dobija_ISO_sedmicu_isporuke()

@@ -77,6 +77,21 @@ public class MojiPoeniTests
     }
 
     [Fact]
+    public async Task Postojeci_kod_se_nikad_ne_prepisuje()
+    {
+        using var t = new TestDb();
+        var u = await KorisnikAsync(t);
+        u.PreporukaKod = "ABCD2345";
+        await t.Db.SaveChangesAsync();
+
+        var dto = await PozoviAsync(t, u.Id);
+
+        dto.PreporukaKod.Should().Be("ABCD2345");
+        t.Db.ChangeTracker.Clear();
+        (await t.Db.Users.AsNoTracking().SingleAsync()).PreporukaKod.Should().Be("ABCD2345");
+    }
+
+    [Fact]
     public async Task Neprijavljen_ne_moze_da_vidi_poene()
     {
         using var t = new TestDb();
@@ -199,6 +214,12 @@ public class MojiPoeniTests
         await RegistrujAsync(t, "NEPOZNAT");
 
         (await NoviAsync(t)).PreporucioId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Kod_sa_razmacima_prolazi_validaciju()
+    {
+        new RegisterValidator().Validate(Registracija(" ABCD2345 ")).IsValid.Should().BeTrue();
     }
 
     [Fact]

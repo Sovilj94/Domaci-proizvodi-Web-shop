@@ -169,6 +169,7 @@ public class PoeniNarudzbeTests
 
         dto.IskoristeniPoeni.Should().Be(0);
         dto.TotalAmount.Should().Be(23m);
+        (await o.T.Db.PoeniStavke.CountAsync()).Should().Be(0);
     }
 
     [Fact]

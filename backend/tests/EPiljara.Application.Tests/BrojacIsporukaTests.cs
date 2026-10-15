@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Driver;
 using EPiljara.Domain.Entities;
@@ -14,7 +15,7 @@ namespace EPiljara.Application.Tests;
 public class BrojacIsporukaTests
 {
     private static readonly Microsoft.Extensions.Options.IOptions<EPiljara.Application.Features.Poeni.PoeniOpcije> PoeniOpts =
-        Microsoft.Extensions.Options.Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije());
+        Microsoft.Extensions.Options.Options.Create(new PoeniOpcije());
 
     private sealed class Scena : IDisposable
     {

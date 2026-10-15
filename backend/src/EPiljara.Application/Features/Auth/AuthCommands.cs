@@ -29,7 +29,8 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
         RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Unesite ispravan email.");
         RuleFor(x => x.Phone).NotEmpty().WithMessage("Telefon je obavezan.");
         RuleFor(x => x.Password).MinimumLength(6).WithMessage("Lozinka mora imati najmanje 6 znakova.");
-        RuleFor(x => x.PreporukaKod).MaximumLength(8)
+        RuleFor(x => (x.PreporukaKod ?? "").Trim()).MaximumLength(8)
+            .OverridePropertyName("preporukaKod")
             .When(x => x.PreporukaKod is not null)
             .WithMessage("Kod preporuke je predugačak.");
     }

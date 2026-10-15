@@ -29,24 +29,35 @@ public class GetMojiPoeniHandler(IAppDbContext db, ICurrentUser current, IOption
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == current.Id, ct)
             ?? throw new UnauthorizedException("Niste prijavljeni.");
 
-        // Kod se pravi tek kad ga neko prvi put traži — ne treba ga pravilo pri registraciji
-        // ni migracija za postojeće korisnike. Indeks je jedinstven, pa je provjera ispod
-        // samo da se izbjegne očekivani sudar; 5 pokušaja je s ovim prostorom previše.
-        if (string.IsNullOrEmpty(user.PreporukaKod))
+        // Upis je uslovan (samo dok je kod još prazan): dva istovremena prvog poziva ne smiju
+        // jedan drugom prepisati kod koji je prvi već podijelio. Zato se na kraju vraća ono što
+        // je STVARNO upisano, a ne ono što je ovaj zahtjev izvukao.
+        var kodKorisnika = user.PreporukaKod;
+        if (string.IsNullOrEmpty(kodKorisnika))
         {
-            for (var i = 0; i < Pokusaja && string.IsNullOrEmpty(user.PreporukaKod); i++)
+            for (var i = 0; i < Pokusaja && string.IsNullOrEmpty(kodKorisnika); i++)
             {
                 var kod = string.Create(DuzinaKoda, 0, (span, _) =>
                 {
                     for (var k = 0; k < span.Length; k++)
                         span[k] = Abeceda[RandomNumberGenerator.GetInt32(Abeceda.Length)];
                 });
-                if (!await db.Users.AnyAsync(u => u.PreporukaKod == kod, ct))
-                    user.PreporukaKod = kod;
+                if (await db.Users.AnyAsync(u => u.PreporukaKod == kod, ct)) continue;
+                var id = user.Id;
+                try
+                {
+                    await db.Users.Where(u => u.Id == id && u.PreporukaKod == null)
+                        .ExecuteUpdateAsync(s => s.SetProperty(u => u.PreporukaKod, kod), ct);
+                }
+                catch (DbUpdateException)
+                {
+                    continue; // sudar sa tuđim kodom u istom trenutku — novi pokušaj
+                }
+                kodKorisnika = await db.Users.AsNoTracking().Where(u => u.Id == id)
+                    .Select(u => u.PreporukaKod).FirstOrDefaultAsync(ct);
             }
-            if (string.IsNullOrEmpty(user.PreporukaKod))
+            if (string.IsNullOrEmpty(kodKorisnika))
                 throw new DomainException("Kod preporuke trenutno nije moguće napraviti. Pokušajte ponovo.", "kod_preporuke");
-            await db.SaveChangesAsync(ct);
         }
 
         var stanje = await PoeniPravila.StanjeAsync(db, user.Id, ct);
@@ -75,7 +86,7 @@ public class GetMojiPoeniHandler(IAppDbContext db, ICurrentUser current, IOption
             VrijednostPoenaKM = o.VrijednostPoenaKM,
             VrijednostKM = Math.Max(0, stanje) * o.VrijednostPoenaKM,
             NagradaPreporuka = o.NagradaPreporuka,
-            PreporukaKod = user.PreporukaKod!,
+            PreporukaKod = kodKorisnika,
             BrojPreporuka = brojPreporuka,
             Istorija = stavke.Select(s =>
             {
