@@ -51,6 +51,8 @@ function obidji(koren: Node) {
 }
 
 function naslov() {
+  // Admin (oznaka u app/admin/layout.tsx) ostaje latinica, i njegov naslov.
+  if (document.querySelector("[data-admin]")) return;
   const c = uCirilicu(document.title);
   if (c !== document.title) document.title = c;
 }
