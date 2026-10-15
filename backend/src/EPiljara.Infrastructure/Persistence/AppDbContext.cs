@@ -160,6 +160,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Name).HasMaxLength(160).IsRequired();
             e.Property(x => x.Email).HasMaxLength(256).IsRequired();
             e.Property(x => x.Role).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Pismo).HasConversion<string>().HasMaxLength(16).HasDefaultValue(Pismo.Latinica);
             e.HasIndex(x => x.Email).IsUnique();
             e.Property(x => x.PreporukaKod).HasMaxLength(8);
             // Filter jer većina naloga nema kod; bez njega bi null kodovi branili jedan drugog.
@@ -205,6 +206,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<Order>(e =>
         {
             e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Pismo).HasConversion<string>().HasMaxLength(16).HasDefaultValue(Pismo.Latinica);
             e.Property(x => x.CustomerName).HasMaxLength(160).IsRequired();
             e.Property(x => x.CustomerPhone).HasMaxLength(40);
             e.Property(x => x.CustomerEmail).HasMaxLength(256);
@@ -406,6 +408,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<GuestOrderRequest>(b =>
         {
             b.Property(r => r.Token).HasMaxLength(32).IsRequired();
+            b.Property(r => r.Pismo).HasConversion<string>().HasMaxLength(16).HasDefaultValue(Pismo.Latinica);
             b.HasIndex(r => r.Token).IsUnique();
             b.HasIndex(r => r.ExpiresAt);
             b.Property(r => r.CustomerEmail).IsRequired();

@@ -15,6 +15,10 @@ public class AccountController : ApiControllerBase
     public async Task<IActionResult> UpdateProfile([FromBody] AzurirajProfilCommand command) =>
         Envelope(await Mediator.Send(command));
 
+    [HttpPut("account/pismo")]
+    public async Task<IActionResult> PostaviPismo([FromBody] PostaviPismoCommand command) =>
+        Envelope(await Mediator.Send(command));
+
     [HttpGet("account/poeni")]
     public async Task<IActionResult> MojiPoeni() =>
         Envelope(await Mediator.Send(new GetMojiPoeniQuery()));

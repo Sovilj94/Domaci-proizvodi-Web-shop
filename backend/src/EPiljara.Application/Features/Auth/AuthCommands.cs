@@ -36,7 +36,7 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
     }
 }
 
-public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailService email)
+public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailService email, ICurrentUser current)
     : IRequestHandler<RegisterCommand, RegisterResultDto>
 {
     public async Task<RegisterResultDto> Handle(RegisterCommand cmd, CancellationToken ct)
@@ -68,6 +68,7 @@ public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailSer
             EmailConfirmed = false,
             EmailConfirmationToken = token,
             PreporucioId = preporucioId,
+            Pismo = current.Pismo,
         };
 
         db.Users.Add(user);

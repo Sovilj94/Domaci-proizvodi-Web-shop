@@ -10,6 +10,8 @@ public record AuthUserDto
     public Guid? DeliveryZoneId { get; init; }
     /// <summary>"customer" | "admin" | "driver".</summary>
     public string Role { get; init; } = "customer";
+    /// <summary>"Latinica" | "Cirilica" — pismo naloga, da ga klijent preuzme na novom uređaju.</summary>
+    public string Pismo { get; init; } = "Latinica";
 }
 
 public record AuthResultDto

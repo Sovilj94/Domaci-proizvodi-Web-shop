@@ -152,6 +152,7 @@ public static class MappingExtensions
         Address = u.Address,
         DeliveryZoneId = u.DeliveryZoneId,
         Role = u.Role.ToString().ToLowerInvariant(),
+        Pismo = u.Pismo.ToString(),
     };
 
     public static RouteStopDto ToDto(this RouteStop s) => new()

@@ -227,6 +227,12 @@ public class CreateOrderHandler(
             (iskoristeniPoeni, poeniPopust) = PoeniPravila.ZaTrosenje(stanje, subtotal - popust, poeniOpcije.Value);
         }
 
+        // Posao pretplata nema zahtjev (njegov ICurrentUser je uvijek latinica), pa pismo
+        // pretplatne narudžbe dolazi sa naloga vlasnika.
+        var pismo = cmd.PretplataId is not null && customerId is { } vlasnikId
+            ? await db.Users.Where(u => u.Id == vlasnikId).Select(u => u.Pismo).FirstOrDefaultAsync(ct)
+            : current.Pismo;
+
         var order = new Order
         {
             Code = await OrderCode.GenerateAsync(db, ct),
@@ -256,6 +262,7 @@ public class CreateOrderHandler(
             Latitude = cmd.Latitude,
             Longitude = cmd.Longitude,
             PretplataId = cmd.PretplataId,
+            Pismo = pismo,
         };
 
         db.Orders.Add(order);
