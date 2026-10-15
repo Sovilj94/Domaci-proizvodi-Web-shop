@@ -146,7 +146,7 @@ public class PretplatneNarudzbeTests
             {
                 var dto = await new CreateOrderHandler(
                         db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-                        Options.Create(new KorpiceOpcije()), Options.Create(opcije))
+                        Options.Create(new KorpiceOpcije()), Options.Create(opcije), Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()))
                     .Handle(cmd, cancellationToken);
                 if (puca || (pucaZa is not null && cmd.PretplataId == pucaZa))
                     throw new InvalidOperationException("Pad poslije nastanka narudžbe.");

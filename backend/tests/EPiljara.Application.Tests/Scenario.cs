@@ -252,7 +252,7 @@ internal sealed class Scenario : IDisposable
 
     private CreateOrderHandler Handler() => new(
         Db, new FakeCurrentUser(_prijavljen ? KupacId : null), new FakeEmail(), new FakeViber(),
-        Options.Create(Opcije), Options.Create(new PretplateOpcije()));
+        Options.Create(Opcije), Options.Create(new PretplateOpcije()), Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()));
 
     private CreateOrderCommand Komanda(Guid productId, decimal kolicina) => new(
         new CustomerInput("Test Kupac", "test@example.com", "065 000 000"),

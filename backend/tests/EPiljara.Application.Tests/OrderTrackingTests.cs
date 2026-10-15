@@ -108,7 +108,7 @@ internal sealed class Scena
     public Task<OrderDto> Naruci() =>
         new CreateOrderHandler(
                 _t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()))
+                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()))
             .Handle(Komanda(), default);
 
     public CreateOrderCommand Komanda() => new(

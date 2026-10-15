@@ -27,6 +27,9 @@ public record OrderDto
     /// <summary>Već uračunat u TotalAmount.</summary>
     public decimal Popust { get; init; }
     public string? PromoKod { get; init; }
+    /// <summary>Već uračunat u TotalAmount.</summary>
+    public int IskoristeniPoeni { get; init; }
+    public decimal PoeniPopust { get; init; }
     public decimal TotalAmount { get; init; }
     public Guid DeliverySlotId { get; init; }
     public DeliverySlotDto? DeliverySlot { get; init; }

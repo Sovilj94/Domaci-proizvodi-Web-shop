@@ -74,6 +74,14 @@ public static class OrderEmailTemplate
                 """
             : "";
 
+        // Odmah ispod popusta, istog stila; samo kad su poeni zaista potrošeni.
+        var poeniRow = order.PoeniPopust > 0
+            ? $$"""
+                <tr><td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Muted}}">Poeni ({{order.IskoristeniPoeni}})</td>
+                    <td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Green}};text-align:right">−{{Money(order.PoeniPopust)}}</td></tr>
+                """
+            : "";
+
         var trackRow = string.IsNullOrWhiteSpace(trackUrl)
             ? ""
             : $"""
@@ -111,6 +119,7 @@ public static class OrderEmailTemplate
                     <tr><td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Muted}}">Dostava{{(order.DeliveryZone is not null ? " · " + Enc(order.DeliveryZone.Name) : "")}}</td>
                         <td style="padding:4px 0;font:400 14px Arial,sans-serif;color:{{Ink}};text-align:right">{{Money(order.DeliveryFee)}}</td></tr>
                     {{popustRow}}
+                    {{poeniRow}}
                     <tr><td style="padding:12px 0 0;font:800 17px Arial,sans-serif;color:{{Ink}};border-top:1px solid {{Line}}">Ukupno</td>
                         <td style="padding:12px 0 0;font:800 17px Arial,sans-serif;color:{{Ink}};text-align:right;border-top:1px solid {{Line}}">{{Money(order.TotalAmount)}}</td></tr>
                   </table>

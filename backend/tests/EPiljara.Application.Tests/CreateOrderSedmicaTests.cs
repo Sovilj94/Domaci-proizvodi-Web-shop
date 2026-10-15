@@ -34,7 +34,7 @@ public class CreateOrderSedmicaTests
 
     private static CreateOrderHandler Handler(TestDb t) =>
         new(t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()));
+            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new EPiljara.Application.Features.Poeni.PoeniOpcije()));
 
     [Fact]
     public async Task Narudzba_dobija_ISO_sedmicu_isporuke()

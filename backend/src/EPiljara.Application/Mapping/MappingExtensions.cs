@@ -103,6 +103,8 @@ public static class MappingExtensions
         DeliveryFee = o.DeliveryFee,
         Popust = o.Popust,
         PromoKod = o.PromoKod,
+        IskoristeniPoeni = o.IskoristeniPoeni,
+        PoeniPopust = o.PoeniPopust,
         TotalAmount = o.TotalAmount,
         DeliverySlotId = o.DeliverySlotId,
         DeliverySlot = o.DeliverySlot?.ToDto(),

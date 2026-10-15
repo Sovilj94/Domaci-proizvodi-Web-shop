@@ -2,6 +2,7 @@ using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Features.PromoKodovi;
 using EPiljara.Application.Mapping;
@@ -38,7 +39,8 @@ public record CreateOrderCommand(
     double? Longitude = null,
     Guid? CustomerId = null,
     Guid? PretplataId = null,
-    string? PromoKod = null) : IRequest<OrderDto>;
+    string? PromoKod = null,
+    bool IskoristiPoene = false) : IRequest<OrderDto>;
 
 /// <summary>
 /// Tijelo <c>POST /orders</c>. Namjerno bez <c>CustomerId</c> i <c>PretplataId</c>: dok je
@@ -49,11 +51,12 @@ public record CreateOrderCommand(
 public record CreateOrderRequest(
     CustomerInput Customer, Guid DeliveryZoneId, Guid DeliverySlotId, string DeliveryAddress,
     string? Note, IReadOnlyList<OrderItemInput> Items,
-    double? Latitude = null, double? Longitude = null, string? PromoKod = null)
+    double? Latitude = null, double? Longitude = null, string? PromoKod = null,
+    bool IskoristiPoene = false)
 {
     public CreateOrderCommand ToCommand() => new(
         Customer, DeliveryZoneId, DeliverySlotId, DeliveryAddress, Note, Items,
-        Latitude, Longitude, PromoKod: PromoKod);
+        Latitude, Longitude, PromoKod: PromoKod, IskoristiPoene: IskoristiPoene);
 }
 
 public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
@@ -122,7 +125,8 @@ public class CreateOrderHandler(
     IEmailService email,
     IViberService viber,
     IOptions<KorpiceOpcije> korpiceOpcije,
-    IOptions<PretplateOpcije> pretplateOpcije)
+    IOptions<PretplateOpcije> pretplateOpcije,
+    IOptions<PoeniOpcije> poeniOpcije)
     : IRequestHandler<CreateOrderCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(CreateOrderCommand cmd, CancellationToken ct)
@@ -211,6 +215,15 @@ public class CreateOrderHandler(
             popust = PromoKodPravila.Popust(promo, subtotal);
         }
 
+        // Poeni poslije promo koda (O5) i samo za prijavljenog kupca — gost nema knjigu poena.
+        var iskoristeniPoeni = 0;
+        var poeniPopust = 0m;
+        if (cmd.IskoristiPoene && customerId is { } kupacId)
+        {
+            var stanje = await PoeniPravila.StanjeAsync(db, kupacId, ct);
+            (iskoristeniPoeni, poeniPopust) = PoeniPravila.ZaTrosenje(stanje, subtotal - popust, poeniOpcije.Value);
+        }
+
         var order = new Order
         {
             Code = await OrderCode.GenerateAsync(db, ct),
@@ -226,7 +239,9 @@ public class CreateOrderHandler(
             PromoKodId = promo?.Id,
             PromoKod = promo?.Kod,
             Popust = popust,
-            TotalAmount = Math.Round(subtotal - popust + zone.DeliveryFee, 2),
+            IskoristeniPoeni = iskoristeniPoeni,
+            PoeniPopust = poeniPopust,
+            TotalAmount = Math.Round(subtotal - popust - poeniPopust + zone.DeliveryFee, 2),
             DeliverySlotId = slot.Id,
             DeliverySlot = slot,
             DeliveryZoneId = zone.Id,
@@ -241,6 +256,13 @@ public class CreateOrderHandler(
         };
 
         db.Orders.Add(order);
+        // Stavka ide u isti upis kao narudžba: poeni se ne smiju potrošiti bez narudžbe ni obrnuto.
+        if (iskoristeniPoeni > 0)
+            db.PoeniStavke.Add(new PoeniStavka
+            {
+                UserId = customerId!.Value, Iznos = -iskoristeniPoeni,
+                Vrsta = VrstaPoena.Iskoristeno, OrderId = order.Id,
+            });
         await db.SaveChangesAsync(ct);
 
         try
