@@ -415,7 +415,7 @@ public class NastaviPretplatuHandler(
 
 public record OtkaziPretplatuCommand(Guid Id) : IRequest<Unit>;
 
-public class OtkaziPretplatuHandler(IAppDbContext db, ICurrentUser current)
+public partial class OtkaziPretplatuHandler(IAppDbContext db, ICurrentUser current)
     : IRequestHandler<OtkaziPretplatuCommand, Unit>
 {
     public async Task<Unit> Handle(OtkaziPretplatuCommand cmd, CancellationToken ct)
@@ -430,12 +430,19 @@ public class OtkaziPretplatuHandler(IAppDbContext db, ICurrentUser current)
         var preostalo = PretplatnaCijena.PreostaloObaveze(p.ObavezaIsporuka, p.BrojIsporuka);
         if (preostalo > 0)
             throw new ConflictException(
-                $"Obaveza traje još {preostalo} isporuka. Za otkaz nam se javi.", "obaveza_aktivna");
+                $"Obaveza traje još {preostalo} {IsporukaRijec(preostalo)}. Za otkaz nam se javi.", "obaveza_aktivna");
 
         p.Predji(StatusPretplate.Otkazana);
         await db.SaveChangesAsync(ct);
         return Unit.Value;
     }
+}
+
+public partial class OtkaziPretplatuHandler
+{
+    /// <summary>1 isporuka, 2–4 isporuke, 5+ i 11–14 isporuka.</summary>
+    private static string IsporukaRijec(int n) =>
+        n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? "isporuke" : "isporuka";
 }
 
 /// <summary>Otkaz koji radi admin (podrška) — i dok traje obaveza plana.</summary>

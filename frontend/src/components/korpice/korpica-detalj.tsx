@@ -17,7 +17,7 @@ import { useDeliverySlots, useKorpiceList, useSedmica } from "@/lib/api/hooks";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import { korpicaKaoProizvod } from "@/lib/korpice";
-import { cijenaPlana, obavezaPlana, planIzUrla, PLANOVI, VELICINE, VRSTE } from "@/lib/planovi";
+import { cijenaPlana, isporuka, obavezaPlana, planIzUrla, PLANOVI, VELICINE, VRSTE } from "@/lib/planovi";
 import { aktivniKrug, daniDostave, daniDostaveTekst } from "@/lib/sedmica";
 import { cn, formatPrice } from "@/lib/utils";
 import type { VelicinaKorpice } from "@/types/domain";
@@ -162,7 +162,7 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
                   <span className="flex-1">
                     <span className="block text-base font-medium text-ink">{plan.naziv}</span>
                     <span className="block text-xs text-muted">
-                      {obaveza > 0 ? `Obaveza ${obaveza} isporuka · plaćanje pouzećem` : "Bez obaveze · plaćanje pouzećem"}
+                      {obaveza > 0 ? `Obaveza ${isporuka(obaveza)} · plaćanje pouzećem` : "Bez obaveze · plaćanje pouzećem"}
                     </span>
                   </span>
                   <span className="text-right">

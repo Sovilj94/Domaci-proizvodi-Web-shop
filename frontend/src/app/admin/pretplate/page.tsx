@@ -7,7 +7,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
-import { PLAN_TEKST } from "@/lib/planovi";
+import { isporuka, PLAN_TEKST } from "@/lib/planovi";
 import { cn, formatPrice } from "@/lib/utils";
 
 const TABOVI = [
@@ -82,7 +82,7 @@ export default function AdminPretplatePage() {
                   {p.kupac} · {p.korpica}
                 </p>
                 <p className="text-muted">
-                  {PLAN_TEKST[p.plan]} · {formatPrice(p.cijena)} · {p.brojIsporuka} isporuka
+                  {PLAN_TEKST[p.plan]} · {formatPrice(p.cijena)} · {isporuka(p.brojIsporuka)}
                   {p.preostaloObaveze > 0 && ` · obaveza još ${p.preostaloObaveze}`} · {p.status}
                   {!p.sadrzajSpreman && p.status === "Aktivna" && " · sadržaj nije objavljen"}
                 </p>

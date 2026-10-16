@@ -5,7 +5,7 @@ import { AlertTriangle, Pause, Pencil, Play, RefreshCw, Trash2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { PLAN_TEKST } from "@/lib/planovi";
+import { isporuka, PLAN_TEKST } from "@/lib/planovi";
 import type { Pretplata } from "@/types/domain";
 
 const STATUS_OZNAKA: Record<Pretplata["status"], { label: string; badge: string }> = {
@@ -74,14 +74,14 @@ export function PretplataKartica({
       {!otkazana && (
         <div>
           <p className="text-xs font-medium text-brand-700">
-            Plan: {PLAN_TEKST[p.plan]} · {p.brojIsporuka} isporuka iza tebe
+            Plan: {PLAN_TEKST[p.plan]} · {isporuka(p.brojIsporuka)} iza tebe
           </p>
           {p.obavezaIsporuka > 0 && (
             <>
               <p className="mt-1 text-xs text-muted">
                 {p.preostaloObaveze > 0
-                  ? `Obaveza: još ${p.preostaloObaveze} od ${p.obavezaIsporuka} isporuka`
-                  : `Obaveza od ${p.obavezaIsporuka} isporuka je ispunjena`}
+                  ? `Obaveza: još ${p.preostaloObaveze} od ${isporuka(p.obavezaIsporuka)}`
+                  : `Obaveza od ${isporuka(p.obavezaIsporuka)} je ispunjena`}
               </p>
               <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-sand">
                 <div

@@ -14,7 +14,7 @@ import { pogodiZonu } from "@/lib/zone";
 import { formatPrice } from "@/lib/utils";
 import type { PretplataInput } from "@/lib/api/contracts";
 import type { PlanPretplate, Pretplata } from "@/types/domain";
-import { cijenaPlana, obavezaPlana, PLAN_TEKST } from "@/lib/planovi";
+import { cijenaPlana, isporuka, obavezaPlana, PLAN_TEKST } from "@/lib/planovi";
 
 function pocetnoStanje(pretplata?: Pretplata | null, korpicaId?: string) {
   return {
@@ -171,7 +171,7 @@ function Forma({
               <span className="font-semibold">{formatPrice(cijenaPlana(izabrana, izabraniPlan))}</span> po
               isporuci, umjesto {formatPrice(izabrana.cijena)}.{" "}
               {obavezaPlana(izabrana, izabraniPlan) > 0
-                ? `Obaveza je ${obavezaPlana(izabrana, izabraniPlan)} isporuka; pauza je moguća, a otkaz prije kraja obaveze ide preko podrške.`
+                ? `Obaveza je ${isporuka(obavezaPlana(izabrana, izabraniPlan))}; pauza je moguća, a otkaz prije kraja obaveze ide preko podrške.`
                 : "Pretplata se može pauzirati ili otkazati u svakom trenutku."}
             </p>
           )}

@@ -50,6 +50,15 @@ export const VELICINE: { velicina: VelicinaKorpice; naziv: string; lokativ: stri
   { velicina: "velika", naziv: "Velika", lokativ: "velikoj", clanovi: "za 5 i više članova" },
 ];
 
+/** „N isporuka" sa pravim oblikom: 1 isporuka, 2–4 isporuke, 5+ i 11–14 isporuka. */
+export function isporuka(n: number): string {
+  const j = n % 10;
+  const d = n % 100;
+  if (j === 1 && d !== 11) return `${n} isporuka`;
+  if (j >= 2 && j <= 4 && (d < 12 || d > 14)) return `${n} isporuke`;
+  return `${n} isporuka`;
+}
+
 export function jeVelicina(s: string): s is VelicinaKorpice {
   return VELICINE.some((v) => v.velicina === s);
 }

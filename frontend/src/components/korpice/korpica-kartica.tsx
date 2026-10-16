@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { buttonVariants } from "@/components/ui/button";
-import { cijenaPlana, obavezaPlana, VELICINE, type KljucPlana } from "@/lib/planovi";
+import { cijenaPlana, isporuka, obavezaPlana, VELICINE, type KljucPlana } from "@/lib/planovi";
 import { cn, formatPrice } from "@/lib/utils";
 import type { Korpica, PlanPretplate } from "@/types/domain";
 
@@ -26,7 +26,7 @@ export function OsobineKorpice({ obaveza }: { obaveza: number }) {
       </li>
       {obaveza > 0 && (
         <li>
-          📅 Obaveza: <strong>{obaveza} isporuka</strong>
+          📅 Obaveza: <strong>{isporuka(obaveza)}</strong>
         </li>
       )}
     </ul>
