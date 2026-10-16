@@ -132,6 +132,16 @@ export const analizeApi = {
 
 /* ---------- Partneri ---------- */
 
+/* ---------- Novosti (R1) ---------- */
+
+export const novostiApi = {
+  /** Prijava iz footera; `web` je honeypot. Ponovljena prijava je takođe uspjeh. */
+  prijavi: (body: { email: string; web?: string }) =>
+    apiFetch<{ prijavljen: boolean }>("/novosti/prijava", { method: "POST", body, auth: false }).then(
+      (r) => r.data,
+    ),
+};
+
 export const partneriApi = {
   posalji: (body: PartnerPrijavaInput) =>
     apiFetch<{ primljena: boolean }>("/partneri/prijave", { method: "POST", body, auth: false }).then(
@@ -419,6 +429,9 @@ export const adminApi = {
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
 
   /* Partneri */
+  novosti: () =>
+    apiFetch<{ email: string; kreirana: string }[]>("/admin/novosti").then((r) => r.data),
+
   partneri: (status?: StatusPrijave) =>
     apiFetch<PartnerPrijava[]>("/admin/partneri", { query: { status } }).then((r) => r.data),
 
