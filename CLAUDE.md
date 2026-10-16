@@ -272,11 +272,13 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `DriverFeature`, so `BrojacIsporuka.ZabiljeziAsync` is called from both, **before** the transition (it
   reads the old status so a second "Delivered" cannot count twice). The discount is earned by *deliveries*,
   never by orders, so nothing increments when the order is created.
-- **The discount is earned backwards and lives in `PretplatnaCijena`.** `PragPopusta` counts deliveries
-  already made, so with the default 5 the sixth delivery is the first cheaper one. Payment is cash on
-  delivery, so a discount given up front would be a gift to whoever quits after two boxes. The rule is
-  server-side only: `KorpicaDto.CijenaSaPretplatom` exists precisely so the shop page does not multiply by
-  0.9 itself and drift away from what is actually charged.
+- **The price depends only on the plan and lives in `PretplatnaCijena`** (R2, 2026-10-16, user decision
+  following farmit): `Nedjeljna` −10 %, `Mjesecna` −15 % with a 4-delivery commitment, `TriMjeseca` −20 %
+  with 13 — from the **first** delivery. The commitment is snapshotted in `Pretplata.ObavezaIsporuka`;
+  while `PreostaloObaveze > 0` the customer cannot cancel (`obaveza_aktivna`, 409) — support cancels via
+  `DELETE /admin/pretplate/{id}`. Cash on delivery means the commitment cannot actually be enforced; that
+  risk was accepted. Server-side only: `KorpicaDto.Cijena{Nedjeljna,Mjesecna,TriMjeseca}` exist so the
+  shop never multiplies itself.
 - **A subscription that could not pass checkout is rejected when it is created**, not quietly skipped every
   week — zone minimum above the basket price, inactive zone, a product that is not a basket. The unique
   index `(UserId, ProductId)` is **filtered on non-cancelled**, so a customer can come back to a package
@@ -395,6 +397,24 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - `TotalAmount = Subtotal − Popust − PoeniPopust + DeliveryFee`; points come after the promo discount, in
   whole KM, never on delivery. The checkout mirrors `ZaTrosenje` for display (spec O14) — change both
   together. `VrijednostPoenaKM` must divide 1 KM.
+
+## Izgled po farmit.rs (R1–R4, 2026-10-16)
+
+The customer side copies farmit.rs **layout, components, colours and mobile behaviour** (snapshot:
+`docs/superpowers/farmit-snimak-2026-10-16.md`, spec `specs/2026-10-16-farmit-izgled-design.md`). Never copy
+farmit texts, photos or logo.
+
+- **Tokens kept their old names, the values are farmit ones** (`globals.css`): `brand-*` = green #228B22,
+  `honey-*` = orange #FE7E0F (main CTA), `cream` = WHITE page background, `beige` = #FFF1E4 bands, `ink` #394236,
+  `radius-card` 26px, `shadow-kartica` for big cards. Font is Poppins; on Cyrillic Montserrat (Poppins has none).
+- Buttons are pills (`buttonVariants`: `primary` orange, `istaknuto` green, `secondary` orange outline,
+  `bijelo` on photos). Page titles use `PageHeader`; section titles `SectionHeader` (`oblik="red"` for the
+  small left/right row); bands use `Sekcija` (`ton="krem"`, `luk`).
+- Tile colours come from the server (`BojaProizvoda`: admin colour or palette by name) — never compute them
+  in the browser. Placeholder photos live in `lib/izgled.ts`.
+- Routes: `/korpice/{povrce|voce}?plan=`, `/korpice/{vrsta}/{velicina}?plan=` (old slugs redirect),
+  `/spajz` (`/products` redirects; product page stays `/products/{slug}`). Any `useSearchParams` page needs
+  `<Suspense>` or the production build fails.
 
 ## Ćirilica (P7)
 

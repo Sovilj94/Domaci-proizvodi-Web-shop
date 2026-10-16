@@ -52,12 +52,16 @@ public class PretplataDto
     public int BrojIsporuka { get; init; }
     public decimal PunaCijena { get; init; }
 
-    /// <summary>Cijena naredne isporuke — umanjena tek kad je popust zarađen.</summary>
+    /// <summary>Cijena naredne isporuke po planu (R2: popust od prve isporuke).</summary>
     public decimal TrenutnaCijena { get; init; }
     public bool PopustAktivan { get; init; }
 
-    /// <summary>Koliko još isporuka do niže cijene; 0 kad je kupac već ima.</summary>
-    public int DoPopusta { get; init; }
+    /// <summary>"Nedjeljna" | "Mjesecna" | "TriMjeseca".</summary>
+    public string Plan { get; init; } = "Nedjeljna";
+    public int ObavezaIsporuka { get; init; }
+    /// <summary>Koliko isporuka obaveze je ostalo; dok je veće od 0, otkaz ide preko podrške.</summary>
+    public int PreostaloObaveze { get; init; }
+    public bool MozeOtkazati { get; init; }
 
     /// <summary>
     /// Sedmica naredne isporuke. Za pauziranu pretplatu je to prva sedmica poslije pauze,

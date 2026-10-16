@@ -91,7 +91,7 @@ export function NalogSidebar() {
 
   return (
     <aside className="hidden w-60 shrink-0 lg:block">
-      <nav className="sticky top-24 space-y-1 rounded-card border border-line bg-surface p-3 shadow-card">
+      <nav className="sticky top-28 space-y-1 rounded-card border border-line bg-surface p-3 shadow-card">
         {NALOG_STAVKE.map((stavka) => (
           <NalogStavkaLink
             key={stavka.href}

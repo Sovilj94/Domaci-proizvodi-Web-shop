@@ -1,5 +1,6 @@
 "use client";
 
+import { DodajIzSpajza } from "@/components/spajz/dodaj-iz-spajza";
 import Link from "next/link";
 import { ShoppingBasket, Trash2 } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
@@ -22,7 +23,7 @@ export default function CartPage() {
           title="Korpa je prazna"
           description="Dodajte domaće proizvode sa Manjače i vratite se ovdje."
           action={
-            <Link href="/products" className={cn(buttonVariants())}>
+            <Link href="/spajz" className={cn(buttonVariants())}>
               Pogledaj proizvode
             </Link>
           }
@@ -82,7 +83,7 @@ export default function CartPage() {
           ))}
         </ul>
 
-        <aside className="h-fit rounded-card bg-surface p-5 shadow-card lg:sticky lg:top-20">
+        <aside className="h-fit rounded-card bg-surface p-5 shadow-card lg:sticky lg:top-28">
           <h2 className="font-display text-lg font-semibold">Pregled</h2>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
@@ -104,12 +105,17 @@ export default function CartPage() {
             </Button>
           </Link>
           <Link
-            href="/products"
+            href="/spajz"
             className="mt-3 block text-center text-sm font-medium text-muted hover:text-ink"
           >
             Nastavi kupovinu
           </Link>
         </aside>
+      </div>
+
+      {/* R3: dodaci iz Špajza stižu u istoj dostavi kao korpica. */}
+      <div className="-mx-4 mt-6">
+        <DodajIzSpajza naslov="Možda ti zatreba i ovo" />
       </div>
     </div>
   );

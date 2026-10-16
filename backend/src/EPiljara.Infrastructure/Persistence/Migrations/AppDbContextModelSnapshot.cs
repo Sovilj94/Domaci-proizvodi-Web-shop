@@ -820,6 +820,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<int>("ObavezaIsporuka")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("OtkazanaU")
                         .HasColumnType("timestamp with time zone");
 
@@ -828,6 +831,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<int?>("PauzaDoSedmica")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Plan")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Nedjeljna");
 
                     b.Property<int?>("PoslednjaGodina")
                         .HasColumnType("integer");
@@ -863,6 +873,28 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasFilter("\"Status\" <> 'Otkazana'");
 
                     b.ToTable("Pretplate");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.PrijavaNovosti", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("Kreirana")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("PrijaveNovosti", (string)null);
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.Producer", b =>
@@ -908,6 +940,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Boja")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
 
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");

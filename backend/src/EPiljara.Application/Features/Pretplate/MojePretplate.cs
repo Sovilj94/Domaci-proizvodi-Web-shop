@@ -109,7 +109,8 @@ public class GetMojePretplateHandler(
         Pretplata p, DayOfWeek dan, string vrijemeOd, int cutoff, PretplateOpcije o)
     {
         var puna = p.Product?.Price ?? 0m;
-        var trenutna = PretplatnaCijena.Izracunaj(puna, p.BrojIsporuka, o);
+        var trenutna = PretplatnaCijena.Izracunaj(puna, p.Plan, o);
+        var preostalo = PretplatnaCijena.PreostaloObaveze(p.ObavezaIsporuka, p.BrojIsporuka);
 
         // Sedmica naredne isporuke: ona koju bi narudžba poslata sada isporučila, a za
         // pauziranu pretplatu prva poslije pauze. Otkazana je nema.
@@ -147,7 +148,10 @@ public class GetMojePretplateHandler(
             PunaCijena = puna,
             TrenutnaCijena = trenutna,
             PopustAktivan = trenutna < puna,
-            DoPopusta = PretplatnaCijena.DoPopusta(p.BrojIsporuka, o),
+            Plan = p.Plan.ToString(),
+            ObavezaIsporuka = p.ObavezaIsporuka,
+            PreostaloObaveze = preostalo,
+            MozeOtkazati = p.Status != StatusPretplate.Otkazana && preostalo == 0,
             SljedecaGodina = sljedeca?.Godina,
             SljedecaSedmica = sljedeca?.Sedmica,
             SljedecaIsporuka = sljedeca is { } s2
@@ -169,9 +173,20 @@ public record NapraviPretplatuCommand(
     string DeliveryAddress,
     double? Latitude,
     double? Longitude,
-    string? Napomena) : IRequest<PretplataDto>, IAddressFields
+    string? Napomena,
+    string? Plan = null) : IRequest<PretplataDto>, IAddressFields
 {
     string IAddressFields.FullAddress => DeliveryAddress;
+}
+
+/// <summary>Plan sa žice: PascalCase ime enuma; izostanak = Nedjeljna.</summary>
+internal static class PlanUlaz
+{
+    public static bool Validan(string? plan) =>
+        plan is null || (Enum.TryParse<PlanPretplate>(plan, out var p) && Enum.IsDefined(p) && !int.TryParse(plan, out _));
+
+    public static PlanPretplate Procitaj(string? plan) =>
+        plan is not null && Enum.TryParse<PlanPretplate>(plan, out var p) ? p : PlanPretplate.Nedjeljna;
 }
 
 public class NapraviPretplatuValidator : AbstractValidator<NapraviPretplatuCommand>
@@ -183,6 +198,7 @@ public class NapraviPretplatuValidator : AbstractValidator<NapraviPretplatuComma
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
         RuleFor(x => x.Napomena).MaximumLength(1000)
             .When(x => x.Napomena is not null).WithMessage("Napomena je predugačka.");
+        RuleFor(x => x.Plan).Must(PlanUlaz.Validan).WithMessage("Nepoznat plan pretplate.");
         // Ista pravila za adresu i tačku kao u adresaru — poruke idu pod ključ
         // `fullAddress`, jer obje forme prikazuju grešku ispod polja sa mapom.
         AddressRules.Apply(this);
@@ -224,7 +240,9 @@ public class NapraviPretplatuHandler(
             Latitude = cmd.Latitude,
             Longitude = cmd.Longitude,
             Napomena = string.IsNullOrWhiteSpace(cmd.Napomena) ? null : cmd.Napomena.Trim(),
+            Plan = PlanUlaz.Procitaj(cmd.Plan),
         };
+        p.ObavezaIsporuka = PretplatnaCijena.Obaveza(p.Plan, pretplateOpcije.Value);
 
         db.Pretplate.Add(p);
         await db.SaveChangesAsync(ct);
@@ -397,7 +415,7 @@ public class NastaviPretplatuHandler(
 
 public record OtkaziPretplatuCommand(Guid Id) : IRequest<Unit>;
 
-public class OtkaziPretplatuHandler(IAppDbContext db, ICurrentUser current)
+public partial class OtkaziPretplatuHandler(IAppDbContext db, ICurrentUser current)
     : IRequestHandler<OtkaziPretplatuCommand, Unit>
 {
     public async Task<Unit> Handle(OtkaziPretplatuCommand cmd, CancellationToken ct)
@@ -406,8 +424,37 @@ public class OtkaziPretplatuHandler(IAppDbContext db, ICurrentUser current)
 
         // Red se ne briše: narudžbe koje su iz njega nastale pokazuju na njega, a kupac ima
         // pravo da vidi istoriju onoga što je platio. Otkaz je status, kao svuda u projektu.
-        if (p.Status != StatusPretplate.Otkazana) p.Predji(StatusPretplate.Otkazana);
+        if (p.Status == StatusPretplate.Otkazana) return Unit.Value;
 
+        // Obaveza plana (R2): dok traje, kupac otkazuje preko podrške (AdminOtkaziPretplatu).
+        var preostalo = PretplatnaCijena.PreostaloObaveze(p.ObavezaIsporuka, p.BrojIsporuka);
+        if (preostalo > 0)
+            throw new ConflictException(
+                $"Obaveza traje još {preostalo} {IsporukaRijec(preostalo)}. Za otkaz nam se javi.", "obaveza_aktivna");
+
+        p.Predji(StatusPretplate.Otkazana);
+        await db.SaveChangesAsync(ct);
+        return Unit.Value;
+    }
+}
+
+public partial class OtkaziPretplatuHandler
+{
+    /// <summary>1 isporuka, 2–4 isporuke, 5+ i 11–14 isporuka.</summary>
+    private static string IsporukaRijec(int n) =>
+        n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? "isporuke" : "isporuka";
+}
+
+/// <summary>Otkaz koji radi admin (podrška) — i dok traje obaveza plana.</summary>
+public record AdminOtkaziPretplatuCommand(Guid Id) : IRequest<Unit>;
+
+public class AdminOtkaziPretplatuHandler(IAppDbContext db) : IRequestHandler<AdminOtkaziPretplatuCommand, Unit>
+{
+    public async Task<Unit> Handle(AdminOtkaziPretplatuCommand cmd, CancellationToken ct)
+    {
+        var p = await db.Pretplate.FirstOrDefaultAsync(x => x.Id == cmd.Id, ct)
+            ?? throw new NotFoundException("Pretplata nije pronađena.");
+        if (p.Status != StatusPretplate.Otkazana) p.Predji(StatusPretplate.Otkazana);
         await db.SaveChangesAsync(ct);
         return Unit.Value;
     }

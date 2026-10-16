@@ -34,7 +34,8 @@ public record ProductInput(
     bool? IsFeatured,
     bool? MozeUKorpicu = null,
     int? PrioritetUKorpici = null,
-    IReadOnlyList<int>? Mjeseci = null);
+    IReadOnlyList<int>? Mjeseci = null,
+    string? Boja = null);
 
 public class ProductInputValidator : AbstractValidator<ProductInput>
 {
@@ -51,7 +52,16 @@ public class ProductInputValidator : AbstractValidator<ProductInput>
         RuleForEach(x => x.Mjeseci).InclusiveBetween(1, 12)
             .When(x => x.Mjeseci is not null)
             .WithMessage("Mjesec mora biti između 1 i 12.");
+        RuleFor(x => x.Boja).Must(b => BojaProizvoda.JeValidna(BojaUlaz.Normalizuj(b)))
+            .WithMessage("Boja mora biti u obliku #RRGGBB.");
     }
+}
+
+/// <summary>Prazna boja iz forme znači „bez zadane boje".</summary>
+internal static class BojaUlaz
+{
+    public static string? Normalizuj(string? boja) =>
+        string.IsNullOrWhiteSpace(boja) ? null : boja.Trim().ToUpperInvariant();
 }
 
 /* ---------- List ---------- */
@@ -109,6 +119,7 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
             MozeUKorpicu = input.MozeUKorpicu ?? false,
             PrioritetUKorpici = input.PrioritetUKorpici ?? 0,
             Mjeseci = input.Mjeseci?.ToArray() ?? [],
+            Boja = BojaUlaz.Normalizuj(input.Boja),
         };
         product.ProvjeriInvarijantuKorpice();
 
@@ -168,6 +179,8 @@ public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProd
         product.MozeUKorpicu = input.MozeUKorpicu ?? product.MozeUKorpicu;
         product.PrioritetUKorpici = input.PrioritetUKorpici ?? product.PrioritetUKorpici;
         product.Mjeseci = input.Mjeseci?.ToArray() ?? product.Mjeseci;
+        // null = ne mijenjaj (stari klijent), prazan string = vrati na boju iz palete.
+        if (input.Boja is not null) product.Boja = BojaUlaz.Normalizuj(input.Boja);
         product.UpdatedAt = DateTime.UtcNow;
         product.ProvjeriInvarijantuKorpice();
 

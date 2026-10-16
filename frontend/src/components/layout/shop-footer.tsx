@@ -1,125 +1,63 @@
 import Link from "next/link";
-import { MapPin, Phone } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { FooterRok } from "@/components/layout/footer-rok";
+import { PrijavaNovosti } from "@/components/layout/prijava-novosti";
 import { PismoPrekidac } from "@/components/pismo/pismo-prekidac";
 import { KONTAKT } from "@/lib/kontakt";
 
+const LINKOVI = [
+  { href: "/o-nama", naziv: "O nama" },
+  { href: "/korpice", naziv: "Korpice" },
+  { href: "/spajz", naziv: "Špajz" },
+  { href: "/proizvodjaci", naziv: "Naši domaćini" },
+  { href: "/postani-partner", naziv: "Postani partner" },
+];
+
 /**
- * Footer je taman, kao zadnji od naizmjeničnih pojaseva stranice. Sekundarni tekst
- * ide u `muted-dark`, ne `muted` — ovaj drugi na `night` daje 2.67:1 i pada AA.
+ * Footer po uzoru na farmit (R1): bijel, sa karticom „Prijavi se i budi u toku" koja
+ * preklapa granicu sa krem pojasom iznad, red linkova, pa logo, rok i kontakt.
  */
 export function ShopFooter() {
   return (
-    <footer
-      className="bg-night text-cream pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0"
-    >
-      {/*
-       * Rezervacija za fiksnu donju traku (56px) ide ovdje, ne na <main>: traka je
-       * fiksirana na dno VIEWPORT-a, pa pokriva dno onoga što je zadnje u toku — a to
-       * je footer, poslije <main>. Na telefonima sa zarezom raste za safe-area inset.
-       */}
-      {/* Brend stupac je širi od ostalih — nosi opis, a ne spisak linkova. */}
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
-        <div className="space-y-4">
-          <Logo tone="dark" />
-          <p className="max-w-xs text-sm leading-relaxed text-muted-dark">
-            Domaći proizvodi sa Manjače, spakovani i dostavljeni na tvoja vrata u Banjoj
-            Luci.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-honey-500">
-            Kupovina
-          </h3>
-          <ul className="space-y-2.5 text-sm text-muted-dark">
-            <li>
-              <Link href="/products" className="transition hover:text-cream">
-                Svi proizvodi
-              </Link>
-            </li>
-            <li>
-              <Link href="/cart" className="transition hover:text-cream">
-                Korpa
-              </Link>
-            </li>
-            <li>
-              <Link href="/moj-nalog/narudzbe" className="transition hover:text-cream">
-                Moje narudžbe
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-honey-500">
-            E piljara
-          </h3>
-          <ul className="space-y-2.5 text-sm text-muted-dark">
-            <li>
-              <Link href="/o-nama" className="transition hover:text-cream">
-                O nama
-              </Link>
-            </li>
-            <li>
-              <Link href="/proizvodjaci" className="transition hover:text-cream">
-                Naši domaćini
-              </Link>
-            </li>
-            <li>
-              <Link href="/recepti" className="transition hover:text-cream">
-                Recepti
-              </Link>
-            </li>
-            <li>
-              <Link href="/analize" className="transition hover:text-cream">
-                Analize
-              </Link>
-            </li>
-            <li>
-              <Link href="/postani-partner" className="transition hover:text-cream">
-                Postani partner
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div id="dostava">
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-honey-500">
-            Dostava
-          </h3>
-          <ul className="space-y-2.5 text-sm text-muted-dark">
-            <FooterRok />
-            <li className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 shrink-0 text-sage" /> Centar · Borik · Lauš ·
-              Starčevica
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-honey-500">
-            Kontakt
-          </h3>
-          <ul className="space-y-2.5 text-sm text-muted-dark">
-            <li className="flex items-center gap-2">
-              <Phone className="h-4 w-4 shrink-0 text-sage" />
-              <a href={KONTAKT.telefonHref} translate="no" className="transition hover:text-cream">
-                {KONTAKT.telefon}
-              </a>
-            </li>
-            <li className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 shrink-0 text-sage" /> {KONTAKT.adresa}
-            </li>
-          </ul>
+    <footer className="relative bg-white pb-8">
+      {/* Krem pojas iza gornje polovine kartice — kartica „preklapa" granicu kao na uzoru. */}
+      <div className="bg-[linear-gradient(to_bottom,var(--color-beige)_50%,white_50%)] px-4">
+        <div className="mx-auto max-w-6xl">
+          <PrijavaNovosti />
         </div>
       </div>
+      <div className="mx-auto max-w-6xl px-4">
 
-      <div className="border-t border-white/10 py-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 text-xs text-muted-dark">
-          <p>© {new Date().getFullYear()} E piljara. Svježe sa Manjače.</p>
-          <PismoPrekidac className="font-medium hover:text-cream" />
+        <div className="mt-10 flex flex-col gap-6 border-b border-line pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <nav className="flex flex-wrap gap-x-8 gap-y-3 text-sm text-ink">
+            {LINKOVI.map((l) => (
+              <Link key={l.href} href={l.href} className="transition hover:text-honey-500">
+                {l.naziv}
+              </Link>
+            ))}
+          </nav>
+          <PismoPrekidac className="self-start rounded-full border border-line px-4 py-1.5 text-sm text-ink hover:border-honey-500 sm:self-auto" />
+        </div>
+
+        <div className="mt-6 grid gap-8 sm:grid-cols-3 sm:items-center">
+          <ul className="space-y-2 text-sm text-muted">
+            <FooterRok />
+          </ul>
+          <div className="sm:justify-self-center">
+            <Logo />
+          </div>
+          <div className="space-y-1.5 text-sm text-muted sm:text-right">
+            <p>
+              Kontakt:{" "}
+              <a href={KONTAKT.telefonHref} translate="no" className="text-ink underline underline-offset-2 hover:text-honey-500">
+                {KONTAKT.telefon}
+              </a>
+            </p>
+            <p>{KONTAKT.adresa}</p>
+            <p>
+              © {new Date().getFullYear()} E piljara · {KONTAKT.podrucje}
+            </p>
+          </div>
         </div>
       </div>
     </footer>

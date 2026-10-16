@@ -14,7 +14,7 @@ export default function PostaniPartnerPage() {
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
       <div className="grid gap-10 lg:grid-cols-2">
         <div>
-          <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">Postani partner</h1>
+          <h1 className="text-[32px] font-bold leading-tight text-ink sm:text-5xl">Postani partner</h1>
           <p className="mt-3 text-lg text-muted">
             Imate gazdinstvo na Manjači ili u okolini Banje Luke i proizvodite hranu na
             tradicionalan način? Javite nam se.

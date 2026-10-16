@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/page-header";
 import { AnalizaKartica } from "@/components/analize/analiza-kartica";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useAnalize } from "@/lib/api/hooks";
@@ -8,11 +9,11 @@ export default function AnalizePage() {
   const { data, isLoading, isError } = useAnalize();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="font-display text-3xl font-bold">Analize</h1>
-      <p className="mt-1 max-w-2xl text-muted">
-        Ovdje objavljujemo nalaze laboratorijskih analiza uzoraka naših domaćina — i one koji nisu usklađeni.
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+      <PageHeader
+        naslov="Analize"
+        opis="Ovdje objavljujemo nalaze laboratorijskih analiza uzoraka naših domaćina — i one koji nisu usklađeni."
+      />
 
       <div className="mt-8">
         {isLoading ? (

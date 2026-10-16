@@ -104,7 +104,7 @@ export default function OrdersPage() {
             title="Još nemate narudžbi"
             description="Kada naručite, ovdje ćete pratiti status dostave."
             action={
-              <Link href="/products">
+              <Link href="/spajz">
                 <Button>Pogledaj proizvode</Button>
               </Link>
             }

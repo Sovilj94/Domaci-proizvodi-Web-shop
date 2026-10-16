@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { MapPin, Phone, Truck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -8,11 +9,10 @@ export const metadata = { title: "O nama" };
 export default function ONamaPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
-      <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">O nama</h1>
-      <p className="mt-3 text-lg text-muted">
-        E piljara spaja domaćinstva sa Manjače sa kupcima u Banjoj Luci i okolini. Prodajemo
-        ono što bismo i sami jeli.
-      </p>
+      <PageHeader
+        naslov="O nama"
+        opis="E piljara spaja domaćinstva sa Manjače sa kupcima u Banjoj Luci i okolini. Prodajemo ono što bismo i sami jeli."
+      />
 
       <section className="mt-10">
         <h2 className="font-display text-2xl font-bold text-ink">Kako radimo</h2>

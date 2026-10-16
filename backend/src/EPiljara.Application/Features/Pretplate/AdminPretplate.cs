@@ -65,9 +65,10 @@ public class GetAdminPretplateHandler(
                     Email = p.User?.Email,
                     Telefon = p.User?.Phone,
                     Korpica = p.Product?.Name ?? string.Empty,
-                    Cijena = PretplatnaCijena.Izracunaj(
-                        p.Product?.Price ?? 0m, p.BrojIsporuka, pretplateOpcije.Value),
+                    Cijena = PretplatnaCijena.Izracunaj(p.Product?.Price ?? 0m, p.Plan, pretplateOpcije.Value),
                     BrojIsporuka = p.BrojIsporuka,
+                    Plan = p.Plan.ToString(),
+                    PreostaloObaveze = PretplatnaCijena.PreostaloObaveze(p.ObavezaIsporuka, p.BrojIsporuka),
                     Zona = p.DeliveryZone?.Name,
                     Adresa = p.DeliveryAddress,
                     PoslednjaGodina = p.PoslednjaGodina,

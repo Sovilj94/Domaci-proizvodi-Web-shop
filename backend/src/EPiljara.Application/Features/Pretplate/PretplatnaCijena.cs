@@ -1,30 +1,39 @@
+using EPiljara.Domain.Enums;
+
 namespace EPiljara.Application.Features.Pretplate;
 
 /// <summary>
-/// Jedino mjesto koje zna cjenovno pravilo pretplate. Zovu ga i upit koji puni ekran i
-/// komanda koja pravi narudžbu — dvije kopije ovog izraza bi se razišle prvom izmjenom
-/// praga, a razlika bi se vidjela tek na računu pouzećem.
+/// Jedino mjesto koje zna cjenovno pravilo pretplate i obavezu plana. Zovu ga upit koji puni
+/// ekran, javni `KorpicaDto`, admin spisak i komanda koja pravi narudžbu — dvije kopije ovog
+/// izraza bi se razišle prvom izmjenom, a razlika bi se vidjela tek na računu pouzećem.
 /// </summary>
 public static class PretplatnaCijena
 {
-    /// <summary>
-    /// Cijena naredne isporuke. <paramref name="brojIsporuka"/> je broj VEĆ isporučenih
-    /// narudžbi te pretplate, pa je pri pragu 5 šesta isporuka prva po nižoj cijeni.
-    ///
-    /// Negativan brojač se čita kao nula: brojač je izveden podatak (vidi BrojacIsporuka),
-    /// a pokvaren red u bazi ne smije dati cijenu nižu od dogovorene.
-    /// </summary>
-    public static decimal Izracunaj(decimal punaCijena, int brojIsporuka, PretplateOpcije o)
-    {
-        var isporuceno = Math.Max(0, brojIsporuka);
-        if (isporuceno < o.PragPopusta) return punaCijena;
-
+    /// <summary>Cijena isporuke za plan — ista od prve isporuke (R2).</summary>
+    public static decimal Izracunaj(decimal punaCijena, PlanPretplate plan, PretplateOpcije o) =>
         // Zaokruživanje na parno je isto kao svuda u backendu (.NET podrazumijevano);
         // frontend zaokružuje od nule, pa se za pola feninga razilaze — server je mjerodavan.
-        return Math.Round(punaCijena * (1 - o.Popust), 2, MidpointRounding.ToEven);
-    }
+        Math.Round(punaCijena * (1 - Popust(plan, o)), 2, MidpointRounding.ToEven);
 
-    /// <summary>Koliko još isporuka dijeli kupca od niže cijene; 0 kad je već ima.</summary>
-    public static int DoPopusta(int brojIsporuka, PretplateOpcije o) =>
-        Math.Max(0, o.PragPopusta - Math.Max(0, brojIsporuka));
+    public static decimal Popust(PlanPretplate plan, PretplateOpcije o) => plan switch
+    {
+        PlanPretplate.Mjesecna => o.PopustMjesecna,
+        PlanPretplate.TriMjeseca => o.PopustTriMjeseca,
+        _ => o.PopustNedjeljna,
+    };
+
+    /// <summary>Na koliko isporuka se kupac obavezuje izborom plana (0 = bez obaveze).</summary>
+    public static int Obaveza(PlanPretplate plan, PretplateOpcije o) => plan switch
+    {
+        PlanPretplate.Mjesecna => o.ObavezaMjesecna,
+        PlanPretplate.TriMjeseca => o.ObavezaTriMjeseca,
+        _ => 0,
+    };
+
+    /// <summary>
+    /// Koliko isporuka obaveze je ostalo. Negativan brojač se čita kao nula: brojač je izveden
+    /// podatak (vidi BrojacIsporuka), a pokvaren red ne smije osloboditi obaveze.
+    /// </summary>
+    public static int PreostaloObaveze(int obaveza, int brojIsporuka) =>
+        Math.Max(0, obaveza - Math.Max(0, brojIsporuka));
 }

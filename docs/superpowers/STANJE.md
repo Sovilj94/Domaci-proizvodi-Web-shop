@@ -336,6 +336,30 @@ Odloženo / poznato:
 - Snimci ekrana preko Chrome ekstenzije su tokom provjere padali (renderer „ne odgovara"), ali stranice
   rade — provjera je rađena skriptama; to je osobina alata, ne aplikacije (provjereno i na latinici).
 
+### Redizajn po farmit.rs (R1–R4, 2026-10-16) — grane `redizajn-r1` → `r2` → `r3` → `r4` (naslagane, nespojene)
+
+Korisnik: „identičan sajt", iste boje i stilovi, isti mobilni prikaz; prodaju se samo korpice povrća i voća, a sir,
+suho meso, ajvar i zimnica se dodaju iz Špajza. Spec `specs/2026-10-16-farmit-izgled-design.md`, snimak uzora
+`farmit-snimak-2026-10-16.md`, planovi `plans/2026-10-16-r1-…` i `plans/2026-10-16-r2-r4-…`.
+
+- **R1** dizajn sistem (farmit tokeni, Poppins/Montserrat, pill dugmad), zaglavlje prozirno na početnoj, krem traka
+  roka, mobilni meni preko ekrana, footer sa prijavom na novosti (`PrijavaNovosti`, `POST /novosti/prijava`,
+  `/admin/novosti`), početna sa deset sekcija, `Product.Boja` + `BojaProizvoda` (migracija `DodajBojuINovosti`).
+- **R2** planovi pretplate Nedjeljna/Mjesečna/3 mjeseca (10/15/20 %, od prve isporuke; obaveza 4/13), otkaz tokom
+  obaveze samo admin (`/admin/pretplate` — novi ekran), sakrivene domaćinska/mliječna/suhomesnata (migracija
+  `DodajPlanPretplate`), `/korpice/{vrsta}` i `/korpice/{vrsta}/{velicina}`, javni sadržaj za sedmicu koja se prodaje
+  (zatvara izlog-nalaz P4 O7: dugme se više ne gasi poslije roka — narudžba ide za narednu sedmicu).
+- **R3** `/spajz`, nova kartica proizvoda, „Dodaj iz Špajza" na stranici korpice i u korpi.
+- **R4** `PageHeader` na listama, 404 unutar prodavnice (`[...nepoznato]` + `not-found.tsx`).
+
+Provjere: `dotnet test` 492/492, `npm test` 75/75, `tsc`, `lint`; `npm run build` ✓ poslije R1 (68/68). Uživo
+provjereni: početna (desktop, 390 px, ćirilica), korpice i stranica korpice (desktop, 390 px), Špajz (desktop),
+prijava na novosti, planovi i otkaz kroz API, admin novosti i pretplate. **Nije provjereno uživo** (API i dev server
+ugašeni zbog memorije): R4 stranice, Špajz na 390 px, korpa sa „Dodaj iz Špajza", build poslije R2–R4.
+
+Dev baza: sadržaj sedmice 42 objavljen za srednju korpicu povrća; test pretplata (Marko, mjesečna) otkazana;
+prijava na novosti `nikola@example.com`.
+
 ## Otvoreni nalazi, nošeni dalje
 
 Ništa od ovoga ne blokira ništa; sve je svjesno odloženo uz razlog.

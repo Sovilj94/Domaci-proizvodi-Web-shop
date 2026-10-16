@@ -95,6 +95,8 @@ export interface ProductInput {
   prioritetUKorpici?: number;
   /** Mjeseci (1–12) sezone; praznina/izostanak znači cijele godine. */
   mjeseci?: number[];
+  /** Boja pločice „#RRGGBB"; "" = boja iz palete, izostanak = ne mijenjaj (R1). */
+  boja?: string;
 }
 
 export interface CategoryInput {
@@ -255,6 +257,8 @@ export interface PretplataInput {
   latitude?: number;
   longitude?: number;
   napomena?: string;
+  /** Samo pri novoj pretplati (R2); izostanak = Nedjeljna. */
+  plan?: import("@/types/domain").PlanPretplate;
 }
 
 export interface SastojakInput {

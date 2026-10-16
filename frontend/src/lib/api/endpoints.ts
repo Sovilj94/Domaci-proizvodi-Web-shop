@@ -31,6 +31,7 @@ import type {
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
+import type { AdminPretplate } from "@/types/domain";
 import { pismoNaZici, type Pismo } from "@/lib/pismo/pismo";
 import { uLatinicu } from "@/lib/pismo/preslovi";
 import type {
@@ -131,6 +132,16 @@ export const analizeApi = {
 };
 
 /* ---------- Partneri ---------- */
+
+/* ---------- Novosti (R1) ---------- */
+
+export const novostiApi = {
+  /** Prijava iz footera; `web` je honeypot. Ponovljena prijava je takođe uspjeh. */
+  prijavi: (body: { email: string; web?: string }) =>
+    apiFetch<{ prijavljen: boolean }>("/novosti/prijava", { method: "POST", body, auth: false }).then(
+      (r) => r.data,
+    ),
+};
 
 export const partneriApi = {
   posalji: (body: PartnerPrijavaInput) =>
@@ -419,6 +430,16 @@ export const adminApi = {
     apiFetch<string>(`/admin/utisci/${id}`, { method: "DELETE" }).then(() => id),
 
   /* Partneri */
+  novosti: () =>
+    apiFetch<{ email: string; kreirana: string }[]>("/admin/novosti").then((r) => r.data),
+
+  pretplate: (status?: string) =>
+    apiFetch<AdminPretplate>("/admin/pretplate", { query: { status } }).then((r) => r.data),
+
+  /** Otkaz od strane podrške — radi i dok traje obaveza plana (R2). */
+  otkaziPretplatu: (id: string): Promise<void> =>
+    apiFetch<void>(`/admin/pretplate/${id}`, { method: "DELETE" }).then(() => undefined),
+
   partneri: (status?: StatusPrijave) =>
     apiFetch<PartnerPrijava[]>("/admin/partneri", { query: { status } }).then((r) => r.data),
 

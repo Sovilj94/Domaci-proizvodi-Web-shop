@@ -12,14 +12,16 @@ public record KorpicaDto
     public decimal Cijena { get; init; }
 
     /// <summary>
-    /// Cijena koju pretplatnik plaća kad zaradi popust. Odsutna je samo kad je pozivalac nije
-    /// tražio. Računa je server (`PretplatnaCijena`), jer bi kopija tog množenja u pregledaču
-    /// bila razlika između onoga što piše na ekranu i onoga što se naplati.
+    /// Cijene po planu pretplate (R2). Odsutne su samo kad ih pozivalac nije tražio. Računa ih
+    /// server (`PretplatnaCijena`), jer bi kopija tog množenja u pregledaču bila razlika između
+    /// onoga što piše na ekranu i onoga što se naplati.
     /// </summary>
-    public decimal? CijenaSaPretplatom { get; init; }
-
-    /// <summary>Koliko isporuka po punoj cijeni prethodi popustu.</summary>
-    public int? IsporukaDoPopusta { get; init; }
+    public decimal? CijenaNedjeljna { get; init; }
+    public decimal? CijenaMjesecna { get; init; }
+    public decimal? CijenaTriMjeseca { get; init; }
+    /// <summary>Obaveza mjesečnog i tromjesečnog plana, u isporukama.</summary>
+    public int? ObavezaMjesecna { get; init; }
+    public int? ObavezaTriMjeseca { get; init; }
 
     public string? ImageUrl { get; init; }
     public string Opis { get; init; } = string.Empty;
@@ -34,6 +36,8 @@ public record StavkaSadrzajaDto
     public decimal Kolicina { get; init; }
     public string Jedinica { get; init; } = "kom";
     public string? ImageUrl { get; init; }
+    /// <summary>Boja pločice namirnice (BojaProizvoda).</summary>
+    public string Boja { get; init; } = string.Empty;
     public string ProizvodjacNaziv { get; init; } = string.Empty;
     public string ProizvodjacSelo { get; init; } = string.Empty;
 }

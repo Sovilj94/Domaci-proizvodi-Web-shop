@@ -1,27 +1,24 @@
-import { Suspense } from "react";
 import { ShopNavbar } from "@/components/layout/shop-navbar";
-import { CategoryRail, CategoryRailSkeleton } from "@/components/layout/category-rail";
+import { TrakaRoka } from "@/components/layout/traka-roka";
 import { ShopFooter } from "@/components/layout/shop-footer";
-import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { PismoProvider } from "@/components/pismo/pismo-provider";
 
+/**
+ * Raspored po uzoru na farmit (R1): zaglavlje, krem traka roka (osim na početnoj), sadržaj,
+ * footer. Traka kategorija i donja mobilna traka su uklonjene — kategorije su u Špajzu,
+ * a mobilna navigacija je meni preko cijelog ekrana (MobilniMeni).
+ *
+ * Traka roka NIJE u <header>-u i ne lijepi se: ljepljivi elementi stranica (`top-[88px]`,
+ * `lg:top-28`) računaju samo visinu zaglavlja (72px / 96px).
+ */
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ShopNavbar />
-      {/*
-       * Traka je NAMJERNO van <header>-a i ne lijepi se. U headeru bi ga podigla sa 64
-       * na ~164px, a četiri `sticky top-*` offseta u korpi, checkoutu, računu i na
-       * stranici proizvoda kodiraju staru visinu kao broj — svi bi kliznuli ispod.
-       * Ovako `top-16` i dalje znači tačno visinu sticky headera.
-       */}
-      <Suspense fallback={<CategoryRailSkeleton />}>
-        <CategoryRail />
-      </Suspense>
+      <TrakaRoka />
       <main className="flex-1">{children}</main>
       <ShopFooter />
-      <MobileTabBar />
       <CartDrawer />
       <PismoProvider />
     </>

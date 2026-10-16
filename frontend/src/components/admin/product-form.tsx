@@ -27,6 +27,7 @@ const EMPTY = {
   mozeUKorpicu: false,
   prioritetUKorpici: "0",
   mjeseci: [] as number[],
+  boja: "",
 };
 
 /** Kratki nazivi mjeseci za 12 checkbox-a — indeks 0 je januar. */
@@ -70,6 +71,7 @@ export function ProductForm({
             mozeUKorpicu: product.mozeUKorpicu ?? false,
             prioritetUKorpici: String(product.prioritetUKorpici ?? 0),
             mjeseci: product.mjeseci ?? [],
+            boja: product.zadanaBoja ?? "",
           }
         : EMPTY,
     );
@@ -107,6 +109,7 @@ export function ProductForm({
       mozeUKorpicu: form.mozeUKorpicu,
       prioritetUKorpici: Number(form.prioritetUKorpici || 0),
       mjeseci: form.mjeseci,
+      boja: form.boja.trim(),
     });
   }
 
@@ -217,6 +220,23 @@ export function ProductForm({
               onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
               placeholder="https://…"
             />
+          </Field>
+
+          <Field label="Boja pločice (opcionalno)" error={errors.boja?.[0]}>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                aria-label="Izaberi boju"
+                value={/^#[0-9a-f]{6}$/i.test(form.boja) ? form.boja : (product?.boja ?? "#f4c27a")}
+                onChange={(e) => setForm({ ...form, boja: e.target.value.toUpperCase() })}
+                className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-white"
+              />
+              <Input
+                value={form.boja}
+                onChange={(e) => setForm({ ...form, boja: e.target.value })}
+                placeholder={product?.boja ? `Iz palete: ${product.boja}` : "#RRGGBB — prazno = iz palete"}
+              />
+            </div>
           </Field>
 
           <div className="flex gap-6">

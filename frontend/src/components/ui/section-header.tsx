@@ -1,41 +1,44 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Zaglavlje sekcije sa mockupa: serif naslov lijevo, „Prikaži sve →" desno.
- * Nema nadnaslova u amberu — to je pripadalo starom izgledu i na screenshotu ga nema.
+ * Naslov sekcije po uzoru na farmit (R1), u dva oblika:
+ *   „centar" — veliki centriran naslov sekcije (48px, mobilni 28px) sa opisom ispod,
+ *              npr. „Ova sedmica", „Kako funkcioniše?"
+ *   „red"    — manji naslov lijevo i link desno, npr. „Zavolećeš ove proizvode… · Svi proizvodi"
  */
 export function SectionHeader({
   naslov,
   opis,
   link,
   linkTekst = "Prikaži sve",
+  oblik = "centar",
   className,
 }: {
   naslov: React.ReactNode;
-  opis?: string;
+  opis?: React.ReactNode;
   link?: string;
   linkTekst?: string;
+  oblik?: "centar" | "red";
   className?: string;
 }) {
-  return (
-    <div className={cn("mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-2", className)}>
-      <div>
-        <h2 className="font-display text-2xl font-bold leading-tight text-ink sm:text-3xl">
-          {naslov}
-        </h2>
-        {opis && <p className="mt-1.5 max-w-xl text-sm text-muted">{opis}</p>}
+  if (oblik === "red") {
+    return (
+      <div className={cn("mb-5 flex items-end justify-between gap-6", className)}>
+        <h2 className="text-lg font-semibold text-ink sm:text-xl">{naslov}</h2>
+        {link && (
+          <Link href={link} className="shrink-0 text-sm text-muted transition hover:text-ink sm:text-base">
+            {linkTekst}
+          </Link>
+        )}
       </div>
-      {link && (
-        <Link
-          href={link}
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-brand-600 transition hover:text-brand-700"
-        >
-          {linkTekst}
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      )}
+    );
+  }
+
+  return (
+    <div className={cn("mb-8 text-center sm:mb-12", className)}>
+      <h2 className="text-[28px] font-bold leading-tight text-ink sm:text-5xl">{naslov}</h2>
+      {opis && <p className="mx-auto mt-4 max-w-2xl text-base text-ink/80 sm:text-lg">{opis}</p>}
     </div>
   );
 }

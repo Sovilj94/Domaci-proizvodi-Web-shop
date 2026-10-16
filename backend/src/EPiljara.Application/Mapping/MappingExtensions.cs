@@ -1,3 +1,4 @@
+using EPiljara.Application.Common;
 using EPiljara.Application.DTOs;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
@@ -52,6 +53,8 @@ public static class MappingExtensions
         ProducerId = p.ProducerId,
         Producer = p.Producer?.ToRef(),
         ImageUrl = p.ImageUrl,
+        Boja = BojaProizvoda.Za(p.Boja, p.Name),
+        ZadanaBoja = p.Boja,
         Description = p.Description,
         IsFeatured = p.IsFeatured,
         MozeUKorpicu = p.MozeUKorpicu,

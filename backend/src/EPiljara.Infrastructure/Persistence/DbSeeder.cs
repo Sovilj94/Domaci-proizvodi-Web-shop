@@ -95,10 +95,20 @@ public static class DbSeeder
             Prod("Domaći ajvar", 9.0m, Unit.Kom, 45, zimnica, kovacevic, "Pečena paprika, blagi, tegla 500ml.", available: false),
         };
         // Obična roba je podobna za sedmične korpice; korpice same (ispod) ostaju MozeUKorpicu = false.
+        // Boje pločica (R1, po uzoru na farmit): prirodna boja namirnice. Ostali proizvodi
+        // dobijaju boju iz palete (BojaProizvoda) — admin je može zadati u formi.
+        var boje = new Dictionary<string, string>
+        {
+            ["Domaći krompir"] = "#F2C27C", ["Paradajz iz plastenika"] = "#EE8C7E", ["Babura paprika"] = "#EF9A8A",
+            ["Crni luk"] = "#E3B26E", ["Mrkva"] = "#F6A979", ["Krastavac"] = "#B9D89A", ["Kupus"] = "#C9DFA6",
+            ["Jabuka idared"] = "#F09A9A", ["Šljiva požegača"] = "#B9A3D6", ["Kruška"] = "#D9DF98",
+            ["Grožđe"] = "#C6B3DE", ["Malina"] = "#EE9FB0", ["Dunja"] = "#F2D47E", ["Orah"] = "#D6B98C",
+        };
         foreach (var p in products)
         {
             p.MozeUKorpicu = true;
             p.Mjeseci = [];
+            p.Boja = boje.GetValueOrDefault(p.Name);
         }
         db.Products.AddRange(products);
 
@@ -167,7 +177,9 @@ public static class DbSeeder
                 Price = Math.Round(osnovneCijene[tip] * faktor, 0),
                 Unit = Unit.Kom,
                 Stock = 40,
-                IsAvailable = true,
+                // R2: prodaju se samo korpice povrća i voća (odluka korisnika 2026-10-16); ostale
+                // vrste ostaju u bazi, sakrivene, i mogu se vratiti uključivanjem dostupnosti.
+                IsAvailable = tip is TipKorpice.Povrce or TipKorpice.Voce,
                 Description = $"{opis} {clanovi}.",
                 ImageUrl = tip switch
                 {

@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Novosti;
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Ocjene;
@@ -177,6 +178,14 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Pretplate([FromQuery] string? status) =>
         Envelope(await Mediator.Send(new GetAdminPretplateQuery(status)));
 
+    /// <summary>Otkaz pretplate od strane podrške — radi i dok traje obaveza plana (R2).</summary>
+    [HttpDelete("admin/pretplate/{id:guid}")]
+    public async Task<IActionResult> OtkaziPretplatu(Guid id)
+    {
+        await Mediator.Send(new AdminOtkaziPretplatuCommand(id));
+        return NoContent();
+    }
+
     [HttpGet("admin/utisci")]
     public async Task<IActionResult> Utisci() =>
         EnvelopeList(await Mediator.Send(new GetAdminUtisciQuery()));
@@ -192,6 +201,10 @@ public class AdminController : ApiControllerBase
     [HttpDelete("admin/utisci/{id:guid}")]
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
+
+    [HttpGet("admin/novosti")]
+    public async Task<IActionResult> Novosti() =>
+        EnvelopeList(await Mediator.Send(new GetAdminNovostiQuery()));
 
     [HttpGet("admin/promo-kodovi")]
     public async Task<IActionResult> PromoKodovi() =>

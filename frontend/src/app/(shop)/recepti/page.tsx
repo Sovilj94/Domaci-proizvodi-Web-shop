@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/page-header";
 import { ReceptKartica } from "@/components/recepti/recept-kartica";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRecepti } from "@/lib/api/hooks";
@@ -8,9 +9,8 @@ export default function ReceptiPage() {
   const { data, isLoading, isError } = useRecepti();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="font-display text-3xl font-bold">Recepti</h1>
-      <p className="mt-1 text-muted">Šta skuhati od onoga što stigne u korpici.</p>
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+      <PageHeader naslov="Recepti" opis="Šta skuhati od onoga što stigne u korpici." />
 
       <div className="mt-8">
         {isLoading ? (

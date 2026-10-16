@@ -5,6 +5,7 @@ import { AlertTriangle, Pause, Pencil, Play, RefreshCw, Trash2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { isporuka, PLAN_TEKST } from "@/lib/planovi";
 import type { Pretplata } from "@/types/domain";
 
 const STATUS_OZNAKA: Record<Pretplata["status"], { label: string; badge: string }> = {
@@ -69,29 +70,31 @@ export function PretplataKartica({
         <span className="text-xs text-muted">po isporuci</span>
       </div>
 
-      {/* Jedini razlog da kupac ostane — zato stoji na kartici, a ne u sitnom tekstu. */}
-      {!otkazana &&
-        (p.doPopusta > 0 ? (
-          <div>
-            <p className="text-xs text-muted">
-              Još {p.doPopusta} {p.doPopusta === 1 ? "isporuka" : "isporuke"} do niže cijene
-            </p>
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-sand">
-              <div
-                className="h-full rounded-full bg-brand-500 transition-[width]"
-                style={{
-                  width: `${Math.round(
-                    (p.brojIsporuka / (p.brojIsporuka + p.doPopusta)) * 100,
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-        ) : (
+      {/* Plan i obaveza (R2): pretplatnička cijena važi od prve isporuke. */}
+      {!otkazana && (
+        <div>
           <p className="text-xs font-medium text-brand-700">
-            Pretplatnička cijena je aktivna — {p.brojIsporuka} isporuka iza tebe.
+            Plan: {PLAN_TEKST[p.plan]} · {isporuka(p.brojIsporuka)} iza tebe
           </p>
-        ))}
+          {p.obavezaIsporuka > 0 && (
+            <>
+              <p className="mt-1 text-xs text-muted">
+                {p.preostaloObaveze > 0
+                  ? `Obaveza: još ${p.preostaloObaveze} od ${isporuka(p.obavezaIsporuka)}`
+                  : `Obaveza od ${isporuka(p.obavezaIsporuka)} je ispunjena`}
+              </p>
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-sand">
+                <div
+                  className="h-full rounded-full bg-brand-500 transition-[width]"
+                  style={{
+                    width: `${Math.round(((p.obavezaIsporuka - p.preostaloObaveze) / p.obavezaIsporuka) * 100)}%`,
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <p className="text-sm text-ink">{p.deliveryAddress}</p>
       {p.deliveryZoneName && <p className="text-xs text-muted">Zona: {p.deliveryZoneName}</p>}
@@ -177,14 +180,18 @@ export function PretplataKartica({
                   <Play className="h-3.5 w-3.5" /> Nastavi
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-700 hover:bg-red-50"
-                onClick={() => setPotvrdaOtkaza(true)}
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Otkaži
-              </Button>
+              {p.mozeOtkazati ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-700 hover:bg-red-50"
+                  onClick={() => setPotvrdaOtkaza(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Otkaži
+                </Button>
+              ) : (
+                <span className="self-center text-xs text-muted">Za otkaz tokom obaveze javi nam se.</span>
+              )}
             </>
           )}
         </div>

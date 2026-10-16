@@ -117,7 +117,7 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
           </section>
         </div>
 
-        <aside className="mt-6 space-y-4 lg:sticky lg:top-24 lg:mt-0">
+        <aside className="mt-6 space-y-4 lg:sticky lg:top-28 lg:mt-0">
           <div className="rounded-card bg-surface p-5 shadow-card">
             <h2 className="font-display text-base font-semibold">Ukupna cijena</h2>
             <dl className="mt-3 space-y-2 border-t border-line pt-3 text-sm">
@@ -151,7 +151,7 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
           </div>
 
           <div className="flex flex-col gap-3">
-            <Link href="/products" className={cn(buttonVariants({ variant: "secondary" }))}>
+            <Link href="/spajz" className={cn(buttonVariants({ variant: "secondary" }))}>
               Nastavi kupovinu
             </Link>
             {user && (

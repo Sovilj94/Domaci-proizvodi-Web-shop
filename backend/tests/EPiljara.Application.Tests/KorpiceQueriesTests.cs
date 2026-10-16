@@ -88,7 +88,7 @@ public class KorpiceQueriesTests
         // produkciji nema taj efekat — ovim ga simuliramo.
         t.Db.ChangeTracker.Clear();
 
-        var dto = await new GetSadrzajKorpiceHandler(t.Db)
+        var dto = await new GetSadrzajKorpiceHandler(t.Db, Options.Create(new KorpiceOpcije()))
             .Handle(new GetSadrzajKorpiceQuery("mala-korpica-povrca"), default);
 
         var stavka = Assert.Single(dto.Stavke);
@@ -106,7 +106,7 @@ public class KorpiceQueriesTests
         Postavi(t, StatusSadrzaja.Nacrt, g, s);
 
         var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
-            new GetSadrzajKorpiceHandler(t.Db)
+            new GetSadrzajKorpiceHandler(t.Db, Options.Create(new KorpiceOpcije()))
                 .Handle(new GetSadrzajKorpiceQuery("mala-korpica-povrca"), default));
         Assert.Contains("sadrzaj_nije_objavljen", ex.Message);
     }
