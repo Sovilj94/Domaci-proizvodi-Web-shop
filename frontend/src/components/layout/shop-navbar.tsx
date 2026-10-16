@@ -91,8 +91,7 @@ export function ShopNavbar() {
               </Link>
             )}
 
-            {!loading &&
-              (user ? (
+            {!loading && user && (
                 <div className="hidden items-center gap-1 lg:flex">
                   <Link
                     href="/moj-nalog"
@@ -115,7 +114,22 @@ export function ShopNavbar() {
                     <LogOut className="h-5 w-5" />
                   </button>
                 </div>
-              ) : (
+            )}
+
+            {!loading && user && (
+              <Link
+                href="/moj-nalog"
+                aria-label="Moj nalog"
+                className={cn(
+                  "grid h-10 w-10 place-items-center rounded-full lg:hidden",
+                  proziran ? "text-white" : "text-brand-600",
+                )}
+              >
+                <User className="h-6 w-6" />
+              </Link>
+            )}
+
+            {!loading && !user && (
                 <>
                   <Link href="/login" className={cn(buttonVariants({ size: "lg" }), "hidden lg:inline-flex")}>
                     Prijavi se
@@ -133,7 +147,7 @@ export function ShopNavbar() {
                     Prijavi se
                   </Link>
                 </>
-              ))}
+            )}
 
             <PismoPrekidac
               className={cn(
