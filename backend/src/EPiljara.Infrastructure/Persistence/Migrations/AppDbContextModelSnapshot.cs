@@ -865,6 +865,28 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Pretplate");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.PrijavaNovosti", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("Kreirana")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("PrijaveNovosti", (string)null);
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Producer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -908,6 +930,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Boja")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
 
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");

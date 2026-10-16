@@ -50,6 +50,10 @@ public record ProductDto
     public Guid ProducerId { get; init; }
     public ProducerRefDto? Producer { get; init; }
     public string? ImageUrl { get; init; }
+    /// <summary>Boja pločice — uvijek popunjena (zadana ili iz palete, vidi BojaProizvoda).</summary>
+    public string Boja { get; init; } = string.Empty;
+    /// <summary>Boja koju je admin zadao; null kad se koristi paleta. Za formu proizvoda.</summary>
+    public string? ZadanaBoja { get; init; }
     public string Description { get; init; } = string.Empty;
     public bool IsFeatured { get; init; }
     /// <summary>Smije li ovaj artikal ući u sadržaj korpice (vidi Product.MozeUKorpicu).</summary>

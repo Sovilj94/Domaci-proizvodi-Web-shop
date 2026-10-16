@@ -34,6 +34,8 @@ public record StavkaSadrzajaDto
     public decimal Kolicina { get; init; }
     public string Jedinica { get; init; } = "kom";
     public string? ImageUrl { get; init; }
+    /// <summary>Boja pločice namirnice (BojaProizvoda).</summary>
+    public string Boja { get; init; } = string.Empty;
     public string ProizvodjacNaziv { get; init; } = string.Empty;
     public string ProizvodjacSelo { get; init; } = string.Empty;
 }

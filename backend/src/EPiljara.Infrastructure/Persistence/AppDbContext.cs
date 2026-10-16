@@ -30,6 +30,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
+    public DbSet<PrijavaNovosti> PrijaveNovosti => Set<PrijavaNovosti>();
     public DbSet<OcjenaIsporuke> OcjeneIsporuke => Set<OcjenaIsporuke>();
     public DbSet<Recept> Recepti => Set<Recept>();
     public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();
@@ -74,6 +75,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // ispravan naziv enum vrijednosti, pa bi EnumToStringConverter pucao pri
             // čitanju postojećih redova čim migracija dodijeli tu vrijednost. Obican je
             // ispravno stanje za sve postojeće redove (nijedan još nije korpica).
+            e.Property(x => x.Boja).HasMaxLength(7);
             e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(16)
                 .HasDefaultValue(VrstaProizvoda.Obican);
             e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);
@@ -292,6 +294,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.SetNull);
             // PreporuceniId namjerno bez FK: brisanje preporučenog ne smije brisati tuđu nagradu.
+        });
+
+        b.Entity<PrijavaNovosti>(e =>
+        {
+            e.ToTable("PrijaveNovosti");
+            e.Property(x => x.Email).HasMaxLength(256).IsRequired();
+            e.HasIndex(x => x.Email).IsUnique();
         });
 
         b.Entity<Utisak>(e =>

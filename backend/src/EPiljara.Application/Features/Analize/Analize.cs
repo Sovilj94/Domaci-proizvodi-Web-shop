@@ -20,6 +20,8 @@ internal static class AnalizaMapiranje
         Selo = a.Producer?.Village ?? string.Empty,
         ProductId = a.ProductId,
         Proizvod = a.Product?.Name,
+        Slika = a.Product?.ImageUrl,
+        Boja = BojaProizvoda.Za(a.Product?.Boja, a.Product?.Name ?? a.Uzorak),
         Uzorak = a.Uzorak,
         Laboratorija = a.Laboratorija,
         BrojIzvjestaja = a.BrojIzvjestaja,

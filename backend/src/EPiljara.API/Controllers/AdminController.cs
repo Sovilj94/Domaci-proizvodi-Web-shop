@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Novosti;
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Ocjene;
@@ -192,6 +193,10 @@ public class AdminController : ApiControllerBase
     [HttpDelete("admin/utisci/{id:guid}")]
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
+
+    [HttpGet("admin/novosti")]
+    public async Task<IActionResult> Novosti() =>
+        EnvelopeList(await Mediator.Send(new GetAdminNovostiQuery()));
 
     [HttpGet("admin/promo-kodovi")]
     public async Task<IActionResult> PromoKodovi() =>

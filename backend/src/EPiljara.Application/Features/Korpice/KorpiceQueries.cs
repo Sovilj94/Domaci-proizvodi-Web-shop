@@ -1,3 +1,4 @@
+using EPiljara.Application.Common;
 using System.Globalization;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
@@ -184,6 +185,7 @@ public static class SedmicaHelper
             Kolicina = st.Kolicina,
             Jedinica = (st.Product?.Unit ?? EPiljara.Domain.Enums.Unit.Kom).ToApi(),
             ImageUrl = st.Product?.ImageUrl,
+            Boja = BojaProizvoda.Za(st.Product?.Boja, st.Product?.Name ?? string.Empty),
             ProizvodjacNaziv = st.Product?.Producer?.Name ?? string.Empty,
             ProizvodjacSelo = st.Product?.Producer?.Village ?? string.Empty,
         }).ToList(),

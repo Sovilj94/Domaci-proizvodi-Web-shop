@@ -8,6 +8,10 @@ public record AnalizaDto
     public string Selo { get; init; } = string.Empty;
     public Guid? ProductId { get; init; }
     public string? Proizvod { get; init; }
+    /// <summary>Slika vezanog proizvoda — za obojenu karticu analize (null bez proizvoda).</summary>
+    public string? Slika { get; init; }
+    /// <summary>Boja kartice: boja vezanog proizvoda, inače iz palete po uzorku.</summary>
+    public string Boja { get; init; } = string.Empty;
     public string Uzorak { get; init; } = string.Empty;
     public string Laboratorija { get; init; } = string.Empty;
     public string BrojIzvjestaja { get; init; } = string.Empty;
