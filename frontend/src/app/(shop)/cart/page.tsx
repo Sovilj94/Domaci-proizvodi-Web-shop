@@ -82,7 +82,7 @@ export default function CartPage() {
           ))}
         </ul>
 
-        <aside className="h-fit rounded-card bg-surface p-5 shadow-card lg:sticky lg:top-20">
+        <aside className="h-fit rounded-card bg-surface p-5 shadow-card lg:sticky lg:top-28">
           <h2 className="font-display text-lg font-semibold">Pregled</h2>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">

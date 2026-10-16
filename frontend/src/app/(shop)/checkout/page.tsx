@@ -659,7 +659,7 @@ export default function CheckoutPage() {
           </div>
         </form>
 
-        <aside className="hidden lg:sticky lg:top-24 lg:block">
+        <aside className="hidden lg:sticky lg:top-28 lg:block">
           <OrderSummaryPanel
             items={items}
             subtotal={subtotal}

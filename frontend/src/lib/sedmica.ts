@@ -1,4 +1,4 @@
-import type { Sedmica } from "@/types/domain";
+import type { DeliverySlot, Sedmica } from "@/types/domain";
 
 // Dva padeža za dane u sedmici — "u" traži akuzativ, "do" traži genitiv, i nisu isti
 // oblik (npr. "petak" → "petka", ne "petaku"). Indeks je JS Date.getDay() (0 = nedjelja).
@@ -19,6 +19,26 @@ export function rokTekst(rok: Date): string {
 /** "četvrtak 15.10." — ide iza "u". */
 export function isporukaTekst(d: Date): string {
   return `${DANI_AKUZATIV[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}.`;
+}
+
+/**
+ * Datumi isporuke u sedmici `isporuka` za svaki slot, po redu dana — za rečenicu
+ * „Biraš dan dostave u četvrtak 23.10. ili petak 24.10." (R1, po uzoru na farmit).
+ * Server zna samo prvi dan (`datumIsporuke`); ostali su isti tjedan, pomjereni po danu slota.
+ */
+export function daniDostave(isporuka: Date, slotovi: DeliverySlot[]): Date[] {
+  const dani = [...new Set(slotovi.map((s) => s.dayOfWeek))].sort((a, b) => a - b);
+  return dani.map((dan) => {
+    const d = new Date(isporuka);
+    d.setDate(d.getDate() + (dan - isporuka.getDay()));
+    return d;
+  });
+}
+
+/** "četvrtak 23.10. ili petak 24.10." */
+export function daniDostaveTekst(dani: Date[]): string {
+  const t = dani.map(isporukaTekst);
+  return t.length <= 1 ? (t[0] ?? "") : `${t.slice(0, -1).join(", ")} ili ${t[t.length - 1]}`;
 }
 
 /**

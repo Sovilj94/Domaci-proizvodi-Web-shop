@@ -38,7 +38,7 @@ export default function ProductsPage() {
         <p className="text-muted">Svježe sa Manjače, birano za tvoju sedmicu.</p>
       </div>
 
-      <div className="sticky top-16 z-30 -mx-4 mt-5 bg-cream/90 px-4 py-3 backdrop-blur">
+      <div className="sticky top-[72px] z-30 -mx-4 lg:top-24 mt-5 bg-cream/90 px-4 py-3 backdrop-blur">
         <div className="relative mb-3">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
