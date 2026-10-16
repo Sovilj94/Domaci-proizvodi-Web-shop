@@ -1,48 +1,51 @@
-import { PackageCheck, ShoppingBasket, Truck } from "lucide-react";
+import { Sekcija } from "@/components/pocetna/sekcija";
 import { SectionHeader } from "@/components/ui/section-header";
 
 /**
- * Tri koraka. Namjerno bez brojeva (rok, dan, cijena) — oni stoje u heroju i FAQ-u, iz
- * servera; ovdje bi bili treća kopija koja može da se razide (spec, O12).
+ * Tri koraka (R1, po uzoru na farmit): bijeli krug sa emoji, isprekidana linija između,
+ * naslov i tekst; na mobilnom vertikalno sa ikonom lijevo. Namjerno bez brojeva (rok, dan,
+ * cijena) — oni dolaze sa servera na drugim mjestima (spec P4, O12).
  */
 const KORACI = [
   {
-    ikona: ShoppingBasket,
-    naslov: "Izaberi korpicu",
-    opis: "Povrće, voće, mliječna, suhomesnata ili domaćinska — u tri veličine.",
+    emoji: "📦",
+    naslov: "Biraš korpicu",
+    opis: "Izaberi korpicu povrća ili voća i veličinu po broju ukućana. Možeš se pretplatiti ili naručiti jednom.",
   },
   {
-    ikona: PackageCheck,
-    naslov: "Mi je spakujemo",
-    opis: "Sadržaj sastavljamo svake sedmice od onoga što je na Manjači tada najbolje.",
+    emoji: "🧑‍🌾",
+    naslov: "Znaš domaćina",
+    opis: "Uz svaku namirnicu u korpici piše ko ju je uzgojio i iz kog je sela.",
   },
   {
-    ikona: Truck,
-    naslov: "Stiže na tvoja vrata",
-    opis: "Vozač je donosi u dogovoreni termin, a plaćaš pouzećem.",
+    emoji: "🍅",
+    naslov: "Stiže na vrata",
+    opis: "Dostavljamo u dan koji izabereš, a plaćaš pouzećem. Adresu dostave možeš da mijenjaš.",
   },
 ] as const;
 
 export function KakoFunkcionise() {
   return (
-    <>
-      <SectionHeader naslov="Kako funkcioniše" />
-      <ol className="grid gap-3 md:grid-cols-3 lg:gap-4">
-        {KORACI.map((k, i) => (
-          <li key={k.naslov} className="rounded-card border border-line bg-surface p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-sand text-brand-600">
-                <k.ikona className="h-5 w-5" />
-              </span>
-              <span className="text-xs font-bold uppercase tracking-[0.14em] text-brand-700">
-                Korak {i + 1}
-              </span>
+    <Sekcija ton="krem" luk>
+      <SectionHeader naslov="Kako funkcioniše?" />
+      <ol className="relative grid gap-8 md:grid-cols-3 md:gap-6">
+        {/* Isprekidana linija iza krugova, samo na desktopu. */}
+        <div
+          className="absolute left-[16.6%] right-[16.6%] top-10 hidden border-t-[3px] border-dashed border-white md:block"
+          aria-hidden
+        />
+        {KORACI.map((k) => (
+          <li key={k.naslov} className="relative flex gap-5 md:flex-col md:items-center md:text-center">
+            <span className="grid h-20 w-20 shrink-0 place-items-center rounded-full bg-white text-4xl shadow-sm" aria-hidden>
+              {k.emoji}
+            </span>
+            <div>
+              <h3 className="text-2xl font-semibold text-ink md:mt-4 md:text-[28px]">{k.naslov}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink/80 md:mx-auto md:max-w-[270px]">{k.opis}</p>
             </div>
-            <h3 className="mt-3 text-base font-semibold text-ink">{k.naslov}</h3>
-            <p className="mt-1 text-sm text-muted">{k.opis}</p>
           </li>
         ))}
       </ol>
-    </>
+    </Sekcija>
   );
 }

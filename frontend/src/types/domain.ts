@@ -64,6 +64,10 @@ export interface Product {
   producerId: string;
   producer?: ProducerRef;
   imageUrl?: string;
+  /** Boja pločice namirnice — uvijek popunjena (server: BojaProizvoda). */
+  boja?: string;
+  /** Boja koju je admin zadao; prazno = boja iz palete. */
+  zadanaBoja?: string;
   description: string;
   isFeatured?: boolean;
   /** Smije li ovaj artikal ući u sadržaj korpice. */
@@ -273,6 +277,8 @@ export interface StavkaSadrzaja {
   kolicina: number;
   jedinica: Unit;
   imageUrl?: string;
+  /** Boja pločice namirnice (server: BojaProizvoda). */
+  boja?: string;
   proizvodjacNaziv: string;
   proizvodjacSelo: string;
 }
@@ -465,6 +471,10 @@ export interface Analiza {
   selo: string;
   productId?: string;
   proizvod?: string;
+  /** Slika vezanog proizvoda (R1) — za obojenu karticu analize. */
+  slika?: string;
+  /** Boja kartice analize (R1). */
+  boja?: string;
   uzorak: string;
   laboratorija: string;
   brojIzvjestaja: string;

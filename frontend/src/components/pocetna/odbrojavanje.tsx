@@ -63,34 +63,37 @@ export function Odbrojavanje() {
   const polja: [number, string][] = [
     [dani, "dana"],
     [sati, "sati"],
-    [minute, "min"],
-    ...(dani === 0 ? ([[sekunde, "sek"]] as [number, string][]) : []),
+    [minute, "minuta"],
+    ...(dani === 0 ? ([[sekunde, "sekundi"]] as [number, string][]) : []),
   ];
 
+  // Izgled po uzoru na farmit (R1): krem kutija, ⏱ ROK NARUČIVANJA, brojevi razdvojeni dvotačkom.
   return (
-    <div className="rounded-card border border-line bg-sand/60 p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-700">
-        {krug.zaSljedecu ? "Ova sedmica je zatvorena — rok za sljedeću" : "Do roka za ovu sedmicu"}
+    <div
+      className="mx-auto w-fit min-w-[260px] rounded-2xl bg-beige px-8 py-5 text-center shadow-[0_6px_20px_rgba(64,74,61,0.12)]"
+      title={`Poruči do ${rokTekst(krug.rok)} — korpica stiže u ${isporukaTekst(krug.isporuka)}`}
+    >
+      <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
+        ⏱ {krug.zaSljedecu ? "Rok naručivanja za sljedeću sedmicu" : "Rok naručivanja ove sedmice"}
       </p>
 
       {istekao ? (
-        <p className="mt-2 text-lg font-semibold text-ink">Rok je upravo istekao.</p>
+        <p className="mt-3 text-lg font-semibold text-ink">Rok je upravo istekao.</p>
       ) : (
-        <div className="mt-2 flex gap-2" role="timer" aria-label="Preostalo vrijeme do roka">
-          {polja.map(([vrijednost, oznaka]) => (
-            <div key={oznaka} className="min-w-14 rounded-[10px] bg-surface px-2 py-1.5 text-center">
-              <span className="block font-display text-2xl font-bold tabular-nums text-ink">
-                {String(vrijednost).padStart(2, "0")}
-              </span>
-              <span className="text-[11px] text-muted">{oznaka}</span>
+        <div className="mt-3 flex items-start justify-center gap-3" role="timer" aria-label="Preostalo vrijeme do roka">
+          {polja.map(([vrijednost, oznaka], i) => (
+            <div key={oznaka} className="flex items-start gap-3">
+              {i > 0 && <span className="text-2xl font-medium text-ink">:</span>}
+              <div className="text-center">
+                <span className="block text-3xl font-medium tabular-nums text-ink">
+                  {String(vrijednost).padStart(2, "0")}
+                </span>
+                <span className="text-[11px] uppercase text-ink/80">{oznaka}</span>
+              </div>
             </div>
           ))}
         </div>
       )}
-
-      <p className="mt-2 text-sm text-ink/80">
-        Poruči do {rokTekst(krug.rok)} — korpica stiže u {isporukaTekst(krug.isporuka)}
-      </p>
     </div>
   );
 }
