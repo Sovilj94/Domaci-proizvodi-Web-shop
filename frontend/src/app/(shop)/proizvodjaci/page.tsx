@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DomacinKartica } from "@/components/pocetna/domacin-kartica";
 import { useProducers } from "@/lib/api/hooks";
@@ -10,11 +11,8 @@ export default function ProizvodjaciPage() {
   const producers = useProducers();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="font-display text-3xl font-bold">Naši domaćini</h1>
-      <p className="mb-8 mt-1 text-muted">
-        Porodice i gazdinstva od kojih dolazi ono što prodajemo.
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+      <PageHeader naslov="Ovo su tvoji domaćini 🧑‍🌾" opis="Porodice i gazdinstva od kojih dolazi ono što prodajemo." />
       {producers.isLoading ? (
         <div className={MREZA}>
           {Array.from({ length: 8 }).map((_, i) => (
