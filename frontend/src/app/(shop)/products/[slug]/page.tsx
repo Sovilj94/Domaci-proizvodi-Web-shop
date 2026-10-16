@@ -31,7 +31,7 @@ export default function ProductDetailPage() {
           title="Proizvod nije pronađen"
           description="Možda je uklonjen ili je link neispravan."
           action={
-            <Link href="/products">
+            <Link href="/spajz">
               <Button variant="secondary">Nazad na proizvode</Button>
             </Link>
           }
@@ -47,7 +47,7 @@ export default function ProductDetailPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <Link
-        href="/products"
+        href="/spajz"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" /> Svi proizvodi
@@ -60,7 +60,7 @@ export default function ProductDetailPage() {
 
         <div className="flex flex-col">
           <Link
-            href="/products"
+            href="/spajz"
             className="text-sm font-semibold text-brand-700 hover:underline"
           >
             {product.categoryName}

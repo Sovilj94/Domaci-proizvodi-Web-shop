@@ -8,7 +8,7 @@ import { KONTAKT } from "@/lib/kontakt";
 const LINKOVI = [
   { href: "/o-nama", naziv: "O nama" },
   { href: "/korpice", naziv: "Korpice" },
-  { href: "/products", naziv: "Špajz" },
+  { href: "/spajz", naziv: "Špajz" },
   { href: "/proizvodjaci", naziv: "Naši domaćini" },
   { href: "/postani-partner", naziv: "Postani partner" },
 ];

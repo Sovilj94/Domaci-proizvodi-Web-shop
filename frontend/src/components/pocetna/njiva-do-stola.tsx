@@ -6,7 +6,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 const PLOCICE = [
   { href: "/korpice/povrce", naziv: "Povrće", emoji: "🥦", pozadina: "#9DCB9D", tekst: "#1B701B" },
   { href: "/korpice/voce", naziv: "Voće", emoji: "🍎", pozadina: "#F8CFAE", tekst: "#C25B03" },
-  { href: "/products", naziv: "Špajz", emoji: "🏪", pozadina: "#D9A88A", tekst: "#7A3E1C" },
+  { href: "/spajz", naziv: "Špajz", emoji: "🏪", pozadina: "#D9A88A", tekst: "#7A3E1C" },
 ] as const;
 
 /** „Sa njive do tvog stola" (R1, po uzoru na farmit): tri obojene pločice-dugmeta na krem pojasu. */

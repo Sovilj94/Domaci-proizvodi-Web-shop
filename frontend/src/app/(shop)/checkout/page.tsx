@@ -341,7 +341,7 @@ export default function CheckoutPage() {
           title="Korpa je prazna"
           description="Dodajte proizvode prije nego nastavite na dostavu."
           action={
-            <Link href="/products" className={cn(buttonVariants())}>
+            <Link href="/spajz" className={cn(buttonVariants())}>
               Pogledaj proizvode
             </Link>
           }

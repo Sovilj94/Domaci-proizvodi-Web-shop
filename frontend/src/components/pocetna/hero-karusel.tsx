@@ -27,7 +27,7 @@ const SLAJDOVI = [
     naslov: "Špajz pun domaćeg.",
     tekst: "Sir, suho meso, ajvar i zimnica — dodaj ih uz korpicu i stižu u istoj dostavi.",
     dugme: "🫙 Pogledaj Špajz",
-    href: "/products",
+    href: "/spajz",
     slika: IZGLED.hero.spajz,
   },
 ] as const;

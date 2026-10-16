@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { OsobineKorpice } from "@/components/korpice/korpica-kartica";
 import { StavkaSadrzajaKartica } from "@/components/korpice/stavka-sadrzaja";
+import { DodajIzSpajza } from "@/components/spajz/dodaj-iz-spajza";
 import { PretplataForma } from "@/components/nalog/pretplata-forma";
 import { SmartImage } from "@/components/ui/smart-image";
 import { buttonVariants } from "@/components/ui/button";
@@ -247,6 +248,11 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
           )}
         </div>
       </section>
+
+      {/* R3: uz korpicu se dodaju sir, suho meso, ajvar i zimnica — ista narudžba, ista dostava. */}
+      <div className="bg-beige">
+        <DodajIzSpajza naslov="Dodaj uz korpicu iz Špajza" />
+      </div>
 
       <PretplataForma
         open={pretplataOtvorena}

@@ -61,7 +61,7 @@ export function CartDrawer() {
                 </div>
                 <p className="font-medium">Korpa je prazna</p>
                 <Link
-                  href="/products"
+                  href="/spajz"
                   onClick={closeCart}
                   className={cn(buttonVariants({ variant: "secondary" }))}
                 >

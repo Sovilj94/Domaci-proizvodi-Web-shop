@@ -151,7 +151,7 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
           </div>
 
           <div className="flex flex-col gap-3">
-            <Link href="/products" className={cn(buttonVariants({ variant: "secondary" }))}>
+            <Link href="/spajz" className={cn(buttonVariants({ variant: "secondary" }))}>
               Nastavi kupovinu
             </Link>
             {user && (
