@@ -98,9 +98,11 @@ public class MojePretplateTests
         Assert.Equal("Aktivna", dto.Status);
         Assert.Equal(0, dto.BrojIsporuka);
         Assert.Equal(25m, dto.PunaCijena);
-        Assert.Equal(25m, dto.TrenutnaCijena);
-        Assert.False(dto.PopustAktivan);
-        Assert.Equal(5, dto.DoPopusta);
+        // R2: pretplatna cijena od prve isporuke (nedjeljni plan, 10 %).
+        Assert.Equal(22.50m, dto.TrenutnaCijena);
+        Assert.True(dto.PopustAktivan);
+        Assert.Equal("Nedjeljna", dto.Plan);
+        Assert.True(dto.MozeOtkazati);
         Assert.NotNull(dto.SljedecaIsporuka);
         Assert.Equal("Četvrtak 16–20", dto.DeliverySlotLabel);
     }
@@ -278,5 +280,80 @@ public class MojePretplateTests
         Assert.Equal("Otkazana", spisak[1].Status);
         // Otkazana nema sljedeću isporuku — ekran bi inače obećavao korpicu koja ne dolazi.
         Assert.Null(spisak[1].SljedecaIsporuka);
+    }
+
+    // ---- R2: planovi i obaveza ----
+
+    [Fact]
+    public async Task Mjesecni_plan_nosi_obavezu_od_cetiri_isporuke_i_nizu_cijenu()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        var dto = await s.Novi().Handle(s.Komanda() with { Plan = "Mjesecna" }, default);
+
+        Assert.Equal("Mjesecna", dto.Plan);
+        Assert.Equal(4, dto.ObavezaIsporuka);
+        Assert.Equal(4, dto.PreostaloObaveze);
+        Assert.False(dto.MozeOtkazati);
+        Assert.Equal(21.25m, dto.TrenutnaCijena);
+    }
+
+    [Fact]
+    public async Task Bez_plana_je_nedjeljna()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        var dto = await s.Novi().Handle(s.Komanda(), default);
+
+        Assert.Equal("Nedjeljna", dto.Plan);
+        Assert.Equal(0, dto.ObavezaIsporuka);
+    }
+
+    [Theory]
+    [InlineData("Godisnja")]
+    [InlineData("1")]
+    public void Nepoznat_plan_ne_prolazi(string plan)
+    {
+        var cmd = new NapraviPretplatuCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Kralja Petra 12", 44.77, 17.19, null, plan);
+        Assert.False(new NapraviPretplatuValidator().Validate(cmd).IsValid);
+    }
+
+    [Fact]
+    public async Task Otkaz_nije_moguc_dok_traje_obaveza()
+    {
+        using var s = await Scena.SpremiAsync();
+        var p = await s.Novi().Handle(s.Komanda() with { Plan = "TriMjeseca" }, default);
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(
+            () => s.Otkaz().Handle(new OtkaziPretplatuCommand(p.Id), default));
+        Assert.Equal("obaveza_aktivna", ex.Code);
+    }
+
+    [Fact]
+    public async Task Otkaz_je_moguc_kad_je_obaveza_ispunjena()
+    {
+        using var s = await Scena.SpremiAsync();
+        var p = await s.Novi().Handle(s.Komanda() with { Plan = "Mjesecna" }, default);
+        s.Db.ChangeTracker.Clear();
+        var red = await s.Db.Pretplate.FirstAsync(x => x.Id == p.Id);
+        red.BrojIsporuka = 4;
+        await s.Db.SaveChangesAsync();
+
+        await s.Otkaz().Handle(new OtkaziPretplatuCommand(p.Id), default);
+
+        s.Db.ChangeTracker.Clear();
+        Assert.Equal(StatusPretplate.Otkazana, (await s.Db.Pretplate.FirstAsync(x => x.Id == p.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Admin_otkazuje_i_tokom_obaveze()
+    {
+        using var s = await Scena.SpremiAsync();
+        var p = await s.Novi().Handle(s.Komanda() with { Plan = "TriMjeseca" }, default);
+
+        await new AdminOtkaziPretplatuHandler(s.Db).Handle(new AdminOtkaziPretplatuCommand(p.Id), default);
+
+        s.Db.ChangeTracker.Clear();
+        Assert.Equal(StatusPretplate.Otkazana, (await s.Db.Pretplate.FirstAsync(x => x.Id == p.Id)).Status);
     }
 }

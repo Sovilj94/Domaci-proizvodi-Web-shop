@@ -820,6 +820,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<int>("ObavezaIsporuka")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("OtkazanaU")
                         .HasColumnType("timestamp with time zone");
 
@@ -828,6 +831,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<int?>("PauzaDoSedmica")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Plan")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Nedjeljna");
 
                     b.Property<int?>("PoslednjaGodina")
                         .HasColumnType("integer");

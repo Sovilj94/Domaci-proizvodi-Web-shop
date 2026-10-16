@@ -178,6 +178,14 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Pretplate([FromQuery] string? status) =>
         Envelope(await Mediator.Send(new GetAdminPretplateQuery(status)));
 
+    /// <summary>Otkaz pretplate od strane podrške — radi i dok traje obaveza plana (R2).</summary>
+    [HttpDelete("admin/pretplate/{id:guid}")]
+    public async Task<IActionResult> OtkaziPretplatu(Guid id)
+    {
+        await Mediator.Send(new AdminOtkaziPretplatuCommand(id));
+        return NoContent();
+    }
+
     [HttpGet("admin/utisci")]
     public async Task<IActionResult> Utisci() =>
         EnvelopeList(await Mediator.Send(new GetAdminUtisciQuery()));

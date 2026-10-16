@@ -290,20 +290,21 @@ public class PretplatneNarudzbeTests
     }
 
     [Fact]
-    public async Task Prvih_pet_isporuka_ide_po_punoj_cijeni()
+    public async Task Prva_isporuka_vec_nosi_pretplatnicku_cijenu()
     {
-        using var s = await Scena.SpremiAsync(brojIsporuka: 4);
+        // R2: popust od prve isporuke (nedjeljni plan, 10 %), ne od šeste.
+        using var s = await Scena.SpremiAsync(brojIsporuka: 0);
 
         await s.ProlazAsync();
 
         s.Db.ChangeTracker.Clear();
         var order = await s.Db.Orders.AsNoTracking().Include(o => o.Items)
             .FirstAsync(o => o.PretplataId == s.Pretplata.Id);
-        Assert.Equal(25m, order.Items.Single().UnitPrice);
+        Assert.Equal(22.50m, order.Items.Single().UnitPrice);
     }
 
     [Fact]
-    public async Task Sesta_isporuka_nosi_pretplatnicku_cijenu()
+    public async Task Kasnija_isporuka_nosi_istu_pretplatnicku_cijenu()
     {
         using var s = await Scena.SpremiAsync(brojIsporuka: 5);
 

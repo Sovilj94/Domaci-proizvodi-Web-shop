@@ -150,6 +150,9 @@ public class AdminPretplataDto
     public string? Email { get; init; }
     public string? Telefon { get; init; }
     public string Korpica { get; init; } = string.Empty;
+    /// <summary>"Nedjeljna" | "Mjesecna" | "TriMjeseca" (R2).</summary>
+    public string Plan { get; init; } = "Nedjeljna";
+    public int PreostaloObaveze { get; init; }
     public decimal Cijena { get; init; }
     public int BrojIsporuka { get; init; }
     public string? Zona { get; init; }

@@ -6,16 +6,19 @@ public class PretplateOpcije
     public const string Sekcija = "Pretplate";
 
     /// <summary>
-    /// Koliko isporuka kupac mora imati iza sebe da bi platio nižu cijenu. Prag je broj
-    /// VEĆ ISPORUČENIH, pa pri pragu 5 šesta isporuka postaje prva jeftinija — popust se
-    /// zarađuje unazad, što je svjesno odstupanje od uzora (farmit naplati period unaprijed
-    /// karticom i zato smije dati popust odmah; ovdje se plaća pouzećem, pa je duži period
-    /// samo obećanje).
+    /// Popust plana na punu cijenu korpice, 0.10 = 10%. Važi od prve isporuke (R2, po uzoru na
+    /// farmit) — zamijenio je P3 pravilo „popust od šeste isporuke".
     /// </summary>
-    public int PragPopusta { get; set; } = 5;
+    public decimal PopustNedjeljna { get; set; } = 0.10m;
+    public decimal PopustMjesecna { get; set; } = 0.15m;
+    public decimal PopustTriMjeseca { get; set; } = 0.20m;
 
-    /// <summary>Udio popusta na punu cijenu korpice, 0.10 = 10%.</summary>
-    public decimal Popust { get; set; } = 0.10m;
+    /// <summary>
+    /// Na koliko isporuka se kupac obavezuje. Dok obaveza traje, otkaz sa naloga nije ponuđen
+    /// (pauza jeste) — otkazuje admin. Pouzećem se obaveza ne može naplatiti; prihvaćen rizik.
+    /// </summary>
+    public int ObavezaMjesecna { get; set; } = 4;
+    public int ObavezaTriMjeseca { get; set; } = 13;
 
     /// <summary>
     /// Koliko sati prije roka naručivanja pozadinski posao pravi narudžbu za tu sedmicu.

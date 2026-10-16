@@ -160,10 +160,11 @@ public static class SedmicaHelper
         Tip = Slug(p.TipKorpice ?? TipKorpice.Povrce),
         Velicina = (p.Velicina ?? VelicinaKorpice.Mala).ToString().ToLowerInvariant(),
         Cijena = p.Price,
-        CijenaSaPretplatom = pretplateOpcije is null
-            ? null
-            : PretplatnaCijena.Izracunaj(p.Price, pretplateOpcije.PragPopusta, pretplateOpcije),
-        IsporukaDoPopusta = pretplateOpcije?.PragPopusta,
+        CijenaNedjeljna = pretplateOpcije is null ? null : PretplatnaCijena.Izracunaj(p.Price, PlanPretplate.Nedjeljna, pretplateOpcije),
+        CijenaMjesecna = pretplateOpcije is null ? null : PretplatnaCijena.Izracunaj(p.Price, PlanPretplate.Mjesecna, pretplateOpcije),
+        CijenaTriMjeseca = pretplateOpcije is null ? null : PretplatnaCijena.Izracunaj(p.Price, PlanPretplate.TriMjeseca, pretplateOpcije),
+        ObavezaMjesecna = pretplateOpcije?.ObavezaMjesecna,
+        ObavezaTriMjeseca = pretplateOpcije?.ObavezaTriMjeseca,
         ImageUrl = p.ImageUrl,
         Opis = p.Description,
         Stock = p.Stock,
@@ -233,7 +234,7 @@ public class GetKorpicaBySlugHandler(IAppDbContext db, IOptions<PretplateOpcije>
 
 public record GetSadrzajKorpiceQuery(string Slug) : IRequest<SadrzajDto>;
 
-public class GetSadrzajKorpiceHandler(IAppDbContext db)
+public class GetSadrzajKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
     : IRequestHandler<GetSadrzajKorpiceQuery, SadrzajDto>
 {
     public async Task<SadrzajDto> Handle(GetSadrzajKorpiceQuery q, CancellationToken ct)
@@ -242,13 +243,22 @@ public class GetSadrzajKorpiceHandler(IAppDbContext db)
             .FirstOrDefaultAsync(x => x.Slug == q.Slug && x.Vrsta == VrstaProizvoda.Korpica, ct)
             ?? throw new NotFoundException("Korpica nije pronađena.");
 
-        var (godina, sedmica) = SedmicaHelper.Tekuca();
+        // R2: prvo sedmica koju checkout upravo prodaje (poslije roka je to naredna), pa tekuća —
+        // stranica korpice ne smije pokazivati sadržaj sedmice za koju se više ne naručuje dok
+        // za narednu postoji objavljen (nalaz P4, O7).
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        var prodaje = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijemeOd, cutoff);
+        var tekuca = SedmicaHelper.Tekuca();
 
-        var sadrzaj = await db.SedmicniSadrzaji
+        var kandidati = await db.SedmicniSadrzaji
             .Include(s => s.Stavke).ThenInclude(st => st.Product).ThenInclude(p => p!.Producer)
-            .FirstOrDefaultAsync(s =>
-                s.KorpicaId == korpica.Id && s.Godina == godina && s.Sedmica == sedmica
-                && s.Status != StatusSadrzaja.Nacrt, ct)
+            .Where(s => s.KorpicaId == korpica.Id && s.Status != StatusSadrzaja.Nacrt
+                && ((s.Godina == prodaje.Godina && s.Sedmica == prodaje.Sedmica)
+                    || (s.Godina == tekuca.Godina && s.Sedmica == tekuca.Sedmica)))
+            .ToListAsync(ct);
+
+        var sadrzaj = kandidati.FirstOrDefault(s => s.Godina == prodaje.Godina && s.Sedmica == prodaje.Sedmica)
+            ?? kandidati.FirstOrDefault()
             ?? throw new NotFoundException("sadrzaj_nije_objavljen");
 
         return sadrzaj.ToDto();

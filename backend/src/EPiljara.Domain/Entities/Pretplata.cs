@@ -46,6 +46,15 @@ public class Pretplata : Entity
     /// </summary>
     public int BrojIsporuka { get; set; }
 
+    /// <summary>Plan (R2): određuje popust i obavezu — vidi PretplatnaCijena.</summary>
+    public PlanPretplate Plan { get; set; } = PlanPretplate.Nedjeljna;
+
+    /// <summary>
+    /// Na koliko isporuka se kupac obavezao pri pretplati (snimak plana iz tog trenutka, da
+    /// izmjena opcija ne promijeni već preuzetu obavezu). 0 = bez obaveze.
+    /// </summary>
+    public int ObavezaIsporuka { get; set; }
+
     /// <summary>
     /// Prva sedmica u kojoj pretplata ponovo radi. Dok je ciljna sedmica manja od ove,
     /// posao preskače. null kad pauze nema.

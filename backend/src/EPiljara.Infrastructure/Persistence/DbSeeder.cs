@@ -177,7 +177,9 @@ public static class DbSeeder
                 Price = Math.Round(osnovneCijene[tip] * faktor, 0),
                 Unit = Unit.Kom,
                 Stock = 40,
-                IsAvailable = true,
+                // R2: prodaju se samo korpice povrća i voća (odluka korisnika 2026-10-16); ostale
+                // vrste ostaju u bazi, sakrivene, i mogu se vratiti uključivanjem dostupnosti.
+                IsAvailable = tip is TipKorpice.Povrce or TipKorpice.Voce,
                 Description = $"{opis} {clanovi}.",
                 ImageUrl = tip switch
                 {

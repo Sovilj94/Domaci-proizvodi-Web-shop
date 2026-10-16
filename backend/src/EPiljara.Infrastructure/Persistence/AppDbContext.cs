@@ -251,6 +251,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<Pretplata>(e =>
         {
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Plan).HasConversion<string>().HasMaxLength(16).HasDefaultValue(PlanPretplate.Nedjeljna);
             e.Property(x => x.DeliveryAddress).HasMaxLength(400).IsRequired();
             e.Property(x => x.Napomena).HasMaxLength(1000);
             e.HasIndex(x => x.UserId);

@@ -164,7 +164,7 @@ public class CreateOrderHandler(
             // umanjena za popust koji je kupac dotad ZARADIO — popust visi o broju
             // isporučenih, ne o datumu pretplate, pa ga svaka naredna narudžba računa iznova.
             var jedinicna = pretplata is not null && product.Id == pretplata.ProductId
-                ? PretplatnaCijena.Izracunaj(product.Price, pretplata.BrojIsporuka, pretplateOpcije.Value)
+                ? PretplatnaCijena.Izracunaj(product.Price, pretplata.Plan, pretplateOpcije.Value)
                 : product.Price;
 
             var stavka = new OrderItem
