@@ -140,8 +140,8 @@ Config section `Pretplate` (override via `Pretplate__*` env vars):
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Pretplate:PragPopusta` | `5` | How many deliveries the customer must already have **behind** them before the price drops. With the default, the sixth delivery is the first cheaper one — the discount is earned backwards, because payment is cash on delivery and a period paid up front does not exist here. |
-| `Pretplate:Popust` | `0.10` | Share taken off the basket price once the threshold is reached. |
+| `Pretplate:PopustNedjeljna` / `PopustMjesecna` / `PopustTriMjeseca` | `0.10` / `0.15` / `0.20` | Discount per plan, applied **from the first delivery** (R2). |
+| `Pretplate:ObavezaMjesecna` / `ObavezaTriMjeseca` | `4` / `13` | Deliveries the customer commits to. Snapshotted on the subscription at creation; during the commitment only an admin can cancel (`/admin/pretplate`). Cash on delivery means it cannot be enforced financially. |
 | `Pretplate:SatiUnaprijed` | `48` | How many hours before the week's ordering cutoff the job creates that week's orders. Lower it and customers lose the window in which they can still pause; raise it and orders exist long before anyone can change their mind. |
 | `Pretplate:MaksPauzaSedmica` | `8` | Longest pause a customer can set at once, counted in deliveries. |
 
@@ -159,7 +159,13 @@ Two operational consequences worth knowing before the first real week:
   many active subscriptions are still waiting for content for the upcoming week. Watch that number
   before the cutoff, not after.
 - **Prices are not frozen at subscription time.** Each order takes the basket's current price minus the
-  earned discount, so a price change reaches subscribers with their next delivery.
+  plan discount, so a price change reaches subscribers with their next delivery.
+- **Only vegetable and fruit baskets are on sale** (R2). Household, dairy and cured-meat baskets were set
+  unavailable by migration `DodajPlanPretplate`; re-enable them in admin if ever needed. Existing
+  subscriptions to a hidden basket are not cancelled automatically — check `/admin/pretplate`.
+- **Photos (R1):** hero, banner and basket photos are placeholders from product images — replace them
+  per `frontend/public/izgled/README.md` (paths in `frontend/src/lib/izgled.ts`). Do not reuse farmit.rs
+  photos or texts.
 
 ## Still your call (operational)
 
