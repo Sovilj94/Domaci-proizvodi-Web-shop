@@ -1,84 +1,82 @@
 @import "tailwindcss";
 
 /*
- * E piljara design tokeni — izgled „Opcija 3": svijetla podloga, tamno zelena kao
- * jedina jaka boja, bijele kartice, diskretni borderi.
- * Tailwind v4 čita ove iz @theme i generiše utilitije
- * (bg-brand-600, text-muted, rounded-card, shadow-card, font-display, ...).
+ * E piljara design tokeni — izgled po farmit.rs (R1, spec 2026-10-16-farmit-izgled).
+ * Vrijednosti su izvučene iz farmit-ovog CSS-a: zelena #228B22 (primary), narandžasta
+ * #FE7E0F (secondary, glavna dugmad), krem #FFF1E4 (pojasevi), tamno maslinasta #394236
+ * (tekst). Snimak uzora: docs/superpowers/farmit-snimak-2026-10-16.md.
  *
- * Imena tokena su namjerno ostala ista (brand-*, sand, ink…) — 33 fajla ih koristi,
- * pa se cijeli izgled mijenja ovdje umjesto kroz stotine izmjena po komponentama.
- * Posljedica: `sand` od sada znači SVIJETLO ZELENU, ne pijesak. Ime je ostalo zbog
- * broja pozivalaca, ali ko čita samo ime očekivaće topli ton.
+ * Stara imena (brand-*, honey-*, cream, sand…) su zadržana jer ih koristi stotinjak
+ * fajlova — vrijednosti su nove: `brand` je farmit zelena, `honey` farmit narandžasta,
+ * `cream` je BIJELA pozadina stranice (farmit nema obojenu podlogu), a krem pojas je `beige`.
  */
 @theme {
-  /*
-   * Brand — tamno zelena iz mockupa „Opcija 3". Skala je izvedena oko 600, koji nosi
-   * ispunu dugmadi: bijelo na #0e5b38 daje 8.16:1. 700 je hover, 500 ide na ikone.
-   */
-  --color-brand-50: #f1f7f3;
-  --color-brand-100: #dcebe2;
-  --color-brand-200: #bbd8c7;
-  --color-brand-300: #8dbda2;
-  --color-brand-400: #589b79;
-  --color-brand-500: #2d7a55;
-  --color-brand-600: #0e5b38;
-  --color-brand-700: #083f29;
-  --color-brand-800: #06301f;
-  --color-brand-900: #042217;
+  /* Zelena (farmit primary). 600 = #228B22: linkovi, „istaknuto" dugme, aktivni plan. */
+  --color-brand-50: #f3f9f3;
+  --color-brand-100: #e6f2e6;
+  --color-brand-200: #cee5ce;
+  --color-brand-300: #b5d8b5;
+  --color-brand-400: #84bf84;
+  --color-brand-500: #3c9a3c;
+  --color-brand-600: #228b22;
+  --color-brand-700: #1b701b;
+  --color-brand-800: #155815;
+  --color-brand-900: #0f400f;
 
-  /*
-   * Amber — akcenat. Kontrast dijeli skalu na dvoje i to se ne krši:
-   *   500 (#c17f2a) = ukras, i tekst SAMO na tamnoj (4.91:1 na #232018).
-   *                   Na kremu daje 2.97:1 i pada AA — nikad sitan tekst tamo.
-   * Skala je ostala zbog footera i starijih ekrana (honey-500, honey-600); ostali
-   * stepeni (uključujući 700, nekad za nadnaslove i linkove na kremu — komponenta
-   * `Nadnaslov` je obrisana na ovoj grani) trenutno nemaju korisnika.
-   */
-  --color-honey-100: #f7ead6;
-  --color-honey-300: #e8be85;
-  --color-honey-400: #d99a45;
-  --color-honey-500: #c17f2a;
-  --color-honey-600: #a86d22;
-  --color-honey-700: #8f5d1b;
+  /* Narandžasta (farmit secondary). 500 = #FE7E0F: glavna dugmad, „Prijavi se", podvlaka aktivnog linka. */
+  --color-honey-100: #fff1e4;
+  --color-honey-200: #ffd4af;
+  --color-honey-300: #ffc695;
+  --color-honey-400: #feaa60;
+  --color-honey-500: #fe7e0f;
+  --color-honey-600: #e56d06;
+  --color-honey-700: #c25b03;
 
-  /* Neutrali — svijetli i skoro neutralni. Mockup nema tople krem tonove starog izgleda. */
-  --color-cream: #f8f5ed;   /* pozadina stranice */
-  --color-sand: #eef5ee;    /* svijetlo zelena površina — ikone benefita, traka kategorija */
-  --color-ink: #171914;     /* tekst — 16.3:1 na cream */
-  --color-muted: #5f6459;   /* sekundarni tekst — 5.58:1 na cream */
-  --color-line: #e5e1d7;    /* hairline granice */
+  /* Imena iz farmit-ovog sistema, za nove komponente. */
+  --color-primary: #228b22;
+  --color-secondary: #fe7e0f;
+  --color-beige: #fff1e4;
+
+  /* Neutrali. */
+  --color-cream: #ffffff;   /* pozadina stranice — farmit je bijel */
+  --color-sand: #f4f5f3;    /* svijetlosiva površina: pozadina slike proizvoda, hover */
+  --color-ink: #394236;     /* naslovi i tekst (farmit technical-h1) */
+  --color-muted: #6c757d;   /* sekundarni tekst (farmit technical-placeholder) */
+  --color-line: #d9dbd8;    /* okviri (farmit technical-border) */
   --color-surface: #ffffff; /* kartice */
 
-  /*
-   * Tamne površine. Na ovoj grani je ostao samo footer — sekcija izdvojenih
-   * proizvoda je postala svijetla. Kartice na `night` su `night-card` da se
-   * odvoje bez okvira.
-   */
+  /* Tamne površine — ostale za admin i stare ekrane; kupčev footer je od R1 bijel. */
   --color-night: #232018;
   --color-night-card: #2e2b23;
-  /* Sekundarni tekst NA tamnoj. `muted` tamo daje 2.67:1 i pada AA. */
   --color-muted-dark: #a79c86;
   --color-sage: #8da876;
 
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+  /* Poppins nosi i tekst i naslove, kao kod farmit-a. Na ćirilici Montserrat (vidi dolje). */
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 0.875rem; /* 14px */
+  /* Farmit kartica: 26px i meka zelenkasta sjenka. */
+  --radius-card: 26px;
 
-  /* Elevacije — mockup ima jedva vidljive sjenke, nosi ih border. */
-  --shadow-sm: 0 1px 2px rgba(23, 25, 20, 0.05);
-  --shadow-card: 0 1px 3px rgba(23, 25, 20, 0.06);
-  --shadow-md: 0 4px 14px rgba(23, 25, 20, 0.07);
-  --shadow-lg: 0 20px 40px rgba(23, 25, 20, 0.12);
+  --shadow-sm: 0 1px 2px rgba(64, 74, 61, 0.06);
+  --shadow-card: 0 4px 14px rgba(64, 74, 61, 0.12);
+  --shadow-kartica: 0 10px 20px rgba(64, 74, 61, 0.3);
+  --shadow-md: 0 6px 16px rgba(64, 74, 61, 0.15);
+  --shadow-lg: 0 20px 40px rgba(64, 74, 61, 0.18);
 
-  /* Animacije */
   --animate-shimmer: shimmer 1.5s linear infinite;
+  --animate-marquee: marquee 22s linear infinite;
 }
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* Traka roka na mobilnom: sadržaj je dupliran, pa pomak od -50% daje neprekidno kretanje. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 @keyframes bump {
@@ -94,13 +92,15 @@ body {
 }
 
 /*
- * P7 — ćirilica. Font: DM Sans nema ćirilična slova (vidi app/layout.tsx).
+ * P7 — ćirilica. Font: Poppins nema ćirilična slova (provjereno u next/font podacima), pa
+ * na ćirilici sve ide na Montserrat — najsličniji geometrijski font.
  * Skrivanje: dok PismoProvider ne presloži stranicu, latinica se ne smije vidjeti.
  * `data-pismo` postavlja skripta u <head>, `data-pismo-spremno` provajder. Animacija je
  * rezervni izlaz kad JS ne stigne: stranica se pokaže poslije 1,5 s u svakom slučaju.
  */
 html[data-pismo="cir"] {
-  --font-sans: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
 }
 
 html[data-pismo="cir"]:not([data-pismo-spremno]) body {
@@ -121,16 +121,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/*
- * Blagi tracking na display naslovima. Playfair je serif — zbijanje koje je
- * odgovaralo Inter Tightu ovdje zatvara kontraforme, pa je upola manje nego prije.
- * Vrijednost je u `em` da bi se skalirala sa veličinom slova.
- */
-.font-display {
-  letter-spacing: -0.01em;
-}
-
-/* Hide scrollbars on horizontal rails (category chips, etc.) */
+/* Hide scrollbars on horizontal rails (karuseli, kategorije) */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -141,7 +132,7 @@ body {
 
 /* Shimmer skeleton površina */
 .skeleton {
-  background: linear-gradient(90deg, #e9e5db 25%, #f4f1e9 37%, #e9e5db 63%);
+  background: linear-gradient(90deg, #eceeea 25%, #f6f7f5 37%, #eceeea 63%);
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
 }

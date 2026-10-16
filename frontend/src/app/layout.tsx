@@ -1,41 +1,29 @@
 import type { Metadata } from "next";
-import { DM_Sans, Onest, Playfair_Display } from "next/font/google";
+import { Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { PISMO_SKRIPTA } from "@/lib/pismo/pismo";
 
 /*
- * latin-ext nije opcion: cijeli sajt je na srpskom, a bez tog subseta č, ć, š, ž i đ
- * padaju na zamjenski font i naslov se raspadne na dva pisma usred riječi.
+ * Poppins — font farmit-a (R1), za tekst i naslove. latin-ext nije opcion: bez njega
+ * č, ć, š, ž i đ padaju na zamjenski font i riječ se raspadne na dva pisma.
  */
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
 /*
- * Playfair nosi samo naslove. 700 je najteži rez koji ima — na 800 bi ga browser
- * sintetisao razvlačenjem poteza, pa `font-extrabold` na display tekstu ne koristimo.
- */
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  // `cyrillic` za P7; subset ne mijenja šta se preload-uje za latinicu.
-  subsets: ["latin", "latin-ext", "cyrillic"],
-  weight: ["400", "600", "700"],
-  display: "swap",
-});
-
-/*
- * DM Sans nema ćirilicu (provjereno u next/font podacima). Na ćirilici tijelo prelazi na
- * Onest — sličnog geometrijskog karaktera — preko `--font-sans` u globals.css. Bez
+ * Poppins nema ćirilicu (provjereno u next/font podacima). Na ćirilici sve prelazi na
+ * Montserrat — najsličniji geometrijski font — preko `--font-sans` u globals.css. Bez
  * preload-a, da kupac na latinici ne plaća njegovo preuzimanje.
  */
-const onest = Onest({
-  variable: "--font-onest",
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin", "cyrillic", "cyrillic-ext"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
@@ -56,7 +44,7 @@ export default function RootLayout({
     // suppressHydrationWarning: skripta ispod mijenja `lang` i `data-pismo` prije hidratacije.
     <html
       lang="sr-Latn"
-      className={`${dmSans.variable} ${playfair.variable} ${onest.variable} h-full`}
+      className={`${poppins.variable} ${montserrat.variable} h-full`}
       suppressHydrationWarning
     >
       <head>
