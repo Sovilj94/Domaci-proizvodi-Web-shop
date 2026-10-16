@@ -8,7 +8,7 @@ import { aktivniKrug, isporukaTekst, rokTekst } from "@/lib/sedmica";
 export interface KontekstPitanja {
   rok?: { tekst: string; zaSljedecu: boolean };
   isporuka?: string;
-  popust?: { procenat: number; odIsporuke: number };
+  popust?: { nedjeljna: number; triMjeseca: number };
 }
 
 export interface Pitanje {
@@ -52,9 +52,9 @@ export const CESTA_PITANJA: Pitanje[] = [
     odgovor: ({ popust }) =>
       "Uz pretplatu ti korpica stiže svake sedmice bez novog naručivanja. " +
       (popust
-        ? `Od ${popust.odIsporuke}. isporuke korpica je ${popust.procenat}% jeftinija. `
+        ? `Pretplatnička cijena važi od prve isporuke: ${popust.nedjeljna}% jeftinije uz nedjeljni plan, do ${popust.triMjeseca}% uz plan na 3 mjeseca. `
         : "") +
-      "Pauzu, promjenu paketa i otkaz podešavaš u Mom nalogu.",
+      "Mjesečni i tromjesečni plan nose obavezu na 4, odnosno 13 isporuka. Pauzu i promjenu paketa podešavaš u Mom nalogu.",
   },
   {
     pitanje: "Treba li mi nalog?",
@@ -76,17 +76,16 @@ export function kontekstPitanja(sedmica?: Sedmica, korpice?: Korpica[]): Konteks
     k.isporuka = isporukaTekst(krug.isporuka);
   }
 
-  const sPopustom = korpice?.find(
-    (x) =>
-      x.cijenaSaPretplatom !== undefined &&
-      x.isporukaDoPopusta !== undefined &&
-      x.cijena > 0 &&
-      x.cijenaSaPretplatom < x.cijena,
+  // R2: popust po planu važi od prve isporuke; procenti se izvode iz cijena sa servera.
+  const sCijenama = korpice?.find(
+    (x) => x.cijena > 0 && x.cijenaNedjeljna !== undefined && x.cijenaTriMjeseca !== undefined,
   );
-  if (sPopustom) {
-    const procenat = Math.round((1 - sPopustom.cijenaSaPretplatom! / sPopustom.cijena) * 100);
+  if (sCijenama) {
+    const p = (c: number) => Math.round((1 - c / sCijenama.cijena) * 100);
+    const nedjeljna = p(sCijenama.cijenaNedjeljna!);
+    const triMjeseca = p(sCijenama.cijenaTriMjeseca!);
     // Popust ispod 1% bi dao „0% jeftinija" — tada odgovor ostaje bez broja.
-    if (procenat >= 1) k.popust = { procenat, odIsporuke: sPopustom.isporukaDoPopusta! + 1 };
+    if (nedjeljna >= 1) k.popust = { nedjeljna, triMjeseca };
   }
 
   return k;

@@ -13,7 +13,8 @@ import { ApiRequestError } from "@/lib/api/client";
 import { pogodiZonu } from "@/lib/zone";
 import { formatPrice } from "@/lib/utils";
 import type { PretplataInput } from "@/lib/api/contracts";
-import type { Pretplata } from "@/types/domain";
+import type { PlanPretplate, Pretplata } from "@/types/domain";
+import { cijenaPlana, obavezaPlana, PLAN_TEKST } from "@/lib/planovi";
 
 function pocetnoStanje(pretplata?: Pretplata | null, korpicaId?: string) {
   return {
@@ -38,12 +39,15 @@ export function PretplataForma({
   onClose,
   pretplata,
   korpicaId,
+  plan,
 }: {
   open: boolean;
   onClose: () => void;
   pretplata?: Pretplata | null;
   /** Korpica izabrana izvan forme (dugme „Pretplati se" na stranici korpice). */
   korpicaId?: string;
+  /** Plan izabran na stranici korpice (R2); samo za novu pretplatu. */
+  plan?: PlanPretplate;
 }) {
   if (!open) return null;
   return (
@@ -52,6 +56,7 @@ export function PretplataForma({
       onClose={onClose}
       pretplata={pretplata}
       korpicaId={korpicaId}
+      plan={plan}
     />
   );
 }
@@ -60,11 +65,15 @@ function Forma({
   onClose,
   pretplata,
   korpicaId,
+  plan,
 }: {
   onClose: () => void;
   pretplata?: Pretplata | null;
   korpicaId?: string;
+  plan?: PlanPretplate;
 }) {
+  // Plan se bira na stranici korpice; postojeća pretplata zadržava svoj (izmjena plana nije u opsegu).
+  const izabraniPlan: PlanPretplate = pretplata?.plan ?? plan ?? "Nedjeljna";
   const qc = useQueryClient();
   const { show } = useToast();
   const zones = useDeliveryZones();
@@ -118,6 +127,7 @@ function Forma({
       latitude: form.latitude,
       longitude: form.longitude,
       napomena: form.napomena || undefined,
+      plan: pretplata ? undefined : izabraniPlan,
     });
   }
 
@@ -143,24 +153,26 @@ function Forma({
               onChange={(e) => setForm({ ...form, productId: e.target.value })}
             >
               <option value="">Odaberite…</option>
-              {korpice.data?.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.naziv} — {formatPrice(k.cijena)}
-                </option>
-              ))}
+              {korpice.data
+                ?.filter((k) => k.dostupna || k.id === form.productId)
+                .map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.naziv} — {formatPrice(cijenaPlana(k, izabraniPlan))}
+                  </option>
+                ))}
             </Select>
           </Field>
 
           {/* Cijene dolaze sa servera (`PretplatnaCijena`), ne računaju se ovdje — kopija
               tog pravila u pregledaču bi se razišla sa onim što se naplati. */}
-          {izabrana?.cijenaSaPretplatom !== undefined && (
-            <p className="rounded-lg bg-sand px-3 py-2 text-sm text-ink">
-              Prvih {izabrana.isporukaDoPopusta} isporuka po {formatPrice(izabrana.cijena)}, a
-              od sljedeće{" "}
-              <span className="font-semibold">
-                {formatPrice(izabrana.cijenaSaPretplatom)}
-              </span>
-              . Pretplata se može pauzirati ili otkazati u svakom trenutku.
+          {izabrana && (
+            <p className="rounded-lg bg-beige px-3 py-2 text-sm text-ink">
+              Plan <strong>{PLAN_TEKST[izabraniPlan]}</strong>:{" "}
+              <span className="font-semibold">{formatPrice(cijenaPlana(izabrana, izabraniPlan))}</span> po
+              isporuci, umjesto {formatPrice(izabrana.cijena)}.{" "}
+              {obavezaPlana(izabrana, izabraniPlan) > 0
+                ? `Obaveza je ${obavezaPlana(izabrana, izabraniPlan)} isporuka; pauza je moguća, a otkaz prije kraja obaveze ide preko podrške.`
+                : "Pretplata se može pauzirati ili otkazati u svakom trenutku."}
             </p>
           )}
 

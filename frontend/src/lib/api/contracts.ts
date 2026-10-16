@@ -257,6 +257,8 @@ export interface PretplataInput {
   latitude?: number;
   longitude?: number;
   napomena?: string;
+  /** Samo pri novoj pretplati (R2); izostanak = Nedjeljna. */
+  plan?: import("@/types/domain").PlanPretplate;
 }
 
 export interface SastojakInput {

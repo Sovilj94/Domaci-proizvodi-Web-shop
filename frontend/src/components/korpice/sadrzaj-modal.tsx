@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { korpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import { SmartImage } from "@/components/ui/smart-image";
+import { StavkaSadrzajaKartica } from "@/components/korpice/stavka-sadrzaja";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -113,17 +113,17 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
         aria-modal="true"
         aria-labelledby="sadrzaj-modal-naslov"
         tabIndex={-1}
-        className="relative z-10 flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-card bg-surface shadow-xl focus:outline-none"
+        className="relative z-10 flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-[26px] bg-surface shadow-xl focus:outline-none"
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <div className="flex items-start justify-between gap-4 px-6 pb-3 pt-6">
           <div>
-            <h2 id="sadrzaj-modal-naslov" className="font-display text-lg font-bold text-ink">
-              Sadržaj ove sedmice
+            <h2 id="sadrzaj-modal-naslov" className="text-lg font-semibold text-ink">
+              Sadržaj korpice ove sedmice
             </h2>
-            <p className="text-sm text-muted">Ko je šta uzgojio, selo po selo</p>
+            <p className="text-sm text-ink/80">Namirnice koje te očekuju, ko ih je uzgojio i odakle</p>
           </div>
           <button
             type="button"
@@ -152,24 +152,8 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
             <>
               <ul className="flex flex-col gap-3">
                 {data?.stavke.map((s) => (
-                  <li
-                    key={s.productId}
-                    className="flex items-center gap-3 rounded-card border border-line bg-cream p-3"
-                  >
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand">
-                      <SmartImage src={s.imageUrl} alt={s.naziv} sizes="56px" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-ink">
-                        {s.naziv}{" "}
-                        <span className="font-normal text-muted">
-                          {s.kolicina} {s.jedinica}
-                        </span>
-                      </p>
-                      <p className="truncate text-sm font-medium text-brand-700">
-                        {s.proizvodjacNaziv} · {s.proizvodjacSelo}
-                      </p>
-                    </div>
+                  <li key={s.productId}>
+                    <StavkaSadrzajaKartica s={s} />
                   </li>
                 ))}
               </ul>

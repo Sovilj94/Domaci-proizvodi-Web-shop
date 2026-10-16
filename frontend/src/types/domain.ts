@@ -248,6 +248,32 @@ export type TipKorpice = (typeof TIPOVI_KORPICE)[number];
 
 export type VelicinaKorpice = "mala" | "srednja" | "velika";
 
+/** Plan pretplate na žici (R2) — PascalCase ime enuma. */
+export type PlanPretplate = "Nedjeljna" | "Mjesecna" | "TriMjeseca";
+
+/** `GET /admin/pretplate` (backend `AdminPretplateDto`). */
+export interface AdminPretplate {
+  godina: number;
+  sedmica: number;
+  brojAktivnih: number;
+  cekajuSadrzaj: number;
+  stavke: {
+    id: string;
+    status: "Aktivna" | "Pauzirana" | "Otkazana";
+    kupac: string;
+    email?: string;
+    telefon?: string;
+    korpica: string;
+    plan: PlanPretplate;
+    preostaloObaveze: number;
+    cijena: number;
+    brojIsporuka: number;
+    zona?: string;
+    adresa: string;
+    sadrzajSpreman: boolean;
+  }[];
+}
+
 /**
  * Status stvarnog sadržaja — `SadrzajKorpice` postoji samo kad sadržaj postoji,
  * pa ovdje nema "Nema" (to je samo stanje admin pregleda; vidi `StatusPregleda`).
@@ -261,10 +287,13 @@ export interface Korpica {
   tip: TipKorpice;
   velicina: VelicinaKorpice;
   cijena: number;
-  /** Cijena poslije zarađenog popusta. Računa je server (`PretplatnaCijena`), ne klijent. */
-  cijenaSaPretplatom?: number;
-  /** Koliko isporuka po punoj cijeni prethodi popustu. */
-  isporukaDoPopusta?: number;
+  /** Cijene po planu pretplate (R2). Računa ih server (`PretplatnaCijena`), ne klijent. */
+  cijenaNedjeljna?: number;
+  cijenaMjesecna?: number;
+  cijenaTriMjeseca?: number;
+  /** Obaveza mjesečnog i tromjesečnog plana, u isporukama. */
+  obavezaMjesecna?: number;
+  obavezaTriMjeseca?: number;
   imageUrl?: string;
   opis: string;
   stock: number;
@@ -377,11 +406,14 @@ export interface Pretplata {
 
   brojIsporuka: number;
   punaCijena: number;
-  /** Cijena naredne isporuke; jednaka punoj dok popust nije zarađen. */
+  /** Cijena isporuke po planu (R2: popust od prve isporuke). */
   trenutnaCijena: number;
   popustAktivan: boolean;
-  /** Koliko još isporuka do niže cijene; 0 kad je kupac već ima. */
-  doPopusta: number;
+  plan: PlanPretplate;
+  obavezaIsporuka: number;
+  /** Koliko isporuka obaveze je ostalo; dok je > 0, otkaz ide preko podrške. */
+  preostaloObaveze: number;
+  mozeOtkazati: boolean;
 
   sljedecaGodina?: number;
   sljedecaSedmica?: number;
