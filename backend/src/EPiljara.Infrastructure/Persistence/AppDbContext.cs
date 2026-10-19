@@ -31,6 +31,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
     public DbSet<PrijavaNovosti> PrijaveNovosti => Set<PrijavaNovosti>();
+
+    public bool PodrzavaZakljucavanje => Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL";
+
+    /// <summary>Uvijek isti redoslijed (kupac pa kod), da dvije narudžbe ne zaključaju unakrsno.</summary>
+    public async Task ZakljucajZaNarudzbuAsync(Guid? kupacId, string? promoKod, CancellationToken ct)
+    {
+        if (!PodrzavaZakljucavanje) return;
+        if (kupacId is { } id)
+            await Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"Users\" WHERE \"Id\" = {id} FOR UPDATE", ct);
+        if (promoKod is not null)
+            await Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"PromoKodovi\" WHERE \"Kod\" = {promoKod} FOR UPDATE", ct);
+    }
     public DbSet<OcjenaIsporuke> OcjeneIsporuke => Set<OcjenaIsporuke>();
     public DbSet<Recept> Recepti => Set<Recept>();
     public DbSet<ReceptSastojak> ReceptSastojci => Set<ReceptSastojak>();

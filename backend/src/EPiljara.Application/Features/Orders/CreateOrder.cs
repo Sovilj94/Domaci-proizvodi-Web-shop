@@ -206,6 +206,13 @@ public class CreateOrderHandler(
         // Kod se provjerava tek kad je subtotal poznat (minimum koda) i poslije minimuma zone (O2).
         // Zalihe su gore već skinute u memoriji, ali ako kod padne izuzetak izlazi prije
         // SaveChangesAsync pa se ništa ne upisuje.
+        // B1/B2: kupac (poeni) i kod (limit) se zaključavaju do upisa narudžbe. Transakcija se otvara
+        // samo ako je pozivalac (posao pretplata) nije već otvorio.
+        await using var tx = ZakljucavanjeNarudzbe.Podrzano(db) && db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(ct)
+            : null;
+        await ZakljucavanjeNarudzbe.ZakljucajAsync(db, cmd.IskoristiPoene ? customerId : null, cmd.PromoKod, ct);
+
         PromoKod? promo = null;
         var popust = 0m;
         if (!string.IsNullOrWhiteSpace(cmd.PromoKod))
@@ -274,6 +281,7 @@ public class CreateOrderHandler(
                 Vrsta = VrstaPoena.Iskoristeno, OrderId = order.Id,
             });
         await db.SaveChangesAsync(ct);
+        if (tx is not null) await tx.CommitAsync(ct);
 
         try
         {
