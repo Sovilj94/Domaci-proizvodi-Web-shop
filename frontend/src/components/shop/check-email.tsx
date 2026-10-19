@@ -43,15 +43,15 @@ export function CheckEmail({ email, expiresAt }: { email: string; expiresAt: str
         <h1 className="mt-5 font-display text-2xl font-bold">Provjeri svoj mejl</h1>
         <p className="mt-2 text-muted">
           Poslali smo link za potvrdu narudžbe na{" "}
-          <span className="font-semibold text-ink">{email}</span>. Kliknite na njega da
+          <span className="font-semibold text-ink">{email}</span>. Klikni na njega da
           narudžba bude poslana.
         </p>
 
         {expired ? (
           <div className="mt-6 space-y-4">
             <p className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              Link je istekao. Pošaljite narudžbu ponovo — korpa je i dalje puna, ništa
-              niste izgubili.
+              Link je istekao. Pošalji narudžbu ponovo — korpa je i dalje puna, ništa
+              nije izgubljeno.
             </p>
             <Link href="/checkout" className={cn(buttonVariants())}>
               Nazad na dostavu
@@ -64,7 +64,7 @@ export function CheckEmail({ email, expiresAt }: { email: string; expiresAt: str
         )}
 
         <p className="mt-6 text-xs text-muted">
-          Narudžba još ne postoji — nastaje tek kad potvrdite mejl.
+          Narudžba još ne postoji — nastaje tek kad potvrdiš mejl.
         </p>
       </div>
     </div>

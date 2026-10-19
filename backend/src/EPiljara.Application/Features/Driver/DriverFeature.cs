@@ -98,7 +98,7 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         var assigned = await db.RouteStops
             .AnyAsync(s => s.OrderId == cmd.OrderId && s.Route!.DriverId == driver.Id, ct);
         if (!assigned)
-            throw new ForbiddenException("Ova narudžba nije na vašoj ruti.");
+            throw new ForbiddenException("Ova narudžba nije na tvojoj ruti.");
 
         var order = await db.Orders
             .Include(o => o.Items)

@@ -11,7 +11,7 @@ const MIN_LAT = 42.5;
 const MAX_LAT = 45.4;
 const MIN_LON = 15.7;
 const MAX_LON = 19.7;
-const IZVAN = "Odabrana tačka je izvan Bosne i Hercegovine — provjerite lokaciju na mapi.";
+const IZVAN = "Odabrana tačka je izvan Bosne i Hercegovine — provjeri lokaciju na mapi.";
 
 export function GET(req: Request) {
   const { response } = requireAdmin(req);

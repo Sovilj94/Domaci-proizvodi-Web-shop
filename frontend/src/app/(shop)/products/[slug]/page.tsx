@@ -77,7 +77,7 @@ export default function ProductDetailPage() {
           <div className="mt-6">
             {soldOut ? (
               <div className="rounded-card bg-sand px-4 py-3 text-sm font-medium text-muted">
-                Trenutno nedostupno — provjerite ponovo sljedeće sedmice.
+                Trenutno nedostupno — provjeri ponovo sljedeće sedmice.
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-3">

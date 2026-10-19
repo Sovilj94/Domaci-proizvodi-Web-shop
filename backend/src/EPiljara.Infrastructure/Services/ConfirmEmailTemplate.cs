@@ -25,20 +25,20 @@ public static class ConfirmEmailTemplate
                   <div style="font:800 22px Arial,sans-serif;color:#ffffff">E piljara</div>
                 </td></tr>
                 <tr><td style="padding:28px">
-                  <div style="font:800 20px Arial,sans-serif;color:{{Ink}}">Potvrdite email adresu</div>
+                  <div style="font:800 20px Arial,sans-serif;color:{{Ink}}">Potvrdi email adresu</div>
                   <p style="margin:10px 0 0;font:400 15px Arial,sans-serif;color:{{Ink}};line-height:1.5">
-                    Zdravo {{Enc(user.Name)}}, hvala na registraciji na E piljaru. Kliknite dugme ispod da potvrdite
-                    svoju email adresu i aktivirate nalog.
+                    Zdravo {{Enc(user.Name)}}, hvala na registraciji na E piljaru. Klikni dugme ispod da potvrdiš
+                    svoju email adresu i aktiviraš nalog.
                   </p>
                   <div style="margin:22px 0">
                     <a href="{{safeLink}}" style="display:inline-block;background:{{Green}};color:#ffffff;text-decoration:none;font:700 15px Arial,sans-serif;padding:12px 22px;border-radius:10px">Potvrdi email</a>
                   </div>
                   <p style="margin:0;font:400 12px Arial,sans-serif;color:{{Muted}};line-height:1.5">
-                    Ako dugme ne radi, kopirajte ovaj link u pretraživač:<br>
+                    Ako dugme ne radi, kopiraj ovaj link u pretraživač:<br>
                     <a href="{{safeLink}}" style="color:{{Green}};word-break:break-all">{{safeLink}}</a>
                   </p>
                   <p style="margin:18px 0 0;padding-top:16px;border-top:1px solid {{Line}};font:400 12px Arial,sans-serif;color:{{Muted}}">
-                    Ako se niste registrovali, slobodno ignorišite ovu poruku.
+                    Ako registracija nije tvoja, slobodno ignoriši ovu poruku.
                   </p>
                 </td></tr>
               </table>

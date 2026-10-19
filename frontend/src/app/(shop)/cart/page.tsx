@@ -21,7 +21,7 @@ export default function CartPage() {
         <EmptyState
           icon={<ShoppingBasket className="h-7 w-7" />}
           title="Korpa je prazna"
-          description="Dodajte domaće proizvode sa Manjače i vratite se ovdje."
+          description="Dodaj domaće proizvode sa Manjače i vrati se ovdje."
           action={
             <Link href="/spajz" className={cn(buttonVariants())}>
               Pogledaj proizvode

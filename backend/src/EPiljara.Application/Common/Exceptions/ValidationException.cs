@@ -8,7 +8,7 @@ public class ValidationException : Exception
     public IReadOnlyDictionary<string, string[]> Errors { get; }
 
     public ValidationException(IEnumerable<ValidationFailure> failures)
-        : base("Provjerite unesene podatke.")
+        : base("Provjeri unesene podatke.")
     {
         Errors = failures
             .GroupBy(f => ToCamelPath(f.PropertyName))

@@ -76,8 +76,8 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
                 .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
                 .WithMessage("E-mail je predugačak.");
         });
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
-        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
+        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
+        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
         RuleFor(x => x.DeliveryAddress).MaximumLength(400).WithMessage("Adresa je predugačka.");
         // Note je nullable — dužina se provjerava samo kad je unesena.

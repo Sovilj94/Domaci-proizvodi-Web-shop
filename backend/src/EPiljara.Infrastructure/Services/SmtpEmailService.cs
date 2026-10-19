@@ -41,7 +41,7 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
         var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var link = $"{baseUrl}/confirm-email?token={Uri.EscapeDataString(token)}";
         var (naslov, html) = PismoPoruke.Primijeni(
-            user.Pismo, "Potvrdite email adresu — E piljara", ConfirmEmailTemplate.Build(user, link));
+            user.Pismo, "Potvrdi email adresu — E piljara", ConfirmEmailTemplate.Build(user, link));
         return SendHtmlAsync(user.Email, naslov, html, "potvrda email adrese", cancellationToken);
     }
 

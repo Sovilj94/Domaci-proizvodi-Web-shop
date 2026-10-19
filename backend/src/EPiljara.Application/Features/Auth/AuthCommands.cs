@@ -26,7 +26,7 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
     public RegisterValidator()
     {
         RuleFor(x => x.Name).NotEmpty().WithMessage("Ime je obavezno.");
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Unesite ispravan email.");
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Unesi ispravan email.");
         RuleFor(x => x.Phone).NotEmpty().WithMessage("Telefon je obavezan.");
         RuleFor(x => x.Password).MinimumLength(6).WithMessage("Lozinka mora imati najmanje 6 znakova.");
         RuleFor(x => (x.PreporukaKod ?? "").Trim()).MaximumLength(8)
@@ -112,7 +112,7 @@ public class LoginHandler(IAppDbContext db, IPasswordHasher hasher, IJwtTokenSer
             throw new UnauthorizedException("Pogrešan email ili lozinka.", "invalid_credentials");
 
         if (!user.EmailConfirmed)
-            throw new UnauthorizedException("Potvrdite email adresu prije prijave.", "email_not_confirmed");
+            throw new UnauthorizedException("Potvrdi email adresu prije prijave.", "email_not_confirmed");
 
         return new AuthResultDto { Token = jwt.CreateToken(user), User = user.ToAuthDto() };
     }

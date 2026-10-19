@@ -138,7 +138,7 @@ public class ProvjeraPromoKodaTests
         var r = new ProvjeriPromoKodValidator().Validate(new ProvjeriPromoKodQuery("", null, []));
 
         var poruke = r.Errors.Select(e => e.ErrorMessage).ToArray();
-        Assert.Contains("Unesite promo kod.", poruke);
+        Assert.Contains("Unesi promo kod.", poruke);
         Assert.Contains("Korpa je prazna.", poruke);
     }
 

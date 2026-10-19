@@ -150,7 +150,7 @@ public static class OrderEmailTemplate
                 <tr><td style="padding:24px 28px 28px">
                   <div style="border-top:1px solid {{Line}};padding-top:16px;font:400 12px Arial,sans-serif;color:{{Muted}};line-height:1.5">
                     E piljara · Banja Luka · Dostava iz Manjače za tvoju porodicu.<br>
-                    Ovo je automatska potvrda narudžbe {{Enc(order.Code)}}. Za izmjene nas kontaktirajte.
+                    Ovo je automatska potvrda narudžbe {{Enc(order.Code)}}. Za izmjene nas kontaktiraj.
                   </div>
                 </td></tr>
               </table>

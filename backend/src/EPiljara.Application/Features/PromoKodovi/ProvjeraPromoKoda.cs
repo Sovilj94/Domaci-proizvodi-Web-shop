@@ -16,7 +16,7 @@ public class ProvjeriPromoKodValidator : AbstractValidator<ProvjeriPromoKodQuery
 {
     public ProvjeriPromoKodValidator()
     {
-        RuleFor(x => x.Kod).NotEmpty().WithMessage("Unesite promo kod.")
+        RuleFor(x => x.Kod).NotEmpty().WithMessage("Unesi promo kod.")
             .MaximumLength(30).WithMessage("Promo kod je predugačak.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("Korpa je prazna.");
         // Javni endpoint: bez ovoga bi null stavka dala 500, a količina <= 0 negativan subtotal.

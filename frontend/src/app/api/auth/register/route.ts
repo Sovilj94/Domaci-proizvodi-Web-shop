@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     details.password = ["Lozinka mora imati najmanje 6 znakova."];
   }
   if (Object.keys(details).length > 0) {
-    return jsonFail("validation_error", "Provjerite unesene podatke.", 400, details);
+    return jsonFail("validation_error", "Provjeri unesene podatke.", 400, details);
   }
 
   const user = registerUser({

@@ -154,7 +154,7 @@ public class UpdateAddressHandler(IAppDbContext db, ICurrentUser current)
         // Vlasništvo se provjerava poslije dohvata, a ne filterom u upitu, da razlika
         // između "ne postoji" i "nije tvoja" ostane namjerna odluka.
         if (address.UserId != current.Id)
-            throw new ForbiddenException("Ova adresa nije vaša.");
+            throw new ForbiddenException("Ova adresa nije tvoja.");
 
         // Isti razlog kao u CreateAddressHandler — vidi komentar tamo.
         if (cmd.DeliveryZoneId is not null &&
@@ -192,7 +192,7 @@ public class DeleteAddressHandler(IAppDbContext db, ICurrentUser current)
         {
             // Postoji li uopšte, ili je tuđa? Razlika je vidljiva korisniku.
             var postoji = await db.Addresses.AnyAsync(a => a.Id == cmd.Id, ct);
-            if (postoji) throw new ForbiddenException("Ova adresa nije vaša.");
+            if (postoji) throw new ForbiddenException("Ova adresa nije tvoja.");
             throw new NotFoundException("Adresa nije pronađena.");
         }
 
@@ -235,7 +235,7 @@ public class SetDefaultAddressHandler(IAppDbContext db, ICurrentUser current)
         if (address is null)
         {
             var postoji = await db.Addresses.AnyAsync(a => a.Id == cmd.Id, ct);
-            if (postoji) throw new ForbiddenException("Ova adresa nije vaša.");
+            if (postoji) throw new ForbiddenException("Ova adresa nije tvoja.");
             throw new NotFoundException("Adresa nije pronađena.");
         }
 

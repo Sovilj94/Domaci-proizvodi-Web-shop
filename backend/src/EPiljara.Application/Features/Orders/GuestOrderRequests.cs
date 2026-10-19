@@ -56,8 +56,8 @@ public class CreateGuestOrderRequestValidator : AbstractValidator<CreateGuestOrd
                 .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
                 .WithMessage("E-mail je predugačak.");
         });
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
-        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
+        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
+        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
         // GuestOrderRequest.DeliveryAddress je text bez granice u bazi — bez ove provjere
         // dug unos bi se upisao, mejl bi otišao, a klik na link bi pao tek na Orders insert

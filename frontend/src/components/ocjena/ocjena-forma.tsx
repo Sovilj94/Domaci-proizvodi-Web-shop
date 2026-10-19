@@ -53,7 +53,7 @@ export function OcjenaForma({
           setPoruka("Ova narudžba je već ocijenjena.");
           onUspjeh();
         } else if (err.status === 429) {
-          setPoruka("Previše pokušaja, pokušajte za minut.");
+          setPoruka("Previše pokušaja, pokušaj za minut.");
         } else if (Object.keys(err.fieldErrors).length > 0) {
           setErrors(err.fieldErrors);
         } else {
@@ -155,7 +155,7 @@ export function OcjenaForma({
       <Button type="submit" disabled={ocjena === 0 || saljem}>
         {saljem ? "Šaljem…" : "Pošalji ocjenu"}
       </Button>
-      {ocjena === 0 && <p className="text-xs text-muted">Izaberite ocjenu zvjezdicama.</p>}
+      {ocjena === 0 && <p className="text-xs text-muted">Izaberi ocjenu zvjezdicama.</p>}
     </form>
   );
 }

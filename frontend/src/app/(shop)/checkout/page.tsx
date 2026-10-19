@@ -223,21 +223,24 @@ export default function CheckoutPage() {
     retry: false,
   });
   const popust = promo.data?.popust ?? 0;
+  // B7: kad je kod provjeren, server je već sabrao robu po svojim cijenama — pregled koristi taj
+  // zbir, pa ne može pokazati drugi iznos nego što će narudžba imati (npr. zastarjela cijena u korpi).
+  const cijenaRobe = promo.data?.subtotal ?? subtotal;
   // Poeni (samo prijavljeni). Ista formula kao server (`PoeniPravila.ZaTrosenje`): bez poena ili
   // robe nema popusta; popust je cijeli broj KM, najviše koliko poeni vrijede, a ne više od robe
   // (subtotal − promo popust). Poena se troši tačno koliko pokriva taj popust.
   const poeni = useMojiPoeni(!!user);
   const stanjePoena = poeni.data?.stanje ?? 0;
   const vrijednostPoena = poeni.data?.vrijednostPoenaKM ?? 0;
-  const roba = subtotal - popust;
+  const roba = cijenaRobe - popust;
   const popustPoena =
     stanjePoena > 0 && roba > 0 && vrijednostPoena > 0
       ? Math.floor(Math.min(stanjePoena * vrijednostPoena, roba))
       : 0;
   const poenaZaTrosenje = vrijednostPoena > 0 ? Math.round(popustPoena / vrijednostPoena) : 0;
   const poeniPopust = koristiPoene ? popustPoena : 0;
-  const total = Math.round((subtotal - popust - poeniPopust + deliveryFee) * 100) / 100;
-  const belowMin = selectedZone ? subtotal < selectedZone.minOrderAmount : false;
+  const total = Math.round((cijenaRobe - popust - poeniPopust + deliveryFee) * 100) / 100;
+  const belowMin = selectedZone ? cijenaRobe < selectedZone.minOrderAmount : false;
 
   // Backend i dalje prima jedno ime i jednu adresu — admin, dispečerski ekran i
   // vozačka aplikacija čitaju upravo to. Razdvojena polja su samo oblik forme.
@@ -339,7 +342,7 @@ export default function CheckoutPage() {
         <EmptyState
           icon={<ShoppingBasket className="h-7 w-7" />}
           title="Korpa je prazna"
-          description="Dodajte proizvode prije nego nastavite na dostavu."
+          description="Dodaj proizvode prije nego nastaviš na dostavu."
           action={
             <Link href="/spajz" className={cn(buttonVariants())}>
               Pogledaj proizvode
@@ -391,7 +394,7 @@ export default function CheckoutPage() {
               <div>
                 <h2 className="font-display text-lg font-semibold">Gdje da dostavimo?</h2>
                 <p className="text-sm text-muted">
-                  Upišite adresu i potvrdite lokaciju na mapi.
+                  Upiši adresu i potvrdi lokaciju na mapi.
                 </p>
               </div>
 
@@ -431,7 +434,7 @@ export default function CheckoutPage() {
 
               <Field label="Zona dostave" required error={errors.deliveryZoneId?.[0]}>
                 <Select value={form.zoneId} onChange={(e) => set("zoneId")(e.target.value)}>
-                  <option value="">Odaberite zonu…</option>
+                  <option value="">Odaberi zonu…</option>
                   {zones.data?.map((z) => (
                     <option key={z.id} value={z.id}>
                       {z.name} · min {formatPrice(z.minOrderAmount)} · dostava{" "}
@@ -443,7 +446,7 @@ export default function CheckoutPage() {
 
               <Field label="Termin dostave" required error={errors.deliverySlotId?.[0]}>
                 <Select value={form.slotId} onChange={(e) => set("slotId")(e.target.value)}>
-                  <option value="">Odaberite termin…</option>
+                  <option value="">Odaberi termin…</option>
                   {slots.data?.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.label ?? `${weekdayName(s.dayOfWeek)} ${s.timeFrom}–${s.timeTo}`}
@@ -465,8 +468,8 @@ export default function CheckoutPage() {
           {step === 2 && (
             <section className="space-y-4 rounded-card bg-surface p-5 shadow-card">
               <div>
-                <h2 className="font-display text-lg font-semibold">Vaši podaci</h2>
-                <p className="text-sm text-muted">Da vas kontaktiramo za dostavu.</p>
+                <h2 className="font-display text-lg font-semibold">Tvoji podaci</h2>
+                <p className="text-sm text-muted">Da te kontaktiramo za dostavu.</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -610,7 +613,7 @@ export default function CheckoutPage() {
           <div className="lg:hidden">
             <OrderSummaryPanel
               items={items}
-              subtotal={subtotal}
+              subtotal={cijenaRobe}
               deliveryFee={deliveryFee}
               total={total}
               zoneName={selectedZone?.name}
@@ -635,7 +638,7 @@ export default function CheckoutPage() {
 
             <div className="flex items-center gap-3">
               <span className="font-display text-lg font-bold">
-                {formatPrice(selectedZone ? total : subtotal)}
+                {formatPrice(selectedZone ? total : cijenaRobe)}
               </span>
               {/* Različiti `key`-evi su obavezni. Bez njih React zadrži isti <button> i samo mu
                   promijeni `type` u "submit" — a to se desi usred klika na „Nastavi" u koraku 2,
@@ -662,7 +665,7 @@ export default function CheckoutPage() {
         <aside className="hidden lg:sticky lg:top-28 lg:block">
           <OrderSummaryPanel
             items={items}
-            subtotal={subtotal}
+            subtotal={cijenaRobe}
             deliveryFee={deliveryFee}
             total={total}
             zoneName={selectedZone?.name}

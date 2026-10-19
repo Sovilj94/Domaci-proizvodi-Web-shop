@@ -165,7 +165,7 @@ public class GetMojaKorpicaHandler(
             ?? throw new NotFoundException("Korpica nije pronađena.");
 
         if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
-            throw new ForbiddenException("Ova korpica nije vaša.");
+            throw new ForbiddenException("Ova korpica nije tvoja.");
 
         // Obična stavka narudžbe nije korpica i ovaj endpoint joj ne smije izdati ni sadržaj
         // ni ponudu — vidi MojaKorpicaPravila.UcitajKorpicuAsync.
@@ -267,7 +267,7 @@ public class IzmijeniMojuKorpicuHandler(
             ?? throw new NotFoundException("Korpica nije pronađena.");
 
         if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
-            throw new ForbiddenException("Ova korpica nije vaša.");
+            throw new ForbiddenException("Ova korpica nije tvoja.");
 
         // PRVO pitanje, prije svih pravila: je li ova stavka uopšte korpica. Bez toga se PUT
         // uperi u običnu stavku svoje narudžbe, cilj budžeta ispadne 0, obje granice se

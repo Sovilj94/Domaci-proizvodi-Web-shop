@@ -52,7 +52,7 @@ export default function CheckoutNalogPage() {
         <EmptyState
           icon={<ShoppingBasket className="h-7 w-7" />}
           title="Korpa je prazna"
-          description="Dodajte proizvode prije nego nastavite na dostavu."
+          description="Dodaj proizvode prije nego nastaviš na dostavu."
           action={
             <Link href="/spajz" className={cn(buttonVariants())}>
               Pogledaj proizvode
@@ -66,10 +66,10 @@ export default function CheckoutNalogPage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
       <h1 className="text-center font-display text-2xl font-bold md:text-3xl">
-        Kako želite da nastavite?
+        Kako želiš da nastaviš?
       </h1>
       <p className="mt-2 text-center text-sm text-muted">
-        Izaberite jednu od opcija da nastavite na dostavu.
+        Izaberi jednu od opcija da nastaviš na dostavu.
       </p>
 
       <div className="mt-8 space-y-4">

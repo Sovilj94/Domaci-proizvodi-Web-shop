@@ -77,7 +77,7 @@ export default function OrdersPage() {
 
                 {o.ocjena && (
                   <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
-                    <span className="text-sm text-muted">Vaša ocjena</span>
+                    <span className="text-sm text-muted">Tvoja ocjena</span>
                     <Zvjezdice ocjena={o.ocjena.ocjena} />
                   </div>
                 )}
@@ -102,7 +102,7 @@ export default function OrdersPage() {
           <EmptyState
             icon={<PackageOpen className="h-7 w-7" />}
             title="Još nemate narudžbi"
-            description="Kada naručite, ovdje ćete pratiti status dostave."
+            description="Kada naručiš, ovdje ćeš pratiti status dostave."
             action={
               <Link href="/spajz">
                 <Button>Pogledaj proizvode</Button>

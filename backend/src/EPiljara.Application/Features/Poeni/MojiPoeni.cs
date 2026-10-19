@@ -57,7 +57,7 @@ public class GetMojiPoeniHandler(IAppDbContext db, ICurrentUser current, IOption
                     .Select(u => u.PreporukaKod).FirstOrDefaultAsync(ct);
             }
             if (string.IsNullOrEmpty(kodKorisnika))
-                throw new DomainException("Kod preporuke trenutno nije moguće napraviti. Pokušajte ponovo.", "kod_preporuke");
+                throw new DomainException("Kod preporuke trenutno nije moguće napraviti. Pokušaj ponovo.", "kod_preporuke");
         }
 
         var stanje = await PoeniPravila.StanjeAsync(db, user.Id, ct);
