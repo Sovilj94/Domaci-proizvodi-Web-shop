@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AddressPicker } from "@/components/shop/address-picker";
 import { Button } from "@/components/ui/button";
@@ -42,10 +42,26 @@ export function StopLocationDrawer({
       show(err instanceof ApiRequestError ? err.message : "Lokacija nije sačuvana", "error"),
   });
 
+  // E1: Escape zatvara, kao i admin ladice (AdminLadica).
+  useEffect(() => {
+    function naTaster(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", naTaster);
+    return () => document.removeEventListener("keydown", naTaster);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-      <div className="w-full max-w-lg rounded-card bg-white p-5 shadow-lg">
-        <h2 className="font-display text-lg font-semibold">Postavi lokaciju</h2>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lokacija-naslov"
+        className="w-full max-w-lg rounded-card bg-white p-5 shadow-lg"
+      >
+        <h2 id="lokacija-naslov" className="font-display text-lg font-semibold">
+          Postavi lokaciju
+        </h2>
         <p className="text-sm text-muted">
           {orderCode} · pomjeri pin na tačno mjesto dostave
         </p>

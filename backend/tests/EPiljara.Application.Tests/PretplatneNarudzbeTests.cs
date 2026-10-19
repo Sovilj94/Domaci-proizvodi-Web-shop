@@ -36,6 +36,7 @@ public class PretplatneNarudzbeTests
         public Product Korpica { get; private set; } = null!;
         public int Godina { get; private set; }
         public int Sedmica { get; private set; }
+        public FakeEmail Mejl { get; } = new();
 
         private Scena(TestDb t) => _t = t;
 
@@ -115,6 +116,7 @@ public class PretplatneNarudzbeTests
             PretplateOpcije? opcije = null, bool mediatorPuca = false, Guid? pucaZa = null) =>
             new(Db,
                 new FakeMediator(Db, opcije ?? Opcije(), mediatorPuca, pucaZa),
+                Mejl,
                 Options.Create(new KorpiceOpcije()),
                 Options.Create(opcije ?? Opcije()),
                 NullLogger<NapraviPretplatneNarudzbeHandler>.Instance);
@@ -387,5 +389,119 @@ public class PretplatneNarudzbeTests
         s.Db.ChangeTracker.Clear();
         var poslije = await s.Db.Pretplate.AsNoTracking().FirstAsync();
         Assert.Equal(s.Sedmica, poslije.PoslednjaSedmica);
+    }
+
+    // ---- A2: obavještenje o preskočenoj sedmici ----
+
+    /// <summary>Pretplata postoji od prije roka prethodne sedmice, a za tu sedmicu narudžba nije nastala.</summary>
+    private static async Task PripremiProsluSedmicuAsync(Scena s)
+    {
+        var red = await s.Db.Pretplate.FirstAsync(x => x.Id == s.Pretplata.Id);
+        red.CreatedAt = DateTime.UtcNow.AddDays(-30);
+        await s.Db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Preskocena_sedmica_salje_jedno_obavjestenje()
+    {
+        using var s = await Scena.SpremiAsync();
+        await PripremiProsluSedmicuAsync(s);
+
+        await s.ProlazAsync();
+        await s.ProlazAsync();
+
+        Assert.Single(s.Mejl.PreskoceneSedmice);
+        var (prethGodina, prethSedmica) = SedmicaHelper.Pomjeri(s.Godina, s.Sedmica, -1);
+        var red = await s.Db.Pretplate.AsNoTracking().FirstAsync(x => x.Id == s.Pretplata.Id);
+        Assert.Equal(prethGodina, red.ObavijestPreskocenaGodina);
+        Assert.Equal(prethSedmica, red.ObavijestPreskocenaSedmica);
+    }
+
+    [Fact]
+    public async Task Nova_pretplata_ne_dobija_obavjestenje_za_sedmicu_prije_nego_sto_je_postojala()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        await s.ProlazAsync();
+
+        Assert.Empty(s.Mejl.PreskoceneSedmice);
+    }
+
+    [Fact]
+    public async Task Pauzirana_pretplata_ne_dobija_obavjestenje()
+    {
+        using var s = await Scena.SpremiAsync(status: StatusPretplate.Pauzirana);
+        await PripremiProsluSedmicuAsync(s);
+
+        await s.ProlazAsync();
+
+        Assert.Empty(s.Mejl.PreskoceneSedmice);
+    }
+
+    // ---- A2b: alarm adminu za neobjavljen sadržaj ----
+
+    private static PretplateOpcije OpcijeAlarma(int alarmSati) =>
+        new() { SatiUnaprijed = 100_000, AlarmSatiPrijeRoka = alarmSati };
+
+    private static async Task DodajAdminaAsync(Scena s)
+    {
+        s.Db.Users.Add(new User
+        {
+            Name = "Admin", Email = "admin@test.local", PasswordHash = "x", Role = UserRole.Admin,
+        });
+        await s.Db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Neobjavljen_sadrzaj_u_prozoru_alarma_salje_adminu_jedan_mejl()
+    {
+        using var s = await Scena.SpremiAsync(sadrzajObjavljen: false);
+        await DodajAdminaAsync(s);
+
+        await s.ProlazAsync(OpcijeAlarma(100_000));
+        await s.ProlazAsync(OpcijeAlarma(100_000));
+
+        var alarm = Assert.Single(s.Mejl.AlarmiSadrzaja);
+        Assert.Equal(["admin@test.local"], alarm.Admini.Select(a => a.Email));
+        var stavka = Assert.Single(alarm.Stavke);
+        Assert.Equal(s.Korpica.Name, stavka.Korpica);
+        Assert.Equal(1, stavka.Pretplata);
+
+        var k = await s.Db.Products.AsNoTracking().FirstAsync(x => x.Id == s.Korpica.Id);
+        Assert.Equal(s.Godina, k.AlarmSadrzajaGodina);
+        Assert.Equal(s.Sedmica, k.AlarmSadrzajaSedmica);
+    }
+
+    [Fact]
+    public async Task Objavljen_sadrzaj_ne_dize_alarm()
+    {
+        using var s = await Scena.SpremiAsync();
+        await DodajAdminaAsync(s);
+
+        await s.ProlazAsync(OpcijeAlarma(100_000));
+
+        Assert.Empty(s.Mejl.AlarmiSadrzaja);
+    }
+
+    [Fact]
+    public async Task Prije_prozora_alarma_admin_ne_dobija_nista()
+    {
+        using var s = await Scena.SpremiAsync(sadrzajObjavljen: false);
+        await DodajAdminaAsync(s);
+
+        await s.ProlazAsync(OpcijeAlarma(0));
+
+        Assert.Empty(s.Mejl.AlarmiSadrzaja);
+    }
+
+    [Fact]
+    public async Task Bez_aktivnih_pretplata_nema_alarma()
+    {
+        using var s = await Scena.SpremiAsync(status: StatusPretplate.Otkazana, sadrzajObjavljen: false);
+        await DodajAdminaAsync(s);
+
+        await s.ProlazAsync(OpcijeAlarma(100_000));
+
+        Assert.Empty(s.Mejl.AlarmiSadrzaja);
     }
 }

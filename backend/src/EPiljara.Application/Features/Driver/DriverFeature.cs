@@ -1,3 +1,4 @@
+using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Poeni;
@@ -97,7 +98,7 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         var assigned = await db.RouteStops
             .AnyAsync(s => s.OrderId == cmd.OrderId && s.Route!.DriverId == driver.Id, ct);
         if (!assigned)
-            throw new ForbiddenException("Ova narudžba nije na vašoj ruti.");
+            throw new ForbiddenException("Ova narudžba nije na tvojoj ruti.");
 
         var order = await db.Orders
             .Include(o => o.Items)
@@ -120,7 +121,7 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         if (order.Status is OrderStatus.Packing) order.TransitionTo(OrderStatus.OutForDelivery);
         order.TransitionTo(status);
         order.ZatvorenaU = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        await IstovremenaPromjena.SacuvajAsync(db, ct);
         return order.ToDto();
     }
 }

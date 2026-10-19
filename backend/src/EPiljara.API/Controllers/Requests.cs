@@ -32,3 +32,4 @@ public record AssignDriverRequest(Guid DriverId, string Date);
 /// <c>OrderIds</c> handler odbija sa <c>no_orders</c>.
 /// </summary>
 public record AssignOrdersBulkRequest(IReadOnlyList<Guid> OrderIds, Guid DriverId, string Date);
+public record KorekcijaPoenaRequest(int Iznos, string Razlog);

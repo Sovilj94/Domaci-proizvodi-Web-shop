@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { AdminLadica } from "@/components/admin/admin-ladica";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -125,210 +125,195 @@ export function ProductForm({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button
-        aria-label="Zatvori"
-        onClick={onClose}
-        className="absolute inset-0 bg-black/40"
-      />
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-cream shadow-xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="font-display text-lg font-bold">
-            {product ? "Uredi proizvod" : "Novi proizvod"}
-          </h2>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-sand">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <AdminLadica naslov={product ? "Uredi proizvod" : "Novi proizvod"} onClose={onClose}>
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+        <Field label="Naziv" required error={errors.name?.[0]}>
+          <Input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </Field>
 
-        <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
-          <Field label="Naziv" required error={errors.name?.[0]}>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Cijena (KM)" required error={errors.price?.[0]}>
             <Input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
             />
           </Field>
-
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Cijena (KM)" required error={errors.price?.[0]}>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-              />
-            </Field>
-            <Field label="Jedinica" required error={errors.unit?.[0]}>
-              <Select
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value as Unit })}
-              >
-                <option value="kg">kg</option>
-                <option value="kom">kom</option>
-                <option value="l">l</option>
-              </Select>
-            </Field>
-            <Field label="Zaliha">
-              <Input
-                type="number"
-                min="0"
-                value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: e.target.value })}
-              />
-            </Field>
-          </div>
-
-          <Field label="Kategorija" required error={errors.categoryId?.[0]}>
+          <Field label="Jedinica" required error={errors.unit?.[0]}>
             <Select
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+              value={form.unit}
+              onChange={(e) => setForm({ ...form, unit: e.target.value as Unit })}
             >
-              <option value="">Odaberite…</option>
-              {categories.data?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+              <option value="kg">kg</option>
+              <option value="kom">kom</option>
+              <option value="l">l</option>
             </Select>
           </Field>
-
-          <Field label="Proizvođač" required error={errors.producerId?.[0]}>
-            <Select
-              value={form.producerId}
-              onChange={(e) => setForm({ ...form, producerId: e.target.value })}
-            >
-              <option value="">Odaberite…</option>
-              {producers.data?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · {p.village}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field label="Opis">
-            <Textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </Field>
-
-          <Field label="URL slike (opcionalno)">
+          <Field label="Zaliha">
             <Input
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              placeholder="https://…"
+              type="number"
+              min="0"
+              value={form.stock}
+              onChange={(e) => setForm({ ...form, stock: e.target.value })}
             />
           </Field>
-
-          <Field label="Boja pločice (opcionalno)" error={errors.boja?.[0]}>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                aria-label="Izaberi boju"
-                value={/^#[0-9a-f]{6}$/i.test(form.boja) ? form.boja : (product?.boja ?? "#f4c27a")}
-                onChange={(e) => setForm({ ...form, boja: e.target.value.toUpperCase() })}
-                className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-white"
-              />
-              <Input
-                value={form.boja}
-                onChange={(e) => setForm({ ...form, boja: e.target.value })}
-                placeholder={product?.boja ? `Iz palete: ${product.boja}` : "#RRGGBB — prazno = iz palete"}
-              />
-            </div>
-          </Field>
-
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={form.isAvailable}
-                onChange={(e) => setForm({ ...form, isAvailable: e.target.checked })}
-                className="h-4 w-4 accent-brand-600"
-              />
-              Dostupno
-            </label>
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={form.isFeatured}
-                onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
-                className="h-4 w-4 accent-brand-600"
-              />
-              Izdvojeno
-            </label>
-          </div>
-
-          {/* Korpice (P1): bez ovih polja artikal dodat ovdje nikad ne može ući u bazen
-              generatora korpica (vidi GenerisiSedmicniSadrzajHandler) — kolone su postojale
-              na Product-u, ali admin API ih nije primao. */}
-          <div className="rounded-card border border-line bg-sand/50 p-4">
-            <p className="mb-3 text-sm font-semibold text-ink">Korpice</p>
-
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={form.mozeUKorpicu}
-                onChange={(e) => setForm({ ...form, mozeUKorpicu: e.target.checked })}
-                className="h-4 w-4 accent-brand-600"
-              />
-              Smije ući u sadržaj korpice
-            </label>
-
-            <div className="mt-3">
-              <Field label="Prioritet u korpici">
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.prioritetUKorpici}
-                  onChange={(e) => setForm({ ...form, prioritetUKorpici: e.target.value })}
-                />
-              </Field>
-              <p className="mt-1 text-xs text-muted">
-                0 = osnovni artikal (ide skoro uvijek), veći broj = dopuna.
-              </p>
-            </div>
-
-            <div className="mt-3">
-              <p className="mb-1.5 text-sm font-medium">
-                Sezona (mjeseci) — praznina znači cijele godine
-              </p>
-              <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-12">
-                {MJESECI_NAZIVI.map((naziv, i) => {
-                  const mjesec = i + 1;
-                  const aktivan = form.mjeseci.includes(mjesec);
-                  return (
-                    <button
-                      key={mjesec}
-                      type="button"
-                      onClick={() => prekidajMjesec(mjesec)}
-                      className={cn(
-                        "rounded-lg border px-1.5 py-1 text-xs font-medium transition",
-                        aktivan
-                          ? "border-brand-600 bg-brand-600 text-white"
-                          : "border-line bg-white text-muted hover:border-brand-400",
-                      )}
-                    >
-                      {naziv}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </form>
-
-        <div className="flex gap-3 border-t border-line p-4">
-          <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
-            Otkaži
-          </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending}>
-            {mutation.isPending ? "Spremam…" : "Spremi"}
-          </Button>
         </div>
+
+        <Field label="Kategorija" required error={errors.categoryId?.[0]}>
+          <Select
+            value={form.categoryId}
+            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+          >
+            <option value="">Odaberite…</option>
+            {categories.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field label="Proizvođač" required error={errors.producerId?.[0]}>
+          <Select
+            value={form.producerId}
+            onChange={(e) => setForm({ ...form, producerId: e.target.value })}
+          >
+            <option value="">Odaberite…</option>
+            {producers.data?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} · {p.village}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field label="Opis">
+          <Textarea
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </Field>
+
+        <Field label="URL slike (opcionalno)">
+          <Input
+            value={form.imageUrl}
+            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+            placeholder="https://…"
+          />
+        </Field>
+
+        <Field label="Boja pločice (opcionalno)" htmlFor="proizvod-boja" error={errors.boja?.[0]}>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              aria-label="Izaberi boju"
+              value={/^#[0-9a-f]{6}$/i.test(form.boja) ? form.boja : (product?.boja ?? "#f4c27a")}
+              onChange={(e) => setForm({ ...form, boja: e.target.value.toUpperCase() })}
+              className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-white"
+            />
+            <Input
+              id="proizvod-boja"
+              value={form.boja}
+              onChange={(e) => setForm({ ...form, boja: e.target.value })}
+              placeholder={product?.boja ? `Iz palete: ${product.boja}` : "#RRGGBB — prazno = iz palete"}
+            />
+          </div>
+        </Field>
+
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={form.isAvailable}
+              onChange={(e) => setForm({ ...form, isAvailable: e.target.checked })}
+              className="h-4 w-4 accent-brand-600"
+            />
+            Dostupno
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={form.isFeatured}
+              onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
+              className="h-4 w-4 accent-brand-600"
+            />
+            Izdvojeno
+          </label>
+        </div>
+
+        {/* Korpice (P1): bez ovih polja artikal dodat ovdje nikad ne može ući u bazen
+            generatora korpica (vidi GenerisiSedmicniSadrzajHandler) — kolone su postojale
+            na Product-u, ali admin API ih nije primao. */}
+        <div className="rounded-card border border-line bg-sand/50 p-4">
+          <p className="mb-3 text-sm font-semibold text-ink">Korpice</p>
+
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={form.mozeUKorpicu}
+              onChange={(e) => setForm({ ...form, mozeUKorpicu: e.target.checked })}
+              className="h-4 w-4 accent-brand-600"
+            />
+            Smije ući u sadržaj korpice
+          </label>
+
+          <div className="mt-3">
+            <Field label="Prioritet u korpici">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.prioritetUKorpici}
+                onChange={(e) => setForm({ ...form, prioritetUKorpici: e.target.value })}
+              />
+            </Field>
+            <p className="mt-1 text-xs text-muted">
+              0 = osnovni artikal (ide skoro uvijek), veći broj = dopuna.
+            </p>
+          </div>
+
+          <div className="mt-3">
+            <p className="mb-1.5 text-sm font-medium">
+              Sezona (mjeseci) — praznina znači cijele godine
+            </p>
+            <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-12">
+              {MJESECI_NAZIVI.map((naziv, i) => {
+                const mjesec = i + 1;
+                const aktivan = form.mjeseci.includes(mjesec);
+                return (
+                  <button
+                    key={mjesec}
+                    type="button"
+                    onClick={() => prekidajMjesec(mjesec)}
+                    className={cn(
+                      "rounded-lg border px-1.5 py-1 text-xs font-medium transition",
+                      aktivan
+                        ? "border-brand-600 bg-brand-600 text-white"
+                        : "border-line bg-white text-muted hover:border-brand-400",
+                    )}
+                  >
+                    {naziv}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div className="flex gap-3 border-t border-line p-4">
+        <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
+          Otkaži
+        </Button>
+        <Button className="flex-1" onClick={submit} disabled={mutation.isPending}>
+          {mutation.isPending ? "Spremam…" : "Spremi"}
+        </Button>
       </div>
-    </div>
+    </AdminLadica>
   );
 }

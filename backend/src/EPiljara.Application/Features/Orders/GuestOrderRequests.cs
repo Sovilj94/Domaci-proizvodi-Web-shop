@@ -56,8 +56,8 @@ public class CreateGuestOrderRequestValidator : AbstractValidator<CreateGuestOrd
                 .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
                 .WithMessage("E-mail je predugačak.");
         });
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
-        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
+        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
+        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
         // GuestOrderRequest.DeliveryAddress je text bez granice u bazi — bez ove provjere
         // dug unos bi se upisao, mejl bi otišao, a klik na link bi pao tek na Orders insert
@@ -280,6 +280,13 @@ public class ConfirmGuestOrderHandler(
         // „jednom po kupcu" pet puta. Popust se ne preračunava — kupac plaća ono što je vidio.
         // Id koda se uzima iz provjerenog koda, ne iz zahtjeva: FK na zahtjevu je SetNull,
         // pa bi obrisan i ponovo kreiran kod ostavio narudžbu bez veze sa kodom.
+        // B2: red koda je zaključan do upisa narudžbe, da dvije potvrde ne pređu limit koda za jedan.
+        await using var tx = zahtjev.PromoKod is not null && ZakljucavanjeNarudzbe.Podrzano(db)
+            && db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(ct)
+            : null;
+        await ZakljucavanjeNarudzbe.ZakljucajAsync(db, null, zahtjev.PromoKod, ct);
+
         PromoKod? provjeren = null;
         if (zahtjev.PromoKod is not null)
         {
@@ -292,6 +299,7 @@ public class ConfirmGuestOrderHandler(
             {
                 db.GuestOrderRequests.Remove(zahtjev);
                 await db.SaveChangesAsync(ct);
+                if (tx is not null) await tx.CommitAsync(ct);
                 throw new ConflictException(
                     $"{e.Message} Narudžba nije primljena — vrati se u korpu i pošalji je ponovo.",
                     PromoKodPravila.Greska);
@@ -368,6 +376,7 @@ public class ConfirmGuestOrderHandler(
         // zateći posao napola urađen (ni "narudžba postoji, zahtjev još nije obrisan" niti
         // obrnuto).
         await db.SaveChangesAsync(ct);
+        if (tx is not null) await tx.CommitAsync(ct);
 
         try
         {

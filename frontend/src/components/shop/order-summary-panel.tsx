@@ -29,7 +29,7 @@ export function OrderSummaryPanel({
 }) {
   return (
     <div className="space-y-4 rounded-card bg-surface p-5 shadow-card">
-      <h2 className="font-display text-base font-semibold">Vaša narudžba</h2>
+      <h2 className="font-display text-base font-semibold">Tvoja narudžba</h2>
 
       <ul className="space-y-2 text-sm">
         {items.map((i) => (

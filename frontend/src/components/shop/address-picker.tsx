@@ -298,30 +298,30 @@ export function AddressPicker({
       )}
       {status === "notfound" && (
         <p className="text-xs text-honey-600">
-          Adresa nije pronađena — kliknite na mapu ili prevucite pin da označite tačnu lokaciju.
+          Adresa nije pronađena — klikni na mapu ili prevuci pin da označiš tačnu lokaciju.
         </p>
       )}
       {status === "sacuvana" && (
         <p className="text-xs text-muted">
-          📍 Sačuvana lokacija je označena na mapi. Ako nije tačna, prevucite pin ili
-          kliknite na mapu.
+          📍 Sačuvana lokacija je označena na mapi. Ako nije tačna, prevuci pin ili
+          klikni na mapu.
         </p>
       )}
       {status === "pinned" && (
         <p className="text-xs text-muted">
-          📍 Lokacija je označena na mapi. Adresu nismo prepoznali — provjerite da tekst iznad
+          📍 Lokacija je označena na mapi. Adresu nismo prepoznali — provjeri da tekst iznad
           odgovara označenoj tački.
         </p>
       )}
       {status === "idle" && found && (
         <p className="text-xs text-muted">
           📍 <span className="font-medium text-ink">{found}</span> — je li ovo tačna adresa? Ako
-          nije, prevucite pin ili kliknite na mapu.
+          nije, prevuci pin ili klikni na mapu.
         </p>
       )}
       {status === "idle" && !found && (
         <p className="text-xs text-muted">
-          Upišite adresu iznad ili kliknite na mapu da označite lokaciju dostave.
+          Upiši adresu iznad ili klikni na mapu da označiš lokaciju dostave.
         </p>
       )}
     </div>

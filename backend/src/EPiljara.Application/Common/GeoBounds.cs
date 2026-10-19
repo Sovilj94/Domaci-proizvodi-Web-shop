@@ -15,7 +15,7 @@ public static class GeoBounds
 
     /// <summary>Poruka kad tačka ispadne iz okvira — kaže šta nije u redu, ne ponavlja opseg.</summary>
     public const string OutsideMessage =
-        "Odabrana tačka je izvan Bosne i Hercegovine — provjerite lokaciju na mapi.";
+        "Odabrana tačka je izvan Bosne i Hercegovine — provjeri lokaciju na mapi.";
 
     /// <summary>True kad tačka pada unutar okvira Bosne i Hercegovine.</summary>
     public static bool Contains(double latitude, double longitude) =>

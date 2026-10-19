@@ -1,4 +1,4 @@
-# Stanje projekta — 2026-10-15 (P1–P7 gotovi)
+# Stanje projekta — 2026-10-19 (P1–P7 i R1–R4 u `main`, završni prolaz na grani `zavrsetak`)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
 
@@ -6,11 +6,10 @@ Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se na
 
 | | |
 |---|---|
-| Grana | `main` i samo ona. Sve grane, zaključno sa `p7-cirilica`, su spojene i obrisane. |
-| HEAD `main` | merge P7 (`7993626`) — vidi `git log -1` |
-| Radno stablo | čisto |
-| Nespojeno | ništa |
-| `main` vs `origin/main` | **pushovan 2026-10-15** (P7), na korisnikov zahtjev. |
+| Grane | `main` + **`zavrsetak`** (završni prolaz kroz `ZA-URADITI.md`, vidi sekciju „Završni prolaz" ispod). |
+| HEAD `main` | merge `za-uraditi` (`61f63a5`, 2026-10-16) — R1–R4 i spisak zadataka |
+| Nespojeno | `zavrsetak` — **čeka korisnikovo odobrenje za merge i push** |
+| `main` vs `origin/main` | **pushovan 2026-10-16**, na korisnikov zahtjev. |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -336,7 +335,7 @@ Odloženo / poznato:
 - Snimci ekrana preko Chrome ekstenzije su tokom provjere padali (renderer „ne odgovara"), ali stranice
   rade — provjera je rađena skriptama; to je osobina alata, ne aplikacije (provjereno i na latinici).
 
-### Redizajn po farmit.rs (R1–R4, 2026-10-16) — grane `redizajn-r1` → `r2` → `r3` → `r4` (naslagane, nespojene)
+### Redizajn po farmit.rs (R1–R4, 2026-10-16) — spojen u main (`be80e43`) i pushovan 2026-10-16
 
 Korisnik: „identičan sajt", iste boje i stilovi, isti mobilni prikaz; prodaju se samo korpice povrća i voća, a sir,
 suho meso, ajvar i zimnica se dodaju iz Špajza. Spec `specs/2026-10-16-farmit-izgled-design.md`, snimak uzora
@@ -360,6 +359,73 @@ ugašeni zbog memorije): R4 stranice, Špajz na 390 px, korpa sa „Dodaj iz Šp
 Dev baza: sadržaj sedmice 42 objavljen za srednju korpicu povrća; test pretplata (Marko, mjesečna) otkazana;
 prijava na novosti `nikola@example.com`.
 
+### Završni prolaz kroz ZA-URADITI (2026-10-19) — grana `zavrsetak` (nespojena)
+
+Stavke iz `ZA-URADITI.md` po predloženom redoslijedu, na jednoj grani. Urađene stavke su obrisane
+iz `ZA-URADITI.md`.
+
+**Već zatvoreno ranije, samo nije bilo skinuto sa spiska:**
+- **A1** admin ekran pretplata — `/admin/pretplate`, nastao u R2.
+- **A3** izlog `/korpice` poslije roka — u R2 izlog prikazuje sadržaj sedmice koja se prodaje, a
+  `rok-traka.tsx` više ne postoji; sve trake roka idu kroz `aktivniKrug`.
+- **A7** sopstvena 404 — `app/(shop)/not-found.tsx` + `[...nepoznato]`, R4.
+
+**Urađeno na `zavrsetak`:**
+- **A2** (`755379f`) — pretplatnik čija je prethodna sedmica prošla bez narudžbe dobija mejl
+  (`SendPreskocenaIsporukaAsync`, šablon `PreskocenaIsporukaTemplate`), jednom po sedmici
+  (`Pretplata.ObavijestPreskocenaGodina/Sedmica`, migracija `DodajObavijestPreskocene`). Ne javlja se
+  pauziranoj, otkazanoj ni pretplati nastaloj poslije roka. **Alarm adminu nije rađen** — ostao u
+  `ZA-URADITI.md` kao A2b, pa urađen (vidi ispod).
+- **A4** (`fe9ba03`) — `SedmicaHelper.Zona` = `Europe/Sarajevo` (rezerva: Windows ime). Tekuća ISO
+  sedmica i datum isporuke računaju se po lokalnom kalendaru, a „16:00" termina se u UTC pretvara uz
+  ljetno/zimsko računanje. Rok se više ne zatvara dva sata kasnije.
+- **A5** — **odluka, ne kvar**: rok se namjerno računa od prvog dana isporuke, ne od izabranog termina,
+  jer se sadržaj sedmice zaključava i pakerska lista štampa jednom. Zapisano u komentaru
+  `SedmicaHelper.UcitajRokAsync`.
+- **A6, A8, A10** (`9c84106`) — pismo naloga se preuzima pri prijavi; klijentske stranice imaju naslov
+  kroz `layout.tsx`; „Hvala na ocjeni" je toast.
+- **B3** (`cb348e8`) — istovremena promjena statusa iste narudžbe → 409 umjesto 500.
+- **B5** (`cb348e8`, `f139bb8`) — kod preporuke prolazi kroz Google/Facebook prijavu; dugmad na registraciji.
+- **B1 + B2** (`a1e7b0f`) — `ZakljucavanjeNarudzbe`: u transakciji narudžbe `SELECT … FOR UPDATE` nad
+  redom kupca pa nad redom koda (uvijek tim redom, da nema unakrsnog zaključavanja). SQLite u testovima
+  to preskače (`PodrzavaZakljucavanje`), pa **istovremenost nije pokrivena testom** — samo Postgres.
+
+- **A2b** — alarm adminu: kad je do roka ostalo `Pretplate:AlarmSatiPrijeRoka` (24) sati, a neka korpica sa
+  aktivnim pretplatama nema objavljen sadržaj ciljne sedmice, svi admini dobijaju jedan mejl sa spiskom
+  (`SendAlarmSadrzajaAsync`, `AlarmSadrzajaTemplate`). Svaka korpica ulazi u alarm jednom po sedmici
+  (`Product.AlarmSadrzajaGodina/Sedmica`, migracija `DodajAlarmSadrzaja`). 4 testa.
+- **B7** (`df79cc3`) — kad je promo kod provjeren, pregled checkouta (zbir, ukupno, minimum zone) koristi
+  `subtotal` iz `POST /promo-kodovi/provjera` umjesto zbira iz korpe (`cijenaRobe`). Bez koda ostaje zbir korpe.
+- **B8** — **odluka, ne kvar**: `Delivered` je završni status (`Order.Transitions`), a EF upisuje apsolutnu
+  vrijednost brojača, pa ni dvostruko ni istovremeno označavanje ne može razići `BrojIsporuka` sa
+  isporukama. Razilaženje nastaje samo ručnom izmjenom baze; dugme „preračunaj" nije pravljeno.
+- **A9** (`df79cc3`) — kupčev dio, poruke API-ja i mejlovi (potvrda e-maila, potvrda narudžbe) obraćaju se sa
+  „ti". Rečenice koje bi tražile rod prepisane su bezlično („Prijava je uspjela", „ništa nije izgubljeno").
+  **Namjerno na „vi":** stranice za proizvođače (`postani-partner`, `partner-forma`, odlomak na `o-nama`)
+  — to su poslovni partneri, ne kupci.
+- **E1** (`6e0cf38`) — `components/admin/admin-ladica.tsx`: jedan omotač za devet admin ladica (8 formi +
+  editor nacrta) sa `role="dialog"`, `aria-modal`, `aria-labelledby`, Escape, fokusom u ladicu i povratkom
+  fokusa. `StopLocationDrawer` (centrirani modal) dobio iste atribute i Escape. `Field` sam dodjeljuje `id`
+  polju (`Input`/`Select`/`Textarea`/nativna polja) i veže grešku kroz `aria-describedby`; tri složena
+  polja (boja proizvoda, telefon na checkoutu, promo kod) vezana ručno.
+- **E2** — zastario: `category-rail.tsx` je uklonjen u redizajnu (R3).
+- **B4** — `/admin/poeni` (meni „Poeni"): lista kupaca sa stanjem (pretraga po imenu/e-mailu, do 100,
+  najveće stanje prvo), ladica sa cijelom istorijom i ručnom korekcijom. Endpointi `GET /admin/poeni`,
+  `GET /admin/poeni/{userId}`, `POST /admin/poeni/{userId}/korekcija` (`Features/Poeni/AdminPoeni.cs`).
+  Korekcija je nova stavka `Korekcija` sa `Razlog` i `UnioId` (migracija `DodajKorekcijuPoena`), u
+  transakciji sa zaključanim redom kupca (kao B1), i **ne smije spustiti stanje ispod nule**
+  (`poeni_ispod_nule`). Razlog vidi i kupac („Korekcija: …", `PoeniOpis` — zajednički opis za kupca i
+  admina). 9 testova. **Istek poena nije rađen** — poslovna odluka, ostala u `ZA-URADITI.md` kao B4b.
+
+Provjere poslije ovih stavki (zaključno sa B4): `dotnet test` 514/514, `npm test` 75/75, `tsc`, `lint`, `npm run build` ✓
+(rađen u kopiji jer je dev server na :3000 bio upaljen). **Nije provjereno uživo:** admin ladice (API
+ugašen, Docker ne odgovara), `/admin/poeni` i korekcija nad Postgresom, mejl alarma (lokalni `dotnet` ne
+može van — vidi C3).
+
+**U toku / sljedeće na ovoj grani:** vidi „Prijedlog redoslijeda" u `ZA-URADITI.md`. C3/D2
+(vlastiti Nominatim) i D1 (Viber) se preskaču: prvi traži uvoz mape od nekoliko desetina minuta i
+memoriju koje ovaj računar nema (F3), drugi traži ugovor sa provajderom.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
@@ -369,24 +435,18 @@ Ništa od ovoga ne blokira ništa; sve je svjesno odloženo uz razlog.
 
 | Nalaz | Gdje | Zašto je odloženo |
 |---|---|---|
-| Pretplata nema admin **ekran**, samo endpoint | `/admin/pretplate` | Podatak postoji i vraća i brojač „koliko čeka sadržaj", ali ga nijedna admin stranica ne prikazuje. Nabavka ga za sad čita kroz API. Ekran je mali posao, ali je izvan P3 opsega koji je bio kupčeva strana. |
-| Pretplatnik ne dobija obavijest kad mu sedmica bude preskočena | `PretplatneNarudzbe` | Kad sadržaj nije objavljen, posao preskoči sedmicu i zapiše u log — kupac to vidi tek po izostanku isporuke. Mejl kupcu i alarm adminu su svjesno ostavljeni za kasnije (rizik R2 u specu); `cekajuSadrzaj` na admin endpointu je zamjena dok ne postoje. |
 | `BrojIsporuka` je izveden podatak koji se može raziću sa narudžbama | `Pretplata`, `BrojacIsporuka` | Ako neko ručno mijenja statuse narudžbi, brojač i stvarni broj isporučenih mogu se razići. Mjerodavan je upit nad narudžbama; nije pravljen okidač u bazi jer logike u bazi nema nigdje u projektu. |
-| Sedmica pretplate ne gleda njen `DeliverySlot` | `PretplatneNarudzbe`, `SedmicaHelper` | Ciljna sedmica se računa iz slota sa najnižim `DayOfWeek`, isto kao u checkoutu. Dok su svi slotovi u istoj sedmici (četvrtak i petak), razlike nema. Isti je nalaz već zaveden za `CreateOrder` (vidi „Pet sitnica" ispod) i treba ih riješiti zajedno, ne odvojeno. |
 | Adrese sačuvane prije P2c nemaju tačku | postojeći redovi u `Addresses` | Birač postoji od P2c, ali ranije sačuvane adrese (i one prenesene iz starog `User.Address`) i dalje stoje bez pina. Kupac to vidi kao prigušenu napomenu na kartici i zatvara sam kroz „Izmijeni"; batch-geokodiranje adresara, kakvo narudžbe imaju (`admin/orders/geocode-missing`), nije pravljeno. |
 | Niko ne provjerava da pin i tekst adrese govore o istom mjestu | `address-picker.tsx`, `AddressRules` | Kad reverzno geokodiranje ne uspije, tekst ostaje kako je otkucan a pin tamo gdje je kliknut; birač na to i upozorava rečenicom ispod mape. Server provjerava samo da je tačka u granicama BiH. Isto važi i na checkoutu, nije uvedeno u P2c. |
 | Razlika broj-narudžbi naspram broj-redova nije testirana | `AdminKorpice.cs`, `BrojNarudzbi` | Pokrivanje traži drugu korpicu u dijeljenom test helperu dok su dva taska gradila na njemu. Završna recenzija je potvrdila da je odluka branjiva ali da sam rizik potcijenio — baš taj nedostajući fixture je ostavio neispitanim da editor ne provjerava je li red korpica. |
 | Klijent predviđa količinu 1 za ponovo dodat šablonski artikal | `korpica-editor.tsx` | Zatvaranje traži da `PonudaArtiklaDto` nosi šablonsku količinu — izmjena ugovora backenda. Server ostaje mjerodavan; posljedica je samo da traka budžeta pokaže manje nego server. |
 | Razlika na pola feninga između JS i .NET zaokruživanja | `korpica-editor.tsx` | JS zaokružuje od nule, .NET na parno. Zabilježeno u komentaru, server mjerodavan. |
-| Vremenska zona na `DeliverySlot` | `SedmicaHelper` | **Naslijeđeno iz P1.** `TimeFrom` je „16:00" bez zone, backend ga gradi kao UTC, pa se rok zatvara dva sata kasnije od nominalnog. Prihvaćeno, zapisano u `CLAUDE.md`. |
-| `/korpice` izlog govori o tekućoj sedmici, a checkout prodaje za narednu | `GetTekucaSedmicaHandler`, `rok-traka.tsx` | Poslije isteka roka izlog piše „rok istekao" dok naplata ide za sljedeću sedmicu. Naplata je tačna; izlog zaostaje. **Od P4 je razlika vidljivija:** početna i footer poslije roka već govore o narednoj sedmici (`aktivniKrug`), traka na `/korpice` još o tekućoj. Popravka je da i izlog pređe na `aktivniKrug`, ali to mijenja i kad se gasi dugme „Naruči korpicu" — zato nije u P4 (spec O7). |
 | Hidratacijska greška u traci kategorija | `category-rail.tsx` | U dev konzoli: Suspense fallback renderuje `<div>`, komponenta `<nav>`. Postojala je i prije P4 (fajl nije diran); zaseban mali zadatak. |
 | Utisak nije vezan za kupca | `Utisak` | Ne može se dokazati da je utisak od stvarnog kupca — unosi ga admin. Veza dolazi sa ocjenom isporuke u P6, kao nullable kolona. |
 | Admin forme bez `label`/`htmlFor`, `role="dialog"` i Escape | `utisak-form.tsx`, `producer-form.tsx` i ostale | Nova forma utisaka prati postojeći obrazac; pristupačnost treba popraviti za sve admin forme odjednom. |
-| Rok u pregledaču se prikazuje u zoni pregledača | `lib/sedmica.ts` | Isti naslijeđeni problem kao „Vremenska zona na `DeliverySlot`" — rok 16:00 (UTC na serveru) se kupcu u BiH prikazuje kao 18h. Dosljedno je sa trenutkom kad se rok stvarno zatvara, ali ne sa nominalnim. |
 | Sitnice iz recenzija P4 | razno | Test granice godine ide na `SedmicaHelper`, ne kroz handler; update test utiska ne provjerava `Mjesto`/`Tekst`; nema testa za obrisan artikal u `Artikli`; mock vraća prazne `artikli`; red u footeru se pojavi tek kad stigne podatak. |
 | Četiri slaba testa | `SedmicaZaNarudzbuTests`, `CreateOrderSedmicaTests`, `AdminKorpiceTests` | Jedan dokazuje samo da funkcija ne puca; jedan je djelimično cirkularan; jedan ima suvišan assert; jedan je tautološki. Nijedan nije pogrešan, samo dokazuju manje nego što im ime obećava. |
-| Pet sitnica iz završne recenzije P2b | razno | Sedmica narudžbe ne gleda izabrani `DeliverySlot` iako seed nosi dva; mrtva `undefined` grana u praznom stanju admina; zastarjeli komentari. |
+| Sitnice iz završne recenzije P2b | razno | mrtva `undefined` grana u praznom stanju admina; zastarjeli komentari. |
 
 ## Kako se radilo (da se ne mijenja usred posla)
 

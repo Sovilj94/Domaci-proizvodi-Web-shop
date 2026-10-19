@@ -758,6 +758,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("PreporuceniId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Razlog")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("UnioId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
@@ -821,6 +828,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<int>("ObavezaIsporuka")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ObavijestPreskocenaGodina")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ObavijestPreskocenaSedmica")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("OtkazanaU")
@@ -940,6 +953,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("AlarmSadrzajaGodina")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AlarmSadrzajaSedmica")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Boja")
                         .HasMaxLength(7)

@@ -146,7 +146,7 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
           ) : isError ? (
             <EmptyState
               title="Sadržaj trenutno nije dostupan"
-              description="Pokušajte ponovo malo kasnije."
+              description="Pokušaj ponovo malo kasnije."
             />
           ) : (
             <>

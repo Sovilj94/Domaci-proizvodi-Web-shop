@@ -26,13 +26,25 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
     public RegisterValidator()
     {
         RuleFor(x => x.Name).NotEmpty().WithMessage("Ime je obavezno.");
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Unesite ispravan email.");
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Unesi ispravan email.");
         RuleFor(x => x.Phone).NotEmpty().WithMessage("Telefon je obavezan.");
         RuleFor(x => x.Password).MinimumLength(6).WithMessage("Lozinka mora imati najmanje 6 znakova.");
         RuleFor(x => (x.PreporukaKod ?? "").Trim()).MaximumLength(8)
             .OverridePropertyName("preporukaKod")
             .When(x => x.PreporukaKod is not null)
             .WithMessage("Kod preporuke je predugačak.");
+    }
+}
+
+/// <summary>Jedino mjesto koje kod preporuke pretvara u preporučioca — registracija i društvena prijava (B5).</summary>
+internal static class Preporuka
+{
+    /// <summary>Nepoznat ili prazan kod daje null — preporuka je dodatak, ne uslov (O10).</summary>
+    public static async Task<Guid?> NadjiPreporuciocaAsync(IAppDbContext db, string? kod, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(kod)) return null;
+        var k = kod.Trim().ToUpperInvariant();
+        return await db.Users.Where(u => u.PreporukaKod == k).Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
     }
 }
 
@@ -47,13 +59,7 @@ public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailSer
 
         // Preporuka je dodatak, ne uslov: nepoznat ili pogrešno prepisan kod ne smije spriječiti
         // registraciju, pa se tiho ignoriše (O10). Poeni se dodjeljuju tek prvom isporukom.
-        Guid? preporucioId = null;
-        if (!string.IsNullOrWhiteSpace(cmd.PreporukaKod))
-        {
-            var kod = cmd.PreporukaKod.Trim().ToUpperInvariant();
-            preporucioId = await db.Users.Where(u => u.PreporukaKod == kod)
-                .Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
-        }
+        var preporucioId = await Preporuka.NadjiPreporuciocaAsync(db, cmd.PreporukaKod, ct);
 
         var token = Guid.NewGuid().ToString("N");
         var user = new User
@@ -106,7 +112,7 @@ public class LoginHandler(IAppDbContext db, IPasswordHasher hasher, IJwtTokenSer
             throw new UnauthorizedException("Pogrešan email ili lozinka.", "invalid_credentials");
 
         if (!user.EmailConfirmed)
-            throw new UnauthorizedException("Potvrdite email adresu prije prijave.", "email_not_confirmed");
+            throw new UnauthorizedException("Potvrdi email adresu prije prijave.", "email_not_confirmed");
 
         return new AuthResultDto { Token = jwt.CreateToken(user), User = user.ToAuthDto() };
     }

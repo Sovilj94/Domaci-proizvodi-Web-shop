@@ -23,6 +23,7 @@ public record NapraviPretplatneNarudzbeCommand : IRequest<int>;
 public class NapraviPretplatneNarudzbeHandler(
     IAppDbContext db,
     IMediator mediator,
+    IEmailService email,
     IOptions<KorpiceOpcije> korpiceOpcije,
     IOptions<PretplateOpcije> pretplateOpcije,
     ILogger<NapraviPretplatneNarudzbeHandler> log)
@@ -38,6 +39,14 @@ public class NapraviPretplatneNarudzbeHandler(
         var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, korpiceOpcije.Value, ct);
         var (godina, sedmica) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijemeOd, cutoff);
         var rok = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd).AddHours(-cutoff);
+
+        // A2 prvo: prethodna sedmica je sigurno zatvorena (njen rok je prošao), pa se sad zna
+        // kome je stvarno preskočena. Nezavisno od prozora ispod.
+        await ObavijestiOPreskocenimAsync(godina, sedmica, dan, vrijemeOd, cutoff, ct);
+
+        // A2b: adminu dok još ima vremena da objavi sadržaj. Ima svoj prozor, kraći od prozora narudžbi.
+        if (DateTime.UtcNow >= rok.AddHours(-o.AlarmSatiPrijeRoka))
+            await UpozoriAdminaAsync(godina, sedmica, rok, ct);
 
         // Prerano: narudžba se pravi tek u prozoru od `SatiUnaprijed` prije roka, da kupac
         // ima vremena da pauzira ili otkaže prije nego što narudžba uopšte nastane.
@@ -74,6 +83,104 @@ public class NapraviPretplatneNarudzbeHandler(
         }
 
         return napravljeno;
+    }
+
+    /// <summary>
+    /// A2: pretplatniku čija je prethodna sedmica prošla bez narudžbe (sadržaj nije objavljen do roka,
+    /// korpica nije u ponudi, ili je obrada pukla) javlja se mejlom — jednom po sedmici. Ne javlja
+    /// se pauziranoj, otkazanoj ni pretplati koja tada još nije postojala.
+    /// </summary>
+    private async Task ObavijestiOPreskocenimAsync(
+        int godina, int sedmica, DayOfWeek dan, string vrijemeOd, int cutoff, CancellationToken ct)
+    {
+        var (pg, ps) = SedmicaHelper.Pomjeri(godina, sedmica, -1);
+        var isporuka = SedmicaHelper.DatumIsporuke(pg, ps, dan, vrijemeOd);
+        var rokProsle = isporuka.AddHours(-cutoff);
+
+        var kandidati = await db.Pretplate
+            .Include(p => p.Product)
+            .Include(p => p.User)
+            .Where(p => p.Status == StatusPretplate.Aktivna && p.CreatedAt < rokProsle
+                && !(p.ObavijestPreskocenaGodina == pg && p.ObavijestPreskocenaSedmica == ps)
+                && !db.Orders.Any(o => o.PretplataId == p.Id && o.Godina == pg && o.Sedmica == ps))
+            .ToListAsync(ct);
+
+        foreach (var p in kandidati)
+        {
+            if (p.User is null) continue;
+            try
+            {
+                await email.SendPreskocenaIsporukaAsync(
+                    p.User, p.Product?.Name ?? "korpica", isporuka, p.Product?.IsAvailable ?? false, ct);
+                p.ObavijestPreskocenaGodina = pg;
+                p.ObavijestPreskocenaSedmica = ps;
+                await db.SaveChangesAsync(ct);
+                log.LogInformation("Pretplata {Id}: kupac obaviješten o preskočenoj sedmici {G}/{S}.", p.Id, pg, ps);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                log.LogError(ex, "Pretplata {Id}: obavještenje o preskočenoj sedmici nije poslato.", p.Id);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A2b: korpice sa aktivnim pretplatama kojima sadržaj ciljne sedmice još nije objavljen — isti
+    /// uslov kao `cekajuSadrzaj` na `/admin/pretplate`. Jedan mejl svim adminima po prolazu, a svaka
+    /// korpica ulazi u alarm jednom po sedmici (`Product.AlarmSadrzaja*`).
+    /// </summary>
+    private async Task UpozoriAdminaAsync(int godina, int sedmica, DateTime rok, CancellationToken ct)
+    {
+        try
+        {
+            var spremne = db.SedmicniSadrzaji
+                .Where(s => s.Godina == godina && s.Sedmica == sedmica
+                            && (s.Status == StatusSadrzaja.Objavljen || s.Status == StatusSadrzaja.Zakljucan))
+                .Select(s => s.KorpicaId);
+
+            var cekaju = await db.Pretplate
+                .Where(p => p.Status == StatusPretplate.Aktivna && !spremne.Contains(p.ProductId))
+                .GroupBy(p => p.ProductId)
+                .Select(g => new { ProductId = g.Key, Broj = g.Count() })
+                .ToListAsync(ct);
+            if (cekaju.Count == 0) return;
+
+            var ids = cekaju.Select(c => c.ProductId).ToList();
+            var korpice = await db.Products
+                .Where(k => ids.Contains(k.Id)
+                            && !(k.AlarmSadrzajaGodina == godina && k.AlarmSadrzajaSedmica == sedmica))
+                .ToListAsync(ct);
+            if (korpice.Count == 0) return;
+
+            var admini = await db.Users
+                .Where(u => u.Role == UserRole.Admin && u.Email != "")
+                .ToListAsync(ct);
+            if (admini.Count == 0)
+            {
+                log.LogWarning("Sadržaj za {G}/{S} nije objavljen za {N} korpica, a nema admina sa e-mailom.",
+                    godina, sedmica, korpice.Count);
+                return;
+            }
+
+            var stavke = korpice
+                .OrderBy(k => k.Name)
+                .Select(k => (k.Name, cekaju.First(c => c.ProductId == k.Id).Broj))
+                .ToList();
+            await email.SendAlarmSadrzajaAsync(admini, stavke, rok, ct);
+
+            foreach (var k in korpice)
+            {
+                k.AlarmSadrzajaGodina = godina;
+                k.AlarmSadrzajaSedmica = sedmica;
+            }
+            await db.SaveChangesAsync(ct);
+            log.LogInformation("Admin upozoren: sadržaj za {G}/{S} nije objavljen za {N} korpica.",
+                godina, sedmica, korpice.Count);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogError(ex, "Alarm adminu za neobjavljen sadržaj {G}/{S} nije poslat.", godina, sedmica);
+        }
     }
 
     private async Task<bool> ObradiAsync(Pretplata p, int godina, int sedmica, CancellationToken ct)

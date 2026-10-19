@@ -613,3 +613,30 @@ export interface MojiPoeni {
   brojPreporuka: number;
   istorija: PoeniStavka[];
 }
+
+/** `GET /admin/poeni` (B4, backend `AdminPoeniKupacDto`). */
+export interface AdminPoeniKupac {
+  userId: string;
+  ime: string;
+  email: string;
+  stanje: number;
+}
+
+export interface AdminPoeniStavka {
+  iznos: number;
+  vrsta: string;
+  opis: string;
+  orderCode: string | null;
+  /** Admin koji je unio korekciju; null za stavke koje je upisao sistem. */
+  unio: string | null;
+  kreirana: string;
+}
+
+/** `GET /admin/poeni/{userId}` i odgovor korekcije (backend `AdminPoeniKupcaDto`). */
+export interface AdminPoeniKupca {
+  userId: string;
+  ime: string;
+  email: string;
+  stanje: number;
+  istorija: AdminPoeniStavka[];
+}

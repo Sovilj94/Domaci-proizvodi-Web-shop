@@ -103,7 +103,7 @@ function LoginForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Unesite email adresu"
+                  placeholder="Unesi email adresu"
                   className={cn(fieldClass, "pl-9")}
                 />
               </div>
@@ -121,7 +121,7 @@ function LoginForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Unesite lozinku"
+                  placeholder="Unesi lozinku"
                   className={cn(fieldClass, "px-9")}
                 />
                 <button
@@ -156,7 +156,7 @@ function LoginForm() {
 
             {forgotNote && (
               <p className="rounded-lg bg-sand px-3 py-2 text-xs text-muted">
-                Reset lozinke još nije dostupan — kontaktirajte podršku.
+                Reset lozinke još nije dostupan — kontaktiraj podršku.
               </p>
             )}
             {error && (
@@ -175,7 +175,7 @@ function LoginForm() {
             )}
             {resent && (
               <p className="rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
-                Poslali smo novi link — provjerite email.
+                Poslali smo novi link — provjeri email.
               </p>
             )}
 

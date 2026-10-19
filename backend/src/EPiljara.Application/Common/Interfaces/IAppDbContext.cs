@@ -56,5 +56,11 @@ public interface IAppDbContext
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
     DatabaseFacade Database { get; }
 
+    /// <summary>B1/B2: da li baza podržava zaključavanje redova (`SELECT … FOR UPDATE`).</summary>
+    bool PodrzavaZakljucavanje { get; }
+
+    /// <summary>B1/B2: zaključava red kupca i red promo koda do kraja tekuće transakcije.</summary>
+    Task ZakljucajZaNarudzbuAsync(Guid? kupacId, string? promoKod, CancellationToken ct);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

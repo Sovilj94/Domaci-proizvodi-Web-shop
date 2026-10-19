@@ -22,5 +22,11 @@ public class PoeniStavka : Entity
     /// </summary>
     public Guid? PreporuceniId { get; set; }
 
+    /// <summary>Razlog ručne korekcije (B4) — vidi ga i kupac u istoriji. Samo za <see cref="VrstaPoena.Korekcija"/>.</summary>
+    public string? Razlog { get; set; }
+
+    /// <summary>Admin koji je unio korekciju (B4). Samo podatak, bez FK — kao <see cref="PreporuceniId"/>.</summary>
+    public Guid? UnioId { get; set; }
+
     public DateTime Kreirana { get; set; } = DateTime.UtcNow;
 }

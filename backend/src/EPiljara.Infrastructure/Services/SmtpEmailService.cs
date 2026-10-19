@@ -41,8 +41,26 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
         var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var link = $"{baseUrl}/confirm-email?token={Uri.EscapeDataString(token)}";
         var (naslov, html) = PismoPoruke.Primijeni(
-            user.Pismo, "Potvrdite email adresu — E piljara", ConfirmEmailTemplate.Build(user, link));
+            user.Pismo, "Potvrdi email adresu — E piljara", ConfirmEmailTemplate.Build(user, link));
         return SendHtmlAsync(user.Email, naslov, html, "potvrda email adrese", cancellationToken);
+    }
+
+    public Task SendPreskocenaIsporukaAsync(User kupac, string korpica, DateTime isporuka, bool korpicaUPonudi = true, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(kupac.Email)) return Task.CompletedTask;
+        var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var (naslov, html) = PismoPoruke.Primijeni(
+            kupac.Pismo, "Ove sedmice nema isporuke — E piljara",
+            PreskocenaIsporukaTemplate.Build(kupac, korpica, isporuka, $"{baseUrl}/moj-nalog/pretplate", korpicaUPonudi));
+        return SendHtmlAsync(kupac.Email, naslov, html, "preskočena isporuka", cancellationToken);
+    }
+
+    public async Task SendAlarmSadrzajaAsync(IReadOnlyList<User> admini, IReadOnlyList<(string Korpica, int Pretplata)> stavke, DateTime rok, CancellationToken cancellationToken = default)
+    {
+        var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var html = AlarmSadrzajaTemplate.Build(stavke, rok, $"{baseUrl}/admin/korpice");
+        foreach (var admin in admini.Where(a => !string.IsNullOrWhiteSpace(a.Email)))
+            await SendHtmlAsync(admin.Email, "Sadržaj korpica nije objavljen — E piljara", html, "alarm sadržaja", cancellationToken);
     }
 
     // Za razliku od potvrde narudžbe, ovaj mejl ne smije tiho pasti: bez njega

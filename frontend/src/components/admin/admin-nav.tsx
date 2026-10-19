@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChefHat,
+  Coins,
   FlaskConical,
   Handshake,
   LayoutDashboard,
@@ -53,6 +54,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/utisci", label: "Utisci", icon: Quote },
   { href: "/admin/ocjene", label: "Ocjene", icon: Star },
   { href: "/admin/promo-kodovi", label: "Promo kodovi", icon: TicketPercent },
+  { href: "/admin/poeni", label: "Poeni", icon: Coins },
   { href: "/admin/recepti", label: "Recepti", icon: ChefHat },
   { href: "/admin/analize", label: "Analize", icon: FlaskConical },
   { href: "/admin/partneri", label: "Partneri", icon: Handshake, badge: "partneri" },

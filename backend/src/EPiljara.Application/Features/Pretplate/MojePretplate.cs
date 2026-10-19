@@ -37,7 +37,7 @@ public static class PretplataPravila
             ?? throw new NotFoundException("Pretplata nije pronađena.");
 
         if (!current.IsAuthenticated || p.UserId != current.Id)
-            throw new ForbiddenException("Ova pretplata nije vaša.");
+            throw new ForbiddenException("Ova pretplata nije tvoja.");
 
         return p;
     }
@@ -193,9 +193,9 @@ public class NapraviPretplatuValidator : AbstractValidator<NapraviPretplatuComma
 {
     public NapraviPretplatuValidator()
     {
-        RuleFor(x => x.ProductId).NotEmpty().WithMessage("Odaberite korpicu.");
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
-        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("Odaberi korpicu.");
+        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
+        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.Napomena).MaximumLength(1000)
             .When(x => x.Napomena is not null).WithMessage("Napomena je predugačka.");
         RuleFor(x => x.Plan).Must(PlanUlaz.Validan).WithMessage("Nepoznat plan pretplate.");
@@ -284,9 +284,9 @@ public class IzmijeniPretplatuValidator : AbstractValidator<IzmijeniPretplatuCom
 {
     public IzmijeniPretplatuValidator()
     {
-        RuleFor(x => x.ProductId).NotEmpty().WithMessage("Odaberite korpicu.");
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberite zonu dostave.");
-        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberite termin dostave.");
+        RuleFor(x => x.ProductId).NotEmpty().WithMessage("Odaberi korpicu.");
+        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
+        RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.Napomena).MaximumLength(1000)
             .When(x => x.Napomena is not null).WithMessage("Napomena je predugačka.");
         AddressRules.Apply(this);

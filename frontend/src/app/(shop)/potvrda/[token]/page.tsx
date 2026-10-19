@@ -68,7 +68,7 @@ export default function PotvrdaPage() {
           setState({
             kind: "error",
             message:
-              e instanceof ApiRequestError ? e.message : "Potvrda nije uspjela. Pokušajte ponovo.",
+              e instanceof ApiRequestError ? e.message : "Potvrda nije uspjela. Pokušaj ponovo.",
           });
         }
       });
@@ -90,8 +90,8 @@ export default function PotvrdaPage() {
             Link za potvrdu vrijedi 15 minuta od slanja narudžbe.
           </p>
           <p className="mt-2 text-sm text-muted">
-            Ako ste link otvorili više puta, narudžba je možda već primljena — prije nego
-            što je pošaljete ponovo, provjerite svoj mejl.
+            Ako je link otvaran više puta, narudžba je možda već primljena — prije nego
+            što je pošalješ ponovo, provjeri svoj mejl.
           </p>
           <Link href="/checkout" className={cn(buttonVariants(), "mt-6 inline-flex")}>
             Vrati u korpu

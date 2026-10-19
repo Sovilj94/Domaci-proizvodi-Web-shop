@@ -132,8 +132,9 @@ public class KorpiceQueriesTests
             .Handle(new GetTekucaSedmicaQuery(), default);
 
         var (godina, sedmica) = Sada();
-        var ocekivanaIsporuka = System.Globalization.ISOWeek
-            .ToDateTime(godina, sedmica, DayOfWeek.Thursday).AddHours(16);
+        // A4: „16:00" je lokalno vrijeme (Sarajevo), na žici UTC.
+        var ocekivanaIsporuka = TimeZoneInfo.ConvertTimeToUtc(
+            System.Globalization.ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Thursday).AddHours(16), SedmicaHelper.Zona);
         var ocekivaniRok = ocekivanaIsporuka.AddHours(-48);
 
         Assert.Equal(ocekivanaIsporuka, dto.DatumIsporuke);
@@ -160,7 +161,8 @@ public class KorpiceQueriesTests
             .Handle(new GetTekucaSedmicaQuery(), default);
 
         var (godina, sedmica) = Sada();
-        var ocekivanaIsporuka = System.Globalization.ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Thursday);
+        var ocekivanaIsporuka = TimeZoneInfo.ConvertTimeToUtc(
+            System.Globalization.ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Thursday), SedmicaHelper.Zona);
 
         Assert.Equal(ocekivanaIsporuka, dto.DatumIsporuke);
         Assert.Equal(DateTimeKind.Utc, dto.DatumIsporuke.Kind);
@@ -184,8 +186,10 @@ public class KorpiceQueriesTests
         var dto = await new GetTekucaSedmicaHandler(t.Db, Opcije)
             .Handle(new GetTekucaSedmicaQuery(), default);
 
-        Assert.Equal(dto.DatumIsporuke.AddDays(7), dto.SljedecaIsporuka);
-        Assert.Equal(dto.RokNarucivanja.AddDays(7), dto.SljedeciRok);
+        // Sedam dana po LOKALNOM kalendaru — preko prelaza ljetno/zimsko vrijeme je to 7 dana ± 1 h u UTC-u.
+        DateTime L(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(utc, SedmicaHelper.Zona);
+        Assert.Equal(L(dto.DatumIsporuke).AddDays(7), L(dto.SljedecaIsporuka));
+        Assert.Equal(L(dto.RokNarucivanja).AddDays(7), L(dto.SljedeciRok));
         Assert.Equal(DateTimeKind.Utc, dto.SljedeciRok.Kind);
     }
 
@@ -200,6 +204,7 @@ public class KorpiceQueriesTests
         var isporuka = SedmicaHelper.DatumIsporuke(g, s, DayOfWeek.Thursday, "16:00");
 
         Assert.Equal((2027, 1), (g, s));
-        Assert.Equal(new DateTime(2027, 1, 7, 16, 0, 0, DateTimeKind.Utc), isporuka);
+        // 16:00 po Sarajevu zimi (UTC+1) = 15:00 UTC.
+        Assert.Equal(new DateTime(2027, 1, 7, 15, 0, 0, DateTimeKind.Utc), isporuka);
     }
 }

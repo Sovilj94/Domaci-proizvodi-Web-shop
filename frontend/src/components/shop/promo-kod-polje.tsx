@@ -57,9 +57,10 @@ export function PromoKodPolje({
           </Button>
         </div>
       ) : (
-        <Field label="Promo kod">
+        <Field label="Promo kod" htmlFor="promo-kod">
           <div className="flex items-stretch gap-2">
             <Input
+              id="promo-kod"
               value={unos}
               onChange={(e) => setUnos(e.target.value)}
               onKeyDown={(e) => {

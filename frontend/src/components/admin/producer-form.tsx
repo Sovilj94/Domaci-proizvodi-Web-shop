@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { AdminLadica } from "@/components/admin/admin-ladica";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -78,69 +78,57 @@ export function ProducerForm({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button aria-label="Zatvori" onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-cream shadow-xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="font-display text-lg font-bold">
-            {producer ? "Uredi proizvođača" : "Novi proizvođač"}
-          </h2>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-sand">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <AdminLadica naslov={producer ? "Uredi proizvođača" : "Novi proizvođač"} onClose={onClose}>
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+        <Field label="Naziv" required error={errors["input.name"]?.[0]}>
+          <Input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="npr. Porodica Kovačević"
+          />
+        </Field>
 
-        <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
-          <Field label="Naziv" required error={errors["input.name"]?.[0]}>
-            <Input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="npr. Porodica Kovačević"
-            />
-          </Field>
+        <Field label="Selo / mjesto" required error={errors["input.village"]?.[0]}>
+          <Input
+            value={form.village}
+            onChange={(e) => setForm({ ...form, village: e.target.value })}
+            placeholder="npr. Han Kola"
+          />
+        </Field>
 
-          <Field label="Selo / mjesto" required error={errors["input.village"]?.[0]}>
-            <Input
-              value={form.village}
-              onChange={(e) => setForm({ ...form, village: e.target.value })}
-              placeholder="npr. Han Kola"
-            />
-          </Field>
+        <Field label="Telefon">
+          <Input
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            placeholder="065 000 000"
+          />
+        </Field>
 
-          <Field label="Telefon">
-            <Input
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="065 000 000"
-            />
-          </Field>
+        <Field label="Opis">
+          <Textarea
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Nekoliko riječi o domaćinstvu…"
+          />
+        </Field>
 
-          <Field label="Opis">
-            <Textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Nekoliko riječi o domaćinstvu…"
-            />
-          </Field>
+        <Field label="URL fotografije (opcionalno)">
+          <Input
+            value={form.photoUrl}
+            onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
+            placeholder="https://…"
+          />
+        </Field>
+      </form>
 
-          <Field label="URL fotografije (opcionalno)">
-            <Input
-              value={form.photoUrl}
-              onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
-              placeholder="https://…"
-            />
-          </Field>
-        </form>
-
-        <div className="flex gap-3 border-t border-line p-4">
-          <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
-            Otkaži
-          </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending}>
-            {mutation.isPending ? "Spremam…" : "Spremi"}
-          </Button>
-        </div>
+      <div className="flex gap-3 border-t border-line p-4">
+        <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
+          Otkaži
+        </Button>
+        <Button className="flex-1" onClick={submit} disabled={mutation.isPending}>
+          {mutation.isPending ? "Spremam…" : "Spremi"}
+        </Button>
       </div>
-    </div>
+    </AdminLadica>
   );
 }

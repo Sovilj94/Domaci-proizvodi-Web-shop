@@ -58,7 +58,8 @@ function loadScript(src: string, id: string): Promise<void> {
   });
 }
 
-export function SocialLogin() {
+/** `preporukaKod` (B5): kod iz linka preporuke, kad je dugme na registraciji. */
+export function SocialLogin({ preporukaKod }: { preporukaKod?: string } = {}) {
   const router = useRouter();
   const { loginWithGoogle, loginWithFacebook } = useAuth();
   const googleBtnRef = useRef<HTMLDivElement>(null);
@@ -84,7 +85,7 @@ export function SocialLogin() {
             setBusy(true);
             setError(null);
             try {
-              const user = await loginWithGoogle(resp.credential);
+              const user = await loginWithGoogle(resp.credential, preporukaKod);
               goHome(user.role);
             } catch (e) {
               setError(e instanceof ApiRequestError ? e.message : "Google prijava nije uspjela.");
@@ -107,7 +108,7 @@ export function SocialLogin() {
     return () => {
       cancelled = true;
     };
-  }, [loginWithGoogle, goHome]);
+  }, [loginWithGoogle, goHome, preporukaKod]);
 
   // Facebook SDK — we render our own button that triggers FB.login.
   useEffect(() => {
@@ -132,7 +133,7 @@ export function SocialLogin() {
         setBusy(true);
         setError(null);
         try {
-          const user = await loginWithFacebook(resp.authResponse.accessToken);
+          const user = await loginWithFacebook(resp.authResponse.accessToken, preporukaKod);
           goHome(user.role);
         } catch (e) {
           setError(e instanceof ApiRequestError ? e.message : "Facebook prijava nije uspjela.");

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
+import { SocialLogin } from "@/components/auth/social-login";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -102,15 +103,15 @@ function RegisterForm() {
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand-100 text-brand-600">
             <MailCheck className="h-7 w-7" />
           </div>
-          <h1 className="mt-5 font-display text-2xl font-bold">Potvrdite email adresu</h1>
+          <h1 className="mt-5 font-display text-2xl font-bold">Potvrdi email adresu</h1>
           <p className="mt-2 text-sm text-muted">
             Poslali smo link za potvrdu na <span className="font-semibold text-ink">{sentTo}</span>.
-            Otvorite mejl i kliknite link da aktivirate nalog i prijavite se.
+            Otvori mejl i klikni link da aktiviraš nalog i prijaviš se.
           </p>
 
           {resent ? (
             <p className="mt-5 rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
-              Poslali smo novi link — provjerite email.
+              Poslali smo novi link — provjeri email.
             </p>
           ) : (
             <p className="mt-5 text-sm text-muted">
@@ -141,7 +142,7 @@ function RegisterForm() {
       <Logo />
       <div className="mt-6 w-full rounded-card bg-surface p-7 shadow-card">
         <h1 className="font-display text-2xl font-bold">Registracija</h1>
-        <p className="mt-1 text-sm text-muted">Otvorite nalog i pratite svoje narudžbe.</p>
+        <p className="mt-1 text-sm text-muted">Otvori nalog i prati svoje narudžbe.</p>
         {preporuka && (
           <p className="mt-4 rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
             Preporučio te prijatelj — kad primiš prvu isporuku, dobijaš poene na nalogu.
@@ -172,7 +173,7 @@ function RegisterForm() {
           </Field>
           <Field label="Zona dostave (opcionalno)">
             <Select value={form.deliveryZoneId} onChange={set("deliveryZoneId")}>
-              <option value="">Odaberite kasnije…</option>
+              <option value="">Odaberi kasnije…</option>
               {zones.data?.map((z) => (
                 <option key={z.id} value={z.id}>
                   {z.name}
@@ -191,10 +192,15 @@ function RegisterForm() {
           </Button>
         </form>
 
+        {/* B5: i preko Googlea/Facebooka — kod preporuke iz linka ide uz prijavu. */}
+        <div className="mt-6">
+          <SocialLogin preporukaKod={preporuka ?? undefined} />
+        </div>
+
         <p className="mt-5 text-center text-sm text-muted">
-          Već imate nalog?{" "}
+          Već imaš nalog?{" "}
           <Link href={loginHref} className="font-semibold text-brand-700 hover:underline">
-            Prijavite se
+            Prijavi se
           </Link>
         </p>
       </div>

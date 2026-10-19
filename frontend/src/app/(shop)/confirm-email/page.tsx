@@ -33,7 +33,7 @@ export default function ConfirmEmailPage() {
       .catch((e) => {
         setStatus("error");
         setMessage(
-          e instanceof ApiRequestError ? e.message : "Potvrda nije uspjela. Pokušajte ponovo.",
+          e instanceof ApiRequestError ? e.message : "Potvrda nije uspjela. Pokušaj ponovo.",
         );
       });
   }, [confirmEmail, router]);
@@ -55,7 +55,7 @@ export default function ConfirmEmailPage() {
               <CheckCircle2 className="h-8 w-8" />
             </div>
             <h1 className="mt-5 font-display text-2xl font-bold">Email potvrđen!</h1>
-            <p className="mt-2 text-sm text-muted">Prijavljeni ste — preusmjeravam vas…</p>
+            <p className="mt-2 text-sm text-muted">Prijava je uspjela — preusmjeravam…</p>
           </>
         )}
 

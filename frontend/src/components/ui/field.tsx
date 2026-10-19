@@ -1,3 +1,4 @@
+import { Children, cloneElement, isValidElement, useId } from "react";
 import { cn } from "@/lib/utils";
 
 export const fieldClass =
@@ -38,6 +39,21 @@ export function Select({
   return <select className={cn(fieldClass, "cursor-pointer", className)} {...props} />;
 }
 
+type PoljeProps = {
+  id?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
+};
+
+/** Polja kojima `Field` smije sam dodijeliti `id` — ona ga sigurno prosljeđuju do elementa forme. */
+const POLJA: unknown[] = ["input", "select", "textarea", Input, Select, Textarea];
+
+/**
+ * Labela, polje i greška ispod. E1: kad `htmlFor` nije zadat, a prvo dijete je polje bez `id`-a,
+ * `Field` mu sam dodijeli `id` i veže labelu — tako sve forme koje ga koriste dobijaju klik na
+ * labelu i ime polja za čitač ekrana bez prepravke svake forme. Greška se veže na polje kroz
+ * `aria-describedby`. Za drugu komponentu (npr. birač adrese) `htmlFor` se i dalje zadaje ručno.
+ */
 export function Field({
   label,
   htmlFor,
@@ -51,13 +67,37 @@ export function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const autoId = useId();
+  const nizDjece = Children.toArray(children);
+  const prvo = nizDjece[0];
+  const polje = isValidElement<PoljeProps>(prvo) && POLJA.includes(prvo.type) ? prvo : null;
+
+  const poljeId = htmlFor ?? polje?.props.id ?? (polje ? autoId : undefined);
+  const greskaId = error && poljeId ? `${poljeId}-greska` : undefined;
+
+  const djeca = polje
+    ? [
+        cloneElement(polje, {
+          id: poljeId,
+          "aria-invalid": error ? true : polje.props["aria-invalid"],
+          "aria-describedby":
+            [polje.props["aria-describedby"], greskaId].filter(Boolean).join(" ") || undefined,
+        }),
+        ...nizDjece.slice(1),
+      ]
+    : children;
+
   return (
     <div>
-      <Label htmlFor={htmlFor} required={required}>
+      <Label htmlFor={poljeId} required={required}>
         {label}
       </Label>
-      {children}
-      {error && <p className="mt-1 text-xs font-medium text-red-600">{error}</p>}
+      {djeca}
+      {error && (
+        <p id={greskaId} className="mt-1 text-xs font-medium text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

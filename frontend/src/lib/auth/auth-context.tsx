@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { AuthUser } from "@/types/domain";
 import { getToken, setToken } from "@/lib/api/client";
+import { preuzmiPismoNaloga } from "@/lib/pismo/pismo";
 import { accountApi, authApi } from "@/lib/api/endpoints";
 import type {
   LoginRequest,
@@ -27,8 +28,8 @@ interface AuthContextValue {
   register: (body: RegisterRequest) => Promise<RegisterResponse>;
   /** Confirm the emailed token; on success the user is logged in. */
   confirmEmail: (token: string) => Promise<AuthUser>;
-  loginWithGoogle: (idToken: string) => Promise<AuthUser>;
-  loginWithFacebook: (accessToken: string) => Promise<AuthUser>;
+  loginWithGoogle: (idToken: string, preporukaKod?: string) => Promise<AuthUser>;
+  loginWithFacebook: (accessToken: string, preporukaKod?: string) => Promise<AuthUser>;
   logout: () => void;
   /** Mijenja ime i telefon i odmah osvježava kontekst, da zaglavlje ne pokazuje staro ime. */
   azurirajProfil: (body: ProfileInput) => Promise<AuthUser>;
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await authApi.login(body);
     setToken(result.token);
     setUser(result.user);
+    preuzmiPismoNaloga(result.user.pismo);
     return result.user;
   }, []);
 
@@ -73,17 +75,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return result.user;
   }, []);
 
-  const loginWithGoogle = useCallback(async (idToken: string) => {
-    const result = await authApi.google(idToken);
+  const loginWithGoogle = useCallback(async (idToken: string, preporukaKod?: string) => {
+    const result = await authApi.google(idToken, preporukaKod);
     setToken(result.token);
     setUser(result.user);
+    preuzmiPismoNaloga(result.user.pismo);
     return result.user;
   }, []);
 
-  const loginWithFacebook = useCallback(async (accessToken: string) => {
-    const result = await authApi.facebook(accessToken);
+  const loginWithFacebook = useCallback(async (accessToken: string, preporukaKod?: string) => {
+    const result = await authApi.facebook(accessToken, preporukaKod);
     setToken(result.token);
     setUser(result.user);
+    preuzmiPismoNaloga(result.user.pismo);
     return result.user;
   }, []);
 

@@ -144,6 +144,7 @@ Config section `Pretplate` (override via `Pretplate__*` env vars):
 | `Pretplate:ObavezaMjesecna` / `ObavezaTriMjeseca` | `4` / `13` | Deliveries the customer commits to. Snapshotted on the subscription at creation; during the commitment only an admin can cancel (`/admin/pretplate`). Cash on delivery means it cannot be enforced financially. |
 | `Pretplate:SatiUnaprijed` | `48` | How many hours before the week's ordering cutoff the job creates that week's orders. Lower it and customers lose the window in which they can still pause; raise it and orders exist long before anyone can change their mind. |
 | `Pretplate:MaksPauzaSedmica` | `8` | Longest pause a customer can set at once, counted in deliveries. |
+| `Pretplate:AlarmSatiPrijeRoka` | `24` | Hours before the cutoff at which every admin (users with role Admin and an e-mail) gets one mail listing baskets with active subscriptions whose week content is still unpublished (A2b). Sent once per basket per week (`Products.AlarmSadrzaja*`). Without published content the job skips that week, and subscribers get the "no delivery this week" mail (A2) after the cutoff. |
 
 `PretplatneNarudzbeService` (a `BackgroundService` in `Infrastructure/BackgroundJobs/`) runs every
 **15 minutes** and creates one order per active subscription whose week has come. **If it is not

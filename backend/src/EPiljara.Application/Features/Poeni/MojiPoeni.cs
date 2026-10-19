@@ -57,7 +57,7 @@ public class GetMojiPoeniHandler(IAppDbContext db, ICurrentUser current, IOption
                     .Select(u => u.PreporukaKod).FirstOrDefaultAsync(ct);
             }
             if (string.IsNullOrEmpty(kodKorisnika))
-                throw new DomainException("Kod preporuke trenutno nije moguće napraviti. Pokušajte ponovo.", "kod_preporuke");
+                throw new DomainException("Kod preporuke trenutno nije moguće napraviti. Pokušaj ponovo.", "kod_preporuke");
         }
 
         var stanje = await PoeniPravila.StanjeAsync(db, user.Id, ct);
@@ -96,21 +96,25 @@ public class GetMojiPoeniHandler(IAppDbContext db, ICurrentUser current, IOption
                 {
                     Iznos = s.Iznos,
                     Vrsta = s.Vrsta.ToString(),
-                    Opis = Opis(s.Vrsta, code, ime),
+                    Opis = PoeniOpis.Za(s.Vrsta, code, ime, s.Razlog),
                     OrderCode = code,
                     Kreirana = s.Kreirana,
                 };
             }).ToList(),
         };
     }
+}
 
-    private static string Opis(VrstaPoena vrsta, string? code, string ime) => vrsta switch
+/// <summary>Opis stavke poena — isti tekst kupcu (`/account/poeni`) i adminu (`/admin/poeni`).</summary>
+public static class PoeniOpis
+{
+    public static string Za(VrstaPoena vrsta, string? code, string ime, string? razlog = null) => vrsta switch
     {
         VrstaPoena.Isporuka => $"Isporuka {code}".TrimEnd(),
         VrstaPoena.Iskoristeno => $"Iskorišteno na {code}".TrimEnd(),
         VrstaPoena.Povrat => $"Vraćeno — otkazana {code}".TrimEnd(),
         VrstaPoena.PreporukaPreporucio => $"Preporuka: {ime} je primio prvu isporuku",
         VrstaPoena.PreporukaNovi => "Dobrodošlica — preporuka",
-        _ => "Korekcija",
+        _ => string.IsNullOrWhiteSpace(razlog) ? "Korekcija" : $"Korekcija: {razlog}",
     };
 }

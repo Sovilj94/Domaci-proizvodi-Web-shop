@@ -94,7 +94,7 @@ export async function apiFetch<T>(
   } catch {
     throw new ApiRequestError(0, {
       code: "network_error",
-      message: "Nije moguće povezati se sa serverom. Provjerite konekciju.",
+      message: "Nije moguće povezati se sa serverom. Provjeri konekciju.",
     });
   }
 

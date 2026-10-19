@@ -1,3 +1,4 @@
+using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Poeni;
@@ -105,7 +106,7 @@ public class UpdateOrderStatusHandler(IAppDbContext db, IOptions<PoeniOpcije> po
         await PoeniPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, poeni.Value, ct);
 
         order.TransitionTo(status);
-        await db.SaveChangesAsync(ct);
+        await IstovremenaPromjena.SacuvajAsync(db, ct);
         return order.ToDto();
     }
 }

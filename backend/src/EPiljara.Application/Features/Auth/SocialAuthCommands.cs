@@ -11,9 +11,10 @@ namespace EPiljara.Application.Features.Auth;
 
 /* ---------- Social login (Google / Facebook) ---------- */
 
-public record GoogleLoginCommand(string IdToken) : IRequest<AuthResultDto>;
+/// <summary>`PreporukaKod` (B5): kod iz linka `/register?preporuka=`; upisuje se samo kad prijava pravi nov nalog.</summary>
+public record GoogleLoginCommand(string IdToken, string? PreporukaKod = null) : IRequest<AuthResultDto>;
 
-public record FacebookLoginCommand(string AccessToken) : IRequest<AuthResultDto>;
+public record FacebookLoginCommand(string AccessToken, string? PreporukaKod = null) : IRequest<AuthResultDto>;
 
 public class GoogleLoginValidator : AbstractValidator<GoogleLoginCommand>
 {
@@ -33,7 +34,7 @@ public class GoogleLoginHandler(IAppDbContext db, ISocialAuthVerifier verifier, 
     public async Task<AuthResultDto> Handle(GoogleLoginCommand cmd, CancellationToken ct)
     {
         var ext = await verifier.VerifyGoogleAsync(cmd.IdToken, ct);
-        return await SocialAuth.FindOrCreateAsync(db, jwt, ext, current.Pismo, ct);
+        return await SocialAuth.FindOrCreateAsync(db, jwt, ext, current.Pismo, cmd.PreporukaKod, ct);
     }
 }
 
@@ -43,7 +44,7 @@ public class FacebookLoginHandler(IAppDbContext db, ISocialAuthVerifier verifier
     public async Task<AuthResultDto> Handle(FacebookLoginCommand cmd, CancellationToken ct)
     {
         var ext = await verifier.VerifyFacebookAsync(cmd.AccessToken, ct);
-        return await SocialAuth.FindOrCreateAsync(db, jwt, ext, current.Pismo, ct);
+        return await SocialAuth.FindOrCreateAsync(db, jwt, ext, current.Pismo, cmd.PreporukaKod, ct);
     }
 }
 
@@ -51,7 +52,7 @@ public class FacebookLoginHandler(IAppDbContext db, ISocialAuthVerifier verifier
 internal static class SocialAuth
 {
     public static async Task<AuthResultDto> FindOrCreateAsync(
-        IAppDbContext db, IJwtTokenService jwt, ExternalUser ext, Pismo pismo, CancellationToken ct)
+        IAppDbContext db, IJwtTokenService jwt, ExternalUser ext, Pismo pismo, string? preporukaKod, CancellationToken ct)
     {
         var email = ext.Email.Trim().ToLowerInvariant();
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
@@ -65,6 +66,7 @@ internal static class SocialAuth
                 Role = UserRole.Customer,
                 EmailConfirmed = true, // provider already verified the email
                 Pismo = pismo,
+                PreporucioId = await Preporuka.NadjiPreporuciocaAsync(db, preporukaKod, ct),
             };
             db.Users.Add(user);
             await db.SaveChangesAsync(ct);
