@@ -25,8 +25,9 @@ public class AdminController : ApiControllerBase
     /// se samo narudžbe koje tog dana nisu ni na čijoj ruti.</param>
     [HttpGet("admin/orders")]
     public async Task<IActionResult> Orders(
-        [FromQuery] string? status, [FromQuery] DateTime? date, [FromQuery] bool unassigned = false) =>
-        EnvelopeList(await Mediator.Send(new GetAdminOrdersQuery(status, date, unassigned)));
+        [FromQuery] string? status, [FromQuery] DateTime? date, [FromQuery] bool unassigned = false,
+        [FromQuery] int? godina = null, [FromQuery] int? sedmica = null, [FromQuery] string? pretraga = null) =>
+        EnvelopeList(await Mediator.Send(new GetAdminOrdersQuery(status, date, unassigned, godina, sedmica, pretraga)));
 
     [HttpPatch("admin/orders/{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest body) =>
@@ -230,6 +231,50 @@ public class AdminController : ApiControllerBase
     [HttpPost("admin/ocjene/{id:guid}/utisak")]
     public async Task<IActionResult> NapraviUtisakIzOcjene(Guid id) =>
         EnvelopeCreated(await Mediator.Send(new NapraviUtisakIzOcjeneCommand(id)));
+
+    /* ---------- Pakovanje, zone i termini, kupci, sadržaj sajta ---------- */
+
+    [HttpGet("admin/pakovanje")]
+    public async Task<IActionResult> Pakovanje([FromQuery] int godina, [FromQuery] int sedmica) =>
+        Envelope(await Mediator.Send(new GetPakovanjeQuery(godina, sedmica)));
+
+    [HttpGet("admin/zone")]
+    public async Task<IActionResult> Zone() => EnvelopeList(await Mediator.Send(new GetAdminZoneQuery()));
+
+    [HttpPost("admin/zone")]
+    public async Task<IActionResult> CreateZona([FromBody] ZonaInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreateZonaCommand(input)));
+
+    [HttpPut("admin/zone/{id:guid}")]
+    public async Task<IActionResult> UpdateZona(Guid id, [FromBody] ZonaInput input) =>
+        Envelope(await Mediator.Send(new UpdateZonaCommand(id, input)));
+
+    [HttpGet("admin/termini")]
+    public async Task<IActionResult> Termini() => EnvelopeList(await Mediator.Send(new GetAdminTerminiQuery()));
+
+    [HttpPost("admin/termini")]
+    public async Task<IActionResult> CreateTermin([FromBody] TerminInput input) =>
+        EnvelopeCreated(await Mediator.Send(new CreateTerminCommand(input)));
+
+    [HttpPut("admin/termini/{id:guid}")]
+    public async Task<IActionResult> UpdateTermin(Guid id, [FromBody] TerminInput input) =>
+        Envelope(await Mediator.Send(new UpdateTerminCommand(id, input)));
+
+    [HttpDelete("admin/termini/{id:guid}")]
+    public async Task<IActionResult> DeleteTermin(Guid id) =>
+        Envelope(await Mediator.Send(new DeleteTerminCommand(id)));
+
+    [HttpGet("admin/kupci")]
+    public async Task<IActionResult> Kupci([FromQuery] string? pretraga) =>
+        EnvelopeList(await Mediator.Send(new GetAdminKupciQuery(pretraga)));
+
+    [HttpGet("admin/kupci/{id:guid}")]
+    public async Task<IActionResult> Kupac(Guid id) => Envelope(await Mediator.Send(new GetAdminKupacQuery(id)));
+
+    [HttpPut("admin/sadrzaj-sajta")]
+    public async Task<IActionResult> SacuvajSadrzajSajta([FromBody] SadrzajSajtaRequest body) =>
+        Envelope(await Mediator.Send(new SacuvajSadrzajSajtaCommand(
+            body.Telefon, body.Email, body.Adresa, body.Podrucje, body.Pitanja)));
 
     [HttpGet("admin/poeni")]
     public async Task<IActionResult> PoeniKupci([FromQuery] string? pretraga) =>

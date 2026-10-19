@@ -33,3 +33,6 @@ public record AssignDriverRequest(Guid DriverId, string Date);
 /// </summary>
 public record AssignOrdersBulkRequest(IReadOnlyList<Guid> OrderIds, Guid DriverId, string Date);
 public record KorekcijaPoenaRequest(int Iznos, string Razlog);
+public record SadrzajSajtaRequest(
+    string? Telefon, string? Email, string? Adresa, string? Podrucje,
+    IReadOnlyList<EPiljara.Application.DTOs.PitanjeDto>? Pitanja);

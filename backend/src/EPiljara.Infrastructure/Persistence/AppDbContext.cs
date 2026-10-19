@@ -31,6 +31,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
     public DbSet<PrijavaNovosti> PrijaveNovosti => Set<PrijavaNovosti>();
+    public DbSet<SadrzajSajta> SadrzajSajta => Set<SadrzajSajta>();
 
     public bool PodrzavaZakljucavanje => Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL";
 
@@ -285,6 +286,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.DeliverySlot).WithMany()
                 .HasForeignKey(x => x.DeliverySlotId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<SadrzajSajta>(e =>
+        {
+            e.ToTable("SadrzajSajta");
+            e.Property(x => x.Telefon).HasMaxLength(40);
+            e.Property(x => x.Email).HasMaxLength(120);
+            e.Property(x => x.Adresa).HasMaxLength(200);
+            e.Property(x => x.Podrucje).HasMaxLength(120);
         });
 
         b.Entity<PoeniStavka>(e =>
