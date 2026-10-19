@@ -131,7 +131,7 @@ public class MojiPoeniTests
         dto.Istorija.Select(s => s.Opis).Should().Equal(
             "Korekcija",
             "Dobrodošlica — preporuka",
-            "Preporuka: Marko M. je primio prvu isporuku",
+            "Preporuka: Marko M. — prva isporuka stigla",
             "Vraćeno — otkazana EP-1",
             "Iskorišteno na EP-1",
             "Isporuka EP-1");

@@ -113,7 +113,7 @@ public static class PoeniOpis
         VrstaPoena.Isporuka => $"Isporuka {code}".TrimEnd(),
         VrstaPoena.Iskoristeno => $"Iskorišteno na {code}".TrimEnd(),
         VrstaPoena.Povrat => $"Vraćeno — otkazana {code}".TrimEnd(),
-        VrstaPoena.PreporukaPreporucio => $"Preporuka: {ime} je primio prvu isporuku",
+        VrstaPoena.PreporukaPreporucio => $"Preporuka: {ime} — prva isporuka stigla",
         VrstaPoena.PreporukaNovi => "Dobrodošlica — preporuka",
         _ => string.IsNullOrWhiteSpace(razlog) ? "Korekcija" : $"Korekcija: {razlog}",
     };

@@ -426,6 +426,34 @@ može van — vidi C3).
 (vlastiti Nominatim) i D1 (Viber) se preskaču: prvi traži uvoz mape od nekoliko desetina minuta i
 memoriju koje ovaj računar nema (F3), drugi traži ugovor sa provajderom.
 
+### Pregled poslije spajanja (2026-10-19) — grana `pregled-popravke`
+
+`zavrsetak` je spojen u `main` (`3a1935e`) i pushovan. Zatim je cijeli sistem pokrenut uživo (API + Postgres +
+Next dev) i provjeren:
+
+- **API uživo:** obje nove migracije primijenjene pri startu. Javni, kupčevi, admin i vozački endpointi
+  odgovaraju. Prošao je cijeli tok: admin objavi sadržaj sedmice 43 → Marko naruči srednju korpicu povrća
+  (`EP-2610-0063`, 38 KM) → Confirmed → Packing → OutForDelivery → Delivered (nedozvoljen prelaz 400) →
+  +35 poena → ocjena. Korekcija poena nad Postgresom radi (transakcija + `FOR UPDATE`), kao i odbijanje
+  ispod nule i validacija. Rok je tačan po ljetnom i zimskom vremenu (A4).
+- **U pregledaču:** `/admin/poeni` (ladica, fokus, Escape, labele), forma utisaka (dijalog, fokus se vraća na
+  dugme), korpica, checkout i „Moji poeni" — bez grešaka u konzoli.
+
+**Popravljeno:**
+- **Neispravno ili prazno JSON tijelo davalo je 500 na gotovo svim POST/PUT endpointima** (akcija je dobijala
+  `null`). Novi globalni `NeispravnoTijeloFilter` vraća 400 `invalid_body`.
+- Labela „Ulica" na checkoutu i „Adresa" na admin novoj narudžbi nisu bile vezane za polje birača adrese
+  (`AddressChooser` sada prosljeđuje `id`). Sačuvane adrese su `radiogroup`.
+- Dva teksta koja su pretpostavljala muški rod („Preporučio si", „je primio prvu isporuku") prepisana bezlično.
+
+**Okruženje (nije kod):** Docker engine je visio (`docker version` bez odgovora), pa API nije mogao do baze.
+Restartovan je Docker Desktop. `epiljara-postgres` nema `restart: unless-stopped` i ne diže se sam (vidi
+prijedlog u odgovoru). Next dev server je pao („Jest worker … child process exceptions", malo slobodne
+memorije), pa je restartovan sa čistim `.next`.
+
+**Dev baza:** sadržaj sedmice 43 objavljen za srednju korpicu povrća; narudžba `EP-2610-0063` (Marko)
+isporučena i ocijenjena; Marko ima 71 poen (dvije probne korekcije +15/−15 se poništavaju).
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

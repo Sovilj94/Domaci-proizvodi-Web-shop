@@ -18,6 +18,7 @@ export function AddressChooser({
   onLocalities,
   onCoordinates,
   querySuffix,
+  id,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -27,6 +28,8 @@ export function AddressChooser({
   onCoordinates?: (coords: { lat: number; lon: number } | null) => void;
   /** Passed straight through to `AddressPicker` — see its own doc comment. */
   querySuffix?: string;
+  /** `id` polja ulice na mapi, da ga labela (`Field htmlFor`) imenuje. */
+  id?: string;
 }) {
   const [addingNew, setAddingNew] = useState(false);
   const showMap = addingNew || savedAddresses.length === 0;
@@ -40,6 +43,7 @@ export function AddressChooser({
           onLocalities={onLocalities}
           onCoordinates={onCoordinates}
           querySuffix={querySuffix}
+          id={id}
         />
         {savedAddresses.length > 0 && (
           <button
@@ -60,7 +64,7 @@ export function AddressChooser({
   }
 
   return (
-    <div className="space-y-2">
+    <div role="radiogroup" aria-label="Sačuvane adrese" className="space-y-2">
       {savedAddresses.map((addr) => (
         <label
           key={addr}

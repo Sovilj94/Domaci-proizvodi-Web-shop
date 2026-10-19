@@ -266,8 +266,9 @@ export default function AdminNewOrderPage() {
                 </Select>
               </Field>
 
-              <Field label="Adresa" required error={errors.deliveryAddress?.[0]}>
+              <Field label="Adresa" htmlFor="nova-narudzba-adresa" required error={errors.deliveryAddress?.[0]}>
                 <AddressPicker
+                  id="nova-narudzba-adresa"
                   value={form.address}
                   onChange={set("address")}
                   onCoordinates={setCoords}
