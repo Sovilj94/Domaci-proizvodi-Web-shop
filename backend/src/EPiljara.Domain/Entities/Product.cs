@@ -39,6 +39,13 @@ public class Product : Entity
     /// <summary>Boja pločice namirnice ("#RRGGBB"); null = boja iz palete (BojaProizvoda).</summary>
     public string? Boja { get; set; }
 
+    /// <summary>
+    /// Sedmica za koju je admin upozoren da sadržaj ove korpice nije objavljen (A2b) — da alarm
+    /// ode jednom, iako posao pretplata prolazi svakih 15 minuta.
+    /// </summary>
+    public int? AlarmSadrzajaGodina { get; set; }
+    public int? AlarmSadrzajaSedmica { get; set; }
+
     public Guid CategoryId { get; set; }
     public Category? Category { get; set; }
 

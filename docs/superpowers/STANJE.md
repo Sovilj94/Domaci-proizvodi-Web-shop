@@ -375,7 +375,7 @@ iz `ZA-URADITI.md`.
   (`SendPreskocenaIsporukaAsync`, šablon `PreskocenaIsporukaTemplate`), jednom po sedmici
   (`Pretplata.ObavijestPreskocenaGodina/Sedmica`, migracija `DodajObavijestPreskocene`). Ne javlja se
   pauziranoj, otkazanoj ni pretplati nastaloj poslije roka. **Alarm adminu nije rađen** — ostao u
-  `ZA-URADITI.md`.
+  `ZA-URADITI.md` kao A2b, pa urađen (vidi ispod).
 - **A4** (`fe9ba03`) — `SedmicaHelper.Zona` = `Europe/Sarajevo` (rezerva: Windows ime). Tekuća ISO
   sedmica i datum isporuke računaju se po lokalnom kalendaru, a „16:00" termina se u UTC pretvara uz
   ljetno/zimsko računanje. Rok se više ne zatvara dva sata kasnije.
@@ -389,6 +389,11 @@ iz `ZA-URADITI.md`.
 - **B1 + B2** (`a1e7b0f`) — `ZakljucavanjeNarudzbe`: u transakciji narudžbe `SELECT … FOR UPDATE` nad
   redom kupca pa nad redom koda (uvijek tim redom, da nema unakrsnog zaključavanja). SQLite u testovima
   to preskače (`PodrzavaZakljucavanje`), pa **istovremenost nije pokrivena testom** — samo Postgres.
+
+- **A2b** — alarm adminu: kad je do roka ostalo `Pretplate:AlarmSatiPrijeRoka` (24) sati, a neka korpica sa
+  aktivnim pretplatama nema objavljen sadržaj ciljne sedmice, svi admini dobijaju jedan mejl sa spiskom
+  (`SendAlarmSadrzajaAsync`, `AlarmSadrzajaTemplate`). Svaka korpica ulazi u alarm jednom po sedmici
+  (`Product.AlarmSadrzajaGodina/Sedmica`, migracija `DodajAlarmSadrzaja`). 4 testa.
 
 **U toku / sljedeće na ovoj grani:** vidi „Prijedlog redoslijeda" u `ZA-URADITI.md`. C3/D2
 (vlastiti Nominatim) i D1 (Viber) se preskaču: prvi traži uvoz mape od nekoliko desetina minuta i

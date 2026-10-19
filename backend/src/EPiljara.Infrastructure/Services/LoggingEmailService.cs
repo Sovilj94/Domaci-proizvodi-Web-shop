@@ -34,6 +34,14 @@ public class LoggingEmailService(IConfiguration config, ILogger<LoggingEmailServ
         return Task.CompletedTask;
     }
 
+    public Task SendAlarmSadrzajaAsync(IReadOnlyList<User> admini, IReadOnlyList<(string Korpica, int Pretplata)> stavke, DateTime rok, CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning("Alarm sadržaja → {Admini} · rok {Rok:u} · {Korpice}",
+            string.Join(", ", admini.Select(a => a.Email)), rok,
+            string.Join(", ", stavke.Select(s => $"{s.Korpica} ({s.Pretplata})")));
+        return Task.CompletedTask;
+    }
+
     public Task SendGuestOrderRequestAsync(GuestOrderRequest request, CancellationToken cancellationToken = default)
     {
         // Ispisujemo pun link (ne samo token) da se u dev-u može kliknuti direktno

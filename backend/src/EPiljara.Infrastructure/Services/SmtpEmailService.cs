@@ -55,6 +55,14 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
         return SendHtmlAsync(kupac.Email, naslov, html, "preskočena isporuka", cancellationToken);
     }
 
+    public async Task SendAlarmSadrzajaAsync(IReadOnlyList<User> admini, IReadOnlyList<(string Korpica, int Pretplata)> stavke, DateTime rok, CancellationToken cancellationToken = default)
+    {
+        var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var html = AlarmSadrzajaTemplate.Build(stavke, rok, $"{baseUrl}/admin/korpice");
+        foreach (var admin in admini.Where(a => !string.IsNullOrWhiteSpace(a.Email)))
+            await SendHtmlAsync(admin.Email, "Sadržaj korpica nije objavljen — E piljara", html, "alarm sadržaja", cancellationToken);
+    }
+
     // Za razliku od potvrde narudžbe, ovaj mejl ne smije tiho pasti: bez njega
     // kupac nema nijedan način da potvrdi, a narudžba nikad ne nastane. Zato
     // izuzetak ide naviše i handler odbija zahtjev.

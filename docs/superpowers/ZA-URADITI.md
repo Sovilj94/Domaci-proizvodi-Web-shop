@@ -13,7 +13,6 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 
 | # | Šta | Gdje | Prijedlog | Vel. |
 |---|---|---|---|---|
-| A2b | **Admin nema alarm za neobjavljen sadržaj** — kupcu se javlja (A2, urađeno), adminu ne. | `PretplatneNarudzbe`, `IEmailService` | Mejl adminu kad `cekajuSadrzaj > 0` 24 h prije roka, jednom po sedmici (isti obrazac kao `ObavijestPreskocena*`). | S |
 | A9 | **Obraćanje „ti/vi" je nedosljedno** (npr. praćenje narudžbe vs. „Moje narudžbe"). | cijeli kupčev dio | Jedan prolaz kroz sve tekstove; dogovor: „ti" (većina sajta već tako). | M |
 
 ## B. Novac i istovremenost (rijetko, ali dira iznos)
@@ -76,7 +75,7 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 Urađeno 2026-10-19 na grani `zavrsetak` (vidi `STANJE.md`): A1–A8, A10, B1–B3, B5 (A1, A3 i A7 su
 bili zatvoreni već u redizajnu R2/R4; A5 je zatvoren kao odluka).
 
-1. **A2b, B8, B7** — male stvari oko pretplata i checkouta. ← *sljedeće*
+1. **B8, B7** — male stvari oko pretplata i checkouta. ← *sljedeće*
 2. **A9, E1, E2** — prolazi kroz cijeli sajt (obraćanje „ti", pristupačnost admin formi, hidratacija trake kategorija).
 3. **B4** — admin ekran poena kupca.
 4. **C3/D2** — vlastiti Nominatim, pa **C1** (traži memoriju i desetine minuta uvoza; vidi F3).

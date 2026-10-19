@@ -947,6 +947,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("AlarmSadrzajaGodina")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AlarmSadrzajaSedmica")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Boja")
                         .HasMaxLength(7)
                         .HasColumnType("character varying(7)");

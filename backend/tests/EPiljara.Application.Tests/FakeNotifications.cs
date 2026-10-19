@@ -9,6 +9,7 @@ internal sealed class FakeEmail : IEmailService
     public List<Order> Narudzbe { get; } = [];
     public List<GuestOrderRequest> ZahtjeviGosta { get; } = [];
     public List<(User Kupac, string Korpica, DateTime Isporuka)> PreskoceneSedmice { get; } = [];
+    public List<(IReadOnlyList<User> Admini, IReadOnlyList<(string Korpica, int Pretplata)> Stavke, DateTime Rok)> AlarmiSadrzaja { get; } = [];
 
     /// <summary>Simulira pad SMTP slanja, npr. za testiranje kompenzacionog brisanja zahtjeva gosta.</summary>
     public bool BaciGresku { get; set; }
@@ -25,6 +26,12 @@ internal sealed class FakeEmail : IEmailService
     public Task SendPreskocenaIsporukaAsync(User kupac, string korpica, DateTime isporuka, bool korpicaUPonudi = true, CancellationToken ct = default)
     {
         PreskoceneSedmice.Add((kupac, korpica, isporuka));
+        return Task.CompletedTask;
+    }
+
+    public Task SendAlarmSadrzajaAsync(IReadOnlyList<User> admini, IReadOnlyList<(string Korpica, int Pretplata)> stavke, DateTime rok, CancellationToken ct = default)
+    {
+        AlarmiSadrzaja.Add((admini, stavke, rok));
         return Task.CompletedTask;
     }
 

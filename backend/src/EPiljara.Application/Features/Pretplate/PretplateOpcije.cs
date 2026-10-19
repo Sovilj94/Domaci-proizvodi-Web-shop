@@ -27,6 +27,12 @@ public class PretplateOpcije
     /// </summary>
     public int SatiUnaprijed { get; set; } = 48;
 
+    /// <summary>
+    /// Koliko sati prije roka admin dobija mejl ako neka korpica sa aktivnim pretplatama još nema
+    /// objavljen sadržaj (A2b). Bez sadržaja posao preskače sedmicu, a kupci dobijaju mejl tek poslije.
+    /// </summary>
+    public int AlarmSatiPrijeRoka { get; set; } = 24;
+
     /// <summary>Najduža pauza koju kupac može zadati odjednom, u sedmicama.</summary>
     public int MaksPauzaSedmica { get; set; } = 8;
 }
