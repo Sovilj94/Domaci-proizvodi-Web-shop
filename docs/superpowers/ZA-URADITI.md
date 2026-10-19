@@ -18,7 +18,6 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 
 | # | Šta | Gdje | Prijedlog | Vel. |
 |---|---|---|---|---|
-| B4 | **Admin nema ekran za korekciju poena**, a poeni **nemaju rok trajanja**. `VrstaPoena.Korekcija` postoji, ekran ne. | admin, `PoeniStavka` | Ekran „Poeni kupca" (stanje, istorija, ručna korekcija sa razlogom). Istek: poslovna odluka. | M |
 | B6 | Javna provjera promo koda otkriva da li je e-mail ranije naručivao („samo prva narudžba"). Pod rate limitom. | `POST /promo-kodovi/provjera` | Prihvaćeno; ako smeta — generička poruka „kod ne važi za ovu narudžbu". | S |
 
 ## C. Adrese i mapa
@@ -67,9 +66,9 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 
 ## Prijedlog redoslijeda
 
-Urađeno 2026-10-19 na grani `zavrsetak` (vidi `STANJE.md`): A1–A10, A2b, B1–B3, B5, B7, B8, E1, E2 (A1, A3, A7
+Urađeno 2026-10-19 na grani `zavrsetak` (vidi `STANJE.md`): A1–A10, A2b, B1–B5, B7, B8, E1, E2 (A1, A3, A7
 i E2 su bili zatvoreni već u redizajnu; A5 i B8 su zatvoreni kao odluka).
 
-1. **B4** — admin ekran poena kupca. ← *sljedeće*
+1. **B4b** (poslovna odluka) — da li poeni ističu; ako da, posao koji upisuje negativnu `Korekcija`/`Istek` stavku.
 2. **C3/D2** — vlastiti Nominatim, pa **C1** (traži memoriju i desetine minuta uvoza; vidi F3).
 3. **D1** kad postoji ugovor sa Viber provajderom.

@@ -8,6 +8,7 @@ using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Partneri;
 using EPiljara.Application.Features.Pretplate;
+using EPiljara.Application.Features.Poeni;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -229,6 +230,18 @@ public class AdminController : ApiControllerBase
     [HttpPost("admin/ocjene/{id:guid}/utisak")]
     public async Task<IActionResult> NapraviUtisakIzOcjene(Guid id) =>
         EnvelopeCreated(await Mediator.Send(new NapraviUtisakIzOcjeneCommand(id)));
+
+    [HttpGet("admin/poeni")]
+    public async Task<IActionResult> PoeniKupci([FromQuery] string? pretraga) =>
+        EnvelopeList(await Mediator.Send(new GetAdminPoeniKupciQuery(pretraga)));
+
+    [HttpGet("admin/poeni/{userId:guid}")]
+    public async Task<IActionResult> PoeniKupca(Guid userId) =>
+        Envelope(await Mediator.Send(new GetAdminPoeniKupcaQuery(userId)));
+
+    [HttpPost("admin/poeni/{userId:guid}/korekcija")]
+    public async Task<IActionResult> KorigujPoene(Guid userId, [FromBody] KorekcijaPoenaRequest body) =>
+        Envelope(await Mediator.Send(new KorigujPoeneCommand(userId, body.Iznos, body.Razlog)));
 
     [HttpGet("admin/recepti")]
     public async Task<IActionResult> Recepti() =>

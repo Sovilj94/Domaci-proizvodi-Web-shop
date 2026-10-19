@@ -290,6 +290,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<PoeniStavka>(e =>
         {
             e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(24);
+            e.Property(x => x.Razlog).HasMaxLength(200);
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.OrderId);
             // Dvije istovremene promjene statusa bi obje prošle AnyAsync provjeru; jedinstven

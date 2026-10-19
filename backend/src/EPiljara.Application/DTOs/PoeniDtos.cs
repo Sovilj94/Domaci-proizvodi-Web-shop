@@ -20,3 +20,32 @@ public record MojiPoeniDto
     public int BrojPreporuka { get; init; }
     public IReadOnlyList<PoeniStavkaDto> Istorija { get; init; } = [];
 }
+
+/// <summary>B4: red liste na `/admin/poeni`.</summary>
+public record AdminPoeniKupacDto
+{
+    public Guid UserId { get; init; }
+    public string Ime { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public int Stanje { get; init; }
+}
+
+public record AdminPoeniStavkaDto
+{
+    public int Iznos { get; init; }
+    public string Vrsta { get; init; } = string.Empty;
+    public string Opis { get; init; } = string.Empty;
+    public string? OrderCode { get; init; }
+    /// <summary>Ime admina koji je unio korekciju; null za stavke koje je upisao sistem.</summary>
+    public string? Unio { get; init; }
+    public DateTime Kreirana { get; init; }
+}
+
+public record AdminPoeniKupcaDto
+{
+    public Guid UserId { get; init; }
+    public string Ime { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public int Stanje { get; init; }
+    public IReadOnlyList<AdminPoeniStavkaDto> Istorija { get; init; } = [];
+}

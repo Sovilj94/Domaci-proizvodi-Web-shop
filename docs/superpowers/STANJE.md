@@ -409,10 +409,18 @@ iz `ZA-URADITI.md`.
   polju (`Input`/`Select`/`Textarea`/nativna polja) i veže grešku kroz `aria-describedby`; tri složena
   polja (boja proizvoda, telefon na checkoutu, promo kod) vezana ručno.
 - **E2** — zastario: `category-rail.tsx` je uklonjen u redizajnu (R3).
+- **B4** — `/admin/poeni` (meni „Poeni"): lista kupaca sa stanjem (pretraga po imenu/e-mailu, do 100,
+  najveće stanje prvo), ladica sa cijelom istorijom i ručnom korekcijom. Endpointi `GET /admin/poeni`,
+  `GET /admin/poeni/{userId}`, `POST /admin/poeni/{userId}/korekcija` (`Features/Poeni/AdminPoeni.cs`).
+  Korekcija je nova stavka `Korekcija` sa `Razlog` i `UnioId` (migracija `DodajKorekcijuPoena`), u
+  transakciji sa zaključanim redom kupca (kao B1), i **ne smije spustiti stanje ispod nule**
+  (`poeni_ispod_nule`). Razlog vidi i kupac („Korekcija: …", `PoeniOpis` — zajednički opis za kupca i
+  admina). 9 testova. **Istek poena nije rađen** — poslovna odluka, ostala u `ZA-URADITI.md` kao B4b.
 
-Provjere poslije ovih stavki: `dotnet test` 505/505, `npm test` 75/75, `tsc`, `lint`, `npm run build` ✓
+Provjere poslije ovih stavki (zaključno sa B4): `dotnet test` 514/514, `npm test` 75/75, `tsc`, `lint`, `npm run build` ✓
 (rađen u kopiji jer je dev server na :3000 bio upaljen). **Nije provjereno uživo:** admin ladice (API
-ugašen), mejl alarma (lokalni `dotnet` ne može van — vidi C3).
+ugašen, Docker ne odgovara), `/admin/poeni` i korekcija nad Postgresom, mejl alarma (lokalni `dotnet` ne
+može van — vidi C3).
 
 **U toku / sljedeće na ovoj grani:** vidi „Prijedlog redoslijeda" u `ZA-URADITI.md`. C3/D2
 (vlastiti Nominatim) i D1 (Viber) se preskaču: prvi traži uvoz mape od nekoliko desetina minuta i

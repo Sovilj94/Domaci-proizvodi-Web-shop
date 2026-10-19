@@ -758,6 +758,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("PreporuceniId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Razlog")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("UnioId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 

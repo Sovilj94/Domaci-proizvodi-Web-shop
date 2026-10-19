@@ -31,7 +31,7 @@ import type {
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
-import type { AdminPretplate } from "@/types/domain";
+import type { AdminPoeniKupac, AdminPoeniKupca, AdminPretplate } from "@/types/domain";
 import { pismoNaZici, type Pismo } from "@/lib/pismo/pismo";
 import { uLatinicu } from "@/lib/pismo/preslovi";
 import type {
@@ -440,6 +440,16 @@ export const adminApi = {
   /** Otkaz od strane podrške — radi i dok traje obaveza plana (R2). */
   otkaziPretplatu: (id: string): Promise<void> =>
     apiFetch<void>(`/admin/pretplate/${id}`, { method: "DELETE" }).then(() => undefined),
+
+  /* Poeni kupaca (B4) */
+  poeniKupci: (pretraga?: string) =>
+    apiFetch<AdminPoeniKupac[]>("/admin/poeni", { query: { pretraga: pretraga || undefined } }).then((r) => r.data),
+
+  poeniKupca: (userId: string) =>
+    apiFetch<AdminPoeniKupca>("/admin/poeni/" + userId).then((r) => r.data),
+
+  korigujPoene: (userId: string, body: { iznos: number; razlog: string }) =>
+    apiFetch<AdminPoeniKupca>("/admin/poeni/" + userId + "/korekcija", { method: "POST", body }).then((r) => r.data),
 
   partneri: (status?: StatusPrijave) =>
     apiFetch<PartnerPrijava[]>("/admin/partneri", { query: { status } }).then((r) => r.data),
