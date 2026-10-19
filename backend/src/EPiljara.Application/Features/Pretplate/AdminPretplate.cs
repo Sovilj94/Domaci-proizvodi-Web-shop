@@ -74,6 +74,8 @@ public class GetAdminPretplateHandler(
                     PoslednjaGodina = p.PoslednjaGodina,
                     PoslednjaSedmica = p.PoslednjaSedmica,
                     SadrzajSpreman = spremne.Contains(p.ProductId),
+                    ObavijestPreskocenaGodina = p.ObavijestPreskocenaGodina,
+                    ObavijestPreskocenaSedmica = p.ObavijestPreskocenaSedmica,
                 })
                 .ToList(),
         };

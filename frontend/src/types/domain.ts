@@ -271,6 +271,9 @@ export interface AdminPretplate {
     zona?: string;
     adresa: string;
     sadrzajSpreman: boolean;
+    /** A2: zadnja sedmica za koju je kupcu javljeno da isporuke nema. */
+    obavijestPreskocenaGodina?: number | null;
+    obavijestPreskocenaSedmica?: number | null;
   }[];
 }
 

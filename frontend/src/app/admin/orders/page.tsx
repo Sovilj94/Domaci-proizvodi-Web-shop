@@ -9,6 +9,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { OrderCard } from "@/components/admin/order-card";
+import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
 import { STATUS_META } from "@/lib/orders";
 import { ORDER_STATUSES, type OrderStatus } from "@/types/domain";
@@ -33,6 +34,7 @@ export default function AdminOrdersPage() {
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       show(`Status promijenjen: ${STATUS_META[status].label}`);
     },
+    onError: (err) => show(err instanceof ApiRequestError ? err.message : "Status nije promijenjen", "error"),
   });
 
   function toggle(id: string) {

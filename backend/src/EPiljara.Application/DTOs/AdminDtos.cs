@@ -162,4 +162,7 @@ public class AdminPretplataDto
 
     /// <summary>Ima li ova korpica objavljen sadržaj za ciljnu sedmicu.</summary>
     public bool SadrzajSpreman { get; init; }
+    /// <summary>A2: zadnja sedmica za koju je kupac dobio mejl „ove sedmice nema isporuke".</summary>
+    public int? ObavijestPreskocenaGodina { get; init; }
+    public int? ObavijestPreskocenaSedmica { get; init; }
 }

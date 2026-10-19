@@ -33,6 +33,7 @@ export default function AdminProductsPage() {
       qc.invalidateQueries({ queryKey: ["products"] });
       show(p.isAvailable ? "Proizvod je dostupan" : "Proizvod je skriven");
     },
+    onError: (err) => show(err instanceof ApiRequestError ? err.message : "Promjena nije sačuvana", "error"),
   });
 
   const remove = useMutation({
