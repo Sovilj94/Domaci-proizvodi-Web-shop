@@ -15,6 +15,7 @@ export const queryKeys = {
   trackOrder: (token: string) => ["order", "track", token] as const,
   korpiceLista: () => ["korpice", "lista", undefined] as const,
   sedmica: () => ["korpice", "sedmica"] as const,
+  sadrzajSajta: () => ["sadrzaj-sajta"] as const,
   mojeKorpice: () => ["account", "korpice"] as const,
   mojaKorpica: (id: string) => ["account", "korpica", id] as const,
   pretplate: () => ["account", "pretplate"] as const,
@@ -147,6 +148,15 @@ export function useSedmica() {
     queryKey: queryKeys.sedmica(),
     queryFn: korpiceApi.sedmica,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Kontakt i česta pitanja iz admin panela; null polje = ugrađeni tekst (lib/kontakt.ts, lib/cesta-pitanja.ts). */
+export function useSadrzajSajta() {
+  return useQuery({
+    queryKey: queryKeys.sadrzajSajta(),
+    queryFn: korpiceApi.sadrzajSajta,
+    staleTime: 10 * 60 * 1000,
   });
 }
 

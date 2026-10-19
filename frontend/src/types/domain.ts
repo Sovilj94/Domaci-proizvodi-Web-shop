@@ -643,3 +643,90 @@ export interface AdminPoeniKupca {
   stanje: number;
   istorija: AdminPoeniStavka[];
 }
+
+/* ---------- Admin: pakovanje, kupci, sadržaj sajta ---------- */
+
+export interface PakovanjeStavka {
+  naziv: string;
+  kolicina: number;
+  jedinica: string;
+  dodaoKupac?: boolean;
+}
+
+export interface PakovanjeNarudzba {
+  id: string;
+  code: string;
+  status: OrderStatus;
+  kupac: string;
+  telefon?: string | null;
+  adresa: string;
+  zona?: string | null;
+  /** 0 = nedjelja … 6 = subota. */
+  danIsporuke?: number | null;
+  termin?: string | null;
+  napomena?: string | null;
+  pretplatna: boolean;
+  ukupno: number;
+  korpice: { naziv: string; komada: number; sadrzaj: PakovanjeStavka[] }[];
+  dodaci: PakovanjeStavka[];
+}
+
+/** `GET /admin/pakovanje`. */
+export interface Pakovanje {
+  godina: number;
+  sedmica: number;
+  narudzbe: PakovanjeNarudzba[];
+  zbirDodataka: PakovanjeStavka[];
+}
+
+/** `GET /admin/kupci`. */
+export interface AdminKupac {
+  id: string;
+  ime: string;
+  email: string;
+  telefon?: string | null;
+  emailPotvrdjen: boolean;
+  registrovan: string;
+  brojNarudzbi: number;
+  isporuceno: number;
+  zadnjaNarudzba?: string | null;
+  aktivnePretplate: number;
+  poeni: number;
+}
+
+export interface AdminKupacDetalj {
+  id: string;
+  ime: string;
+  email: string;
+  telefon?: string | null;
+  emailPotvrdjen: boolean;
+  registrovan: string;
+  poeni: number;
+  adrese: string[];
+  narudzbe: {
+    id: string;
+    code: string;
+    status: OrderStatus;
+    ukupno: number;
+    kreirana: string;
+    godina: number;
+    sedmica: number;
+    pretplatna: boolean;
+  }[];
+  pretplate: { id: string; korpica: string; status: string; plan: string; brojIsporuka: number }[];
+}
+
+export interface Pitanje {
+  pitanje: string;
+  odgovor: string;
+}
+
+/** `GET /sadrzaj-sajta` — null polje znači „sajt koristi ugrađeni tekst". */
+export interface SadrzajSajta {
+  telefon?: string | null;
+  email?: string | null;
+  adresa?: string | null;
+  podrucje?: string | null;
+  pitanja?: Pitanje[] | null;
+  izmijenjeno?: string | null;
+}

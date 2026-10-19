@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { MapPin, Phone, Truck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { KONTAKT } from "@/lib/kontakt";
+import { KontaktEmail, KontaktPolje, KontaktTelefon } from "@/components/layout/kontakt";
 
 export const metadata = { title: "O nama" };
 
@@ -56,17 +56,18 @@ export default function ONamaPage() {
         <ul className="mt-4 space-y-3 text-muted">
           <li className="flex items-center gap-2">
             <Phone className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
-            <a href={KONTAKT.telefonHref} className="font-medium text-ink hover:underline">
-              {KONTAKT.telefon}
-            </a>
+            <KontaktTelefon className="font-medium text-ink hover:underline" />
+          </li>
+          <li className="flex items-center gap-2 empty:hidden">
+            <KontaktEmail className="font-medium text-ink hover:underline" />
           </li>
           <li className="flex items-center gap-2">
             <MapPin className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
-            {KONTAKT.adresa}
+            <KontaktPolje polje="adresa" />
           </li>
           <li className="flex items-center gap-2">
             <Truck className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
-            Dostavljamo: {KONTAKT.podrucje}
+            Dostavljamo: <KontaktPolje polje="podrucje" />
           </li>
         </ul>
       </section>

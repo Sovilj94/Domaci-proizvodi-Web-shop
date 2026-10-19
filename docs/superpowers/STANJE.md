@@ -454,6 +454,37 @@ memorije), pa je restartovan sa čistim `.next`.
 **Dev baza:** sadržaj sedmice 43 objavljen za srednju korpicu povrća; narudžba `EP-2610-0063` (Marko)
 isporučena i ocijenjena; Marko ima 71 poen (dvije probne korekcije +15/−15 se poništavaju).
 
+### Admin panel usklađen sa novim sajtom (2026-10-19) — grana `admin-panel` (na `pregled-popravke`)
+
+Zahtjev: „da se sve može unositi kroz admin panel, pratiti, pakovati". Popis je pokazao pet rupa, sve zatvorene:
+
+- **Pakovanje** (`/admin/pakovanje`, `GET /admin/pakovanje`, `Features/Admin/Pakovanje.cs`): sedmica razložena
+  po kutiji — sadržaj korpice kakav ga je kupac ostavio (izbor kupca označen), dodaci iz Špajza, napomena,
+  termin, iznos pouzećem; filteri za pakovanje/spakovano i po danu; „Spakovano" (Pending se prvo potvrdi) →
+  `Packing`, „Predato vozaču" → `OutForDelivery`; štampa (meni se ne štampa). Ima i **zbir Špajz dodataka** —
+  pakerska lista sabira samo sadržaj korpica, pa nabavka do sada nije vidjela med, sir, ajvar.
+- **Zone i termini** (`/admin/zone`, `admin/zone`, `admin/termini`, `AdminDostava.cs`): zona se dodaje, mijenja
+  i gasi (ne briše se); termin se dodaje, mijenja, a briše samo ako ga ne koristi nijedna narudžba ni pretplata
+  i nije jedini. Forma upozorava da termin sa najranijim danom određuje rok svima.
+- **Kupci** (`/admin/kupci`, `AdminKupci.cs`): pretraga, broj narudžbi, isporučeno u KM, pretplate, poeni,
+  zadnja narudžba; detalj sa adresama, pretplatama i narudžbama (link vodi na narudžbu u adminu).
+- **Narudžbe**: pretraga (šifra, kupac, telefon, adresa — i kroz `?pretraga=`) i filter po sedmici isporuke.
+- **Kontakt i česta pitanja** (`/admin/sadrzaj`, tabela `SadrzajSajta`, migracija `DodajSadrzajSajta`, javno
+  `GET /sadrzaj-sajta`): telefon, e-mail, adresa, područje i pitanja sa oznakama `{rok}`, `{isporuka}`,
+  `{popustNedjeljna}`, `{popustTriMjeseca}`. Dok admin ne sačuva, sajt prikazuje ugrađene tekstove.
+- Meni je grupisan (Prodaja / Ponuda / Dostava / Sadržaj sajta); Korpice, Pakovanje i Narudžbe dijele izbor
+  sedmice (`izbor-sedmice.tsx`). Prije toga, na `pregled-popravke`: greške servera se sada prikazuju na statusu
+  narudžbe, rutama i dostupnosti proizvoda, a `/admin/pretplate` pokazuje poslato obavještenje o preskočenoj sedmici.
+
+Provjere: `dotnet test` 525/525 (11 novih), `npm test` 77/77, `tsc`, `lint`, `npm run build` ✓. **Uživo:** svi novi
+endpointi (i 403 za kupca), pakovanje do „Spakovano" (`EP-2610-0064`), zone i termini (duplikat 409, loš termin
+400, zauzet termin 409), kupci i link na narudžbu, kontakt i pitanje izmijenjeni u adminu pa viđeni na početnoj
+(zatim vraćeni na ugrađene). Popravljen usput: link za poziv iz admin telefona (`kontaktIz`, test).
+
+**Nalaz u dev podacima:** Marko ima aktivnu pretplatu na „Malu domaćinsku korpicu", koja je od R2 sakrivena —
+takva pretplata svake sedmice bude preskočena (A2 mu to javi). Na produkciji provjeriti da nema pretplata na
+sakrivene korpice, ili ih ponuditi za prebacivanje na korpicu povrća.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

@@ -31,7 +31,16 @@ import type {
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
-import type { AdminPoeniKupac, AdminPoeniKupca, AdminPretplate } from "@/types/domain";
+import type {
+  AdminKupac,
+  AdminKupacDetalj,
+  AdminPoeniKupac,
+  AdminPoeniKupca,
+  AdminPretplate,
+  Pakovanje,
+  Pitanje,
+  SadrzajSajta,
+} from "@/types/domain";
 import { pismoNaZici, type Pismo } from "@/lib/pismo/pismo";
 import { uLatinicu } from "@/lib/pismo/preslovi";
 import type {
@@ -116,6 +125,8 @@ export const korpiceApi = {
     apiFetch<SadrzajKorpice>(`/korpice/${slug}/sadrzaj`, { auth: false }).then((r) => r.data),
 
   sedmica: () => apiFetch<Sedmica>("/korpice/sedmica", { auth: false }).then((r) => r.data),
+  /** Kontakt i česta pitanja koje admin uređuje; null polje = ugrađeni tekst. */
+  sadrzajSajta: () => apiFetch<SadrzajSajta>("/sadrzaj-sajta", { auth: false }).then((r) => r.data),
 };
 
 /* ---------- Utisci ---------- */
@@ -352,7 +363,16 @@ export const adminApi = {
    * `unassigned` mijenja značenje `date`: tada je to dan DOSTAVE i vraćaju se samo narudžbe
    * koje tog dana nisu ni na čijoj ruti. Bez njega `date` je dan kreiranja narudžbe.
    */
-  orders: (params: { status?: OrderStatus; date?: string; unassigned?: boolean } = {}) =>
+  orders: (
+    params: {
+      status?: OrderStatus;
+      date?: string;
+      unassigned?: boolean;
+      godina?: number;
+      sedmica?: number;
+      pretraga?: string;
+    } = {},
+  ) =>
     apiFetch<Order[]>("/admin/orders", { query: params }).then((r) => r.data),
 
   updateOrderStatus: (id: string, status: OrderStatus) =>
@@ -440,6 +460,37 @@ export const adminApi = {
   /** Otkaz od strane podrške — radi i dok traje obaveza plana (R2). */
   otkaziPretplatu: (id: string): Promise<void> =>
     apiFetch<void>(`/admin/pretplate/${id}`, { method: "DELETE" }).then(() => undefined),
+
+  /* Pakovanje, zone i termini, kupci, sadržaj sajta */
+  pakovanje: (godina: number, sedmica: number) =>
+    apiFetch<Pakovanje>("/admin/pakovanje", { query: { godina, sedmica } }).then((r) => r.data),
+
+  zone: () => apiFetch<DeliveryZone[]>("/admin/zone").then((r) => r.data),
+  sacuvajZonu: (id: string | null, body: Omit<DeliveryZone, "id">) =>
+    apiFetch<DeliveryZone>(id ? "/admin/zone/" + id : "/admin/zone", { method: id ? "PUT" : "POST", body }).then(
+      (r) => r.data,
+    ),
+
+  termini: () => apiFetch<DeliverySlot[]>("/admin/termini").then((r) => r.data),
+  sacuvajTermin: (id: string | null, body: Omit<DeliverySlot, "id">) =>
+    apiFetch<DeliverySlot>(id ? "/admin/termini/" + id : "/admin/termini", {
+      method: id ? "PUT" : "POST",
+      body,
+    }).then((r) => r.data),
+  obrisiTermin: (id: string) =>
+    apiFetch<string>("/admin/termini/" + id, { method: "DELETE" }).then(() => id),
+
+  kupci: (pretraga?: string) =>
+    apiFetch<AdminKupac[]>("/admin/kupci", { query: { pretraga: pretraga || undefined } }).then((r) => r.data),
+  kupac: (id: string) => apiFetch<AdminKupacDetalj>("/admin/kupci/" + id).then((r) => r.data),
+
+  sacuvajSadrzajSajta: (body: {
+    telefon?: string | null;
+    email?: string | null;
+    adresa?: string | null;
+    podrucje?: string | null;
+    pitanja?: Pitanje[] | null;
+  }) => apiFetch<SadrzajSajta>("/admin/sadrzaj-sajta", { method: "PUT", body }).then((r) => r.data),
 
   /* Poeni kupaca (B4) */
   poeniKupci: (pretraga?: string) =>
