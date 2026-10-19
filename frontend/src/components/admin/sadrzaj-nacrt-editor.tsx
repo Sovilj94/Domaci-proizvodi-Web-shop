@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { AdminLadica } from "@/components/admin/admin-ladica";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -152,131 +153,101 @@ export function SadrzajNacrtEditor({
   }, 0);
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button
-        type="button"
-        aria-label="Zatvori"
-        onClick={onClose}
-        className="absolute inset-0 bg-black/40"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="nacrt-editor-naslov"
-        className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-cream shadow-xl"
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
-          <div>
-            <h2 id="nacrt-editor-naslov" className="font-display text-lg font-bold text-ink">
-              Izmjena nacrta
-            </h2>
-            <p className="text-sm text-muted">{korpicaNaziv}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Zatvori"
-            className="shrink-0 rounded-full p-1.5 text-muted transition hover:bg-sand"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <AdminLadica naslov="Izmjena nacrta" podnaslov={korpicaNaziv} onClose={onClose}>
+      <div className="flex-1 overflow-y-auto p-6">
+        {isLoading || redovi === null ? (
+          <LoadingBlock label="Učitavanje nacrta…" />
+        ) : isError ? (
+          <EmptyState
+            title="Nacrt nije učitan"
+            description="Pokušaj ponovo malo kasnije."
+          />
+        ) : (
+          <>
+            {/* Dok katalog (artikli) nije stigao, `ukupno` računa sa cijenom 0 za svaki
+                red (vidi reduce ispod) — bez ovog gejta bi operater nakratko vidio
+                "~0 KM", baš onaj broj radi kojeg editor postoji. */}
+            {artikli ? (
+              <p className="mb-4 text-sm">
+                Vrijednost nacrta:{" "}
+                <strong className={ukupno > cilj * 1.05 ? "text-red-700" : "text-ink"}>
+                  {formatPrice(ukupno)}
+                </strong>{" "}
+                <span className="text-muted">/ cilj {formatPrice(cilj)}</span>
+              </p>
+            ) : (
+              <p className="mb-4 text-sm text-muted">Računam vrijednost nacrta…</p>
+            )}
 
-        <div className="flex-1 overflow-y-auto p-6">
-          {isLoading || redovi === null ? (
-            <LoadingBlock label="Učitavanje nacrta…" />
-          ) : isError ? (
-            <EmptyState
-              title="Nacrt nije učitan"
-              description="Pokušajte ponovo malo kasnije."
-            />
-          ) : (
-            <>
-              {/* Dok katalog (artikli) nije stigao, `ukupno` računa sa cijenom 0 za svaki
-                  red (vidi reduce ispod) — bez ovog gejta bi operater nakratko vidio
-                  "~0 KM", baš onaj broj radi kojeg editor postoji. */}
-              {artikli ? (
-                <p className="mb-4 text-sm">
-                  Vrijednost nacrta:{" "}
-                  <strong className={ukupno > cilj * 1.05 ? "text-red-700" : "text-ink"}>
-                    {formatPrice(ukupno)}
-                  </strong>{" "}
-                  <span className="text-muted">/ cilj {formatPrice(cilj)}</span>
-                </p>
-              ) : (
-                <p className="mb-4 text-sm text-muted">Računam vrijednost nacrta…</p>
-              )}
-
-              {redovi.length === 0 ? (
-                <p className="mb-4 text-sm text-muted">
-                  Nacrt je trenutno prazan — dodajte artikle ispod.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {redovi.map((r) => (
-                    <li
-                      key={r.productId}
-                      className="flex items-center gap-3 rounded-card border border-line bg-surface p-3"
+            {redovi.length === 0 ? (
+              <p className="mb-4 text-sm text-muted">
+                Nacrt je trenutno prazan — dodajte artikle ispod.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {redovi.map((r) => (
+                  <li
+                    key={r.productId}
+                    className="flex items-center gap-3 rounded-card border border-line bg-surface p-3"
+                  >
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sand">
+                      <SmartImage src={r.imageUrl} alt={r.naziv} sizes="48px" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-ink">{r.naziv}</p>
+                      <p className="text-xs text-muted">{unitSuffix(r.jedinica)}</p>
+                    </div>
+                    <input
+                      type="number"
+                      step={korakKolicine(r.jedinica)}
+                      min={korakKolicine(r.jedinica)}
+                      value={r.kolicina}
+                      onChange={(e) => izmijeniKolicinu(r.productId, Number(e.target.value))}
+                      className="w-20 rounded-xl border border-line bg-sand px-2 py-1.5 text-right text-sm text-ink focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"
+                      aria-label={`Količina za ${r.naziv}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => ukloni(r.productId)}
+                      aria-label={`Ukloni ${r.naziv}`}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-red-50 hover:text-red-600"
                     >
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sand">
-                        <SmartImage src={r.imageUrl} alt={r.naziv} sizes="48px" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-ink">{r.naziv}</p>
-                        <p className="text-xs text-muted">{unitSuffix(r.jedinica)}</p>
-                      </div>
-                      <input
-                        type="number"
-                        step={korakKolicine(r.jedinica)}
-                        min={korakKolicine(r.jedinica)}
-                        value={r.kolicina}
-                        onChange={(e) => izmijeniKolicinu(r.productId, Number(e.target.value))}
-                        className="w-20 rounded-xl border border-line bg-sand px-2 py-1.5 text-right text-sm text-ink focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-400"
-                        aria-label={`Količina za ${r.naziv}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => ukloni(r.productId)}
-                        aria-label={`Ukloni ${r.naziv}`}
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <Select
-                className="mt-4"
-                value={dodajId}
-                onChange={(e) => dodajArtikal(e.target.value)}
-              >
-                <option value="">+ Dodaj artikal…</option>
-                {slobodniArtikli.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} — {formatPrice(a.price)}
-                    {unitSuffix(a.unit)}
-                  </option>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
                 ))}
-              </Select>
-            </>
-          )}
-        </div>
+              </ul>
+            )}
 
-        <div className="flex gap-3 border-t border-line p-4">
-          <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
-            Odustani
-          </Button>
-          <Button
-            className="flex-1"
-            onClick={() => sacuvaj.mutate()}
-            disabled={!spreman || redovi.length === 0 || sacuvaj.isPending}
-          >
-            {sacuvaj.isPending ? "Čuvam…" : "Sačuvaj"}
-          </Button>
-        </div>
+            <Select
+              className="mt-4"
+              value={dodajId}
+              onChange={(e) => dodajArtikal(e.target.value)}
+            >
+              <option value="">+ Dodaj artikal…</option>
+              {slobodniArtikli.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} — {formatPrice(a.price)}
+                  {unitSuffix(a.unit)}
+                </option>
+              ))}
+            </Select>
+          </>
+        )}
       </div>
-    </div>
+
+      <div className="flex gap-3 border-t border-line p-4">
+        <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
+          Odustani
+        </Button>
+        <Button
+          className="flex-1"
+          onClick={() => sacuvaj.mutate()}
+          disabled={!spreman || redovi.length === 0 || sacuvaj.isPending}
+        >
+          {sacuvaj.isPending ? "Čuvam…" : "Sačuvaj"}
+        </Button>
+      </div>
+    </AdminLadica>
   );
 }

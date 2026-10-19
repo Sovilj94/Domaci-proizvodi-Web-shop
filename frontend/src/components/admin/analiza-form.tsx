@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { AdminLadica } from "@/components/admin/admin-ladica";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -114,137 +114,127 @@ export function AnalizaForm({
     !!form.productId && !productOptions.some((p) => p.id === form.productId);
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button aria-label="Zatvori" onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-cream shadow-xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="font-display text-lg font-bold">{analiza ? "Uredi analizu" : "Nova analiza"}</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-sand" aria-label="Zatvori">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <AdminLadica naslov={analiza ? "Uredi analizu" : "Nova analiza"} onClose={onClose}>
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+        <Field label="Proizvođač" required error={errors["input.producerId"]?.[0]}>
+          <Select
+            value={form.producerId}
+            onChange={(e) => setForm({ ...form, producerId: e.target.value, productId: "" })}
+            required
+          >
+            <option value="">— izaberi —</option>
+            {producers.data?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.village})
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-        <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
-          <Field label="Proizvođač" required error={errors["input.producerId"]?.[0]}>
-            <Select
-              value={form.producerId}
-              onChange={(e) => setForm({ ...form, producerId: e.target.value, productId: "" })}
-              required
-            >
-              <option value="">— izaberi —</option>
-              {producers.data?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.village})
-                </option>
-              ))}
-            </Select>
-          </Field>
+        <Field label="Proizvod" error={errors["input.productId"]?.[0]}>
+          <Select
+            value={form.productId}
+            onChange={(e) => setForm({ ...form, productId: e.target.value })}
+            disabled={!form.producerId}
+          >
+            <option value="">— bez veze —</option>
+            {nedostajeVezani && <option value={form.productId}>{analiza?.proizvod ?? "Vezani proizvod"}</option>}
+            {productOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-          <Field label="Proizvod" error={errors["input.productId"]?.[0]}>
-            <Select
-              value={form.productId}
-              onChange={(e) => setForm({ ...form, productId: e.target.value })}
-              disabled={!form.producerId}
-            >
-              <option value="">— bez veze —</option>
-              {nedostajeVezani && <option value={form.productId}>{analiza?.proizvod ?? "Vezani proizvod"}</option>}
-              {productOptions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+        <Field label="Uzorak" required error={errors["input.uzorak"]?.[0]}>
+          <Input
+            value={form.uzorak}
+            onChange={(e) => setForm({ ...form, uzorak: e.target.value })}
+            placeholder="npr. Paradajz, staklenik 2"
+            maxLength={120}
+          />
+        </Field>
 
-          <Field label="Uzorak" required error={errors["input.uzorak"]?.[0]}>
-            <Input
-              value={form.uzorak}
-              onChange={(e) => setForm({ ...form, uzorak: e.target.value })}
-              placeholder="npr. Paradajz, staklenik 2"
-              maxLength={120}
-            />
-          </Field>
+        <Field label="Laboratorija" required error={errors["input.laboratorija"]?.[0]}>
+          <Input
+            value={form.laboratorija}
+            onChange={(e) => setForm({ ...form, laboratorija: e.target.value })}
+            maxLength={120}
+          />
+        </Field>
 
-          <Field label="Laboratorija" required error={errors["input.laboratorija"]?.[0]}>
-            <Input
-              value={form.laboratorija}
-              onChange={(e) => setForm({ ...form, laboratorija: e.target.value })}
-              maxLength={120}
-            />
-          </Field>
+        <Field label="Broj izvještaja" error={errors["input.brojIzvjestaja"]?.[0]}>
+          <Input
+            value={form.brojIzvjestaja}
+            onChange={(e) => setForm({ ...form, brojIzvjestaja: e.target.value })}
+            maxLength={60}
+          />
+        </Field>
 
-          <Field label="Broj izvještaja" error={errors["input.brojIzvjestaja"]?.[0]}>
-            <Input
-              value={form.brojIzvjestaja}
-              onChange={(e) => setForm({ ...form, brojIzvjestaja: e.target.value })}
-              maxLength={60}
-            />
-          </Field>
+        <Field label="Datum uzorkovanja" required error={errors["input.datumUzorkovanja"]?.[0]}>
+          <Input
+            type="date"
+            required
+            value={form.datumUzorkovanja}
+            onChange={(e) => setForm({ ...form, datumUzorkovanja: e.target.value })}
+          />
+        </Field>
 
-          <Field label="Datum uzorkovanja" required error={errors["input.datumUzorkovanja"]?.[0]}>
-            <Input
-              type="date"
-              required
-              value={form.datumUzorkovanja}
-              onChange={(e) => setForm({ ...form, datumUzorkovanja: e.target.value })}
-            />
-          </Field>
+        <Field label="Ispitano" required error={errors["input.ispitano"]?.[0]}>
+          <Input
+            value={form.ispitano}
+            onChange={(e) => setForm({ ...form, ispitano: e.target.value })}
+            placeholder="npr. ostaci pesticida, teški metali"
+            maxLength={300}
+          />
+        </Field>
 
-          <Field label="Ispitano" required error={errors["input.ispitano"]?.[0]}>
-            <Input
-              value={form.ispitano}
-              onChange={(e) => setForm({ ...form, ispitano: e.target.value })}
-              placeholder="npr. ostaci pesticida, teški metali"
-              maxLength={300}
-            />
-          </Field>
+        <Field label="Rezultat" required error={errors["input.rezultat"]?.[0]}>
+          <Select
+            value={form.rezultat}
+            onChange={(e) => setForm({ ...form, rezultat: e.target.value as RezultatAnalize })}
+          >
+            {(Object.keys(REZULTAT_ANALIZE_TEKST) as RezultatAnalize[]).map((r) => (
+              <option key={r} value={r}>
+                {REZULTAT_ANALIZE_TEKST[r]}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-          <Field label="Rezultat" required error={errors["input.rezultat"]?.[0]}>
-            <Select
-              value={form.rezultat}
-              onChange={(e) => setForm({ ...form, rezultat: e.target.value as RezultatAnalize })}
-            >
-              {(Object.keys(REZULTAT_ANALIZE_TEKST) as RezultatAnalize[]).map((r) => (
-                <option key={r} value={r}>
-                  {REZULTAT_ANALIZE_TEKST[r]}
-                </option>
-              ))}
-            </Select>
-          </Field>
+        <Field label="Napomena" error={errors["input.napomena"]?.[0]}>
+          <Textarea
+            value={form.napomena}
+            onChange={(e) => setForm({ ...form, napomena: e.target.value })}
+            rows={3}
+            maxLength={1000}
+          />
+        </Field>
 
-          <Field label="Napomena" error={errors["input.napomena"]?.[0]}>
-            <Textarea
-              value={form.napomena}
-              onChange={(e) => setForm({ ...form, napomena: e.target.value })}
-              rows={3}
-              maxLength={1000}
-            />
-          </Field>
+        <Field label="URL izvještaja (PDF)" error={errors["input.pdfUrl"]?.[0]}>
+          <Input
+            value={form.pdfUrl}
+            onChange={(e) => setForm({ ...form, pdfUrl: e.target.value })}
+            placeholder="https://…"
+            maxLength={500}
+          />
+        </Field>
 
-          <Field label="URL izvještaja (PDF)" error={errors["input.pdfUrl"]?.[0]}>
-            <Input
-              value={form.pdfUrl}
-              onChange={(e) => setForm({ ...form, pdfUrl: e.target.value })}
-              placeholder="https://…"
-              maxLength={500}
-            />
-          </Field>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={form.objavljena}
+            onChange={(e) => setForm({ ...form, objavljena: e.target.checked })}
+            className="h-4 w-4 accent-brand-600"
+          />
+          Objavljena
+        </label>
 
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={form.objavljena}
-              onChange={(e) => setForm({ ...form, objavljena: e.target.checked })}
-              className="h-4 w-4 accent-brand-600"
-            />
-            Objavljena
-          </label>
-
-          <Button type="submit" className="w-full" disabled={mutation.isPending}>
-            {mutation.isPending ? "Čuvam…" : "Sačuvaj"}
-          </Button>
-        </form>
-      </div>
-    </div>
+        <Button type="submit" className="w-full" disabled={mutation.isPending}>
+          {mutation.isPending ? "Čuvam…" : "Sačuvaj"}
+        </Button>
+      </form>
+    </AdminLadica>
   );
 }

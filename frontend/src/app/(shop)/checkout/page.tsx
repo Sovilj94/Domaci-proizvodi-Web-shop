@@ -484,12 +484,14 @@ export default function CheckoutPage() {
                 <p className="text-xs font-medium text-red-600">{errors["customer.name"][0]}</p>
               )}
 
-              <Field label="Telefon" required error={errors["customer.phone"]?.[0]}>
+              <Field label="Telefon" htmlFor="checkout-telefon" required error={errors["customer.phone"]?.[0]}>
                 <div className="flex items-stretch">
                   <span className="flex shrink-0 items-center rounded-l-xl border border-r-0 border-line bg-sand px-3.5 text-sm font-medium text-muted">
                     +387
                   </span>
                   <Input
+                    id="checkout-telefon"
+                    type="tel"
                     value={form.phone}
                     onChange={(e) => set("phone")(e.target.value)}
                     placeholder="6x xxx xxx"
