@@ -36,6 +36,18 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
     }
 }
 
+/// <summary>Jedino mjesto koje kod preporuke pretvara u preporučioca — registracija i društvena prijava (B5).</summary>
+internal static class Preporuka
+{
+    /// <summary>Nepoznat ili prazan kod daje null — preporuka je dodatak, ne uslov (O10).</summary>
+    public static async Task<Guid?> NadjiPreporuciocaAsync(IAppDbContext db, string? kod, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(kod)) return null;
+        var k = kod.Trim().ToUpperInvariant();
+        return await db.Users.Where(u => u.PreporukaKod == k).Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
+    }
+}
+
 public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailService email, ICurrentUser current)
     : IRequestHandler<RegisterCommand, RegisterResultDto>
 {
@@ -47,13 +59,7 @@ public class RegisterHandler(IAppDbContext db, IPasswordHasher hasher, IEmailSer
 
         // Preporuka je dodatak, ne uslov: nepoznat ili pogrešno prepisan kod ne smije spriječiti
         // registraciju, pa se tiho ignoriše (O10). Poeni se dodjeljuju tek prvom isporukom.
-        Guid? preporucioId = null;
-        if (!string.IsNullOrWhiteSpace(cmd.PreporukaKod))
-        {
-            var kod = cmd.PreporukaKod.Trim().ToUpperInvariant();
-            preporucioId = await db.Users.Where(u => u.PreporukaKod == kod)
-                .Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
-        }
+        var preporucioId = await Preporuka.NadjiPreporuciocaAsync(db, cmd.PreporukaKod, ct);
 
         var token = Guid.NewGuid().ToString("N");
         var user = new User

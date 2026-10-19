@@ -1,3 +1,4 @@
+using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
 using EPiljara.Application.Features.Poeni;
@@ -120,7 +121,7 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         if (order.Status is OrderStatus.Packing) order.TransitionTo(OrderStatus.OutForDelivery);
         order.TransitionTo(status);
         order.ZatvorenaU = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        await IstovremenaPromjena.SacuvajAsync(db, ct);
         return order.ToDto();
     }
 }

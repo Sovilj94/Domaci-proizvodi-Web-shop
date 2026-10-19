@@ -259,14 +259,15 @@ export const authApi = {
     apiFetch<AuthResult>("/auth/login", { method: "POST", body, auth: false }).then(
       (r) => r.data,
     ),
-  google: (idToken: string) =>
-    apiFetch<AuthResult>("/auth/google", { method: "POST", body: { idToken }, auth: false }).then(
+  // `preporukaKod` (B5): upisuje se samo kad prijava pravi nov nalog.
+  google: (idToken: string, preporukaKod?: string) =>
+    apiFetch<AuthResult>("/auth/google", { method: "POST", body: { idToken, preporukaKod }, auth: false }).then(
       (r) => r.data,
     ),
-  facebook: (accessToken: string) =>
+  facebook: (accessToken: string, preporukaKod?: string) =>
     apiFetch<AuthResult>("/auth/facebook", {
       method: "POST",
-      body: { accessToken },
+      body: { accessToken, preporukaKod },
       auth: false,
     }).then((r) => r.data),
   me: () => apiFetch<AuthUser>("/auth/me").then((r) => r.data),

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
+import { SocialLogin } from "@/components/auth/social-login";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -190,6 +191,11 @@ function RegisterForm() {
             {loading ? "Kreiram nalog…" : "Registruj se"}
           </Button>
         </form>
+
+        {/* B5: i preko Googlea/Facebooka — kod preporuke iz linka ide uz prijavu. */}
+        <div className="mt-6">
+          <SocialLogin preporukaKod={preporuka ?? undefined} />
+        </div>
 
         <p className="mt-5 text-center text-sm text-muted">
           Već imate nalog?{" "}
