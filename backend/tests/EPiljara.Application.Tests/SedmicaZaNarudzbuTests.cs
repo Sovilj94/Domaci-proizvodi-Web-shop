@@ -26,7 +26,8 @@ public class SedmicaZaNarudzbuTests
     public void Tacno_na_roku_jos_uvijek_vraca_tekucu_sedmicu()
     {
         // Granica je uključiva: ko stigne u sekundi roka, naručuje za ovu sedmicu.
-        var sada = new DateTime(2026, 10, 6, 16, 0, 0, DateTimeKind.Utc);
+        // Rok: četvrtak 8.10. 16:00 po Sarajevu − 48 h = utorak 6.10. 16:00 lokalno = 14:00 UTC (ljeto).
+        var sada = new DateTime(2026, 10, 6, 14, 0, 0, DateTimeKind.Utc);
 
         var (g, s) = SedmicaHelper.SedmicaZaNarudzbu(DayOfWeek.Thursday, "16:00", 48, sada);
 
@@ -69,5 +70,15 @@ public class SedmicaZaNarudzbuTests
 
         Assert.InRange(s, 1, 53);
         Assert.Equal(2026, g);
+    }
+
+    /// <summary>A4: „16:00" je lokalno vrijeme — ljeti UTC+2, zimi UTC+1.</summary>
+    [Fact]
+    public void Vrijeme_termina_je_sarajevsko_ljeti_i_zimi()
+    {
+        Assert.Equal(new DateTime(2026, 10, 8, 14, 0, 0, DateTimeKind.Utc),
+            SedmicaHelper.DatumIsporuke(2026, 41, DayOfWeek.Thursday, "16:00"));
+        Assert.Equal(new DateTime(2026, 11, 5, 15, 0, 0, DateTimeKind.Utc),
+            SedmicaHelper.DatumIsporuke(2026, 45, DayOfWeek.Thursday, "16:00"));
     }
 }

@@ -16,9 +16,29 @@ namespace EPiljara.Application.Features.Korpice;
 
 public static class SedmicaHelper
 {
+    /// <summary>
+    /// Vremenska zona poslovanja (A4). `DeliverySlot.TimeFrom` („16:00") je lokalno vrijeme u Banjoj
+    /// Luci; do A4 se čitao kao UTC, pa se rok zatvarao dva sata (ljeti) kasnije od nominalnog.
+    /// IANA ime radi na Linuxu i na Windowsu (.NET sa ICU); rezervno Windows ime.
+    /// </summary>
+    public static readonly TimeZoneInfo Zona = NadjiZonu();
+
+    private static TimeZoneInfo NadjiZonu()
+    {
+        foreach (var id in new[] { "Europe/Sarajevo", "Central European Standard Time" })
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById(id); }
+            catch (TimeZoneNotFoundException) { }
+            catch (InvalidTimeZoneException) { }
+        }
+        return TimeZoneInfo.Utc;
+    }
+
+    /// <summary>ISO sedmica po lokalnom kalendaru (ponedjeljak počinje u ponoć po Sarajevu, ne po UTC-u).</summary>
     public static (int Godina, int Sedmica) Tekuca(DateTime? sada = null)
     {
-        var d = sada ?? DateTime.UtcNow;
+        var utc = sada ?? DateTime.UtcNow;
+        var d = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Zona);
         return (ISOWeek.GetYear(d), ISOWeek.GetWeekOfYear(d));
     }
 
@@ -40,7 +60,9 @@ public static class SedmicaHelper
     {
         var ponoc = ISOWeek.ToDateTime(godina, sedmica, danIsporuke);
         var (sati, minuti) = ParsirajVrijeme(vrijemeOd);
-        return DateTime.SpecifyKind(ponoc.AddHours(sati).AddMinutes(minuti), DateTimeKind.Utc);
+        // A4: vrijeme termina je lokalno (Sarajevo); u UTC se pretvara uz ljetno/zimsko računanje.
+        var lokalno = DateTime.SpecifyKind(ponoc.AddHours(sati).AddMinutes(minuti), DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(lokalno, Zona);
     }
 
     /// <summary>
