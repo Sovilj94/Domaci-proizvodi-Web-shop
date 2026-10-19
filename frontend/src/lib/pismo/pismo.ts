@@ -18,6 +18,20 @@ export function postaviPismo(pismo: Pismo): void {
   document.cookie = `${KOLACIC}=${pismo}; max-age=31536000; path=/; SameSite=Lax`;
 }
 
+/** Događaj kojim se `PismoProvider` obavještava da je pismo promijenjeno bez ponovnog učitavanja. */
+export const DOGADJAJ_PISMA = "epiljara:pismo";
+
+/**
+ * Prijava na novom uređaju (A6): kupac koji na nalogu ima ćirilicu, a na ovom uređaju još nije
+ * birao pismo, dobija ćirilicu odmah. Izričit izbor na uređaju (kolačić postoji) ima prednost.
+ */
+export function preuzmiPismoNaloga(pismoNaloga: "Latinica" | "Cirilica" | undefined): void {
+  if (typeof document === "undefined" || pismoNaloga !== "Cirilica") return;
+  if (/(?:^|;\s*)pismo=/.test(document.cookie)) return;
+  postaviPismo("cir");
+  window.dispatchEvent(new Event(DOGADJAJ_PISMA));
+}
+
 /** Vrijednost enuma `Pismo` na API-ju (PascalCase string). */
 export function pismoNaZici(pismo: Pismo): "Latinica" | "Cirilica" {
   return pismo === "cir" ? "Cirilica" : "Latinica";

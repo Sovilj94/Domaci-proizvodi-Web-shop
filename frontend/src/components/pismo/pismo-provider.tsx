@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { pokreniPreslovljavanje } from "@/lib/pismo/dom";
-import { procitajPismo } from "@/lib/pismo/pismo";
+import { DOGADJAJ_PISMA, procitajPismo, type Pismo } from "@/lib/pismo/pismo";
 
 /**
  * Ćirilica za kupčev dio sajta (P7). Montira ga samo `(shop)` layout, pa admin ostaje
@@ -10,8 +10,19 @@ import { procitajPismo } from "@/lib/pismo/pismo";
  * hidratacije. `data-pismo-spremno` skida CSS skrivanje stranice (vidi `globals.css`).
  */
 export function PismoProvider() {
+  // Pismo se čita na klijentu; događaj DOGADJAJ_PISMA (preuzimanje pisma naloga pri prijavi)
+  // ga mijenja bez ponovnog učitavanja stranice.
+  const [pismo, setPismo] = useState<Pismo | null>(null);
+
   useEffect(() => {
-    if (procitajPismo() !== "cir") return;
+    setPismo(procitajPismo());
+    const promjena = () => setPismo(procitajPismo());
+    window.addEventListener(DOGADJAJ_PISMA, promjena);
+    return () => window.removeEventListener(DOGADJAJ_PISMA, promjena);
+  }, []);
+
+  useEffect(() => {
+    if (pismo !== "cir") return;
     const html = document.documentElement;
     // Skripta u <head> je ovo već postavila pri punom učitavanju; ovdje zbog klijentske
     // navigacije iz admina u prodavnicu, gdje se <head> skripta ne izvršava ponovo.
@@ -25,7 +36,7 @@ export function PismoProvider() {
       html.removeAttribute("data-pismo-spremno");
       html.lang = "sr-Latn";
     };
-  }, []);
+  }, [pismo]);
 
   return null;
 }

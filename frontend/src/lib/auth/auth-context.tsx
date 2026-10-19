@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { AuthUser } from "@/types/domain";
 import { getToken, setToken } from "@/lib/api/client";
+import { preuzmiPismoNaloga } from "@/lib/pismo/pismo";
 import { accountApi, authApi } from "@/lib/api/endpoints";
 import type {
   LoginRequest,
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await authApi.login(body);
     setToken(result.token);
     setUser(result.user);
+    preuzmiPismoNaloga(result.user.pismo);
     return result.user;
   }, []);
 
@@ -77,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await authApi.google(idToken);
     setToken(result.token);
     setUser(result.user);
+    preuzmiPismoNaloga(result.user.pismo);
     return result.user;
   }, []);
 
@@ -84,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await authApi.facebook(accessToken);
     setToken(result.token);
     setUser(result.user);
+    preuzmiPismoNaloga(result.user.pismo);
     return result.user;
   }, []);
 

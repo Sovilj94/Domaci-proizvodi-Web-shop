@@ -43,6 +43,9 @@ export function OcjenaForma({
         dozvolaZaObjavu: dozvola,
       });
       setGotovo(true);
+      // A10: roditelj odmah osvježi narudžbu i zamijeni formu prikazom ocjene, pa bi poruka
+      // ispod nestala prije nego što je iko vidi — toast ostaje vidljiv i poslije zamjene.
+      show("Hvala na ocjeni!");
       onUspjeh();
     } catch (err) {
       if (err instanceof ApiRequestError) {
