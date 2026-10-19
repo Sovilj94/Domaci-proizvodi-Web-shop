@@ -37,6 +37,13 @@ public class AccountController : ApiControllerBase
         Envelope(await Mediator.Send(
             new IzmijeniMojuKorpicuCommand(orderItemId, body.ProductIds)));
 
+    /// <summary>Jedan artikal korpice za drugi; količinu novog određuje server.</summary>
+    [HttpPost("account/korpice/{orderItemId:guid}/zamijeni")]
+    public async Task<IActionResult> ZamijeniUKorpici(
+        Guid orderItemId, [FromBody] ZamijeniUKorpiciBody body) =>
+        Envelope(await Mediator.Send(
+            new ZamijeniArtikalUKorpiciCommand(orderItemId, body.Izbaci, body.Ubaci)));
+
     [HttpGet("account/addresses")]
     public async Task<IActionResult> Addresses() =>
         EnvelopeList(await Mediator.Send(new GetAccountAddressesQuery()));
@@ -102,6 +109,7 @@ public record UpdateAddressBody(
 
 /// <summary>Tijelo bez Id-a — Id dolazi iz putanje. Količine i cijene određuje server.</summary>
 public record IzmijeniKorpicuBody(IReadOnlyList<Guid> ProductIds);
+public record ZamijeniUKorpiciBody(Guid Izbaci, Guid Ubaci);
 
 /// <summary>Tijelo PUT-a bez Id-a — Id dolazi iz putanje, da se ne mogu razići.</summary>
 public record IzmijeniPretplatuBody(

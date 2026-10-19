@@ -35,7 +35,9 @@ public record ProductInput(
     bool? MozeUKorpicu = null,
     int? PrioritetUKorpici = null,
     IReadOnlyList<int>? Mjeseci = null,
-    string? Boja = null);
+    string? Boja = null,
+    decimal? NabavnaCijena = null,
+    bool? UkloniNabavnuCijenu = null);
 
 public class ProductInputValidator : AbstractValidator<ProductInput>
 {
@@ -52,6 +54,9 @@ public class ProductInputValidator : AbstractValidator<ProductInput>
         RuleForEach(x => x.Mjeseci).InclusiveBetween(1, 12)
             .When(x => x.Mjeseci is not null)
             .WithMessage("Mjesec mora biti između 1 i 12.");
+        RuleFor(x => x.NabavnaCijena).GreaterThan(0)
+            .When(x => x.NabavnaCijena is not null)
+            .WithMessage("Nabavna cijena mora biti veća od 0.");
         RuleFor(x => x.Boja).Must(b => BojaProizvoda.JeValidna(BojaUlaz.Normalizuj(b)))
             .WithMessage("Boja mora biti u obliku #RRGGBB.");
     }
@@ -66,34 +71,34 @@ internal static class BojaUlaz
 
 /* ---------- List ---------- */
 
-public record GetAdminProductsQuery : IRequest<IReadOnlyList<ProductDto>>;
+public record GetAdminProductsQuery : IRequest<IReadOnlyList<AdminProductDto>>;
 
 public class GetAdminProductsHandler(IAppDbContext db)
-    : IRequestHandler<GetAdminProductsQuery, IReadOnlyList<ProductDto>>
+    : IRequestHandler<GetAdminProductsQuery, IReadOnlyList<AdminProductDto>>
 {
-    public async Task<IReadOnlyList<ProductDto>> Handle(GetAdminProductsQuery q, CancellationToken ct)
+    public async Task<IReadOnlyList<AdminProductDto>> Handle(GetAdminProductsQuery q, CancellationToken ct)
     {
         var products = await db.Products
             .Include(p => p.Category)
             .Include(p => p.Producer)
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
-        return products.Select(p => p.ToDto()).ToList();
+        return products.Select(p => p.ToAdminDto()).ToList();
     }
 }
 
 /* ---------- Create ---------- */
 
-public record CreateProductCommand(ProductInput Input) : IRequest<ProductDto>;
+public record CreateProductCommand(ProductInput Input) : IRequest<AdminProductDto>;
 
 public class CreateProductValidator : AbstractValidator<CreateProductCommand>
 {
     public CreateProductValidator() => RuleFor(x => x.Input).SetValidator(new ProductInputValidator());
 }
 
-public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProductCommand, ProductDto>
+public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProductCommand, AdminProductDto>
 {
-    public async Task<ProductDto> Handle(CreateProductCommand cmd, CancellationToken ct)
+    public async Task<AdminProductDto> Handle(CreateProductCommand cmd, CancellationToken ct)
     {
         var input = cmd.Input;
         var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == input.CategoryId, ct)
@@ -120,12 +125,13 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
             PrioritetUKorpici = input.PrioritetUKorpici ?? 0,
             Mjeseci = input.Mjeseci?.ToArray() ?? [],
             Boja = BojaUlaz.Normalizuj(input.Boja),
+            NabavnaCijena = input.UkloniNabavnuCijenu == true ? null : input.NabavnaCijena,
         };
         product.ProvjeriInvarijantuKorpice();
 
         db.Products.Add(product);
         await db.SaveChangesAsync(ct);
-        return product.ToDto();
+        return product.ToAdminDto();
     }
 
     private async Task<string> UniqueSlugAsync(string name, CancellationToken ct)
@@ -141,16 +147,16 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
 
 /* ---------- Update ---------- */
 
-public record UpdateProductCommand(Guid Id, ProductInput Input) : IRequest<ProductDto>;
+public record UpdateProductCommand(Guid Id, ProductInput Input) : IRequest<AdminProductDto>;
 
 public class UpdateProductValidator : AbstractValidator<UpdateProductCommand>
 {
     public UpdateProductValidator() => RuleFor(x => x.Input).SetValidator(new ProductInputValidator());
 }
 
-public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProductCommand, ProductDto>
+public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProductCommand, AdminProductDto>
 {
-    public async Task<ProductDto> Handle(UpdateProductCommand cmd, CancellationToken ct)
+    public async Task<AdminProductDto> Handle(UpdateProductCommand cmd, CancellationToken ct)
     {
         var input = cmd.Input;
         var product = await db.Products
@@ -181,11 +187,14 @@ public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProd
         product.Mjeseci = input.Mjeseci?.ToArray() ?? product.Mjeseci;
         // null = ne mijenjaj (stari klijent), prazan string = vrati na boju iz palete.
         if (input.Boja is not null) product.Boja = BojaUlaz.Normalizuj(input.Boja);
+        // Isti obrazac: izostala nabavna cijena = ne mijenjaj; brisanje se traži izričito.
+        if (input.UkloniNabavnuCijenu == true) product.NabavnaCijena = null;
+        else if (input.NabavnaCijena is not null) product.NabavnaCijena = input.NabavnaCijena;
         product.UpdatedAt = DateTime.UtcNow;
         product.ProvjeriInvarijantuKorpice();
 
         await db.SaveChangesAsync(ct);
-        return product.ToDto();
+        return product.ToAdminDto();
     }
 }
 
@@ -211,12 +220,12 @@ public class DeleteProductHandler(IAppDbContext db) : IRequestHandler<DeleteProd
 
 /* ---------- Toggle availability ---------- */
 
-public record SetProductAvailabilityCommand(Guid Id, bool IsAvailable) : IRequest<ProductDto>;
+public record SetProductAvailabilityCommand(Guid Id, bool IsAvailable) : IRequest<AdminProductDto>;
 
 public class SetProductAvailabilityHandler(IAppDbContext db)
-    : IRequestHandler<SetProductAvailabilityCommand, ProductDto>
+    : IRequestHandler<SetProductAvailabilityCommand, AdminProductDto>
 {
-    public async Task<ProductDto> Handle(SetProductAvailabilityCommand cmd, CancellationToken ct)
+    public async Task<AdminProductDto> Handle(SetProductAvailabilityCommand cmd, CancellationToken ct)
     {
         var product = await db.Products
             .Include(p => p.Category)
@@ -227,6 +236,6 @@ public class SetProductAvailabilityHandler(IAppDbContext db)
         product.IsAvailable = cmd.IsAvailable;
         product.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
-        return product.ToDto();
+        return product.ToAdminDto();
     }
 }

@@ -291,6 +291,15 @@ internal sealed class Scenario : IDisposable
             .Handle(new IzmijeniMojuKorpicuCommand(orderItemId, productIds), default);
     }
 
+    /// <summary>Kupčeva zamjena jednog artikla drugim (server određuje količinu).</summary>
+    public Task<MojaKorpicaDetaljiDto> ZamijeniAsync(Guid orderItemId, Guid izbaci, Guid ubaci)
+    {
+        var korisnik = KorisnikZa(null);
+        var mediator = new FakeMediator(Db, korisnik, Options.Create(Opcije));
+        return new ZamijeniArtikalUKorpiciHandler(Db, korisnik, Options.Create(Opcije), mediator)
+            .Handle(new ZamijeniArtikalUKorpiciCommand(orderItemId, izbaci, ubaci), default);
+    }
+
     // ---------- Ispravke finalnog review-a ----------
 
     /// <summary>

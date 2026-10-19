@@ -997,6 +997,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<bool>("MozeUKorpicu")
                         .HasColumnType("boolean");
 
+                    b.Property<decimal?>("NabavnaCijena")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1490,6 +1494,32 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Utisci");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.ZamjenaSadrzaja", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("JedinicnaCijena")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SedmicniSadrzajId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SedmicniSadrzajId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("ZamjeneSadrzaja");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Address", b =>
                 {
                     b.HasOne("EPiljara.Domain.Entities.DeliveryZone", "DeliveryZone")
@@ -1816,6 +1846,25 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Navigation("Ocjena");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.ZamjenaSadrzaja", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EPiljara.Domain.Entities.SedmicniSadrzaj", "SedmicniSadrzaj")
+                        .WithMany("Zamjene")
+                        .HasForeignKey("SedmicniSadrzajId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SedmicniSadrzaj");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Products");
@@ -1861,6 +1910,8 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EPiljara.Domain.Entities.SedmicniSadrzaj", b =>
                 {
                     b.Navigation("Stavke");
+
+                    b.Navigation("Zamjene");
                 });
 #pragma warning restore 612, 618
         }

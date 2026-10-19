@@ -29,13 +29,16 @@ public class GetSadrzajPregledHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
             .ToListAsync(ct);
 
         var sadrzaji = await db.SedmicniSadrzaji
-            .Include(s => s.Stavke)
+            .IgnoreQueryFilters()
+            .Include(s => s.Stavke).ThenInclude(st => st.Product)
+            .Include(s => s.Zamjene)
             .Where(s => s.Godina == q.Godina && s.Sedmica == q.Sedmica)
             .ToListAsync(ct);
 
         return korpice.Select(k =>
         {
             var s = sadrzaji.FirstOrDefault(x => x.KorpicaId == k.Id);
+            var trosak = s is null ? null : AdminSadrzajMapiranje.Trosak(s, k.Price);
             return new SadrzajPregledDto
             {
                 SadrzajId = s?.Id,
@@ -47,6 +50,11 @@ public class GetSadrzajPregledHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
                 BrojArtikala = s?.Stavke.Count ?? 0,
                 Vrijednost = s?.Stavke.Sum(x => x.Kolicina * x.JedinicnaCijena) ?? 0m,
                 CiljGenerisanja = k.Price * opcije.Value.KoeficijentVrijednosti,
+                CijenaKorpice = k.Price,
+                NabavnaVrijednost = trosak?.Nabavno ?? 0m,
+                Marza = trosak?.Marza,
+                BezNabavneCijene = trosak?.BezNabavne ?? 0,
+                BrojZamjena = s?.Zamjene.Count ?? 0,
             };
         }).ToList();
     }
@@ -58,19 +66,83 @@ public class GetSadrzajPregledHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
 /// Vraća sadržaj bez obzira na status — za razliku od javnog upita, koji Nacrt odbija.
 /// Admin editor bi bez ovoga imao prazan ekran.
 /// </summary>
-public record GetSadrzajZaIzmjenuQuery(Guid Id) : IRequest<SadrzajDto>;
+public record GetSadrzajZaIzmjenuQuery(Guid Id) : IRequest<AdminSadrzajDto>;
 
-public class GetSadrzajZaIzmjenuHandler(IAppDbContext db)
-    : IRequestHandler<GetSadrzajZaIzmjenuQuery, SadrzajDto>
+public class GetSadrzajZaIzmjenuHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
+    : IRequestHandler<GetSadrzajZaIzmjenuQuery, AdminSadrzajDto>
 {
-    public async Task<SadrzajDto> Handle(GetSadrzajZaIzmjenuQuery q, CancellationToken ct)
+    public async Task<AdminSadrzajDto> Handle(GetSadrzajZaIzmjenuQuery q, CancellationToken ct) =>
+        await AdminSadrzajMapiranje.UcitajAsync(db, q.Id, opcije.Value, ct);
+}
+
+/// <summary>
+/// Admin pogled na sadržaj: cijene, nabavne cijene, marža i zamjene. Nabavna se čita iz
+/// TRENUTNOG kataloga — to je podatak o nabavci, ne o prodaji, isto kao proizvođač na
+/// pakerskoj listi.
+/// </summary>
+public static class AdminSadrzajMapiranje
+{
+    public record TrosakSadrzaja(decimal Vrijednost, decimal Nabavno, decimal? Marza, int BezNabavne);
+
+    /// <summary>Traži učitane <c>Stavke.Product</c>.</summary>
+    public static TrosakSadrzaja Trosak(SedmicniSadrzaj s, decimal cijenaKorpice)
+    {
+        var vrijednost = s.Stavke.Sum(x => x.Kolicina * x.JedinicnaCijena);
+        var saNabavnom = s.Stavke.Where(x => x.Product?.NabavnaCijena is > 0).ToList();
+        var nabavno = saNabavnom.Sum(x => x.Kolicina * x.Product!.NabavnaCijena!.Value);
+        decimal? marza = saNabavnom.Count > 0 && cijenaKorpice > 0
+            ? Math.Round((cijenaKorpice - nabavno) / cijenaKorpice, 4)
+            : null;
+        return new TrosakSadrzaja(vrijednost, nabavno, marza, s.Stavke.Count - saNabavnom.Count);
+    }
+
+    public static async Task<AdminSadrzajDto> UcitajAsync(
+        IAppDbContext db, Guid id, KorpiceOpcije o, CancellationToken ct)
     {
         var sadrzaj = await db.SedmicniSadrzaji
+            .IgnoreQueryFilters()
+            .Include(s => s.Korpica)
             .Include(s => s.Stavke).ThenInclude(st => st.Product).ThenInclude(p => p!.Producer)
-            .FirstOrDefaultAsync(s => s.Id == q.Id, ct)
+            .Include(s => s.Zamjene).ThenInclude(z => z.Product)
+            .FirstOrDefaultAsync(s => s.Id == id, ct)
             ?? throw new NotFoundException("Sadržaj korpice nije pronađen.");
 
-        return sadrzaj.ToDto();
+        return sadrzaj.ToAdminDto(o);
+    }
+
+    /// <summary>Traži učitane Korpica, Stavke.Product(.Producer) i Zamjene.Product.</summary>
+    public static AdminSadrzajDto ToAdminDto(this SedmicniSadrzaj s, KorpiceOpcije o)
+    {
+        var cijena = s.Korpica?.Price ?? 0m;
+        var t = Trosak(s, cijena);
+        return new AdminSadrzajDto(s.ToDto())
+        {
+            CijenaKorpice = cijena,
+            Vrijednost = t.Vrijednost,
+            NabavnaVrijednost = t.Nabavno,
+            Marza = t.Marza,
+            MinimalnaMarza = o.MinimalnaMarza,
+            NabavniBudzet = cijena * (1 - o.MinimalnaMarza),
+            Cijene = s.Stavke.Select(st => new CijenaStavkeDto
+            {
+                ProductId = st.ProductId,
+                JedinicnaCijena = st.JedinicnaCijena,
+                NabavnaCijena = st.Product?.NabavnaCijena,
+            }).ToList(),
+            Zamjene = s.Zamjene
+                .Where(z => z.Product is not null)
+                .Select(z => new ZamjenaDto
+                {
+                    ProductId = z.ProductId,
+                    Naziv = z.Product!.Name,
+                    Jedinica = z.Product.Unit.ToApi(),
+                    Cijena = z.JedinicnaCijena,
+                    NabavnaCijena = z.Product.NabavnaCijena,
+                    ImageUrl = z.Product.ImageUrl,
+                })
+                .OrderBy(z => z.Naziv)
+                .ToList(),
+        };
     }
 }
 
@@ -78,17 +150,23 @@ public class GetSadrzajZaIzmjenuHandler(IAppDbContext db)
 
 public record StavkaUnos(Guid ProductId, decimal Kolicina);
 
-/// <summary>Zamjenjuje stavke nacrta u cjelosti. Objavljen sadržaj se ne dira.</summary>
-public record IzmijeniNacrtCommand(Guid SadrzajId, IReadOnlyList<StavkaUnos> Stavke)
-    : IRequest<SadrzajDto>;
+/// <summary>
+/// Zamjenjuje stavke nacrta u cjelosti. Objavljen sadržaj se ne dira. <c>Zamjene</c>:
+/// null = ne mijenjaj spisak zamjena (osim što artikal koji je ušao u kutiju ispada iz
+/// zamjena), lista = zamijeni spisak tom listom.
+/// </summary>
+public record IzmijeniNacrtCommand(
+    Guid SadrzajId, IReadOnlyList<StavkaUnos> Stavke, IReadOnlyList<Guid>? Zamjene = null)
+    : IRequest<AdminSadrzajDto>;
 
-public class IzmijeniNacrtHandler(IAppDbContext db)
-    : IRequestHandler<IzmijeniNacrtCommand, SadrzajDto>
+public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
+    : IRequestHandler<IzmijeniNacrtCommand, AdminSadrzajDto>
 {
-    public async Task<SadrzajDto> Handle(IzmijeniNacrtCommand c, CancellationToken ct)
+    public async Task<AdminSadrzajDto> Handle(IzmijeniNacrtCommand c, CancellationToken ct)
     {
         var sadrzaj = await db.SedmicniSadrzaji
             .Include(s => s.Stavke)
+            .Include(s => s.Zamjene)
             .FirstOrDefaultAsync(s => s.Id == c.SadrzajId, ct)
             ?? throw new NotFoundException("Sadržaj korpice nije pronađen.");
 
@@ -155,8 +233,35 @@ public class IzmijeniNacrtHandler(IAppDbContext db)
             db.StavkeSadrzaja.Add(stavka);
         }
 
+        // Zamjena je po definiciji artikal VAN kutije — ono što je upravo ušlo u kutiju ispada.
+        var uKutiji = idjevi.ToHashSet();
+        var zamjeneIdjevi = (c.Zamjene ?? sadrzaj.Zamjene.Select(z => z.ProductId).ToList())
+            .Distinct()
+            .Where(id => !uKutiji.Contains(id))
+            .ToList();
+        var artikliZamjena = await db.Products
+            .Where(p => zamjeneIdjevi.Contains(p.Id) && p.Vrsta == VrstaProizvoda.Obican)
+            .ToDictionaryAsync(p => p.Id, ct);
+        if (c.Zamjene is not null && artikliZamjena.Count != zamjeneIdjevi.Count)
+            throw new NotFoundException("Jedna ili više zamjena nije pronađena.");
+
+        // Isti obrazac kao za stavke: Clear() briše (Cascade), novi redovi idu i kroz DbSet.
+        var stareCijene = sadrzaj.Zamjene.ToDictionary(z => z.ProductId, z => z.JedinicnaCijena);
+        sadrzaj.Zamjene.Clear();
+        foreach (var id in zamjeneIdjevi)
+        {
+            if (!artikliZamjena.TryGetValue(id, out var p)) continue;
+            var z = new ZamjenaSadrzaja
+            {
+                ProductId = id,
+                JedinicnaCijena = stareCijene.GetValueOrDefault(id, p.Price),
+            };
+            sadrzaj.Zamjene.Add(z);
+            db.ZamjeneSadrzaja.Add(z);
+        }
+
         await db.SaveChangesAsync(ct);
-        return sadrzaj.ToDto();
+        return await AdminSadrzajMapiranje.UcitajAsync(db, sadrzaj.Id, opcije.Value, ct);
     }
 }
 
@@ -212,12 +317,20 @@ public class GetPakerskaListaHandler(IAppDbContext db)
                     Jedinica = (p?.Unit ?? prvi.Unit).ToApi(),
                     Proizvodjac = p?.Producer?.Name ?? string.Empty,
                     Selo = p?.Producer?.Village ?? string.Empty,
+                    NabavnaCijena = p?.NabavnaCijena,
                     ArtikalObrisan = p is null || p.IsDeleted,
                 };
             })
             .OrderBy(r => r.Proizvodjac).ThenBy(r => r.Artikal)
             .ToList();
 
-        return new PakerskaListaDto { BrojNarudzbi = brojNarudzbi, Stavke = stavke };
+        return new PakerskaListaDto
+        {
+            BrojNarudzbi = brojNarudzbi,
+            Stavke = stavke,
+            NabavnaVrijednost = Math.Round(
+                stavke.Where(s => s.NabavnaCijena is > 0).Sum(s => s.Kolicina * s.NabavnaCijena!.Value), 2),
+            BezNabavneCijene = stavke.Count(s => s.NabavnaCijena is not > 0),
+        };
     }
 }

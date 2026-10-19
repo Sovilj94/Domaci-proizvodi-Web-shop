@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowLeftRight, Clock, Plus, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { SmartImage } from "@/components/ui/smart-image";
@@ -153,6 +153,26 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
     },
   });
 
+  // Zamjena jednog artikla drugim ide odmah na server (on određuje količinu novog), pa je
+  // dozvoljena samo dok nema nesačuvanih izmjena — inače bi server zamijenio u sačuvanom
+  // stanju, a lokalni izbor bi se tiho izgubio.
+  const [zamjenaZa, setZamjenaZa] = useState<string | null>(null);
+  const zamjena = useMutation({
+    mutationFn: ({ izbaci, ubaci }: { izbaci: string; ubaci: string }) =>
+      accountApi.zamijeniUKorpici(orderItemId, izbaci, ubaci),
+    onSuccess: (novo) => {
+      qc.setQueryData(queryKeys.mojaKorpica(orderItemId), novo);
+      qc.invalidateQueries({ queryKey: queryKeys.mojeKorpice() });
+      setZamjenaZa(null);
+      setErrors({});
+      setError(null);
+      show("Artikal zamijenjen.");
+    },
+    onError: (err) => {
+      setError(err instanceof ApiRequestError ? err.message : "Zamjena nije uspjela.");
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="rounded-card border border-line bg-surface p-5 shadow-card">
@@ -288,38 +308,61 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
 
       <ul className="flex flex-col gap-2">
         {redovi.map((r) => (
-          <li
-            key={r.productId}
-            className="flex items-center justify-between gap-3 rounded-card border border-line bg-cream p-3"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-sand">
-                <SmartImage src={r.imageUrl} alt={r.naziv} sizes="44px" />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate font-medium text-ink">
-                  {r.naziv}{" "}
-                  <span className="font-normal text-muted">
-                    {r.kolicina} {r.jedinica}
-                  </span>
-                  {r.dodaoKupac && (
-                    <span className="ml-2 rounded-full bg-sand px-2 py-0.5 text-[10px] font-medium text-muted">
-                      tvoj izbor
+          <li key={r.productId} className="rounded-card border border-line bg-cream p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-sand">
+                  <SmartImage src={r.imageUrl} alt={r.naziv} sizes="44px" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-ink">
+                    {r.naziv}{" "}
+                    <span className="font-normal text-muted">
+                      {r.kolicina} {r.jedinica}
                     </span>
+                    {r.dodaoKupac && (
+                      <span className="ml-2 rounded-full bg-sand px-2 py-0.5 text-[10px] font-medium text-muted">
+                        tvoj izbor
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm text-muted">{formatPrice(r.ukupno)}</p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  aria-label={`Zamijeni ${r.naziv} drugim artiklom`}
+                  aria-expanded={zamjenaZa === r.productId}
+                  title={izmijenjeno ? "Prvo sačuvaj ili vrati izmjene" : "Zamijeni drugim artiklom"}
+                  onClick={() => setZamjenaZa((z) => (z === r.productId ? null : r.productId))}
+                  disabled={rokIstekao || izmijenjeno || zamjena.isPending}
+                  className={cn(
+                    "rounded-full p-1.5 text-muted transition hover:bg-sand hover:text-brand-700 disabled:pointer-events-none disabled:opacity-50",
+                    zamjenaZa === r.productId && "bg-sand text-brand-700",
                   )}
-                </p>
-                <p className="text-sm text-muted">{formatPrice(r.ukupno)}</p>
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Izbaci ${r.naziv}`}
+                  onClick={() => izbaci(r.productId)}
+                  disabled={rokIstekao}
+                  className="rounded-full p-1.5 text-muted transition hover:bg-sand hover:text-red-700 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
-            <button
-              type="button"
-              aria-label={`Izbaci ${r.naziv}`}
-              onClick={() => izbaci(r.productId)}
-              disabled={rokIstekao}
-              className="shrink-0 rounded-full p-1.5 text-muted transition hover:bg-sand hover:text-red-700 disabled:pointer-events-none disabled:opacity-50"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {zamjenaZa === r.productId && (
+              <BiracZamjene
+                naziv={r.naziv}
+                stavke={dostupnaPonuda}
+                zauzeto={zamjena.isPending}
+                onIzaberi={(ubaci) => zamjena.mutate({ izbaci: r.productId, ubaci })}
+              />
+            )}
           </li>
         ))}
       </ul>
@@ -369,6 +412,63 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Izbor artikla koji ide umjesto `naziv`. Preporučene zamjene (sastavio ih je sistem za ovu
+ * sedmicu) idu prve — server ih već tako šalje. Količinu ne bira kupac: server je računa
+ * tako da vrijednost korpice ostane ista.
+ */
+function BiracZamjene({
+  naziv,
+  stavke,
+  zauzeto,
+  onIzaberi,
+}: {
+  naziv: string;
+  stavke: PonudaArtikla[];
+  zauzeto: boolean;
+  onIzaberi: (productId: string) => void;
+}) {
+  const preporucene = stavke.filter((p) => p.preporucenaZamjena);
+  const ostale = stavke.filter((p) => !p.preporucenaZamjena);
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      <p className="text-sm font-medium text-ink">Šta želiš umjesto: {naziv}?</p>
+      <p className="mb-2 text-xs text-muted">Količinu određujemo mi, da vrijednost korpice ostane ista.</p>
+      {stavke.length === 0 ? (
+        <p className="text-sm text-muted">Trenutno nema drugih artikala u ponudi.</p>
+      ) : (
+        <div className="max-h-64 space-y-1 overflow-y-auto">
+          {[...preporucene, ...ostale].map((p) => (
+            <button
+              key={p.productId}
+              type="button"
+              onClick={() => onIzaberi(p.productId)}
+              disabled={zauzeto}
+              className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm transition hover:border-brand-500 hover:bg-sand/60 disabled:pointer-events-none disabled:opacity-50"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-sand">
+                  <SmartImage src={p.imageUrl} alt={p.naziv} sizes="32px" />
+                </span>
+                <span className="truncate text-ink">{p.naziv}</span>
+                {p.preporucenaZamjena && (
+                  <span className="shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
+                    preporučeno
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 text-muted">
+                {formatPrice(p.cijena)}
+                {unitSuffix(p.jedinica)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

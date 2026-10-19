@@ -16,6 +16,7 @@ import type { RezultatGenerisanja, StatusPregleda } from "@/lib/api/contracts";
 import type { VelicinaKorpice } from "@/types/domain";
 import { narudzbeRijec } from "@/lib/orders";
 import { cn, formatPrice } from "@/lib/utils";
+import { formatMarza } from "@/lib/marza";
 
 const VELICINA_LABEL: Record<VelicinaKorpice, string> = {
   mala: "Mala",
@@ -79,9 +80,12 @@ function AdminKorpiceSadrzaj() {
   const { godina, sedmica } = izbor;
 
 
-  const [editor, setEditor] = useState<{ sadrzajId: string; korpicaNaziv: string; cilj: number } | null>(
-    null,
-  );
+  const [editor, setEditor] = useState<{
+    sadrzajId: string;
+    korpicaNaziv: string;
+    cilj: number;
+    samoPregled: boolean;
+  } | null>(null);
   const [upozorenja, setUpozorenja] = useState<RezultatGenerisanja[]>([]);
 
   // Upozorenja iz generisanja su samo odgovor POST-a (SadrzajPregled ih ne nosi), pa nemaju
@@ -109,7 +113,7 @@ function AdminKorpiceSadrzaj() {
     const idevi = new Set(rezultati.map((r) => r.korpicaId));
     setUpozorenja((prije) => [
       ...prije.filter((u) => !idevi.has(u.korpicaId)),
-      ...rezultati.filter((r) => r.upozorenje),
+      ...rezultati.filter((r) => r.upozorenje || r.bezNabavneCijene.length > 0),
     ]);
   }
 
@@ -117,7 +121,8 @@ function AdminKorpiceSadrzaj() {
   // ovu korpicu" (korpicaId postavljen) — isti endpoint, `undefined` se ne serijalizuje
   // u JSON-u, pa tijelo ispadne identično ručno pisanom zahtjevu bez tog polja.
   const generisi = useMutation({
-    mutationFn: (korpicaId?: string) => adminKorpiceApi.generisi({ godina, sedmica, korpicaId }),
+    mutationFn: (v: { korpicaId?: string; ponovo?: boolean }) =>
+      adminKorpiceApi.generisi({ godina, sedmica, korpicaId: v.korpicaId, ponovo: v.ponovo }),
     onSuccess: (rezultati) => {
       qc.invalidateQueries({ queryKey: pregledKljuc });
       primijeniRezultate(rezultati);
@@ -149,7 +154,8 @@ function AdminKorpiceSadrzaj() {
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">Korpice</h1>
           <p className="mt-1 text-sm text-muted">
-            Generiši, uredi i objavi sadržaj korpica za sedmicu, pa odštampaj pakersku listu.
+            Sistem sastavlja korpice iz sezonske ponude po cijeni i nabavnoj cijeni (čuvajući minimalnu maržu)
+            i predlaže zamjene. Uredi, objavi, pa odštampaj pakersku listu.
           </p>
         </div>
 
@@ -163,6 +169,11 @@ function AdminKorpiceSadrzaj() {
             {upozorenja.map((u) => (
               <li key={u.korpicaId}>
                 <strong>{u.korpicaNaziv}:</strong> {u.upozorenje}
+                {u.bezNabavneCijene.length > 0 && (
+                  <span className="block">
+                    Bez nabavne cijene (marža nije provjerena): {u.bezNabavneCijene.join(", ")}.
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -174,11 +185,11 @@ function AdminKorpiceSadrzaj() {
           <h2 className="font-display text-lg font-bold text-ink">Sadržaj po korpici</h2>
           <Button
             size="sm"
-            onClick={() => generisi.mutate(undefined)}
+            onClick={() => generisi.mutate({})}
             disabled={generisi.isPending}
           >
             <RefreshCw className={cn("h-4 w-4", generisi.isPending && "animate-spin")} />
-            {generisi.isPending && generisi.variables === undefined
+            {generisi.isPending && generisi.variables?.korpicaId === undefined
               ? "Generišem…"
               : "Generiši nacrte za sedmicu"}
           </Button>
@@ -219,15 +230,34 @@ function AdminKorpiceSadrzaj() {
                     </p>
                   </div>
 
+                  <div className="w-36 shrink-0 text-right" title="Nabavna vrijednost sadržaja i marža prema cijeni korpice">
+                    <p
+                      className={cn(
+                        "text-sm font-semibold",
+                        r.marza == null ? "text-muted" : r.marza < 0.25 ? "text-red-700" : "text-brand-700",
+                      )}
+                    >
+                      marža {formatMarza(r.marza)}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {r.status === "Nema"
+                        ? "—"
+                        : `nabavno ${formatPrice(r.nabavnaVrijednost)}${r.bezNabavneCijene ? ` · ${r.bezNabavneCijene} bez nab.` : ""}`}
+                    </p>
+                    {r.status !== "Nema" && (
+                      <p className="text-xs text-muted">{r.brojZamjena} zamjena</p>
+                    )}
+                  </div>
+
                   <div className="flex shrink-0 items-center gap-2">
                     {r.status === "Nema" && (
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => generisi.mutate(r.korpicaId)}
+                        onClick={() => generisi.mutate({ korpicaId: r.korpicaId })}
                         disabled={generisi.isPending}
                       >
-                        {generisi.isPending && generisi.variables === r.korpicaId
+                        {generisi.isPending && generisi.variables?.korpicaId === r.korpicaId
                           ? "Generišem…"
                           : "Generiši"}
                       </Button>
@@ -243,10 +273,26 @@ function AdminKorpiceSadrzaj() {
                               sadrzajId: r.sadrzajId!,
                               korpicaNaziv: r.korpicaNaziv,
                               cilj: r.ciljGenerisanja,
+                              samoPregled: false,
                             })
                           }
                         >
                           Izmijeni
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Obriši ovaj nacrt i sastavi ga ponovo po trenutnim cijenama, nabavnim cijenama i sezoni"
+                          onClick={() => generisi.mutate({ korpicaId: r.korpicaId, ponovo: true })}
+                          disabled={generisi.isPending}
+                        >
+                          <RefreshCw
+                            className={cn(
+                              "h-4 w-4",
+                              generisi.isPending && generisi.variables?.korpicaId === r.korpicaId && "animate-spin",
+                            )}
+                          />
+                          Ponovo
                         </Button>
                         <Button
                           size="sm"
@@ -260,8 +306,21 @@ function AdminKorpiceSadrzaj() {
                       </>
                     )}
 
-                    {(r.status === "Objavljen" || r.status === "Zakljucan") && (
-                      <span className="px-2 text-xs text-muted">—</span>
+                    {(r.status === "Objavljen" || r.status === "Zakljucan") && r.sadrzajId && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          setEditor({
+                            sadrzajId: r.sadrzajId!,
+                            korpicaNaziv: r.korpicaNaziv,
+                            cilj: r.ciljGenerisanja,
+                            samoPregled: true,
+                          })
+                        }
+                      >
+                        Pregled
+                      </Button>
                     )}
                   </div>
                 </li>
@@ -310,6 +369,10 @@ function AdminKorpiceSadrzaj() {
           <>
             <p className="text-sm text-muted">
               {pakerska.data.brojNarudzbi} {narudzbeRijec(pakerska.data.brojNarudzbi)} za ovu sedmicu.
+              {" "}Trošak nabavke:{" "}
+              <strong className="text-ink">{formatPrice(pakerska.data.nabavnaVrijednost)}</strong>
+              {pakerska.data.bezNabavneCijene > 0 &&
+                ` (bez ${pakerska.data.bezNabavneCijene} ${artikalaRijec(pakerska.data.bezNabavneCijene)} kojima nabavna nije unesena)`}
             </p>
             <div className="overflow-hidden rounded-card bg-white shadow-card">
               <ul className="divide-y divide-line">
@@ -333,9 +396,16 @@ function AdminKorpiceSadrzaj() {
                           {r.proizvodjac} · {r.selo}
                         </p>
                       </div>
-                      <p className="shrink-0 text-sm font-semibold text-ink">
-                        {r.kolicina} {r.jedinica}
-                      </p>
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-semibold text-ink">
+                          {r.kolicina} {r.jedinica}
+                        </p>
+                        {r.nabavnaCijena != null && (
+                          <p className="text-xs text-muted">
+                            {formatPrice(r.kolicina * r.nabavnaCijena)} nabavno
+                          </p>
+                        )}
+                      </div>
                     </li>
                   ))}
               </ul>
@@ -349,6 +419,7 @@ function AdminKorpiceSadrzaj() {
           sadrzajId={editor.sadrzajId}
           korpicaNaziv={editor.korpicaNaziv}
           cilj={editor.cilj}
+          samoPregled={editor.samoPregled}
           onClose={() => setEditor(null)}
         />
       )}

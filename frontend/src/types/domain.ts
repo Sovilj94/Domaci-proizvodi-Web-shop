@@ -76,6 +76,10 @@ export interface Product {
   prioritetUKorpici?: number;
   /** Mjeseci (1–12) sezone; praznina znači cijele godine. */
   mjeseci?: number[];
+  /** Samo sa admin API-ja: nabavna cijena po jedinici; odsutna = nije unesena. */
+  nabavnaCijena?: number | null;
+  /** Samo sa admin API-ja: marža (0–1) prema prodajnoj cijeni. */
+  marza?: number | null;
 }
 
 export interface DeliveryZone {
@@ -325,6 +329,28 @@ export interface SadrzajKorpice {
   stavke: StavkaSadrzaja[];
 }
 
+/** Predložena zamjena u sedmičnom sadržaju (admin pogled). */
+export interface ZamjenaSadrzaja {
+  productId: string;
+  naziv: string;
+  jedinica: Unit;
+  cijena: number;
+  nabavnaCijena?: number | null;
+  imageUrl?: string;
+}
+
+/** `AdminSadrzajDto` — sadržaj plus cijene, nabavne cijene, marža i zamjene. Samo admin. */
+export interface AdminSadrzajKorpice extends SadrzajKorpice {
+  cijenaKorpice: number;
+  vrijednost: number;
+  nabavnaVrijednost: number;
+  marza?: number | null;
+  nabavniBudzet: number;
+  minimalnaMarza: number;
+  cijene: { productId: string; jedinicnaCijena: number; nabavnaCijena?: number | null }[];
+  zamjene: ZamjenaSadrzaja[];
+}
+
 export interface Sedmica {
   godina: number;
   sedmica: number;
@@ -376,6 +402,8 @@ export interface PonudaArtikla {
   cijena: number;
   imageUrl?: string;
   izOveKorpice: boolean;
+  /** Predložena zamjena iz sadržaja te sedmice — birač zamjene je nudi prvu. */
+  preporucenaZamjena?: boolean;
 }
 
 /** `StatusPretplate` sa backenda — isti nazivi, jer DTO šalje `.ToString()`. */

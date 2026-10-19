@@ -14,6 +14,16 @@ public class KorpiceOpcije
     public decimal KoeficijentVrijednosti { get; set; } = 1.15m;
 
     /// <summary>
+    /// Najmanja marža korpice, kao udio njene cijene. 0.25 znači da nabavna vrijednost
+    /// sadržaja smije biti najviše 75% cijene korpice. Generator po tome određuje količine
+    /// artikala sa unesenom nabavnom cijenom, a kupčeva zamjena je ne smije probiti.
+    /// </summary>
+    public decimal MinimalnaMarza { get; set; } = 0.25m;
+
+    /// <summary>Koliko predloženih zamjena generator dodaje uz svaki sadržaj.</summary>
+    public int BrojZamjena { get; set; } = 4;
+
+    /// <summary>
     /// Koliko sati prije isporuke se zatvara naručivanje — SAMO rezerva za slučaj
     /// kad u bazi ne postoji nijedan <see cref="EPiljara.Domain.Entities.DeliverySlot"/>
     /// (prazna baza, ili test kojem ovo nije bitno). Dok DeliverySlot postoji, njegov

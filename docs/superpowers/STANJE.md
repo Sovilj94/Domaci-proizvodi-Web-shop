@@ -485,6 +485,37 @@ endpointi (i 403 za kupca), pakovanje do „Spakovano" (`EP-2610-0064`), zone i 
 takva pretplata svake sedmice bude preskočena (A2 mu to javi). Na produkciji provjeriti da nema pretplata na
 sakrivene korpice, ili ih ponuditi za prebacivanje na korpicu povrća.
 
+### Nabavna cijena, sastav korpica po marži i zamjene (2026-10-19) — grana `korpice-nabavna` (nespojena)
+
+Zahtjev: „nabavna cijena na proizvodu; sistem sam spaja korpice po sezonama i određuje koliko čega ide; opcije
+za zamjenu kad kupac neće neki proizvod". Sezona (`Mjeseci`), prioritet i generator su postojali od P1 — dodato je:
+
+- **Nabavna cijena** (`Product.NabavnaCijena`, null = nije unesena; migracija `NabavnaCijenaIZamjene`): forma
+  proizvoda sa maržom uživo, marža u listi proizvoda. Izlazi SAMO kroz admin DTO-e (`AdminProductDto`,
+  `AdminSadrzajDto`) — javni katalog je nema (test na tipu + provjereno uživo). Brisanje unesene: `ukloniNabavnuCijenu`.
+- **Generator po marži** (`KorpiceOpcije.MinimalnaMarza` = 0.25): nabavna vrijednost sadržaja ≤ cijena korpice ×
+  (1 − marža); količina artikla se smanji da stane u nabavni budžet. Unutar prioriteta prednost imaju artikli sa
+  boljom maržom (razredi po 10%, unutar razreda nasumično). Artikli bez nabavne se ne ograničavaju nego se navode
+  (`BezNabavneCijene`). Upozorenje kad nabavni budžet obori vrijednost ispod 95% cilja.
+- **Generiši ponovo** (`Ponovo`): briše NACRT i sastavlja iznova (objavljen se ne dira) — poslije unosa nabavnih cijena.
+- **Predložene zamjene** (tabela `ZamjeneSadrzaja`, `BrojZamjena` = 4): artikli van kutije čiji odnos
+  nabavna/prodajna ne obara maržu; prvo iz kategorija korpice, pa iz ostale sezonske ponude (povrće u oktobru i
+  novembru sve ode u kutiju). Admin ih uređuje u editoru nacrta; objava izbacuje nedostupne.
+- **Kupčeva zamjena** (`POST /account/korpice/{id}/zamijeni`, `ZamjenaUKorpici.cs`): kupac klikne ⇄ na artiklu i
+  izabere drugi (preporučene prve); server određuje količinu tako da vrijednost ostane kao sa izbačenim artiklom
+  (95–100% cilja) i odbija zamjenu koja bi kutiju gurnula preko nabavnog budžeta (`zamjena_nije_dozvoljena`,
+  poruka ne pominje maržu). Moguća samo dok nema nesačuvanih izmjena u editoru.
+- Admin Korpice: marža, nabavno i broj zamjena po korpici, „Ponovo", „Pregled" objavljenog sadržaja; pakerska
+  lista pokazuje trošak nabavke.
+
+Provjere: `dotnet test` 540/540 (15 novih), `node --test lib/marza.test.ts`, `tsc`, `npm run build` ✓. **Uživo:**
+nabavne upisane za 33 artikla (55–80% prodajne — **demo vrijednosti u dev bazi**), sedmica 47 generisana sa
+maržama 26–51% i po 4 zamjene, sedmica 43 „Mala korpica povrća" **objavljena** (nije imala sadržaj), probna
+narudžba `EP-2610-0065` → zamjena Crni luk → 0,9 l pavlake (27,94/28,24 KM) → **otkazana**.
+
+Nalaz u podacima: u oktobru i novembru u bazenu povrća ima 5–6 artikala, pa srednja i velika korpica povrća ne
+dostižu minimum ni cilj (upozorenje „premalo artikala") — treba više sezonskih artikala sa `MozeUKorpicu`.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

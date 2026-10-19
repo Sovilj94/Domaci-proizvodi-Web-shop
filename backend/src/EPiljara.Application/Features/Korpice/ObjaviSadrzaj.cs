@@ -4,6 +4,7 @@ using EPiljara.Domain.Common;
 using EPiljara.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Korpice;
 
@@ -11,11 +12,12 @@ namespace EPiljara.Application.Features.Korpice;
 /// Nacrt → Objavljen. Ponovo snima jedinične cijene i zamrzava CiljnuVrijednost,
 /// koja je od tog trenutka budžet kupčevog editora (P2).
 /// </summary>
-public record ObjaviSadrzajCommand(Guid SadrzajId) : IRequest<SadrzajDto>;
+public record ObjaviSadrzajCommand(Guid SadrzajId) : IRequest<AdminSadrzajDto>;
 
-public class ObjaviSadrzajHandler(IAppDbContext db) : IRequestHandler<ObjaviSadrzajCommand, SadrzajDto>
+public class ObjaviSadrzajHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
+    : IRequestHandler<ObjaviSadrzajCommand, AdminSadrzajDto>
 {
-    public async Task<SadrzajDto> Handle(ObjaviSadrzajCommand c, CancellationToken ct)
+    public async Task<AdminSadrzajDto> Handle(ObjaviSadrzajCommand c, CancellationToken ct)
     {
         // IgnoreQueryFilters(): StavkaSadrzaja → Product je OBAVEZNA veza (ProductId nije
         // nullable), pa EF za ThenInclude generiše INNER JOIN. Product nosi globalni
@@ -28,7 +30,9 @@ public class ObjaviSadrzajHandler(IAppDbContext db) : IRequestHandler<ObjaviSadr
         // (IsDeleted == true, IsAvailable == false), i provjera ispod ga hvata po imenu.
         var sadrzaj = await db.SedmicniSadrzaji
             .IgnoreQueryFilters()
+            .Include(s => s.Korpica)
             .Include(s => s.Stavke).ThenInclude(st => st.Product).ThenInclude(p => p!.Producer)
+            .Include(s => s.Zamjene).ThenInclude(z => z.Product)
             .FirstOrDefaultAsync(s => s.Id == c.SadrzajId, ct)
             ?? throw new NotFoundException("Sadržaj korpice nije pronađen.");
 
@@ -49,9 +53,20 @@ public class ObjaviSadrzajHandler(IAppDbContext db) : IRequestHandler<ObjaviSadr
             stavka.JedinicnaCijena = stavka.Product?.Price ?? stavka.JedinicnaCijena;
 
         sadrzaj.CiljnaVrijednost = sadrzaj.Stavke.Sum(s => s.Kolicina * s.JedinicnaCijena);
+
+        // Zamjene su ponuda, ne obaveza: nedostupna zamjena se tiho izbacuje (kupac je ne bi
+        // mogao ni uzeti), a ostalima se cijena snima ponovo, kao stavkama.
+        foreach (var z in sadrzaj.Zamjene.ToList())
+        {
+            if (z.Product is null || z.Product.IsDeleted || !z.Product.IsAvailable)
+                db.ZamjeneSadrzaja.Remove(z);
+            else
+                z.JedinicnaCijena = z.Product.Price;
+        }
+
         sadrzaj.Predji(StatusSadrzaja.Objavljen);
 
         await db.SaveChangesAsync(ct);
-        return sadrzaj.ToDto();
+        return sadrzaj.ToAdminDto(opcije.Value);
     }
 }
