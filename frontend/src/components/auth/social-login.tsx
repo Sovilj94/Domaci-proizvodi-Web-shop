@@ -108,7 +108,7 @@ export function SocialLogin({ preporukaKod }: { preporukaKod?: string } = {}) {
     return () => {
       cancelled = true;
     };
-  }, [loginWithGoogle, goHome]);
+  }, [loginWithGoogle, goHome, preporukaKod]);
 
   // Facebook SDK — we render our own button that triggers FB.login.
   useEffect(() => {
