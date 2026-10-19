@@ -88,6 +88,11 @@ public static class SedmicaHelper
     /// prvog dana isporuke u sedmici. Kad u bazi ne postoji nijedan DeliverySlot
     /// (prazna baza, ili test kojem ovo nije bitno), koristi se
     /// <see cref="KorpiceOpcije"/> kao rezerva — vidi tamo.
+    ///
+    /// Namjerno NE gleda termin koji je kupac izabrao (odluka A5, 2026-10-19): sadržaj sedmice se
+    /// zaključava i pakerska lista štampa jednom, prije prvog dana isporuke, pa i petkova narudžba
+    /// mora stići do tog istog roka. Rok po izabranom terminu bi poslije zaključavanja primao
+    /// narudžbe za već zatvorenu sedmicu.
     /// </summary>
     public static async Task<(DayOfWeek Dan, string VrijemeOd, int CutoffSati)> UcitajRokAsync(
         IAppDbContext db, KorpiceOpcije opcije, CancellationToken ct)
