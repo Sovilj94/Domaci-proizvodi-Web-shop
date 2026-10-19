@@ -104,10 +104,28 @@ public static class DbSeeder
             ["Jabuka idared"] = "#F09A9A", ["Šljiva požegača"] = "#B9A3D6", ["Kruška"] = "#D9DF98",
             ["Grožđe"] = "#C6B3DE", ["Malina"] = "#EE9FB0", ["Dunja"] = "#F2D47E", ["Orah"] = "#D6B98C",
         };
+        // Sezona po docs/sezonski-kalendar.md (Krajina): mjeseci kad je artikal domaći, svjež ili iz
+        // skladišta. Što nije ovdje (krompir, orah, mliječno, meso, med, zimnica) — cijele godine.
+        var sezone = new Dictionary<string, int[]>
+        {
+            ["Crni luk"] = [1, 2, 3, 4, 7, 8, 9, 10, 11, 12],
+            ["Mrkva"] = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12],
+            ["Kupus"] = [1, 2, 3, 6, 7, 9, 10, 11, 12],
+            ["Paradajz iz plastenika"] = [5, 6, 7, 8, 9, 10],
+            ["Babura paprika"] = [6, 7, 8, 9, 10],
+            ["Krastavac"] = [5, 6, 7, 8, 9, 10],
+            ["Malina"] = [6, 7, 8, 9],
+            ["Šljiva požegača"] = [8, 9],
+            ["Grožđe"] = [8, 9, 10],
+            ["Kruška"] = [9, 10, 11, 12],
+            ["Jabuka idared"] = [1, 2, 3, 4, 5, 10, 11, 12],
+            ["Dunja"] = [10, 11, 12],
+            ["Čvarci"] = [1, 2, 3, 11, 12],
+        };
         foreach (var p in products)
         {
             p.MozeUKorpicu = true;
-            p.Mjeseci = [];
+            p.Mjeseci = sezone.GetValueOrDefault(p.Name, []);
             p.Boja = boje.GetValueOrDefault(p.Name);
         }
         db.Products.AddRange(products);

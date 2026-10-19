@@ -513,8 +513,14 @@ nabavne upisane za 33 artikla (55–80% prodajne — **demo vrijednosti u dev ba
 maržama 26–51% i po 4 zamjene, sedmica 43 „Mala korpica povrća" **objavljena** (nije imala sadržaj), probna
 narudžba `EP-2610-0065` → zamjena Crni luk → 0,9 l pavlake (27,94/28,24 KM) → **otkazana**.
 
-Nalaz u podacima: u oktobru i novembru u bazenu povrća ima 5–6 artikala, pa srednja i velika korpica povrća ne
-dostižu minimum ni cilj (upozorenje „premalo artikala") — treba više sezonskih artikala sa `MozeUKorpicu`.
+Nalaz u podacima: katalog ima samo 7 artikala povrća (babura sa zalihom 0), pa srednja i velika korpica povrća ne
+dostižu minimum ni cilj (upozorenje „premalo artikala"). Do tada nijedan proizvod nije imao unesene mjesece —
+sve je važilo cijele godine (malina u novembru).
+
+**Sezonski kalendar** (`docs/sezonski-kalendar.md`): povrće, voće, gljive i namirnice bez sezone za Krajinu, po
+mjesecima, uz predložene Mjesece za naše proizvode i spisak šta fali za zimu i proljeće. Mjeseci su upisani u
+`DbSeeder` i u dev bazu (13 proizvoda; ostali cijele godine). Posljedica: u 11–3 povrća ima samo krompir, luk,
+mrkva i kupus — manje od 5 koliko traži mala korpica, dok se ne dodaju cvekla, praziluk, bijeli luk, celer i ostalo.
 
 ## Otvoreni nalazi, nošeni dalje
 
