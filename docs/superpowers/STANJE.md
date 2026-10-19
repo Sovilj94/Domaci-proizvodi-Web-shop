@@ -394,6 +394,25 @@ iz `ZA-URADITI.md`.
   aktivnim pretplatama nema objavljen sadržaj ciljne sedmice, svi admini dobijaju jedan mejl sa spiskom
   (`SendAlarmSadrzajaAsync`, `AlarmSadrzajaTemplate`). Svaka korpica ulazi u alarm jednom po sedmici
   (`Product.AlarmSadrzajaGodina/Sedmica`, migracija `DodajAlarmSadrzaja`). 4 testa.
+- **B7** (`df79cc3`) — kad je promo kod provjeren, pregled checkouta (zbir, ukupno, minimum zone) koristi
+  `subtotal` iz `POST /promo-kodovi/provjera` umjesto zbira iz korpe (`cijenaRobe`). Bez koda ostaje zbir korpe.
+- **B8** — **odluka, ne kvar**: `Delivered` je završni status (`Order.Transitions`), a EF upisuje apsolutnu
+  vrijednost brojača, pa ni dvostruko ni istovremeno označavanje ne može razići `BrojIsporuka` sa
+  isporukama. Razilaženje nastaje samo ručnom izmjenom baze; dugme „preračunaj" nije pravljeno.
+- **A9** (`df79cc3`) — kupčev dio, poruke API-ja i mejlovi (potvrda e-maila, potvrda narudžbe) obraćaju se sa
+  „ti". Rečenice koje bi tražile rod prepisane su bezlično („Prijava je uspjela", „ništa nije izgubljeno").
+  **Namjerno na „vi":** stranice za proizvođače (`postani-partner`, `partner-forma`, odlomak na `o-nama`)
+  — to su poslovni partneri, ne kupci.
+- **E1** (`6e0cf38`) — `components/admin/admin-ladica.tsx`: jedan omotač za devet admin ladica (8 formi +
+  editor nacrta) sa `role="dialog"`, `aria-modal`, `aria-labelledby`, Escape, fokusom u ladicu i povratkom
+  fokusa. `StopLocationDrawer` (centrirani modal) dobio iste atribute i Escape. `Field` sam dodjeljuje `id`
+  polju (`Input`/`Select`/`Textarea`/nativna polja) i veže grešku kroz `aria-describedby`; tri složena
+  polja (boja proizvoda, telefon na checkoutu, promo kod) vezana ručno.
+- **E2** — zastario: `category-rail.tsx` je uklonjen u redizajnu (R3).
+
+Provjere poslije ovih stavki: `dotnet test` 505/505, `npm test` 75/75, `tsc`, `lint`, `npm run build` ✓
+(rađen u kopiji jer je dev server na :3000 bio upaljen). **Nije provjereno uživo:** admin ladice (API
+ugašen), mejl alarma (lokalni `dotnet` ne može van — vidi C3).
 
 **U toku / sljedeće na ovoj grani:** vidi „Prijedlog redoslijeda" u `ZA-URADITI.md`. C3/D2
 (vlastiti Nominatim) i D1 (Viber) se preskaču: prvi traži uvoz mape od nekoliko desetina minuta i

@@ -13,7 +13,6 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 
 | # | Šta | Gdje | Prijedlog | Vel. |
 |---|---|---|---|---|
-| A9 | **Obraćanje „ti/vi" je nedosljedno** (npr. praćenje narudžbe vs. „Moje narudžbe"). | cijeli kupčev dio | Jedan prolaz kroz sve tekstove; dogovor: „ti" (većina sajta već tako). | M |
 
 ## B. Novac i istovremenost (rijetko, ali dira iznos)
 
@@ -21,8 +20,6 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 |---|---|---|---|---|
 | B4 | **Admin nema ekran za korekciju poena**, a poeni **nemaju rok trajanja**. `VrstaPoena.Korekcija` postoji, ekran ne. | admin, `PoeniStavka` | Ekran „Poeni kupca" (stanje, istorija, ručna korekcija sa razlogom). Istek: poslovna odluka. | M |
 | B6 | Javna provjera promo koda otkriva da li je e-mail ranije naručivao („samo prva narudžba"). Pod rate limitom. | `POST /promo-kodovi/provjera` | Prihvaćeno; ako smeta — generička poruka „kod ne važi za ovu narudžbu". | S |
-| B7 | Pregled na checkoutu i narudžba računaju subtotal **svaki u svojoj petlji** (klijent i server). Server mjerodavan. | `checkout/page.tsx`, `CreateOrder` | Pregled iz `POST /promo-kodovi/provjera` već nosi subtotal — koristiti njega. | S |
-| B8 | `BrojIsporuka` pretplate je izveden podatak — ručna promjena statusa ga može razići sa stvarnim brojem isporuka. | `Pretplata`, `BrojacIsporuka` | Admin dugme „preračunaj" ili računanje upitom pri čitanju. | S |
 
 ## C. Adrese i mapa
 
@@ -47,8 +44,6 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 
 | # | Šta | Gdje |
 |---|---|---|
-| E1 | Admin forme bez `label`/`htmlFor`, `role="dialog"`, zatvaranja na Escape — popraviti **sve odjednom**. | `utisak-form.tsx`, `producer-form.tsx`, ostale admin forme |
-| E2 | Hidratacijska greška u traci kategorija (Suspense fallback `<div>`, komponenta `<nav>`). | `category-rail.tsx` |
 | E3 | Četiri slaba testa (jedan samo provjerava da ne puca, jedan djelimično cirkularan, jedan suvišan assert, jedan tautološki). | `SedmicaZaNarudzbuTests`, `CreateOrderSedmicaTests`, `AdminKorpiceTests` |
 | E4 | Razlika „broj narudžbi vs. broj redova" na pakerskoj listi nije testirana; editor ne provjerava da je red korpica. | `AdminKorpice.cs`, `BrojNarudzbi` |
 | E5 | Klijent predviđa količinu 1 za ponovo dodat šablonski artikal (traka budžeta pokaže manje od servera). | `korpica-editor.tsx`; treba `PonudaArtiklaDto` sa šablonskom količinom |
@@ -72,11 +67,9 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 
 ## Prijedlog redoslijeda
 
-Urađeno 2026-10-19 na grani `zavrsetak` (vidi `STANJE.md`): A1–A8, A10, B1–B3, B5 (A1, A3 i A7 su
-bili zatvoreni već u redizajnu R2/R4; A5 je zatvoren kao odluka).
+Urađeno 2026-10-19 na grani `zavrsetak` (vidi `STANJE.md`): A1–A10, A2b, B1–B3, B5, B7, B8, E1, E2 (A1, A3, A7
+i E2 su bili zatvoreni već u redizajnu; A5 i B8 su zatvoreni kao odluka).
 
-1. **B8, B7** — male stvari oko pretplata i checkouta. ← *sljedeće*
-2. **A9, E1, E2** — prolazi kroz cijeli sajt (obraćanje „ti", pristupačnost admin formi, hidratacija trake kategorija).
-3. **B4** — admin ekran poena kupca.
-4. **C3/D2** — vlastiti Nominatim, pa **C1** (traži memoriju i desetine minuta uvoza; vidi F3).
-5. **D1** kad postoji ugovor sa Viber provajderom.
+1. **B4** — admin ekran poena kupca. ← *sljedeće*
+2. **C3/D2** — vlastiti Nominatim, pa **C1** (traži memoriju i desetine minuta uvoza; vidi F3).
+3. **D1** kad postoji ugovor sa Viber provajderom.
