@@ -19,7 +19,9 @@ namespace EPiljara.Application.Features.Admin;
 /// ijedne stanice na ruti tog dana i u statusu koji se još može voziti. Dispečerski ekran
 /// puni tab „Nedodijeljeno" iz ovoga. Mijenja i značenje <paramref name="Date"/> — vidi dolje.
 /// </param>
-public record GetAdminOrdersQuery(string? Status, DateTime? Date, bool Unassigned = false)
+public record GetAdminOrdersQuery(
+    string? Status, DateTime? Date, bool Unassigned = false,
+    int? Godina = null, int? Sedmica = null, string? Pretraga = null)
     : IRequest<IReadOnlyList<OrderDto>>;
 
 public class GetAdminOrdersHandler(IAppDbContext db)
@@ -51,6 +53,14 @@ public class GetAdminOrdersHandler(IAppDbContext db)
         {
             query = query.Where(o => o.Status == status);
         }
+
+        // Sedmica isporuke i pretraga (šifra, kupac, telefon, adresa) — za praćenje u admin panelu.
+        if (q.Godina is { } g && q.Sedmica is { } sed)
+            query = query.Where(o => o.Godina == g && o.Sedmica == sed);
+        var t = q.Pretraga?.Trim().ToLower();
+        if (!string.IsNullOrEmpty(t))
+            query = query.Where(o => o.Code.ToLower().Contains(t) || o.CustomerName.ToLower().Contains(t)
+                || (o.CustomerPhone != null && o.CustomerPhone.Contains(t)) || o.DeliveryAddress.ToLower().Contains(t));
 
         if (q.Unassigned)
         {

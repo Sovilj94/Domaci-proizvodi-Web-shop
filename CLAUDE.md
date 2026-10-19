@@ -788,8 +788,14 @@ using OSM tiles.
   (prijava / registracija / bez naloga, before the form) `/potvrda/[token]` (guest clicks the emailed
   link — this is what creates the order) `/narudzba/[token]` (permanent tracking page, no login)
   `/orders` `/login` `/register` `/confirm-email`. The admin panel's nav (`components/admin/admin-nav.tsx`)
-  is Pregled · Narudžbe · Proizvodi · Kategorije · Proizvođači · **Vozači** (`/admin/drivers`, full CRUD
-  through `adminApi`) · Dostava · Magacin (`/admin/settings`); `/admin/routes` stays out of it, see below.
+  is grouped (`GRUPE`): **Prodaja** — Pregled · Narudžbe (search + week filter) · Pakovanje (`/admin/pakovanje`,
+  per-box contents, “Spakovano” → `Packing`) · Kupci · Pretplate · Poeni · Promo kodovi · Ocjene; **Ponuda** —
+  Korpice · Proizvodi · Kategorije · Proizvođači; **Dostava** — Dostava · Zone i termini (`/admin/zone`; the
+  slot with the lowest day sets the whole week's cutoff) · Vozači · Magacin (`/admin/settings`); **Sadržaj sajta**
+  — Kontakt i pitanja (`/admin/sadrzaj`, table `SadrzajSajta`, read publicly by footer, /o-nama and the FAQ
+  through `useSadrzajSajta`; a null field falls back to `lib/kontakt.ts` / `lib/cesta-pitanja.ts`) · Utisci ·
+  Recepti · Analize · Novosti · Partneri. `/admin/routes` stays out of it, see below. Korpice, Pakovanje and
+  Narudžbe share the week picker `components/admin/izbor-sedmice.tsx` (`?datum=` in the URL).
 - **Checkout's address field is `AddressChooser`, not `AddressPicker`.** It shows a logged-in customer
   their previously delivered addresses (from `GET /orders/addresses`) with "Nova adresa" revealing the map;
   guests get the map straight away. Admin *Nova narudžba* still uses `AddressPicker` directly.

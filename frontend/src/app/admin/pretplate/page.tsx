@@ -85,6 +85,7 @@ export default function AdminPretplatePage() {
                   {PLAN_TEKST[p.plan]} · {formatPrice(p.cijena)} · {isporuka(p.brojIsporuka)}
                   {p.preostaloObaveze > 0 && ` · obaveza još ${p.preostaloObaveze}`} · {p.status}
                   {!p.sadrzajSpreman && p.status === "Aktivna" && " · sadržaj nije objavljen"}
+                  {p.obavijestPreskocenaSedmica && ` · javljeno da nema isporuke za ${p.obavijestPreskocenaSedmica}. sedmicu`}
                 </p>
                 <p className="text-muted">
                   {p.telefon} {p.email && `· ${p.email}`} · {p.adresa}

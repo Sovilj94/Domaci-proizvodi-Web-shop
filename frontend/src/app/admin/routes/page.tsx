@@ -9,6 +9,7 @@ import { Field, Select } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
+import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
 import type { DeliveryRoute } from "@/types/domain";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ export default function AdminRoutesPage() {
       setSelected(new Set());
       show("Ruta dodijeljena vozaču");
     },
+    onError: (err) => show(err instanceof ApiRequestError ? err.message : "Ruta nije dodijeljena", "error"),
   });
 
   const optimize = useMutation({
@@ -64,6 +66,7 @@ export default function AdminRoutesPage() {
       qc.invalidateQueries({ queryKey: ["admin", "routes", date] });
       show("Ruta optimizovana");
     },
+    onError: (err) => show(err instanceof ApiRequestError ? err.message : "Optimizacija nije uspjela", "error"),
   });
 
   const geocode = useMutation({
@@ -82,6 +85,7 @@ export default function AdminRoutesPage() {
             : "."),
       );
     },
+    onError: (err) => show(err instanceof ApiRequestError ? err.message : "Geokodiranje nije uspjelo", "error"),
   });
 
   function toggle(id: string) {

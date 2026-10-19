@@ -1,41 +1,21 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Printer, RefreshCw, TriangleAlert } from "lucide-react";
+import { Printer, RefreshCw, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { SadrzajNacrtEditor } from "@/components/admin/sadrzaj-nacrt-editor";
+import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { NAZIVI as NAZIVI_TIPA } from "@/components/korpice/tipovi-tabovi";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { RezultatGenerisanja, StatusPregleda } from "@/lib/api/contracts";
 import type { VelicinaKorpice } from "@/types/domain";
 import { narudzbeRijec } from "@/lib/orders";
-import { cn, formatDate, formatPrice } from "@/lib/utils";
-
-/** ISO broj sedmice za dati datum — isti račun kao na backendu (ISO-8601, četvrtak određuje sedmicu). */
-function isoSedmica(d: Date): { godina: number; sedmica: number } {
-  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
-  const prvi = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
-  const sedmica = Math.ceil(((t.getTime() - prvi.getTime()) / 86400000 + 1) / 7);
-  return { godina: t.getUTCFullYear(), sedmica };
-}
-
-/** Ponedjeljak–nedjelja te ISO sedmice, samo za prikaz raspona datuma u zaglavlju. */
-function raspon(d: Date): { od: Date; do: Date } {
-  const cetvrtak = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  cetvrtak.setUTCDate(cetvrtak.getUTCDate() + 4 - (cetvrtak.getUTCDay() || 7));
-  const od = new Date(cetvrtak);
-  od.setUTCDate(cetvrtak.getUTCDate() - 3);
-  const doDatum = new Date(cetvrtak);
-  doDatum.setUTCDate(cetvrtak.getUTCDate() + 3);
-  return { od, do: doDatum };
-}
+import { cn, formatPrice } from "@/lib/utils";
 
 const VELICINA_LABEL: Record<VelicinaKorpice, string> = {
   mala: "Mala",
@@ -95,20 +75,9 @@ export default function AdminKorpicePage() {
 function AdminKorpiceSadrzaj() {
   const qc = useQueryClient();
   const { show } = useToast();
-  const router = useRouter();
-  const params = useSearchParams();
+  const izbor = useIzabranaSedmica();
+  const { godina, sedmica } = izbor;
 
-  // Izabrana sedmica živi u URL-u (?datum=) kao sidro — bilo koji dan te ISO sedmice radi,
-  // "Sljedeća/Prethodna" samo pomjeraju sidro za 7 dana, bez ručnog računanja prelaska
-  // godine/broja sedmice (to već radi `isoSedmica`, isto kao backend).
-  const anchor = useMemo(() => {
-    const raw = params.get("datum");
-    const d = raw ? new Date(`${raw}T00:00:00Z`) : null;
-    return d && !Number.isNaN(d.getTime()) ? d : new Date();
-  }, [params]);
-
-  const { godina, sedmica } = useMemo(() => isoSedmica(anchor), [anchor]);
-  const { od, do: doDatum } = useMemo(() => raspon(anchor), [anchor]);
 
   const [editor, setEditor] = useState<{ sadrzajId: string; korpicaNaziv: string; cilj: number } | null>(
     null,
@@ -121,19 +90,6 @@ function AdminKorpiceSadrzaj() {
     setUpozorenja([]);
   }, [godina, sedmica]);
 
-  function pomjeri(dani: number) {
-    const sljedeci = new Date(anchor);
-    sljedeci.setUTCDate(sljedeci.getUTCDate() + dani);
-    const next = new URLSearchParams(params.toString());
-    next.set("datum", sljedeci.toISOString().slice(0, 10));
-    router.replace(`?${next}`, { scroll: false });
-  }
-
-  function idiNaDanas() {
-    const next = new URLSearchParams(params.toString());
-    next.delete("datum");
-    router.replace(next.toString() ? `?${next}` : "?", { scroll: false });
-  }
 
   const pregledKljuc = ["admin", "korpice", "pregled", godina, sedmica] as const;
   const pakerskaKljuc = ["admin", "korpice", "pakerska", godina, sedmica] as const;
@@ -197,35 +153,7 @@ function AdminKorpiceSadrzaj() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => pomjeri(-7)}
-            aria-label="Prethodna sedmica"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-muted transition hover:bg-sand hover:text-ink"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div className="w-36 text-center">
-            <p className="text-sm font-semibold text-ink">
-              Sedmica {sedmica} · {godina}
-            </p>
-            <p className="text-xs text-muted">
-              {formatDate(od.toISOString())} – {formatDate(doDatum.toISOString())}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => pomjeri(7)}
-            aria-label="Sljedeća sedmica"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-muted transition hover:bg-sand hover:text-ink"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <Button variant="secondary" size="sm" onClick={idiNaDanas}>
-            Danas
-          </Button>
-        </div>
+        <IzborSedmice s={izbor} />
       </div>
 
       {upozorenja.length > 0 && (

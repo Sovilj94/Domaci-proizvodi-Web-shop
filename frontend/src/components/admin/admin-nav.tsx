@@ -5,13 +5,16 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChefHat,
+  FileText,
   Coins,
   FlaskConical,
   Handshake,
   LayoutDashboard,
   LogOut,
   Mail,
+  MapPinned,
   Package,
+  PackageCheck,
   Quote,
   Repeat,
   ShoppingBag,
@@ -23,6 +26,7 @@ import {
   TicketPercent,
   Tractor,
   Truck,
+  UserRound,
   Users,
   Warehouse,
   type LucideIcon,
@@ -43,26 +47,67 @@ interface NavItem {
   badge?: BadgeVrsta;
 }
 
-const ITEMS: NavItem[] = [
-  { href: "/admin/dashboard", label: "Pregled", icon: LayoutDashboard },
-  { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag, badge: "narudzbe" },
-  { href: "/admin/products", label: "Proizvodi", icon: Package },
-  { href: "/admin/korpice", label: "Korpice", icon: ShoppingBasket },
-  { href: "/admin/pretplate", label: "Pretplate", icon: Repeat },
-  { href: "/admin/categories", label: "Kategorije", icon: Tags },
-  { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
-  { href: "/admin/utisci", label: "Utisci", icon: Quote },
-  { href: "/admin/ocjene", label: "Ocjene", icon: Star },
-  { href: "/admin/promo-kodovi", label: "Promo kodovi", icon: TicketPercent },
-  { href: "/admin/poeni", label: "Poeni", icon: Coins },
-  { href: "/admin/recepti", label: "Recepti", icon: ChefHat },
-  { href: "/admin/analize", label: "Analize", icon: FlaskConical },
-  { href: "/admin/partneri", label: "Partneri", icon: Handshake, badge: "partneri" },
-  { href: "/admin/novosti", label: "Novosti", icon: Mail },
-  { href: "/admin/drivers", label: "Vozači", icon: Users },
-  { href: "/admin/dostava", label: "Dostava", icon: Truck },
-  { href: "/admin/settings", label: "Magacin", icon: Warehouse },
+/** Meni po cjelinama — redoslijed prati sedmični posao: prodaja → ponuda → dostava → sadržaj sajta. */
+const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
+  {
+    naziv: "Prodaja",
+    stavke: [
+      { href: "/admin/dashboard", label: "Pregled", icon: LayoutDashboard },
+      {
+        href: "/admin/orders",
+        label: "Narudžbe",
+        icon: ShoppingBag,
+        badge: "narudzbe",
+      },
+      { href: "/admin/pakovanje", label: "Pakovanje", icon: PackageCheck },
+      { href: "/admin/kupci", label: "Kupci", icon: UserRound },
+      { href: "/admin/pretplate", label: "Pretplate", icon: Repeat },
+      { href: "/admin/poeni", label: "Poeni", icon: Coins },
+      {
+        href: "/admin/promo-kodovi",
+        label: "Promo kodovi",
+        icon: TicketPercent,
+      },
+      { href: "/admin/ocjene", label: "Ocjene", icon: Star },
+    ],
+  },
+  {
+    naziv: "Ponuda",
+    stavke: [
+      { href: "/admin/korpice", label: "Korpice", icon: ShoppingBasket },
+      { href: "/admin/products", label: "Proizvodi", icon: Package },
+      { href: "/admin/categories", label: "Kategorije", icon: Tags },
+      { href: "/admin/producers", label: "Proizvođači", icon: Tractor },
+    ],
+  },
+  {
+    naziv: "Dostava",
+    stavke: [
+      { href: "/admin/dostava", label: "Dostava", icon: Truck },
+      { href: "/admin/zone", label: "Zone i termini", icon: MapPinned },
+      { href: "/admin/drivers", label: "Vozači", icon: Users },
+      { href: "/admin/settings", label: "Magacin", icon: Warehouse },
+    ],
+  },
+  {
+    naziv: "Sadržaj sajta",
+    stavke: [
+      { href: "/admin/sadrzaj", label: "Kontakt i pitanja", icon: FileText },
+      { href: "/admin/utisci", label: "Utisci", icon: Quote },
+      { href: "/admin/recepti", label: "Recepti", icon: ChefHat },
+      { href: "/admin/analize", label: "Analize", icon: FlaskConical },
+      { href: "/admin/novosti", label: "Novosti", icon: Mail },
+      {
+        href: "/admin/partneri",
+        label: "Partneri",
+        icon: Handshake,
+        badge: "partneri",
+      },
+    ],
+  },
 ];
+
+const ITEMS: NavItem[] = GRUPE.flatMap((g) => g.stavke);
 
 function useActive() {
   const pathname = usePathname();
@@ -104,7 +149,15 @@ function badgeLabel(vrsta: BadgeVrsta, count: number): string {
     : `${count} ${prijaveRijec(count)}`;
 }
 
-function PendingBadge({ count, label, className }: { count: number; label: string; className?: string }) {
+function PendingBadge({
+  count,
+  label,
+  className,
+}: {
+  count: number;
+  label: string;
+  className?: string;
+}) {
   if (count <= 0) return null;
   return (
     <span
@@ -125,7 +178,7 @@ export function AdminSidebar() {
   const counts = useBadgeCounts();
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink text-white lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink text-white lg:flex print:hidden">
       <div className="flex h-16 items-center gap-2 px-5">
         <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-500">
           <Sprout className="h-4 w-4" />
@@ -136,28 +189,37 @@ export function AdminSidebar() {
         </span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
-              isActive(item.href)
-                ? "bg-brand-600 text-white"
-                : "text-white/70 hover:bg-white/10 hover:text-white",
-            )}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.label}
-            {item.badge && (
-              <PendingBadge
-                count={counts[item.badge]}
-                label={badgeLabel(item.badge, counts[item.badge])}
-                className="ml-auto"
-              />
-            )}
-          </Link>
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+        {GRUPE.map((g) => (
+          <div key={g.naziv}>
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-white/40">
+              {g.naziv}
+            </p>
+            <div className="space-y-0.5">
+              {g.stavke.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
+                    isActive(item.href)
+                      ? "bg-brand-600 text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white",
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                  {item.badge && (
+                    <PendingBadge
+                      count={counts[item.badge]}
+                      label={badgeLabel(item.badge, counts[item.badge])}
+                      className="ml-auto"
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
@@ -194,10 +256,11 @@ export function AdminMobileBar() {
   const counts = useBadgeCounts();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden print:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <span className="font-display font-bold">
-          E piljara <span className="text-xs font-medium text-white/50">admin</span>
+          E piljara{" "}
+          <span className="text-xs font-medium text-white/50">admin</span>
         </span>
         {/*
           Na telefonu izlaza u shop nije ni bilo — sidebar sa tim linkom je skriven
@@ -234,7 +297,10 @@ export function AdminMobileBar() {
             <item.icon className="h-4 w-4" />
             {item.label}
             {item.badge && (
-              <PendingBadge count={counts[item.badge]} label={badgeLabel(item.badge, counts[item.badge])} />
+              <PendingBadge
+                count={counts[item.badge]}
+                label={badgeLabel(item.badge, counts[item.badge])}
+              />
             )}
           </Link>
         ))}

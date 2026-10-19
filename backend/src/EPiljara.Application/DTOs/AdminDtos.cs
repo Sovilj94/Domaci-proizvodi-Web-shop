@@ -162,4 +162,120 @@ public class AdminPretplataDto
 
     /// <summary>Ima li ova korpica objavljen sadržaj za ciljnu sedmicu.</summary>
     public bool SadrzajSpreman { get; init; }
+    /// <summary>A2: zadnja sedmica za koju je kupac dobio mejl „ove sedmice nema isporuke".</summary>
+    public int? ObavijestPreskocenaGodina { get; init; }
+    public int? ObavijestPreskocenaSedmica { get; init; }
+}
+
+/// <summary>`GET /admin/pakovanje` — sedmica razložena po kutiji.</summary>
+public record PakovanjeDto
+{
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
+    public IReadOnlyList<PakovanjeNarudzbaDto> Narudzbe { get; init; } = [];
+    /// <summary>Zbir dodataka iz Špajza (pakerska lista sabira samo sadržaj korpica).</summary>
+    public IReadOnlyList<PakovanjeStavkaDto> ZbirDodataka { get; init; } = [];
+}
+
+public record PakovanjeNarudzbaDto
+{
+    public Guid Id { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public string Kupac { get; init; } = string.Empty;
+    public string? Telefon { get; init; }
+    public string Adresa { get; init; } = string.Empty;
+    public string? Zona { get; init; }
+    /// <summary>0 = nedjelja … 6 = subota, kao DeliverySlot.</summary>
+    public int? DanIsporuke { get; init; }
+    public string? Termin { get; init; }
+    public string? Napomena { get; init; }
+    public bool Pretplatna { get; init; }
+    public decimal Ukupno { get; init; }
+    public IReadOnlyList<PakovanjeKorpicaDto> Korpice { get; init; } = [];
+    public IReadOnlyList<PakovanjeStavkaDto> Dodaci { get; init; } = [];
+}
+
+public record PakovanjeKorpicaDto
+{
+    public string Naziv { get; init; } = string.Empty;
+    public decimal Komada { get; init; }
+    public IReadOnlyList<PakovanjeStavkaDto> Sadrzaj { get; init; } = [];
+}
+
+public record PakovanjeStavkaDto
+{
+    public string Naziv { get; init; } = string.Empty;
+    public decimal Kolicina { get; init; }
+    public string Jedinica { get; init; } = string.Empty;
+    public bool DodaoKupac { get; init; }
+}
+
+/// <summary>`GET /admin/kupci`.</summary>
+public record AdminKupacDto
+{
+    public Guid Id { get; init; }
+    public string Ime { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public string? Telefon { get; init; }
+    public bool EmailPotvrdjen { get; init; }
+    public DateTime Registrovan { get; init; }
+    public int BrojNarudzbi { get; init; }
+    /// <summary>Zbir isporučenih narudžbi u KM.</summary>
+    public decimal Isporuceno { get; init; }
+    public DateTime? ZadnjaNarudzba { get; init; }
+    public int AktivnePretplate { get; init; }
+    public int Poeni { get; init; }
+}
+
+public record AdminKupacDetaljDto
+{
+    public Guid Id { get; init; }
+    public string Ime { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public string? Telefon { get; init; }
+    public bool EmailPotvrdjen { get; init; }
+    public DateTime Registrovan { get; init; }
+    public int Poeni { get; init; }
+    public IReadOnlyList<string> Adrese { get; init; } = [];
+    public IReadOnlyList<AdminKupacNarudzbaDto> Narudzbe { get; init; } = [];
+    public IReadOnlyList<AdminKupacPretplataDto> Pretplate { get; init; } = [];
+}
+
+public record AdminKupacNarudzbaDto
+{
+    public Guid Id { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public decimal Ukupno { get; init; }
+    public DateTime Kreirana { get; init; }
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
+    public bool Pretplatna { get; init; }
+}
+
+public record AdminKupacPretplataDto
+{
+    public Guid Id { get; init; }
+    public string Korpica { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public string Plan { get; init; } = string.Empty;
+    public int BrojIsporuka { get; init; }
+}
+
+/// <summary>`GET /sadrzaj-sajta` — null polje znači „sajt koristi ugrađeni tekst".</summary>
+public record SadrzajSajtaDto
+{
+    public string? Telefon { get; init; }
+    public string? Email { get; init; }
+    public string? Adresa { get; init; }
+    public string? Podrucje { get; init; }
+    public IReadOnlyList<PitanjeDto>? Pitanja { get; init; }
+    public DateTime? Izmijenjeno { get; init; }
+}
+
+public record PitanjeDto
+{
+    public string Pitanje { get; init; } = string.Empty;
+    public string Odgovor { get; init; } = string.Empty;
 }

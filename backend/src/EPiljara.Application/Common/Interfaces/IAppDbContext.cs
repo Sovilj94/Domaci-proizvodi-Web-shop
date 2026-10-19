@@ -35,6 +35,7 @@ public interface IAppDbContext
     /// <summary>Utisci kupaca za početnu — vidi Utisak entitet.</summary>
     DbSet<Utisak> Utisci { get; }
     DbSet<PrijavaNovosti> PrijaveNovosti { get; }
+    DbSet<SadrzajSajta> SadrzajSajta { get; }
     DbSet<OcjenaIsporuke> OcjeneIsporuke { get; }
 
     /// <summary>Recepti i njihovi sastojci — vidi Recept entitet.</summary>

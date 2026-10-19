@@ -398,8 +398,9 @@ export default function CheckoutPage() {
                 </p>
               </div>
 
-              <Field label="Ulica" required error={errors.deliveryAddress?.[0]}>
+              <Field label="Ulica" htmlFor="checkout-ulica" required error={errors.deliveryAddress?.[0]}>
                 <AddressChooser
+                  id="checkout-ulica"
                   value={form.ulica}
                   onChange={handleUlicaChange}
                   savedAddresses={savedAddresses}

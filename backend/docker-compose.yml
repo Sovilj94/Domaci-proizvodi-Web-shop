@@ -5,6 +5,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: epiljara-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: epiljara
       POSTGRES_PASSWORD: epiljara_dev_lozinka

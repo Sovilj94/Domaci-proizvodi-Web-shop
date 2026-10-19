@@ -426,6 +426,65 @@ može van — vidi C3).
 (vlastiti Nominatim) i D1 (Viber) se preskaču: prvi traži uvoz mape od nekoliko desetina minuta i
 memoriju koje ovaj računar nema (F3), drugi traži ugovor sa provajderom.
 
+### Pregled poslije spajanja (2026-10-19) — grana `pregled-popravke`
+
+`zavrsetak` je spojen u `main` (`3a1935e`) i pushovan. Zatim je cijeli sistem pokrenut uživo (API + Postgres +
+Next dev) i provjeren:
+
+- **API uživo:** obje nove migracije primijenjene pri startu. Javni, kupčevi, admin i vozački endpointi
+  odgovaraju. Prošao je cijeli tok: admin objavi sadržaj sedmice 43 → Marko naruči srednju korpicu povrća
+  (`EP-2610-0063`, 38 KM) → Confirmed → Packing → OutForDelivery → Delivered (nedozvoljen prelaz 400) →
+  +35 poena → ocjena. Korekcija poena nad Postgresom radi (transakcija + `FOR UPDATE`), kao i odbijanje
+  ispod nule i validacija. Rok je tačan po ljetnom i zimskom vremenu (A4).
+- **U pregledaču:** `/admin/poeni` (ladica, fokus, Escape, labele), forma utisaka (dijalog, fokus se vraća na
+  dugme), korpica, checkout i „Moji poeni" — bez grešaka u konzoli.
+
+**Popravljeno:**
+- **Neispravno ili prazno JSON tijelo davalo je 500 na gotovo svim POST/PUT endpointima** (akcija je dobijala
+  `null`). Novi globalni `NeispravnoTijeloFilter` vraća 400 `invalid_body`.
+- Labela „Ulica" na checkoutu i „Adresa" na admin novoj narudžbi nisu bile vezane za polje birača adrese
+  (`AddressChooser` sada prosljeđuje `id`). Sačuvane adrese su `radiogroup`.
+- Dva teksta koja su pretpostavljala muški rod („Preporučio si", „je primio prvu isporuku") prepisana bezlično.
+
+**Okruženje (nije kod):** Docker engine je visio (`docker version` bez odgovora), pa API nije mogao do baze.
+Restartovan je Docker Desktop. `epiljara-postgres` nema `restart: unless-stopped` i ne diže se sam (vidi
+prijedlog u odgovoru). Next dev server je pao („Jest worker … child process exceptions", malo slobodne
+memorije), pa je restartovan sa čistim `.next`.
+
+**Dev baza:** sadržaj sedmice 43 objavljen za srednju korpicu povrća; narudžba `EP-2610-0063` (Marko)
+isporučena i ocijenjena; Marko ima 71 poen (dvije probne korekcije +15/−15 se poništavaju).
+
+### Admin panel usklađen sa novim sajtom (2026-10-19) — grana `admin-panel` (na `pregled-popravke`)
+
+Zahtjev: „da se sve može unositi kroz admin panel, pratiti, pakovati". Popis je pokazao pet rupa, sve zatvorene:
+
+- **Pakovanje** (`/admin/pakovanje`, `GET /admin/pakovanje`, `Features/Admin/Pakovanje.cs`): sedmica razložena
+  po kutiji — sadržaj korpice kakav ga je kupac ostavio (izbor kupca označen), dodaci iz Špajza, napomena,
+  termin, iznos pouzećem; filteri za pakovanje/spakovano i po danu; „Spakovano" (Pending se prvo potvrdi) →
+  `Packing`, „Predato vozaču" → `OutForDelivery`; štampa (meni se ne štampa). Ima i **zbir Špajz dodataka** —
+  pakerska lista sabira samo sadržaj korpica, pa nabavka do sada nije vidjela med, sir, ajvar.
+- **Zone i termini** (`/admin/zone`, `admin/zone`, `admin/termini`, `AdminDostava.cs`): zona se dodaje, mijenja
+  i gasi (ne briše se); termin se dodaje, mijenja, a briše samo ako ga ne koristi nijedna narudžba ni pretplata
+  i nije jedini. Forma upozorava da termin sa najranijim danom određuje rok svima.
+- **Kupci** (`/admin/kupci`, `AdminKupci.cs`): pretraga, broj narudžbi, isporučeno u KM, pretplate, poeni,
+  zadnja narudžba; detalj sa adresama, pretplatama i narudžbama (link vodi na narudžbu u adminu).
+- **Narudžbe**: pretraga (šifra, kupac, telefon, adresa — i kroz `?pretraga=`) i filter po sedmici isporuke.
+- **Kontakt i česta pitanja** (`/admin/sadrzaj`, tabela `SadrzajSajta`, migracija `DodajSadrzajSajta`, javno
+  `GET /sadrzaj-sajta`): telefon, e-mail, adresa, područje i pitanja sa oznakama `{rok}`, `{isporuka}`,
+  `{popustNedjeljna}`, `{popustTriMjeseca}`. Dok admin ne sačuva, sajt prikazuje ugrađene tekstove.
+- Meni je grupisan (Prodaja / Ponuda / Dostava / Sadržaj sajta); Korpice, Pakovanje i Narudžbe dijele izbor
+  sedmice (`izbor-sedmice.tsx`). Prije toga, na `pregled-popravke`: greške servera se sada prikazuju na statusu
+  narudžbe, rutama i dostupnosti proizvoda, a `/admin/pretplate` pokazuje poslato obavještenje o preskočenoj sedmici.
+
+Provjere: `dotnet test` 525/525 (11 novih), `npm test` 77/77, `tsc`, `lint`, `npm run build` ✓. **Uživo:** svi novi
+endpointi (i 403 za kupca), pakovanje do „Spakovano" (`EP-2610-0064`), zone i termini (duplikat 409, loš termin
+400, zauzet termin 409), kupci i link na narudžbu, kontakt i pitanje izmijenjeni u adminu pa viđeni na početnoj
+(zatim vraćeni na ugrađene). Popravljen usput: link za poziv iz admin telefona (`kontaktIz`, test).
+
+**Nalaz u dev podacima:** Marko ima aktivnu pretplatu na „Malu domaćinsku korpicu", koja je od R2 sakrivena —
+takva pretplata svake sedmice bude preskočena (A2 mu to javi). Na produkciji provjeriti da nema pretplata na
+sakrivene korpice, ili ih ponuditi za prebacivanje na korpicu povrća.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

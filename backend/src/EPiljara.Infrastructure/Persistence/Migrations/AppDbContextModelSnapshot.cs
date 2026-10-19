@@ -1231,6 +1231,39 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("RouteStops");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.SadrzajSajta", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Adresa")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("Izmijenjeno")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PitanjaJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Podrucje")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Telefon")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SadrzajSajta", (string)null);
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.SedmicniSadrzaj", b =>
                 {
                     b.Property<Guid>("Id")

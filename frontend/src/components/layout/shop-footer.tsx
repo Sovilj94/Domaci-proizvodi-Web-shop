@@ -3,7 +3,7 @@ import { Logo } from "@/components/layout/logo";
 import { FooterRok } from "@/components/layout/footer-rok";
 import { PrijavaNovosti } from "@/components/layout/prijava-novosti";
 import { PismoPrekidac } from "@/components/pismo/pismo-prekidac";
-import { KONTAKT } from "@/lib/kontakt";
+import { KontaktEmail, KontaktPolje, KontaktTelefon } from "@/components/layout/kontakt";
 
 const LINKOVI = [
   { href: "/o-nama", naziv: "O nama" },
@@ -49,13 +49,16 @@ export function ShopFooter() {
           <div className="space-y-1.5 text-sm text-muted sm:text-right">
             <p>
               Kontakt:{" "}
-              <a href={KONTAKT.telefonHref} translate="no" className="text-ink underline underline-offset-2 hover:text-honey-500">
-                {KONTAKT.telefon}
-              </a>
+              <KontaktTelefon className="text-ink underline underline-offset-2 hover:text-honey-500" />
             </p>
-            <p>{KONTAKT.adresa}</p>
             <p>
-              © {new Date().getFullYear()} E piljara · {KONTAKT.podrucje}
+              <KontaktEmail className="text-ink underline underline-offset-2 hover:text-honey-500" />
+            </p>
+            <p>
+              <KontaktPolje polje="adresa" />
+            </p>
+            <p>
+              © {new Date().getFullYear()} E piljara · <KontaktPolje polje="podrucje" />
             </p>
           </div>
         </div>

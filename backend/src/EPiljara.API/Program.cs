@@ -48,7 +48,7 @@ builder.Services.AddHostedService<PretplatneNarudzbeService>();
 
 // ----- Controllers + JSON envelope -----
 builder.Services
-    .AddControllers()
+    .AddControllers(o => o.Filters.Add<EPiljara.API.Middleware.NeispravnoTijeloFilter>())
     .AddJsonOptions(o =>
         o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull);
 
