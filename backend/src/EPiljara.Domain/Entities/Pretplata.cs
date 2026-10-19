@@ -56,6 +56,13 @@ public class Pretplata : Entity
     public int ObavezaIsporuka { get; set; }
 
     /// <summary>
+    /// Sedmica za koju je kupac obaviješten da mu je isporuka preskočena (A2) — da obavještenje
+    /// ode tačno jednom, iako posao prolazi svakih 15 minuta.
+    /// </summary>
+    public int? ObavijestPreskocenaGodina { get; set; }
+    public int? ObavijestPreskocenaSedmica { get; set; }
+
+    /// <summary>
     /// Prva sedmica u kojoj pretplata ponovo radi. Dok je ciljna sedmica manja od ove,
     /// posao preskače. null kad pauze nema.
     /// </summary>

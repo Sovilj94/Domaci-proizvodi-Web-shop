@@ -36,6 +36,7 @@ public class PretplatneNarudzbeTests
         public Product Korpica { get; private set; } = null!;
         public int Godina { get; private set; }
         public int Sedmica { get; private set; }
+        public FakeEmail Mejl { get; } = new();
 
         private Scena(TestDb t) => _t = t;
 
@@ -115,6 +116,7 @@ public class PretplatneNarudzbeTests
             PretplateOpcije? opcije = null, bool mediatorPuca = false, Guid? pucaZa = null) =>
             new(Db,
                 new FakeMediator(Db, opcije ?? Opcije(), mediatorPuca, pucaZa),
+                Mejl,
                 Options.Create(new KorpiceOpcije()),
                 Options.Create(opcije ?? Opcije()),
                 NullLogger<NapraviPretplatneNarudzbeHandler>.Instance);
@@ -387,5 +389,52 @@ public class PretplatneNarudzbeTests
         s.Db.ChangeTracker.Clear();
         var poslije = await s.Db.Pretplate.AsNoTracking().FirstAsync();
         Assert.Equal(s.Sedmica, poslije.PoslednjaSedmica);
+    }
+
+    // ---- A2: obavještenje o preskočenoj sedmici ----
+
+    /// <summary>Pretplata postoji od prije roka prethodne sedmice, a za tu sedmicu narudžba nije nastala.</summary>
+    private static async Task PripremiProsluSedmicuAsync(Scena s)
+    {
+        var red = await s.Db.Pretplate.FirstAsync(x => x.Id == s.Pretplata.Id);
+        red.CreatedAt = DateTime.UtcNow.AddDays(-30);
+        await s.Db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Preskocena_sedmica_salje_jedno_obavjestenje()
+    {
+        using var s = await Scena.SpremiAsync();
+        await PripremiProsluSedmicuAsync(s);
+
+        await s.ProlazAsync();
+        await s.ProlazAsync();
+
+        Assert.Single(s.Mejl.PreskoceneSedmice);
+        var (prethGodina, prethSedmica) = SedmicaHelper.Pomjeri(s.Godina, s.Sedmica, -1);
+        var red = await s.Db.Pretplate.AsNoTracking().FirstAsync(x => x.Id == s.Pretplata.Id);
+        Assert.Equal(prethGodina, red.ObavijestPreskocenaGodina);
+        Assert.Equal(prethSedmica, red.ObavijestPreskocenaSedmica);
+    }
+
+    [Fact]
+    public async Task Nova_pretplata_ne_dobija_obavjestenje_za_sedmicu_prije_nego_sto_je_postojala()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        await s.ProlazAsync();
+
+        Assert.Empty(s.Mejl.PreskoceneSedmice);
+    }
+
+    [Fact]
+    public async Task Pauzirana_pretplata_ne_dobija_obavjestenje()
+    {
+        using var s = await Scena.SpremiAsync(status: StatusPretplate.Pauzirana);
+        await PripremiProsluSedmicuAsync(s);
+
+        await s.ProlazAsync();
+
+        Assert.Empty(s.Mejl.PreskoceneSedmice);
     }
 }

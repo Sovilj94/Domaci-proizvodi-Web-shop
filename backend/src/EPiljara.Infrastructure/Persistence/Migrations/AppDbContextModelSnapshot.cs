@@ -823,6 +823,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<int>("ObavezaIsporuka")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ObavijestPreskocenaGodina")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ObavijestPreskocenaSedmica")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("OtkazanaU")
                         .HasColumnType("timestamp with time zone");
 

@@ -45,6 +45,16 @@ public class SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> l
         return SendHtmlAsync(user.Email, naslov, html, "potvrda email adrese", cancellationToken);
     }
 
+    public Task SendPreskocenaIsporukaAsync(User kupac, string korpica, DateTime isporuka, bool korpicaUPonudi = true, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(kupac.Email)) return Task.CompletedTask;
+        var baseUrl = (config["App:BaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var (naslov, html) = PismoPoruke.Primijeni(
+            kupac.Pismo, "Ove sedmice nema isporuke — E piljara",
+            PreskocenaIsporukaTemplate.Build(kupac, korpica, isporuka, $"{baseUrl}/moj-nalog/pretplate", korpicaUPonudi));
+        return SendHtmlAsync(kupac.Email, naslov, html, "preskočena isporuka", cancellationToken);
+    }
+
     // Za razliku od potvrde narudžbe, ovaj mejl ne smije tiho pasti: bez njega
     // kupac nema nijedan način da potvrdi, a narudžba nikad ne nastane. Zato
     // izuzetak ide naviše i handler odbija zahtjev.

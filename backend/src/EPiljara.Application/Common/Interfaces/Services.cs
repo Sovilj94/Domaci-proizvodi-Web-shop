@@ -40,6 +40,9 @@ public interface IEmailService
 
     /// <summary>Šalje gostu link za potvrdu narudžbe. Link se gradi iz tokena zahtjeva.</summary>
     Task SendGuestOrderRequestAsync(GuestOrderRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>A2: pretplatniku ove sedmice nije poslata korpica (sadržaj nije objavljen ili korpica nije u ponudi).</summary>
+    Task SendPreskocenaIsporukaAsync(User kupac, string korpica, DateTime isporuka, bool korpicaUPonudi = true, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Input for route optimization — one entry per delivery stop.</summary>

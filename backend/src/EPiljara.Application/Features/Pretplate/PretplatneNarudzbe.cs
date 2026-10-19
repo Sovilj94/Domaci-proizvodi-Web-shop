@@ -23,6 +23,7 @@ public record NapraviPretplatneNarudzbeCommand : IRequest<int>;
 public class NapraviPretplatneNarudzbeHandler(
     IAppDbContext db,
     IMediator mediator,
+    IEmailService email,
     IOptions<KorpiceOpcije> korpiceOpcije,
     IOptions<PretplateOpcije> pretplateOpcije,
     ILogger<NapraviPretplatneNarudzbeHandler> log)
@@ -38,6 +39,10 @@ public class NapraviPretplatneNarudzbeHandler(
         var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, korpiceOpcije.Value, ct);
         var (godina, sedmica) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijemeOd, cutoff);
         var rok = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd).AddHours(-cutoff);
+
+        // A2 prvo: prethodna sedmica je sigurno zatvorena (njen rok je prošao), pa se sad zna
+        // kome je stvarno preskočena. Nezavisno od prozora ispod.
+        await ObavijestiOPreskocenimAsync(godina, sedmica, dan, vrijemeOd, cutoff, ct);
 
         // Prerano: narudžba se pravi tek u prozoru od `SatiUnaprijed` prije roka, da kupac
         // ima vremena da pauzira ili otkaže prije nego što narudžba uopšte nastane.
@@ -74,6 +79,45 @@ public class NapraviPretplatneNarudzbeHandler(
         }
 
         return napravljeno;
+    }
+
+    /// <summary>
+    /// A2: pretplatniku čija je prethodna sedmica prošla bez narudžbe (sadržaj nije objavljen do roka,
+    /// korpica nije u ponudi, ili je obrada pukla) javlja se mejlom — jednom po sedmici. Ne javlja
+    /// se pauziranoj, otkazanoj ni pretplati koja tada još nije postojala.
+    /// </summary>
+    private async Task ObavijestiOPreskocenimAsync(
+        int godina, int sedmica, DayOfWeek dan, string vrijemeOd, int cutoff, CancellationToken ct)
+    {
+        var (pg, ps) = SedmicaHelper.Pomjeri(godina, sedmica, -1);
+        var isporuka = SedmicaHelper.DatumIsporuke(pg, ps, dan, vrijemeOd);
+        var rokProsle = isporuka.AddHours(-cutoff);
+
+        var kandidati = await db.Pretplate
+            .Include(p => p.Product)
+            .Include(p => p.User)
+            .Where(p => p.Status == StatusPretplate.Aktivna && p.CreatedAt < rokProsle
+                && !(p.ObavijestPreskocenaGodina == pg && p.ObavijestPreskocenaSedmica == ps)
+                && !db.Orders.Any(o => o.PretplataId == p.Id && o.Godina == pg && o.Sedmica == ps))
+            .ToListAsync(ct);
+
+        foreach (var p in kandidati)
+        {
+            if (p.User is null) continue;
+            try
+            {
+                await email.SendPreskocenaIsporukaAsync(
+                    p.User, p.Product?.Name ?? "korpica", isporuka, p.Product?.IsAvailable ?? false, ct);
+                p.ObavijestPreskocenaGodina = pg;
+                p.ObavijestPreskocenaSedmica = ps;
+                await db.SaveChangesAsync(ct);
+                log.LogInformation("Pretplata {Id}: kupac obaviješten o preskočenoj sedmici {G}/{S}.", p.Id, pg, ps);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                log.LogError(ex, "Pretplata {Id}: obavještenje o preskočenoj sedmici nije poslato.", p.Id);
+            }
+        }
     }
 
     private async Task<bool> ObradiAsync(Pretplata p, int godina, int sedmica, CancellationToken ct)

@@ -28,6 +28,12 @@ public class LoggingEmailService(IConfiguration config, ILogger<LoggingEmailServ
         return Task.CompletedTask;
     }
 
+    public Task SendPreskocenaIsporukaAsync(User kupac, string korpica, DateTime isporuka, bool korpicaUPonudi = true, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Preskočena isporuka → {Email} · {Korpica} · {Isporuka:u}", kupac.Email, korpica, isporuka);
+        return Task.CompletedTask;
+    }
+
     public Task SendGuestOrderRequestAsync(GuestOrderRequest request, CancellationToken cancellationToken = default)
     {
         // Ispisujemo pun link (ne samo token) da se u dev-u može kliknuti direktno
