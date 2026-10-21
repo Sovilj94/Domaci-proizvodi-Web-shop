@@ -186,6 +186,26 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                 else nabavno += kolicina * nab.Value;
             }
 
+            // Drugi prolaz: bazen je potrošen, a vrijednost još ispod cilja (tipično zimi, kad u
+            // bazenu ima tek koji artikal preko minimuma, pa budžet po stavci i zaokruživanje
+            // komada ostave rupu). Količine onoga što je već u kutiji se povećaju istim redom,
+            // u granicama zalihe i nabavnog budžeta.
+            foreach (var stavka in sadrzaj.Stavke)
+            {
+                if (vrijednost >= cilj * 0.95m) break;
+                var artikal = bazen.First(p => p.Id == stavka.ProductId);
+                var dodatak = Zaokruzi((cilj - vrijednost) / artikal.Price, artikal.Unit);
+                dodatak = Math.Min(dodatak, Zaokruzi(artikal.Stock - stavka.Kolicina, artikal.Unit));
+                var nab = artikal.NabavnaCijena is > 0 ? artikal.NabavnaCijena.Value : (decimal?)null;
+                if (nab is not null)
+                    dodatak = Math.Min(dodatak, Zaokruzi(Math.Max(nabavniBudzet - nabavno, 0) / nab.Value, artikal.Unit));
+                if (dodatak <= 0) continue;
+
+                stavka.Kolicina += dodatak;
+                vrijednost += dodatak * artikal.Price;
+                if (nab is not null) nabavno += dodatak * nab.Value;
+            }
+
             DodajZamjene(sadrzaj, bazen, sezonskaPonuda, cilj, nabavniBudzet);
             db.SedmicniSadrzaji.Add(sadrzaj);
 

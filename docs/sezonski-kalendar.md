@@ -9,6 +9,9 @@ Oznake: **●** svježe sa polja / iz berbe · **◐** iz plastenika ili rana/ka
 
 Za polje Mjeseci uzima se sve označeno (●, ◐ i ○) — to su mjeseci kad artikal možemo prodati kao
 domaći. Granice su okvirne: rana ili kasna godina ih pomjeri za 2–3 sedmice, pa ih domaćin može suziti.
+Upoređeno (2026-10-21) sa kalendarima [Avaz](https://www.avaz.ba/zdravlje/sveznadar/969220/kalendar-voca-i-povrca-kad-koje-dozrijeva-po-mjesecima) i
+[Mamin ručak](https://maminrucak.hr/2021/03/03/sezonski-kalendar-voca-i-povrca-za-hrvatsku/) — južno voće (citrusi, smokva, nar, maslina) iz njih je
+izostavljeno jer nije domaće u Krajini; matovilac, radič i endivija su zimske salate koje vrijedi dodati kad ih domaćin ima.
 
 ## Povrće
 
@@ -42,7 +45,7 @@ domaći. Granice su okvirne: rana ili kasna godina ih pomjeri za 2–3 sedmice, 
 | Ljuta paprika |   |   |   |   |   |   | ● | ● | ● | ● |   |   |
 | Patlidžan |   |   |   |   |   |   | ● | ● | ● |   |   |   |
 | Kukuruz šećerac |   |   |   |   |   |   | ● | ● | ● |   |   |   |
-| Bundeva |   |   |   |   |   |   |   |   | ● | ● | ● | ○ |
+| Bundeva (iz skladišta do 2) | ○ | ○ |   |   |   |   |   |   | ● | ● | ● | ○ |
 | Sremuš (divlji luk) |   |   | ● | ● |   |   |   |   |   |   |   |   |
 | Kopriva |   |   | ● | ● | ● |   |   |   |   |   |   |   |
 
@@ -62,7 +65,7 @@ domaći. Granice su okvirne: rana ili kasna godina ih pomjeri za 2–3 sedmice, 
 | Lubenica i dinja |   |   |   |   |   |   | ● | ● | ● |   |   |   |
 | Šljiva (rane 7, požegača 8–9) |   |   |   |   |   |   | ● | ● | ● |   |   |   |
 | Jabuka (ljetne 7–8, zimske iz hladnjače) | ○ | ○ | ○ | ○ | ○ |   | ● | ● | ● | ● | ○ | ○ |
-| Kruška (ljetne 7–8, zimske do 12) |   |   |   |   |   |   | ● | ● | ● | ● | ○ | ○ |
+| Kruška (ljetne 7–8, zimska kaluđerka do 2) | ○ | ○ |   |   |   |   | ● | ● | ● | ● | ○ | ○ |
 | Grožđe |   |   |   |   |   |   |   | ● | ● | ● |   |   |
 | Aronija |   |   |   |   |   |   |   | ● | ● |   |   |   |
 | Lješnik (suhi cijele godine) | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ● | ● | ○ | ○ | ○ |
@@ -92,6 +95,8 @@ domaći. Granice su okvirne: rana ili kasna godina ih pomjeri za 2–3 sedmice, 
 
 ## Naši proizvodi — predloženi Mjeseci
 
+Osnovni katalog; mjeseci sezonske ponude dodate 2026-10-21 su u tabeli ispod i u `DbSeeder.SezonskaPonuda.cs`.
+
 | Proizvod | Mjeseci |
 |---|---|
 | Domaći krompir | cijele godine |
@@ -110,11 +115,29 @@ domaći. Granice su okvirne: rana ili kasna godina ih pomjeri za 2–3 sedmice, 
 | Orah, med, mliječno, jaja, suhomesnato, zimnica | cijele godine |
 | Čvarci | 11–3 |
 
-## Šta nedostaje u katalogu
+## Ponuda za punjenje korpica (u katalogu, po mjesecima)
 
-Sa mjesecima iznad, u **novembru do marta** povrća ima samo četiri (krompir, luk, mrkva, kupus), a mala
-korpica traži bar pet artikala — korpica povrća bi zimi ostala nepotpuna. Zimi dostupno, a nemamo ga:
-**cvekla, praziluk, bijeli luk, celer, peršun, pastrnak, kelj, bundeva, suhi grah, kiseli kupus**.
-Voće zimi pokrivaju samo jabuka (1–5) i dunja (do 12) — vrijedi dodati **suhu šljivu, lješnik i kesten**
-(10–11). U proljeće (3–5) praznina je slična: **mladi luk, zelena salata, spanać, rotkvica, sremuš,
-kopriva**, a od voća **jagoda** (5–6).
+Artikli koji su u katalogu sa uključenim „Može u korpicu" i čiji mjeseci obuhvataju dati mjesec — iz toga generator
+slaže sedmični sadržaj. Mala/Srednja/Velika korpica traži najmanje 5/7/9 artikala; *kurziv* = dopuna (prioritet 1:
+suho, orašasto, grah i bijeli luk idu u kutiju tek iza svježeg). Artikli bez mjeseci (krompir, peršun, bijeli luk,
+grah, orah, lješnik, suho voće) su u svakom mjesecu. Test `SezonskaPonudaTests` provjerava da seedovan katalog
+puni svih šest korpica u svakom mjesecu.
+
+| Mjesec | Povrće | Voće |
+|---|---|---|
+| Januar | **14** — Bundeva, Celer korijen, Crni luk, Cvekla, Domaći krompir, Kelj, Kiseli kupus, Kupus, Mrkva, Pastrnak, Peršun, Praziluk, *Bijeli luk*, *Grah tetovac* | **10** — Jabuka idared, Jabuka kožara, Jabuka zlatni delišes, Kruška kaluđerka, Orah, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Februar | **14** — Bundeva, Celer korijen, Crni luk, Cvekla, Domaći krompir, Kelj, Kiseli kupus, Kupus, Mrkva, Pastrnak, Peršun, Praziluk, *Bijeli luk*, *Grah tetovac* | **10** — Jabuka idared, Jabuka kožara, Jabuka zlatni delišes, Kruška kaluđerka, Orah, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Mart | **17** — Crni luk, Cvekla, Domaći krompir, Kelj, Kiseli kupus, Kopriva, Kupus, Mladi luk, Mrkva, Pastrnak, Peršun, Praziluk, Spanać, Sremuš, Zelena salata, *Bijeli luk*, *Grah tetovac* | **9** — Jabuka idared, Jabuka kožara, Jabuka zlatni delišes, Orah, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| April | **12** — Crni luk, Domaći krompir, Kopriva, Mladi luk, Mrkva, Peršun, Rotkvica, Spanać, Sremuš, Zelena salata, *Bijeli luk*, *Grah tetovac* | **9** — Jabuka idared, Jabuka kožara, Jabuka zlatni delišes, Orah, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Maj | **15** — Blitva, Domaći krompir, Grašak, Keleraba, Kopriva, Krastavac, Mladi luk, Paradajz iz plastenika, Peršun, Rotkvica, Spanać, Tikvica, Zelena salata, *Bijeli luk*, *Grah tetovac* | **9** — Jabuka idared, Jagoda, Orah, Trešnja, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Jun | **20** — Babura paprika, Blitva, Brokula, Cvekla, Domaći krompir, Grašak, Karfiol, Keleraba, Krastavac, Kupus, Mahune, Mladi luk, Mrkva, Paradajz iz plastenika, Peršun, Rotkvica, Tikvica, Zelena salata, *Bijeli luk*, *Grah tetovac* | **13** — Borovnica, Jagoda, Kajsija, Malina, Orah, Ribizla, Trešnja, Višnja, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Jul | **20** — Babura paprika, Blitva, Brokula, Crni luk, Cvekla, Domaći krompir, Karfiol, Krastavac, Kukuruz šećerac, Kupus, Ljuta paprika, Mahune, Mrkva, Paradajz iz plastenika, Patlidžan, Peršun, Tikvica, Zelena salata, *Bijeli luk*, *Grah tetovac* | **17** — Borovnica, Breskva, Dinja, Kajsija, Kupina, Ljetna jabuka petrovača, Lubenica, Malina, Orah, Rana šljiva, Ribizla, Višnja, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Avgust | **18** — Babura paprika, Blitva, Crni luk, Cvekla, Domaći krompir, Krastavac, Kukuruz šećerac, Ljuta paprika, Mahune, Mrkva, Paradajz iz plastenika, Patlidžan, Peršun, Praziluk, Tikvica, Zelena salata, *Bijeli luk*, *Grah tetovac* | **16** — Aronija, Borovnica, Breskva, Dinja, Grožđe, Kupina, Ljetna jabuka petrovača, Lubenica, Malina, Orah, Šljiva požegača, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Septembar | **26** — Babura paprika, Blitva, Brokula, Bundeva, Celer korijen, Crni luk, Cvekla, Domaći krompir, Karfiol, Keleraba, Krastavac, Kukuruz šećerac, Kupus, Ljuta paprika, Mahune, Mrkva, Paradajz iz plastenika, Patlidžan, Peršun, Praziluk, Rotkvica, Spanać, Tikvica, Zelena salata, *Bijeli luk*, *Grah tetovac* | **16** — Aronija, Breskva, Dinja, Grožđe, Jabuka zlatni delišes, Kruška, Kupina, Lubenica, Malina, Orah, Šljiva požegača, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Oktobar | **24** — Babura paprika, Blitva, Brokula, Bundeva, Celer korijen, Crni luk, Cvekla, Domaći krompir, Karfiol, Keleraba, Kelj, Krastavac, Kupus, Ljuta paprika, Mrkva, Paradajz iz plastenika, Pastrnak, Peršun, Praziluk, Rotkvica, Spanać, Zelena salata, *Bijeli luk*, *Grah tetovac* | **14** — Dunja, Grožđe, Jabuka idared, Jabuka kožara, Jabuka zlatni delišes, Kesten, Kruška, Kruška kaluđerka, Orah, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Novembar | **18** — Brokula, Bundeva, Celer korijen, Crni luk, Cvekla, Domaći krompir, Karfiol, Kelj, Kiseli kupus, Kupus, Mrkva, Pastrnak, Peršun, Praziluk, Spanać, Zelena salata, *Bijeli luk*, *Grah tetovac* | **14** — Dunja, Jabuka idared, Jabuka kožara, Jabuka zlatni delišes, Kesten, Kruška, Kruška kaluđerka, Mušmula, Orah, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+| Decembar | **14** — Bundeva, Celer korijen, Crni luk, Cvekla, Domaći krompir, Kelj, Kiseli kupus, Kupus, Mrkva, Pastrnak, Peršun, Praziluk, *Bijeli luk*, *Grah tetovac* | **13** — Dunja, Jabuka idared, Jabuka kožara, Jabuka zlatni delišes, Kruška, Kruška kaluđerka, Mušmula, Orah, *Lješnik*, *Suha šljiva*, *Sušena aronija*, *Sušene jabuke*, *Sušene kruške* |
+
+Zimi (12–4) voće nosi skladište: jabuke iz hladnjače i podruma (idared, zlatni delišes, kožara), kruška
+kaluđerka do februara, orah, lješnik i suho voće. Velika korpica voća tada ima tačno 9–10 artikala, pa generator
+količine dopunjava drugim prolazom. U dev bazi babura paprika ima zalihu 0, pa ne ulazi dok se zaliha ne dopuni.

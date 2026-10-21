@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EPiljara.Infrastructure.Persistence;
 
 /// <summary>Idempotent demo seed: Manjača producers, catalog, zones, users, sample orders.</summary>
-public static class DbSeeder
+public static partial class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db, IPasswordHasher hasher, CancellationToken ct = default)
     {
@@ -16,6 +16,7 @@ public static class DbSeeder
         {
             await SeedReceptiAsync(db, ct);
             await SeedPromoKodoviAsync(db, ct);
+            await SeedSezonskaPonudaAsync(db, ct);
             return;
         }
 
@@ -126,6 +127,8 @@ public static class DbSeeder
         {
             p.MozeUKorpicu = true;
             p.Mjeseci = sezone.GetValueOrDefault(p.Name, []);
+            // Demo nabavna kao u sezonskoj ponudi — artikal bez nabavne generator stavlja iza onih sa njom.
+            p.NabavnaCijena = Math.Round(p.Price * DemoUdioNabavne, 2);
             p.Boja = boje.GetValueOrDefault(p.Name);
         }
         db.Products.AddRange(products);
@@ -301,6 +304,7 @@ public static class DbSeeder
         await db.SaveChangesAsync(ct);
         await SeedReceptiAsync(db, ct);
         await SeedPromoKodoviAsync(db, ct);
+        await SeedSezonskaPonudaAsync(db, ct);
     }
 
     /// <summary>Demo promo kod; idempotentno kao i recepti, i samo u demo seedu.</summary>

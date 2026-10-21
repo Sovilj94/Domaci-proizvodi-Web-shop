@@ -522,6 +522,26 @@ mjesecima, uz predložene Mjesece za naše proizvode i spisak šta fali za zimu 
 `DbSeeder` i u dev bazu (13 proizvoda; ostali cijele godine). Posljedica: u 11–3 povrća ima samo krompir, luk,
 mrkva i kupus — manje od 5 koliko traži mala korpica, dok se ne dodaju cvekla, praziluk, bijeli luk, celer i ostalo.
 
+### Sezonska ponuda za punjenje korpica (2026-10-21) — grana `korpice-sezonska-ponuda` (nespojena)
+
+Zahtjev: naći šta se kod nas uzgaja po mjesecima i po tome napraviti ponudu za punjenje korpica. Kalendar je
+upoređen sa dva izvora (Avaz, Mamin ručak; južno voće izostavljeno). Dodato:
+
+- **49 sezonskih artikala** (`DbSeeder.SezonskaPonuda.cs`): 26 povrća (zimsko/skladišno kod Kovačevića, proljetno i
+  ljetno kod nove **Porodice Petković**, Nova Topola) i 23 voća (stare sorte jabuka, kaluđerka, orašasto i suho kod
+  Jovanovića; jagodičasto i koštičavo kod novog **Voćnjaka Đurić**, Ivanjska). Svaki ima mjesece, boju, demo nabavnu
+  (60% prodajne) i `MozeUKorpicu`; suho voće, orašasto, grah i bijeli luk su dopuna (prioritet 1). Idempotentno po
+  slugu — dodaje se i na već seedovanoj demo bazi (samo demo seed, produkcija ga ne dobija). Osnovni katalog u svježem
+  seedu dobija demo nabavnu 60%.
+- **Generator, drugi prolaz:** kad bazen potroši, a vrijednost je ispod 95% cilja, povećava količine artikala koji su
+  već u kutiji (zaliha i nabavni budžet se poštuju). Bez toga velika korpica voća zimi staje na ~48/57,5 KM.
+- Tabela „Ponuda za punjenje korpica" u kalendaru: šta je u katalogu za svaki mjesec (zimi 14 povrća / 9–10 voća,
+  ljeti do 26 / 17).
+
+Provjere: `dotnet test` 553/553 (`SezonskaPonudaTests`: svih 6 korpica povrća i voća puno u svakom od 12 mjeseci,
+uz maržu ≥ 25%, i seed je idempotentan). **Uživo:** dev baza dobila 49 artikala i 2 proizvođača; sedmica 47
+regenerisana — 5–10 artikala, 95–100% cilja, marža 30–34%, po 4 zamjene.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
