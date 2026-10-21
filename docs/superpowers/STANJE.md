@@ -542,6 +542,32 @@ Provjere: `dotnet test` 553/553 (`SezonskaPonudaTests`: svih 6 korpica povrća i
 uz maržu ≥ 25%, i seed je idempotentan). **Uživo:** dev baza dobila 49 artikala i 2 proizvođača; sedmica 47
 regenerisana — 5–10 artikala, 95–100% cilja, marža 30–34%, po 4 zamjene.
 
+### Interaktivniji admin panel (2026-10-21) — grana `admin-interaktivnost` (nespojena)
+
+Zahtjev: „admin panel nije intuitivan ni interaktivan". Urađene prve tri tačke iz prijedloga:
+
+- **Zadaci** (`GET /admin/zadaci`, `AdminZadaci.cs`): narudžbe na čekanju, neobjavljen sadržaj korpica za sedmicu
+  koju checkout prodaje, potvrđene za pakovanje, artikli u sezoni bez zalihe, artikli za korpice bez nabavne, nove
+  prijave domaćina — svaki sa nivoom (hitno/upozorenje/info), linkom i akcijom; srpska množina (1 / 2–4 / 5+).
+  Isti odgovor nosi i brojke za meni.
+- **Pregled** (dashboard): zadaci na vrhu kao kartice, „Generiši sada" za korpice bez sadržaja pravo sa kartice;
+  statistika ispod; redovi narudžbi i statusi vode na filtrirane narudžbe (`?status=`, `?pretraga=`).
+- **Meni**: Pregled iznad svega, pet grupa (Prodaja, Ponuda, Dostava, Kupci, Sadržaj sajta) koje se zatvaraju
+  (pamti se u localStorage; grupa sa otvorenom stranicom ostaje otvorena), brojke na Narudžbama, Korpicama,
+  Proizvodima i Partnerima, a zbir na zatvorenoj grupi. Jedan upit umjesto dva.
+- **Proizvodi**: pretraga (bez kvačica, i po domaćinu), kategorija i filteri sa brojkama (bez zalihe, bez nabavne,
+  marža < 25%, u sezoni, skriveni) — sve u URL-u, pa linkovi sa Pregleda otvaraju filtrirano. Cijena, nabavna i
+  zaliha se mijenjaju klikom (Enter čuva, Esc odustaje, prazna nabavna = brisanje), sezona je traka od 12 mjeseci
+  (tekući uokviren), prekidači za korpice i prodaju. Izmjena je optimistična i vraća se ako server odbije; toast
+  ima „Poništi" (toast dobio opcionu akciju).
+
+Provjere: `dotnet test` 556/556 (3 nova), `npm test` 85/85 (5 novih za `lib/admin/proizvodi-tabela`), `tsc`,
+eslint, `npm run build` ✓. Uživo: `/admin/zadaci` na dev bazi vraća 4 zadatka (2 narudžbe, 6 korpica za sedmicu 44,
+5 za pakovanje, babura bez zalihe).
+
+Sljedeći krug iz prijedloga: kanban narudžbi sa prevlačenjem, Ctrl+K paleta, bočni panel umjesto prelaska na
+novu stranicu, vizuelni editor korpice.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

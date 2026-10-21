@@ -23,6 +23,10 @@ public class AdminController : ApiControllerBase
 
     /// <param name="unassigned">Kad je true, <paramref name="date"/> je dan DOSTAVE i vraćaju
     /// se samo narudžbe koje tog dana nisu ni na čijoj ruti.</param>
+    [HttpGet("admin/zadaci")]
+    public async Task<IActionResult> Zadaci() =>
+        Envelope(await Mediator.Send(new GetAdminZadaciQuery()));
+
     [HttpGet("admin/orders")]
     public async Task<IActionResult> Orders(
         [FromQuery] string? status, [FromQuery] DateTime? date, [FromQuery] bool unassigned = false,

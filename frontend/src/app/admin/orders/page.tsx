@@ -29,7 +29,13 @@ export default function AdminOrdersPage() {
 function AdminOrders() {
   const params = useSearchParams();
   const izbor = useIzabranaSedmica();
-  const [filter, setFilter] = useState<OrderStatus | null>(null);
+  // Filter dolazi i iz linka sa početnog ekrana (?status=Pending).
+  const [filter, setFilter] = useState<OrderStatus | null>(
+    () => {
+      const s = params.get("status");
+      return s && s in STATUS_META ? (s as OrderStatus) : null;
+    },
+  );
   // Pretraga dolazi i iz linka (npr. sa ekrana kupca: ?pretraga=EP-2610-0063).
   const [unos, setUnos] = useState(params.get("pretraga") ?? "");
   const [pretraga, setPretraga] = useState(unos.trim());
