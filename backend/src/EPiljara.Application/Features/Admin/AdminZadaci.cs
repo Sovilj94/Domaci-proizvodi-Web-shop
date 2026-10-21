@@ -52,7 +52,7 @@ public class GetAdminZadaciHandler(IAppDbContext db, IOptions<KorpiceOpcije> opc
             {
                 Kljuc = "sadrzaj_korpica", Nivo = "hitno", Broj = neobjavljeno,
                 Naslov = $"Sadržaj korpica za sedmicu {sedmica} nije objavljen ({neobjavljeno} od {korpice.Count})",
-                Opis = (bezSadrzaja > 0 ? $"{bezSadrzaja} bez sadržaja, " : "") + $"{nacrti} u nacrtu. " +
+                Opis = string.Join(", ", new[] { bezSadrzaja > 0 ? $"{bezSadrzaja} bez sadržaja" : null, nacrti > 0 ? $"{nacrti} u nacrtu" : null }.OfType<string>()) + ". " +
                        $"Isporuka {isporuka.ToString("dd.MM.", CultureInfo.InvariantCulture)} — kupci ne vide šta je u kutiji dok se ne objavi.",
                 // Stranica korpica bira sedmicu po datumu (?datum=), kao i ostatak admina.
                 Link = $"/admin/korpice?datum={ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Thursday):yyyy-MM-dd}",
