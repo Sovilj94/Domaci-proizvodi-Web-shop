@@ -1,21 +1,22 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Columns3, List, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { OrderCard } from "@/components/admin/order-card";
+import { NarudzbeTabla } from "@/components/admin/narudzbe-tabla";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { Input } from "@/components/ui/field";
 import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
-import { STATUS_META } from "@/lib/orders";
-import { ORDER_STATUSES, type OrderStatus } from "@/types/domain";
+import { STATUS_META, narudzbeRijec } from "@/lib/orders";
+import { ORDER_STATUSES, type Order, type OrderStatus } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
 export default function AdminOrdersPage() {
@@ -49,20 +50,85 @@ function AdminOrders() {
   const qc = useQueryClient();
   const { show } = useToast();
 
+  // Tabla je podrazumijevani prikaz; lista ostaje za filtriranje po statusu (i dolazi sa ?status=).
+  const router = useRouter();
+  const pathname = usePathname();
+  const [prikaz, setPrikazStanje] = useState<"tabla" | "lista">(() => {
+    const p = params.get("prikaz");
+    if (p === "tabla" || p === "lista") return p;
+    return params.get("status") ? "lista" : "tabla";
+  });
+  function setPrikaz(p: "tabla" | "lista") {
+    setPrikazStanje(p);
+    const next = new URLSearchParams(params.toString());
+    next.set("prikaz", p);
+    router.replace(`${pathname}?${next}`, { scroll: false });
+  }
+  const status = prikaz === "tabla" ? null : filter;
+
+  const kljuc = ["admin", "orders", { status, pretraga, ...sedmica }] as const;
   const orders = useQuery({
-    queryKey: ["admin", "orders", { status: filter, pretraga, ...sedmica }],
-    queryFn: () => adminApi.orders({ status: filter ?? undefined, pretraga: pretraga || undefined, ...sedmica }),
+    queryKey: kljuc,
+    queryFn: () => adminApi.orders({ status: status ?? undefined, pretraga: pretraga || undefined, ...sedmica }),
+    // Nove narudžbe stižu same; pauzira se kad je tab u pozadini.
+    refetchInterval: 30_000,
+  });
+
+  // Obavještenje za narudžbu koja je stigla dok je ekran otvoren (ne pri prvom učitavanju).
+  const vidjene = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!orders.data) return;
+    const naCekanju = orders.data.filter((o) => o.status === "Pending");
+    if (vidjene.current) {
+      const nove = naCekanju.filter((o) => !vidjene.current!.has(o.id));
+      if (nove.length === 1) show(`Nova narudžba ${nove[0].code} — ${nove[0].customerName}`, "info");
+      else if (nove.length > 1) show(`${nove.length} nove narudžbe čekaju potvrdu`, "info");
+    }
+    vidjene.current = new Set([...(vidjene.current ?? []), ...naCekanju.map((o) => o.id)]);
+  }, [orders.data, show]);
+
+  /** Optimistično pomjeri narudžbu u svim keširanim listama narudžbi. */
+  function pomjeri(id: string, status: OrderStatus) {
+    qc.setQueriesData<Order[]>({ queryKey: ["admin", "orders"] }, (l) =>
+      Array.isArray(l) ? l.map((o) => (o.id === id ? { ...o, status } : o)) : l,
+    );
+  }
+  function osvjezi() {
+    qc.invalidateQueries({ queryKey: ["admin", "orders"] });
+    qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    qc.invalidateQueries({ queryKey: ["admin", "zadaci"] });
+  }
+
+  const vise = useMutation({
+    mutationFn: async ({ lista, status }: { lista: Order[]; status: OrderStatus }) => {
+      lista.forEach((o) => pomjeri(o.id, status));
+      const r = await Promise.allSettled(lista.map((o) => adminApi.updateOrderStatus(o.id, status)));
+      return { uspjelo: r.filter((x) => x.status === "fulfilled").length, ukupno: lista.length, status };
+    },
+    onSuccess: ({ uspjelo, ukupno, status }) => {
+      osvjezi();
+      show(
+        uspjelo === ukupno
+          ? `${STATUS_META[status].label}: ${ukupno} ${narudzbeRijec(ukupno)}`
+          : `Promijenjeno ${uspjelo} od ${ukupno} — ostale nisu mogle preći u „${STATUS_META[status].label}"`,
+        uspjelo === ukupno ? "success" : "error",
+      );
+    },
   });
 
   const mutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
+    mutationFn: ({ id, status }: { id: string; status: OrderStatus; code?: string }) =>
       adminApi.updateOrderStatus(id, status),
-    onSuccess: (_data, { status }) => {
-      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
-      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
-      show(`Status promijenjen: ${STATUS_META[status].label}`);
+    onMutate: ({ id, status }) => pomjeri(id, status),
+    onSuccess: (_data, { status, code }) => {
+      osvjezi();
+      show(`${code ? `${code} → ` : "Status promijenjen: "}${STATUS_META[status].label}`);
     },
-    onError: (err) => show(err instanceof ApiRequestError ? err.message : "Status nije promijenjen", "error"),
+    onError: (err) => {
+      // Vrati karticu gdje je bila — server je izvor istine.
+      osvjezi();
+      show(err instanceof ApiRequestError ? err.message : "Status nije promijenjen", "error");
+    },
   });
 
   function toggle(id: string) {
@@ -79,13 +145,38 @@ function AdminOrders() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Narudžbe</h1>
-          <p className="text-muted">Klikni narudžbu da je proširiš i promijeniš status.</p>
+          <p className="text-muted">
+            {prikaz === "tabla"
+              ? "Prevuci karticu u sljedeću kolonu ili klikni strelicu; klik na karticu otvara detalje."
+              : "Klikni narudžbu da je proširiš i promijeniš status."}
+          </p>
         </div>
-        <Link href="/admin/orders/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4" /> Nova narudžba
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-full bg-white p-0.5 ring-1 ring-black/10" role="group" aria-label="Prikaz">
+            {([
+              ["tabla", "Tabla", Columns3],
+              ["lista", "Lista", List],
+            ] as const).map(([k, naziv, Ikona]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={prikaz === k}
+                onClick={() => setPrikaz(k)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition",
+                  prikaz === k ? "bg-ink text-white" : "text-muted hover:text-ink",
+                )}
+              >
+                <Ikona className="h-4 w-4" /> {naziv}
+              </button>
+            ))}
+          </div>
+          <Link href="/admin/orders/new">
+            <Button size="sm">
+              <Plus className="h-4 w-4" /> Nova narudžba
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -108,6 +199,7 @@ function AdminOrders() {
         </Link>
       </div>
 
+      {prikaz === "lista" && (
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
         <FilterChip label="Sve" active={filter === null} onClick={() => setFilter(null)} />
         {ORDER_STATUSES.map((st) => (
@@ -119,8 +211,18 @@ function AdminOrders() {
           />
         ))}
       </div>
+      )}
 
       {orders.isLoading ? (
+        <LoadingBlock />
+      ) : prikaz === "tabla" ? (
+        <NarudzbeTabla
+          narudzbe={orders.data ?? []}
+          pending={mutation.isPending || vise.isPending}
+          onPromijeni={(o, s) => mutation.mutate({ id: o.id, status: s, code: o.code })}
+          onPromijeniVise={(lista, s) => vise.mutate({ lista, status: s })}
+        />
+      ) : orders.isLoading ? (
         <LoadingBlock />
       ) : orders.data && orders.data.length > 0 ? (
         <div className="space-y-3">

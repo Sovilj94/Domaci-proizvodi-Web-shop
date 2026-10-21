@@ -89,7 +89,7 @@ export function odgovaraPretrazi(p: Product, pretraga: string): boolean {
   return [p.name, p.producer?.name ?? "", p.categoryName].some((s) => bezKvacica(s).includes(q));
 }
 
-function bezKvacica(s: string): string {
+export function bezKvacica(s: string): string {
   return s
     .toLowerCase()
     .replace(/đ/g, "dj")
