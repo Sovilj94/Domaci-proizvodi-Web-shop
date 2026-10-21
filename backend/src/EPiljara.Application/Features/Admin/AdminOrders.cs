@@ -74,7 +74,7 @@ public class GetAdminOrdersHandler(IAppDbContext db)
 
             // Najstarije prvo: dispečer raspoređuje redom kojim su narudžbe stigle.
             var cekaju = await query.OrderBy(o => o.CreatedAt).ThenBy(o => o.Id).ToListAsync(ct);
-            return cekaju.Select(o => o.ToDto()).ToList();
+            return await OznaciKorpiceAsync(cekaju.Select(o => o.ToDto()), ct);
         }
 
         if (q.Date is { } date)
@@ -85,7 +85,19 @@ public class GetAdminOrdersHandler(IAppDbContext db)
         }
 
         var orders = await query.OrderByDescending(o => o.CreatedAt).ToListAsync(ct);
-        return orders.Select(o => o.ToDto()).ToList();
+        return await OznaciKorpiceAsync(orders.Select(o => o.ToDto()), ct);
+    }
+
+    /// <summary>Označi stavke koje su korpice (i soft-obrisane) — panel narudžbe im nudi „Uredi sadržaj".</summary>
+    private async Task<IReadOnlyList<OrderDto>> OznaciKorpiceAsync(IEnumerable<OrderDto> narudzbe, CancellationToken ct)
+    {
+        var korpice = (await db.Products.IgnoreQueryFilters()
+            .Where(p => p.Vrsta == VrstaProizvoda.Korpica)
+            .Select(p => p.Id)
+            .ToListAsync(ct)).ToHashSet();
+        return narudzbe
+            .Select(d => d with { Items = d.Items.Select(i => i with { JeKorpica = korpice.Contains(i.ProductId) }).ToList() })
+            .ToList();
     }
 }
 

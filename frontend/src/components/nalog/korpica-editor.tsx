@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftRight, Clock, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowLeftRight, Ban, Clock, RotateCcw, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { SmartImage } from "@/components/ui/smart-image";
@@ -10,167 +10,74 @@ import { useToast } from "@/components/ui/toast";
 import { queryKeys } from "@/lib/api/hooks";
 import { accountApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import type { PonudaArtikla, StavkaMojeKorpice } from "@/types/domain";
+import type { MojaKorpicaDetalji } from "@/lib/api/contracts";
+import type { PonudaArtikla } from "@/types/domain";
 import { cn, formatDateTime, formatPrice, unitSuffix } from "@/lib/utils";
 
-/**
- * Ispravna srpska množina za "artikal" — koristi se u "fali N artikal/artikla/artikala".
- * Brojevi na ovom ekranu su obično mali (1–5), ali pravilo je opšte (npr. 11 -> "artikala",
- * 21 -> "artikal") da se ne polomi ako `minimalanBrojArtikala` ikad poraste.
- */
-function imenicaArtikal(n: number): string {
-  const mod100 = n % 100;
-  const mod10 = n % 10;
-  if (mod10 === 1 && mod100 !== 11) return "artikal";
-  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return "artikla";
-  return "artikala";
-}
+const IZBJEGNUTI_KLJUC = ["account", "izbjegnuti"] as const;
 
-/** Para vrijednost u cente da poređenja (>=, <=) ne budu žrtva binarnog zapisa decimalnih
- * brojeva — na ovoj skali (KM, dva decimalna mjesta) razlika je mikroskopska, ali poređenje
- * granica budžeta je upravo mjesto gdje se takva greška najskuplje plati. */
-function uCentima(iznos: number): number {
-  return Math.round(iznos * 100);
-}
-
-interface Red {
-  productId: string;
-  naziv: string;
-  kolicina: number;
-  jedinica: string;
-  /** Jedinična cijena, NEZAOKRUŽENA — zbir korpice se računa iz nje. Vidi `vrijednost`. */
-  cijena: number;
-  /** Zaokružen proizvod `kolicina × cijena`. Samo za ispis u redu, nikad za zbir. */
-  ukupno: number;
-  dodaoKupac: boolean;
-  imageUrl?: string;
+/** Poruka iz ApiRequestError ako je ima; inače rezerva. */
+function poruka(err: unknown, rezerva: string): string {
+  return err instanceof ApiRequestError && err.message.trim() ? err.message : rezerva;
 }
 
 /**
- * Red za jedan izabrani `productId`. Artikal koji je već u `stavke` nosi količinu i
- * jediničnu cijenu koju je server zapamtio (template); artikal koji kupac dodaje a koji
- * (još) nije u `stavke` dolazi iz `ponuda` i uvijek ima količinu 1 u svojoj jedinici —
- * to je pravilo za novododane artikle, ne pretpostavka (vidi task-10-brief.md).
- */
-function redZaId(id: string, stavke: StavkaMojeKorpice[], ponuda: PonudaArtikla[]): Red {
-  const s = stavke.find((x) => x.productId === id);
-  if (s) {
-    return {
-      productId: id,
-      naziv: s.naziv,
-      kolicina: s.kolicina,
-      jedinica: s.jedinica,
-      cijena: s.jedinicnaCijena,
-      ukupno: Math.round(s.kolicina * s.jedinicnaCijena * 100) / 100,
-      dodaoKupac: s.dodaoKupac,
-    };
-  }
-  const p = ponuda.find((x) => x.productId === id);
-  return {
-    productId: id,
-    naziv: p?.naziv ?? id,
-    kolicina: 1,
-    jedinica: p?.jedinica ?? "kom",
-    cijena: p?.cijena ?? 0,
-    ukupno: p?.cijena ?? 0,
-    dodaoKupac: true,
-    imageUrl: p?.imageUrl,
-  };
-}
-
-function isteStavke(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false;
-  const skupB = new Set(b);
-  return a.every((id) => skupB.has(id));
-}
-
-/**
- * Jedna kartica, jedna korpica. Učitava sopstvene detalje preko `orderItemId` i drži
- * izbor lokalno kao spisak `productId` — server je mjerodavan za granice budžeta i broja
- * artikala, ovaj ekran samo sprečava zahtjev koji unaprijed pada (vidi task-10-brief.md).
+ * Kupčeva korpica, najjednostavnije moguće: na svakom artiklu „Zamijeni". Kupac bira šta
+ * želi umjesto njega (ili pusti nas da izaberemo), a količinu uvijek računa server da
+ * vrijednost kutije ostane ista — nema budžeta, nema „Sačuvaj", svaka zamjena se upiše
+ * odmah. „Ne stavljaj mi ovo ni ubuduće" pamti artikal: naredne korpice ga same zamijene.
  */
 export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
   const qc = useQueryClient();
   const { show } = useToast();
+  const [zamjenaZa, setZamjenaZa] = useState<string | null>(null);
+  const [greska, setGreska] = useState<string | null>(null);
 
-  const {
-    data: detalji,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const { data: detalji, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.mojaKorpica(orderItemId),
     queryFn: () => accountApi.mojaKorpica(orderItemId),
   });
+  const izbjegnuti = useQuery({ queryKey: IZBJEGNUTI_KLJUC, queryFn: () => accountApi.izbjegnuti() });
 
-  const [selected, setSelected] = useState<string[]>([]);
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [error, setError] = useState<string | null>(null);
+  function primi(novo: MojaKorpicaDetalji) {
+    qc.setQueryData(queryKeys.mojaKorpica(orderItemId), novo);
+    qc.invalidateQueries({ queryKey: queryKeys.mojeKorpice() });
+    qc.invalidateQueries({ queryKey: IZBJEGNUTI_KLJUC });
+    setZamjenaZa(null);
+    setGreska(null);
+  }
 
-  // Potpis skupa stavki koje server trenutno javlja — NE ključamo efekat na `detalji`
-  // direktno, jer `useQuery` vrati novi objekat na SVAKI refetch (npr. refetch na fokus
-  // prozora, koji je default u TanStack Query-u), pa bi identitet `detalji` promijenio
-  // potpis i poslije refetcha koji ništa nije promijenio na serveru — i tiho pobrisao
-  // neposačuvan izbor kupca dok je on samo prešao na drugi tab i vratio se. Potpis je
-  // stabilan dok se skup productId-ova ne promijeni, bez obzira na to koliko se puta
-  // refetch desio.
-  const potpisServera = detalji?.stavke.map((s) => s.productId).sort().join("|") ?? "";
-
-  // Resinhronizacija sa serverom — i pri prvom učitavanju i poslije uspješnog čuvanja
-  // (onSuccess invalidira ovaj upit, refetch donese novi `detalji` sa DRUGAČIJIM
-  // potpisom, a ovaj efekat vrati `selected` na ono što server upravo potvrdio kao
-  // istinu). Zato Sačuvaj poslije uspjeha ponovo postane onemogućen — `izmijenjeno`
-  // pada na `false`.
-  useEffect(() => {
-    if (detalji) setSelected(detalji.stavke.map((s) => s.productId));
-    // Namjerno ključano na potpis (stabilan skup id-ova), ne na `detalji` (novi objekat
-    // na svaki refetch) — vidi komentar iznad efekta.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [potpisServera]);
-
-  const original = useMemo(() => detalji?.stavke.map((s) => s.productId) ?? [], [detalji]);
-
-  const mutation = useMutation({
-    mutationFn: (productIds: string[]) => accountApi.izmijeniKorpicu(orderItemId, productIds),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.mojaKorpica(orderItemId) });
-      qc.invalidateQueries({ queryKey: queryKeys.mojeKorpice() });
-      setErrors({});
-      setError(null);
-      show("Korpica sačuvana.");
+  const zamjena = useMutation({
+    mutationFn: (v: { izbaci: string; ubaci: string | null; zapamti: boolean; staro: string }) =>
+      accountApi.zamijeniUKorpici(orderItemId, v.izbaci, v.ubaci, v.zapamti),
+    onSuccess: (novo, v) => {
+      const prije = new Set(detalji?.stavke.map((s) => s.productId));
+      const dosao = novo.stavke.find((s) => !prije.has(s.productId));
+      primi(novo);
+      show(
+        `${v.staro} → ${dosao ? `${dosao.naziv} ${dosao.kolicina} ${dosao.jedinica}` : "zamijenjeno"}` +
+          (v.zapamti ? ` · više ti ne stavljamo: ${v.staro}` : ""),
+      );
     },
-    onError: (err) => {
-      // Kućni obrazac (vidi register/page.tsx:70-74): server za budzet_premali,
-      // budzet_preveliki, premalo_artikala, duplirani_artikal, artikal_nije_podoban,
-      // rok_istekao i korpica_se_pakuje šalje PRAZAN fieldErrors, pa poruka mora
-      // stići kroz `err.message` ili ekran izgleda zamrznut.
-      if (err instanceof ApiRequestError) {
-        setErrors(err.fieldErrors);
-        if (Object.keys(err.fieldErrors).length === 0) setError(err.message);
-      } else {
-        setError("Došlo je do greške.");
-      }
-    },
+    onError: (err) => setGreska(poruka(err, "Zamjena nije uspjela.")),
   });
 
-  // Zamjena jednog artikla drugim ide odmah na server (on određuje količinu novog), pa je
-  // dozvoljena samo dok nema nesačuvanih izmjena — inače bi server zamijenio u sačuvanom
-  // stanju, a lokalni izbor bi se tiho izgubio.
-  const [zamjenaZa, setZamjenaZa] = useState<string | null>(null);
-  const zamjena = useMutation({
-    mutationFn: ({ izbaci, ubaci }: { izbaci: string; ubaci: string }) =>
-      accountApi.zamijeniUKorpici(orderItemId, izbaci, ubaci),
+  const vrati = useMutation({
+    mutationFn: () => accountApi.vratiKorpicu(orderItemId),
     onSuccess: (novo) => {
-      qc.setQueryData(queryKeys.mojaKorpica(orderItemId), novo);
-      qc.invalidateQueries({ queryKey: queryKeys.mojeKorpice() });
-      setZamjenaZa(null);
-      setErrors({});
-      setError(null);
-      show("Artikal zamijenjen.");
+      primi(novo);
+      show("Korpica je vraćena kako je bila.");
     },
-    onError: (err) => {
-      setError(err instanceof ApiRequestError ? err.message : "Zamjena nije uspjela.");
+    onError: (err) => setGreska(poruka(err, "Vraćanje nije uspjelo.")),
+  });
+
+  const ukloniSaSpiska = useMutation({
+    mutationFn: (productId: string) => accountApi.ukloniIzbjegnut(productId),
+    onSuccess: (lista) => {
+      qc.setQueryData(IZBJEGNUTI_KLJUC, lista);
+      qc.invalidateQueries({ queryKey: queryKeys.mojaKorpica(orderItemId) });
     },
+    onError: (err) => setGreska(poruka(err, "Nije uspjelo.")),
   });
 
   if (isLoading) {
@@ -193,79 +100,17 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
   }
 
   const { korpica, stavke, ponuda } = detalji;
-
-  function dodaj(id: string) {
-    setError(null);
-    setErrors({});
-    setSelected((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  }
-
-  function izbaci(id: string) {
-    setError(null);
-    setErrors({});
-    setSelected((prev) => prev.filter((x) => x !== id));
-  }
-
-  function vratiNaPocetno() {
-    setError(null);
-    setErrors({});
-    setSelected(original);
-  }
-
-  const redovi = selected.map((id) => redZaId(id, stavke, ponuda));
-  // Sabira se SIROVI proizvod po redu, pa se zaokružuje JEDANPUT na kraju — isto kao server
-  // (`Math.Round(Σ Kolicina × JedinicnaCijena, 2)`). Ranije se zaokruživao svaki red pa se
-  // sabirali zaokruženi brojevi, i traka je mogla pisati tačno 100% uz omogućen Sačuvaj dok
-  // server odgovara `budzet_preveliki`.
-  //
-  // Jedna razlika ipak ostaje i NE pokušavamo je sakriti: na tačno pola feninga JavaScript
-  // zaokružuje od nule (`Math.round(0.005 * 100) = 1`), a .NET `Math.Round` na parno. Server
-  // je mjerodavan — ovaj ekran samo sprečava zahtjev koji unaprijed pada; bankarsko
-  // zaokruživanje u klijentu bi bila treća aritmetika koja se raziđe sa obje.
-  const vrijednost =
-    Math.round(redovi.reduce((acc, r) => acc + r.kolicina * r.cijena, 0) * 100) / 100;
-  // Granice su inkluzivne: donja je 95% cilja (zaokruženo na 2 decimale), gornja je cilj.
-  const donjaGranica = Math.round(korpica.ciljnaVrijednost * 0.95 * 100) / 100;
-  const gornjaGranica = korpica.ciljnaVrijednost;
-  const uOpsegu = uCentima(vrijednost) >= uCentima(donjaGranica) && uCentima(vrijednost) <= uCentima(gornjaGranica);
-  const dovoljnoArtikala = selected.length >= korpica.minimalanBrojArtikala;
-  const validno = uOpsegu && dovoljnoArtikala;
-  const izmijenjeno = !isteStavke(selected, original);
   const rokIstekao = new Date(korpica.rokIzmjene).getTime() < Date.now();
-
-  // Ispod Sačuvaj: isti redoslijed kao server (provjerava budžet PRIJE broja artikala,
-  // vidi task-10-brief.md), da poruka ovdje nikad ne kaže nešto što server poreče.
-  let napomena: string | null = null;
-  if (rokIstekao) {
-    napomena = "Rok za izmjenu ove korpice je istekao.";
-  } else if (uCentima(vrijednost) < uCentima(donjaGranica)) {
-    napomena = `još ${formatPrice(donjaGranica - vrijednost)} do 95%`;
-  } else if (uCentima(vrijednost) > uCentima(gornjaGranica)) {
-    napomena = `preko budžeta za ${formatPrice(vrijednost - gornjaGranica)}`;
-  } else if (!dovoljnoArtikala) {
-    const n = korpica.minimalanBrojArtikala - selected.length;
-    napomena = `fali ${n} ${imenicaArtikal(n)}`;
-  } else if (!izmijenjeno) {
-    napomena = "Nema izmjena za čuvanje.";
-  }
-
-  const disabled = rokIstekao || !validno || !izmijenjeno || mutation.isPending;
-
-  // Birač nudi samo ono što još nije izabrano; artikal koji je kupac upravo izbacio
-  // se time sam vrati u ponudu (tačno ono što "Vrati na početno" i inače radi).
-  const dostupnaPonuda = ponuda.filter((p) => !selected.includes(p.productId));
-  const izOveKorpice = dostupnaPonuda.filter((p) => p.izOveKorpice);
-  const ostaloIzPonude = dostupnaPonuda.filter((p) => !p.izOveKorpice);
-
-  const pct =
-    korpica.ciljnaVrijednost > 0
-      ? Math.round((vrijednost / korpica.ciljnaVrijednost) * 100)
-      : 0;
-
-  const greska = error ?? Object.values(errors).flat()[0] ?? null;
+  const izmijenjena = stavke.some((s) => s.dodaoKupac);
+  const zauzeto = zamjena.isPending || vrati.isPending;
+  const uKutiji = new Set(stavke.map((s) => s.productId));
+  const spisak = new Set(detalji.izbjegnuti ?? []);
+  // Za zamjenu se nudi samo ono što nije već u kutiji i nije na spisku „ne stavljaj mi".
+  const ponudaZaZamjenu = ponuda.filter((p) => !uKutiji.has(p.productId) && !spisak.has(p.productId));
+  const slike = new Map(ponuda.map((p) => [p.productId, p.imageUrl]));
 
   return (
-    <div className="flex flex-col gap-5 rounded-card border border-line bg-surface p-5 shadow-card">
+    <div className="flex flex-col gap-4 rounded-card border border-line bg-surface p-5 shadow-card">
       <div className="flex items-start gap-3">
         <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand">
           <SmartImage src={korpica.imageUrl} alt={korpica.naziv} sizes="56px" />
@@ -273,243 +118,192 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
         <div className="min-w-0 flex-1">
           <p className="truncate font-display font-semibold text-ink">{korpica.naziv}</p>
           <p className="truncate text-sm text-muted">
-            {korpica.kodNarudzbe} · sedmica {korpica.sedmica}/{korpica.godina}
+            {korpica.kodNarudzbe} · {stavke.length} artikala · vrijednost {formatPrice(korpica.trenutnaVrijednost)}
           </p>
-          <p
-            className={cn(
-              "mt-1 flex items-center gap-1.5 text-sm",
-              rokIstekao ? "font-medium text-red-700" : "text-muted",
-            )}
-          >
+          <p className={cn("mt-1 flex items-center gap-1.5 text-sm", rokIstekao ? "font-medium text-red-700" : "text-muted")}>
             <Clock className="h-3.5 w-3.5 shrink-0" />
-            {rokIstekao ? "Rok za izmjenu je istekao: " : "Rok za izmjenu: "}
+            {rokIstekao ? "Izmjene su zatvorene od " : "Možeš mijenjati do "}
             {formatDateTime(korpica.rokIzmjene)}
           </p>
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-ink">Vrijednost korpice</span>
-          <span className={cn("font-semibold", uOpsegu ? "text-brand-700" : "text-red-700")}>
-            {formatPrice(vrijednost)} / {formatPrice(korpica.ciljnaVrijednost)} ({pct}%)
-          </span>
-        </div>
-        <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-sand">
-          <div
-            className={cn("h-full rounded-full transition-all", uOpsegu ? "bg-brand-600" : "bg-red-600")}
-            style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
-          />
-        </div>
-        <p className={cn("mt-1 text-xs", dovoljnoArtikala ? "text-muted" : "font-medium text-red-700")}>
-          {selected.length} / {korpica.minimalanBrojArtikala} artikala
+      {!rokIstekao && (
+        <p className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800">
+          Nešto ti ne odgovara? Klikni <b>Zamijeni</b> — količinu računamo mi, da dobiješ istu vrijednost.
         </p>
-      </div>
+      )}
 
       <ul className="flex flex-col gap-2">
-        {redovi.map((r) => (
-          <li key={r.productId} className="rounded-card border border-line bg-cream p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
+        {stavke.map((s) => {
+          const otvoren = zamjenaZa === s.productId;
+          return (
+            <li key={s.productId} className={cn("rounded-card border bg-cream p-3 transition", otvoren ? "border-brand-400" : "border-line")}>
+              <div className="flex items-center gap-3">
                 <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-sand">
-                  <SmartImage src={r.imageUrl} alt={r.naziv} sizes="44px" />
+                  <SmartImage src={slike.get(s.productId)} alt={s.naziv} sizes="44px" />
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-ink">
-                    {r.naziv}{" "}
-                    <span className="font-normal text-muted">
-                      {r.kolicina} {r.jedinica}
-                    </span>
-                    {r.dodaoKupac && (
-                      <span className="ml-2 rounded-full bg-sand px-2 py-0.5 text-[10px] font-medium text-muted">
+                    {s.naziv}
+                    {s.dodaoKupac && (
+                      <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 align-middle text-[10px] font-semibold text-brand-700">
                         tvoj izbor
                       </span>
                     )}
                   </p>
-                  <p className="text-sm text-muted">{formatPrice(r.ukupno)}</p>
+                  <p className="text-sm text-muted">
+                    {s.kolicina.toLocaleString("sr-Latn-BA")} {s.jedinica}
+                  </p>
                 </div>
+                {!rokIstekao && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGreska(null);
+                      setZamjenaZa(otvoren ? null : s.productId);
+                    }}
+                    aria-expanded={otvoren}
+                    disabled={zauzeto}
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50",
+                      otvoren ? "bg-ink text-white" : "bg-white text-ink ring-1 ring-line hover:ring-brand-400",
+                    )}
+                  >
+                    {otvoren ? <X className="h-4 w-4" /> : <ArrowLeftRight className="h-4 w-4" />}
+                    {otvoren ? "Zatvori" : "Zamijeni"}
+                  </button>
+                )}
               </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  aria-label={`Zamijeni ${r.naziv} drugim artiklom`}
-                  aria-expanded={zamjenaZa === r.productId}
-                  title={izmijenjeno ? "Prvo sačuvaj ili vrati izmjene" : "Zamijeni drugim artiklom"}
-                  onClick={() => setZamjenaZa((z) => (z === r.productId ? null : r.productId))}
-                  disabled={rokIstekao || izmijenjeno || zamjena.isPending}
-                  className={cn(
-                    "rounded-full p-1.5 text-muted transition hover:bg-sand hover:text-brand-700 disabled:pointer-events-none disabled:opacity-50",
-                    zamjenaZa === r.productId && "bg-sand text-brand-700",
-                  )}
-                >
-                  <ArrowLeftRight className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Izbaci ${r.naziv}`}
-                  onClick={() => izbaci(r.productId)}
-                  disabled={rokIstekao}
-                  className="rounded-full p-1.5 text-muted transition hover:bg-sand hover:text-red-700 disabled:pointer-events-none disabled:opacity-50"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            {zamjenaZa === r.productId && (
-              <BiracZamjene
-                naziv={r.naziv}
-                stavke={dostupnaPonuda}
-                zauzeto={zamjena.isPending}
-                onIzaberi={(ubaci) => zamjena.mutate({ izbaci: r.productId, ubaci })}
-              />
-            )}
-          </li>
-        ))}
+              {otvoren && (
+                <BiracZamjene
+                  naziv={s.naziv}
+                  ponuda={ponudaZaZamjenu}
+                  zauzeto={zauzeto}
+                  onIzaberi={(ubaci, zapamti) =>
+                    zamjena.mutate({ izbaci: s.productId, ubaci, zapamti, staro: s.naziv })
+                  }
+                />
+              )}
+            </li>
+          );
+        })}
       </ul>
 
-      {(izOveKorpice.length > 0 || ostaloIzPonude.length > 0) && (
-        <div className="flex flex-col gap-3 border-t border-line pt-4">
-          {izOveKorpice.length > 0 && (
-            <PonudaGrupa
-              naslov="Iz ove korpice"
-              stavke={izOveKorpice}
-              onDodaj={dodaj}
-              disabled={rokIstekao}
-            />
-          )}
-          {ostaloIzPonude.length > 0 && (
-            <PonudaGrupa
-              naslov="Ostalo iz ponude"
-              stavke={ostaloIzPonude}
-              onDodaj={dodaj}
-              disabled={rokIstekao}
-            />
-          )}
-        </div>
+      {greska && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{greska}</p>}
+
+      {!rokIstekao && izmijenjena && (
+        <button
+          type="button"
+          onClick={() => vrati.mutate()}
+          disabled={zauzeto}
+          className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50"
+        >
+          <RotateCcw className="h-4 w-4" /> {vrati.isPending ? "Vraćam…" : "Vrati kako je bilo"}
+        </button>
       )}
 
-      {greska && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{greska}</p>
-      )}
-
-      <div className="flex flex-col gap-2 border-t border-line pt-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" onClick={() => mutation.mutate(selected)} disabled={disabled}>
-            {mutation.isPending ? "Čuvam…" : "Sačuvaj"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={vratiNaPocetno}
-            disabled={!izmijenjeno || mutation.isPending}
-          >
-            <RotateCcw className="h-4 w-4" /> Vrati na početno
-          </Button>
-        </div>
-        {napomena && (
-          <p className={cn("text-xs", rokIstekao || !validno ? "text-red-700" : "text-muted")}>
-            {napomena}
+      {(izbjegnuti.data?.length ?? 0) > 0 && (
+        <div className="border-t border-line pt-3">
+          <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-ink">
+            <Ban className="h-4 w-4 text-muted" /> Ne stavljamo ti
           </p>
-        )}
-      </div>
+          <div className="flex flex-wrap gap-1.5">
+            {izbjegnuti.data!.map((a) => (
+              <span key={a.productId} className="inline-flex items-center gap-1 rounded-full bg-sand px-2.5 py-1 text-sm">
+                {a.naziv}
+                <button
+                  type="button"
+                  aria-label={`Ponovo dozvoli ${a.naziv}`}
+                  title="Ponovo dozvoli"
+                  onClick={() => ukloniSaSpiska.mutate(a.productId)}
+                  disabled={ukloniSaSpiska.isPending}
+                  className="rounded-full p-0.5 text-muted transition hover:bg-white hover:text-ink"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">Ove artikle u svakoj narednoj korpici same zamijenimo nečim drugim.</p>
+        </div>
+      )}
     </div>
   );
 }
 
 /**
- * Izbor artikla koji ide umjesto `naziv`. Preporučene zamjene (sastavio ih je sistem za ovu
- * sedmicu) idu prve — server ih već tako šalje. Količinu ne bira kupac: server je računa
- * tako da vrijednost korpice ostane ista.
+ * Šta umjesto `naziv`: „Izaberi umjesto mene" (server uzme prvu zamjenu koja staje), pa
+ * preporučene zamjene ove sedmice, pa — na klik — sve ostalo iz sezonske ponude.
  */
 function BiracZamjene({
   naziv,
-  stavke,
+  ponuda,
   zauzeto,
   onIzaberi,
 }: {
   naziv: string;
-  stavke: PonudaArtikla[];
+  ponuda: PonudaArtikla[];
   zauzeto: boolean;
-  onIzaberi: (productId: string) => void;
+  onIzaberi: (productId: string | null, zapamti: boolean) => void;
 }) {
-  const preporucene = stavke.filter((p) => p.preporucenaZamjena);
-  const ostale = stavke.filter((p) => !p.preporucenaZamjena);
-  return (
-    <div className="mt-3 border-t border-line pt-3">
-      <p className="text-sm font-medium text-ink">Šta želiš umjesto: {naziv}?</p>
-      <p className="mb-2 text-xs text-muted">Količinu određujemo mi, da vrijednost korpice ostane ista.</p>
-      {stavke.length === 0 ? (
-        <p className="text-sm text-muted">Trenutno nema drugih artikala u ponudi.</p>
-      ) : (
-        <div className="max-h-64 space-y-1 overflow-y-auto">
-          {[...preporucene, ...ostale].map((p) => (
-            <button
-              key={p.productId}
-              type="button"
-              onClick={() => onIzaberi(p.productId)}
-              disabled={zauzeto}
-              className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm transition hover:border-brand-500 hover:bg-sand/60 disabled:pointer-events-none disabled:opacity-50"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-sand">
-                  <SmartImage src={p.imageUrl} alt={p.naziv} sizes="32px" />
-                </span>
-                <span className="truncate text-ink">{p.naziv}</span>
-                {p.preporucenaZamjena && (
-                  <span className="shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
-                    preporučeno
-                  </span>
-                )}
-              </span>
-              <span className="shrink-0 text-muted">
-                {formatPrice(p.cijena)}
-                {unitSuffix(p.jedinica)}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+  const [zapamti, setZapamti] = useState(false);
+  const [sve, setSve] = useState(false);
+  const preporucene = ponuda.filter((p) => p.preporucenaZamjena);
+  const ostale = ponuda.filter((p) => !p.preporucenaZamjena);
+  const prikaz = sve ? [...preporucene, ...ostale] : preporucene.length > 0 ? preporucene : ostale.slice(0, 6);
+  const skriveno = preporucene.length + ostale.length - prikaz.length;
 
-function PonudaGrupa({
-  naslov,
-  stavke,
-  onDodaj,
-  disabled,
-}: {
-  naslov: string;
-  stavke: PonudaArtikla[];
-  onDodaj: (id: string) => void;
-  disabled: boolean;
-}) {
   return (
-    <div>
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">{naslov}</p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {stavke.map((p) => (
+    <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+      <button
+        type="button"
+        onClick={() => onIzaberi(null, zapamti)}
+        disabled={zauzeto}
+        className="flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+      >
+        <Sparkles className="h-4 w-4" /> {zauzeto ? "Mijenjam…" : "Izaberi umjesto mene"}
+      </button>
+
+      {prikaz.length > 0 && <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted">ili izaberi sam</p>}
+      <div className="grid gap-1.5 sm:grid-cols-2">
+        {prikaz.map((p) => (
           <button
             key={p.productId}
             type="button"
-            onClick={() => onDodaj(p.productId)}
-            disabled={disabled}
-            className="flex items-center justify-between gap-2 rounded-lg border border-line bg-cream px-3 py-2 text-left text-sm transition hover:border-brand-500 hover:bg-sand/60 disabled:pointer-events-none disabled:opacity-50"
+            onClick={() => onIzaberi(p.productId, zapamti)}
+            disabled={zauzeto}
+            className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2 text-left text-sm transition hover:border-brand-500 hover:bg-sand/60 disabled:opacity-50"
           >
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-sand">
-                <SmartImage src={p.imageUrl} alt={p.naziv} sizes="36px" />
-              </span>
-              <span className="truncate text-ink">{p.naziv}</span>
+            <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-sand">
+              <SmartImage src={p.imageUrl} alt={p.naziv} sizes="32px" />
             </span>
-            <span className="flex shrink-0 items-center gap-1 text-muted">
-              {formatPrice(p.cijena)}
-              {unitSuffix(p.jedinica)}
-              <Plus className="h-4 w-4 text-brand-600" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-ink">{p.naziv}</span>
+              <span className="block text-xs text-muted">
+                {formatPrice(p.cijena)}
+                {unitSuffix(p.jedinica)}
+                {p.preporucenaZamjena && <span className="ml-1.5 font-semibold text-brand-700">preporučeno</span>}
+              </span>
             </span>
           </button>
         ))}
       </div>
+      {skriveno > 0 && (
+        <button type="button" onClick={() => setSve(true)} className="self-start text-sm font-medium text-brand-700 hover:underline">
+          Prikaži sve iz ponude ({skriveno} još)
+        </button>
+      )}
+
+      <label className="mt-1 flex cursor-pointer items-center gap-2 text-sm text-ink">
+        <input
+          type="checkbox"
+          checked={zapamti}
+          onChange={(e) => setZapamti(e.target.checked)}
+          className="h-4 w-4 accent-brand-600"
+        />
+        Ubuduće mi ne stavljaj: {naziv}
+      </label>
     </div>
   );
 }

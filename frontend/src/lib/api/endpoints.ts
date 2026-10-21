@@ -51,7 +51,9 @@ import type {
   AssignRouteRequest,
   CategoryInput,
   CreateOrderRequest,
+  AdminKorpicaNarudzbe,
   AdminZadaci,
+  IzbjegnutArtikal,
   DashboardStats,
   Driver,
   DriverInput,
@@ -324,12 +326,25 @@ export const accountApi = {
       body: { productIds },
     }).then((r) => r.data),
 
-  /** Jedan artikal korpice za drugi; količinu novog određuje server. */
-  zamijeniUKorpici: (orderItemId: string, izbaci: string, ubaci: string) =>
+  /**
+   * Jedan artikal korpice za drugi; količinu novog određuje server. `ubaci = null` je
+   * „izaberi umjesto mene"; `zapamti` stavlja izbačeni artikal na spisak „ne stavljaj mi".
+   */
+  zamijeniUKorpici: (orderItemId: string, izbaci: string, ubaci: string | null, zapamti = false) =>
     apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}/zamijeni`, {
       method: "POST",
-      body: { izbaci, ubaci },
+      body: { izbaci, ubaci, zapamti },
     }).then((r) => r.data),
+
+  /** „Vrati kako je bilo": sadržaj sedmice, uz zamjene za spisak „ne stavljaj mi". */
+  vratiKorpicu: (orderItemId: string) =>
+    apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}/vrati`, { method: "POST" }).then((r) => r.data),
+
+  izbjegnuti: () => apiFetch<IzbjegnutArtikal[]>("/account/izbjegnuti-artikli").then((r) => r.data),
+  dodajIzbjegnut: (productId: string) =>
+    apiFetch<IzbjegnutArtikal[]>(`/account/izbjegnuti-artikli/${productId}`, { method: "PUT" }).then((r) => r.data),
+  ukloniIzbjegnut: (productId: string) =>
+    apiFetch<IzbjegnutArtikal[]>(`/account/izbjegnuti-artikli/${productId}`, { method: "DELETE" }).then((r) => r.data),
 
   poeni: () => apiFetch<MojiPoeni>("/account/poeni").then((r) => r.data),
 
@@ -364,6 +379,15 @@ export const accountApi = {
 
 export const adminApi = {
   zadaci: () => apiFetch<AdminZadaci>("/admin/zadaci").then((r) => r.data),
+
+  /** Korpica jednog kupca u narudžbi — admin je uređuje sa količinama. */
+  korpicaNarudzbe: (orderItemId: string) =>
+    apiFetch<AdminKorpicaNarudzbe>(`/admin/narudzbe/korpica/${orderItemId}`).then((r) => r.data),
+  izmijeniKorpicuNarudzbe: (orderItemId: string, stavke: { productId: string; kolicina: number }[]) =>
+    apiFetch<AdminKorpicaNarudzbe>(`/admin/narudzbe/korpica/${orderItemId}`, {
+      method: "PUT",
+      body: { stavke },
+    }).then((r) => r.data),
 
   dashboard: (date?: string) =>
     apiFetch<DashboardStats>("/admin/dashboard", { query: { date } }).then(

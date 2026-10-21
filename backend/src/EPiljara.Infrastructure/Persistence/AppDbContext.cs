@@ -27,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SedmicniSadrzaj> SedmicniSadrzaji => Set<SedmicniSadrzaj>();
     public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
     public DbSet<ZamjenaSadrzaja> ZamjeneSadrzaja => Set<ZamjenaSadrzaja>();
+    public DbSet<IzbjegnutArtikal> IzbjegnutiArtikli => Set<IzbjegnutArtikal>();
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
@@ -153,6 +154,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne(x => x.Product).WithMany()
                 .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => new { x.SedmicniSadrzajId, x.ProductId }).IsUnique();
+        });
+
+        b.Entity<IzbjegnutArtikal>(e =>
+        {
+            e.HasOne(x => x.User).WithMany()
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.UserId, x.ProductId }).IsUnique();
         });
 
         b.Entity<StavkaKorpiceNarudzbe>(e =>

@@ -300,6 +300,24 @@ internal sealed class Scenario : IDisposable
             .Handle(new ZamijeniArtikalUKorpiciCommand(orderItemId, izbaci, ubaci), default);
     }
 
+    /// <summary>Zamjena sa „izaberi umjesto mene" (ubaci = null) i/ili „zapamti".</summary>
+    public Task<MojaKorpicaDetaljiDto> ZamijeniAsync(Guid orderItemId, Guid izbaci, Guid? ubaci, bool zapamti)
+    {
+        var korisnik = KorisnikZa(null);
+        var mediator = new FakeMediator(Db, korisnik, Options.Create(Opcije));
+        return new ZamijeniArtikalUKorpiciHandler(Db, korisnik, Options.Create(Opcije), mediator)
+            .Handle(new ZamijeniArtikalUKorpiciCommand(orderItemId, izbaci, ubaci, zapamti), default);
+    }
+
+    /// <summary>„Vrati kako je bilo" — korpica nazad na sadržaj sedmice.</summary>
+    public Task<MojaKorpicaDetaljiDto> VratiAsync(Guid orderItemId)
+    {
+        var korisnik = KorisnikZa(null);
+        var mediator = new FakeMediator(Db, korisnik, Options.Create(Opcije));
+        return new VratiMojuKorpicuHandler(Db, korisnik, Options.Create(Opcije), mediator)
+            .Handle(new VratiMojuKorpicuCommand(orderItemId), default);
+    }
+
     // ---------- Ispravke finalnog review-a ----------
 
     /// <summary>

@@ -9,6 +9,8 @@ public record OrderItemDto
     public decimal Quantity { get; init; }
     public decimal UnitPrice { get; init; }
     public string? ImageUrl { get; init; }
+    /// <summary>Stavka je korpica — admin joj može urediti sadržaj. Popunjava samo admin lista narudžbi.</summary>
+    public bool JeKorpica { get; init; }
 }
 
 public record OrderDto

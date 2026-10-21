@@ -145,6 +145,10 @@ public class CreateOrderHandler(
         var (godina, sedmica) =
             SedmicaHelper.SedmicaZaNarudzbu(danIsporuke, vrijemeIsporuke, cutoffSati);
 
+        // Ko je kupac — objašnjenje uz upis narudžbe niže. Računa se ovdje jer ga snimak korpice
+        // treba za kupčev spisak „ne stavljaj mi".
+        var customerId = cmd.CustomerId ?? (current.IsAuthenticated ? current.Id : null);
+
         // Pretplatna cijena se računa ovdje, a ne u pozivaocu, iz istog razloga iz kojeg
         // pretplata uopšte ide kroz ovaj handler: zbir, dostava i ukupno se računaju na
         // jednom mjestu. Pravilo („šesta isporuka je prva jeftinija") i dalje stoji samo u
@@ -180,7 +184,7 @@ public class CreateOrderHandler(
             // Korpica nosi sadržaj sedmice koju narudžba isporučuje. Isti poziv stoji i u
             // ConfirmGuestOrderHandler-u — vidi SnapshotKorpice za razlog zašto je ovo
             // zajednički pomoćnik, a ne kopiran blok.
-            await SnapshotKorpice.PricvrstiAsync(db, stavka, product, godina, sedmica, ct);
+            await SnapshotKorpice.PricvrstiAsync(db, stavka, product, godina, sedmica, customerId, korpiceOpcije.Value, ct);
 
             items.Add(stavka);
 
@@ -201,7 +205,7 @@ public class CreateOrderHandler(
         // `cmd.CustomerId` ima prednost samo zato što ga postavlja pozivalac koji nema
         // ICurrentUser (posao pretplata). Kontroleri ga ne šalju, pa je za svaki zahtjev
         // sa žice ovo i dalje isključivo prijavljeni korisnik.
-        var customerId = cmd.CustomerId ?? (current.IsAuthenticated ? current.Id : null);
+        // (customerId je izračunat gore, prije stavki — korpica ga treba za spisak „ne stavljaj mi".)
 
         // Kod se provjerava tek kad je subtotal poznat (minimum koda) i poslije minimuma zone (O2).
         // Zalihe su gore već skinute u memoriji, ali ako kod padne izuzetak izlazi prije

@@ -42,7 +42,25 @@ public class AccountController : ApiControllerBase
     public async Task<IActionResult> ZamijeniUKorpici(
         Guid orderItemId, [FromBody] ZamijeniUKorpiciBody body) =>
         Envelope(await Mediator.Send(
-            new ZamijeniArtikalUKorpiciCommand(orderItemId, body.Izbaci, body.Ubaci)));
+            new ZamijeniArtikalUKorpiciCommand(orderItemId, body.Izbaci, body.Ubaci, body.Zapamti ?? false)));
+
+    /// <summary>Korpica nazad na sadržaj sedmice (uz zamjene za artikle sa spiska „ne stavljaj mi").</summary>
+    [HttpPost("account/korpice/{orderItemId:guid}/vrati")]
+    public async Task<IActionResult> VratiKorpicu(Guid orderItemId) =>
+        Envelope(await Mediator.Send(new VratiMojuKorpicuCommand(orderItemId)));
+
+    /// <summary>Spisak „ne stavljaj mi": artikli koje kupčeve korpice automatski zamijene.</summary>
+    [HttpGet("account/izbjegnuti-artikli")]
+    public async Task<IActionResult> IzbjegnutiArtikli() =>
+        EnvelopeList(await Mediator.Send(new GetIzbjegnutiArtikliQuery()));
+
+    [HttpPut("account/izbjegnuti-artikli/{productId:guid}")]
+    public async Task<IActionResult> DodajIzbjegnutiArtikal(Guid productId) =>
+        EnvelopeList(await Mediator.Send(new DodajIzbjegnutiArtikalCommand(productId)));
+
+    [HttpDelete("account/izbjegnuti-artikli/{productId:guid}")]
+    public async Task<IActionResult> UkloniIzbjegnutiArtikal(Guid productId) =>
+        EnvelopeList(await Mediator.Send(new UkloniIzbjegnutiArtikalCommand(productId)));
 
     [HttpGet("account/addresses")]
     public async Task<IActionResult> Addresses() =>
@@ -109,7 +127,8 @@ public record UpdateAddressBody(
 
 /// <summary>Tijelo bez Id-a — Id dolazi iz putanje. Količine i cijene određuje server.</summary>
 public record IzmijeniKorpicuBody(IReadOnlyList<Guid> ProductIds);
-public record ZamijeniUKorpiciBody(Guid Izbaci, Guid Ubaci);
+/// <summary>Ubaci = null: „izaberi umjesto mene". Zapamti: izbačeni artikal ide na spisak „ne stavljaj mi".</summary>
+public record ZamijeniUKorpiciBody(Guid Izbaci, Guid? Ubaci, bool? Zapamti);
 
 /// <summary>Tijelo PUT-a bez Id-a — Id dolazi iz putanje, da se ne mogu razići.</summary>
 public record IzmijeniPretplatuBody(

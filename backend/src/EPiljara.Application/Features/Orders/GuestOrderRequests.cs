@@ -329,7 +329,7 @@ public class ConfirmGuestOrderHandler(
             // vidi. Odbijanje potvrde sa `korpica_bez_sadrzaja` je NOV način da ovaj
             // endpoint padne — i jedini ispravan, jer je prodaja kutije koju ne možemo
             // napuniti gora od odbijene potvrde.
-            await SnapshotKorpice.PricvrstiAsync(db, red, product, godina, sedmica, ct);
+            await SnapshotKorpice.PricvrstiAsync(db, red, product, godina, sedmica, null, korpiceOpcije.Value, ct);
 
             items.Add(red);
 

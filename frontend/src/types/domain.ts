@@ -109,6 +109,8 @@ export interface OrderItem {
   /** Price snapshot at time of order — never changes afterwards. */
   unitPrice: number;
   imageUrl?: string;
+  /** Stavka je korpica — admin joj može urediti sadržaj (popunjava samo admin lista narudžbi). */
+  jeKorpica?: boolean;
 }
 
 export interface Order {

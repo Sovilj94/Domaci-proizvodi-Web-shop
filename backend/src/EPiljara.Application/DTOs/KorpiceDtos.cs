@@ -204,4 +204,49 @@ public record MojaKorpicaDetaljiDto
     public MojaKorpicaDto Korpica { get; init; } = new();
     public IReadOnlyList<StavkaMojeKorpiceDto> Stavke { get; init; } = [];
     public IReadOnlyList<PonudaArtiklaDto> Ponuda { get; init; } = [];
+    /// <summary>Kupčev spisak „ne stavljaj mi" — birač zamjene ih ne nudi.</summary>
+    public IReadOnlyList<Guid> Izbjegnuti { get; init; } = [];
+}
+
+public record IzbjegnutArtikalDto
+{
+    public Guid ProductId { get; init; }
+    public string Naziv { get; init; } = string.Empty;
+    public string? ImageUrl { get; init; }
+}
+
+/// <summary>Kupčeva korpica u jednoj narudžbi, kako je admin vidi i uređuje.</summary>
+public record AdminKorpicaNarudzbeDto
+{
+    public Guid OrderItemId { get; init; }
+    public string KodNarudzbe { get; init; } = string.Empty;
+    public string StatusNarudzbe { get; init; } = string.Empty;
+    public string Kupac { get; init; } = string.Empty;
+    public string Korpica { get; init; } = string.Empty;
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
+    /// <summary>Koliko kutija ide u ovoj stavci narudžbe (količine ispod su po kutiji).</summary>
+    public decimal BrojKutija { get; init; }
+    public decimal CijenaKorpice { get; init; }
+    /// <summary>Cilj vrijednosti iz objavljenog sadržaja; 0 kad sadržaja nema.</summary>
+    public decimal Cilj { get; init; }
+    public decimal Vrijednost { get; init; }
+    public decimal NabavnaVrijednost { get; init; }
+    public decimal? Marza { get; init; }
+    /// <summary>Narudžba još nije krenula u dostavu — admin smije mijenjati sadržaj.</summary>
+    public bool MozeSeMijenjati { get; init; }
+    public IReadOnlyList<AdminStavkaKorpiceNarudzbeDto> Stavke { get; init; } = [];
+    public IReadOnlyList<IzbjegnutArtikalDto> Izbjegnuti { get; init; } = [];
+}
+
+public record AdminStavkaKorpiceNarudzbeDto
+{
+    public Guid ProductId { get; init; }
+    public string Naziv { get; init; } = string.Empty;
+    public string Jedinica { get; init; } = "kom";
+    public decimal Kolicina { get; init; }
+    public decimal JedinicnaCijena { get; init; }
+    public decimal? NabavnaCijena { get; init; }
+    /// <summary>Artikal nije iz sedmičnog sadržaja — dodao ga je kupac, admin ili zamjena.</summary>
+    public bool Izmijenjeno { get; init; }
 }
