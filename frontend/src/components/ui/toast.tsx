@@ -7,14 +7,21 @@ import { cn } from "@/lib/utils";
 
 type ToastVariant = "success" | "error" | "info";
 
+/** Dugme u obavještenju, npr. „Poništi" poslije brze izmjene. Klik ga i zatvara. */
+export interface ToastAkcija {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: number;
   message: string;
   variant: ToastVariant;
+  akcija?: ToastAkcija;
 }
 
 interface ToastContextValue {
-  show: (message: string, variant?: ToastVariant) => void;
+  show: (message: string, variant?: ToastVariant, akcija?: ToastAkcija) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -22,13 +29,19 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const show = useCallback((message: string, variant: ToastVariant = "success") => {
-    const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, variant }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3200);
+  const zatvori = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const show = useCallback(
+    (message: string, variant: ToastVariant = "success", akcija?: ToastAkcija) => {
+      const id = Date.now() + Math.random();
+      setToasts((prev) => [...prev, { id, message, variant, akcija }]);
+      // Sa akcijom duže — treba stići do dugmeta.
+      setTimeout(() => zatvori(id), akcija ? 6000 : 3200);
+    },
+    [zatvori],
+  );
 
   return (
     <ToastContext.Provider value={{ show }}>
@@ -54,6 +67,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               {t.variant === "error" && <XCircle className="h-4 w-4" />}
               {t.variant === "info" && <Info className="h-4 w-4" />}
               {t.message}
+              {t.akcija && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    t.akcija!.onClick();
+                    zatvori(t.id);
+                  }}
+                  className="-mr-1 ml-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold transition hover:bg-white/30"
+                >
+                  {t.akcija.label}
+                </button>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>

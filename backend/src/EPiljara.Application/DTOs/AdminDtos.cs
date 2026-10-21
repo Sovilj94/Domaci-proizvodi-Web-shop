@@ -108,6 +108,28 @@ public record StatusCountDto
     public int Count { get; init; }
 }
 
+/// <summary>Jedan zadatak na početnom ekranu admina. Nivo: hitno | upozorenje | info.</summary>
+public record ZadatakDto
+{
+    public string Kljuc { get; init; } = string.Empty;
+    public string Nivo { get; init; } = "info";
+    public string Naslov { get; init; } = string.Empty;
+    public string Opis { get; init; } = string.Empty;
+    public int Broj { get; init; }
+    public string Link { get; init; } = string.Empty;
+    public string Akcija { get; init; } = string.Empty;
+}
+
+public record AdminZadaciDto
+{
+    /// <summary>Sedmica koju checkout upravo prodaje — za nju se gleda sadržaj korpica.</summary>
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
+    public IReadOnlyList<ZadatakDto> Zadaci { get; init; } = [];
+    /// <summary>Brojke uz stavke menija: narudzbe, korpice, proizvodi, partneri.</summary>
+    public IReadOnlyDictionary<string, int> Meni { get; init; } = new Dictionary<string, int>();
+}
+
 public record DashboardDto
 {
     public DateTime Date { get; init; }

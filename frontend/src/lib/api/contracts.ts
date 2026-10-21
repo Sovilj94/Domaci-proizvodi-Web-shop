@@ -133,6 +133,25 @@ export interface AssignRouteRequest {
   orderIds: string[];
 }
 
+/** Zadatak sa početnog ekrana admina (`GET /admin/zadaci`). */
+export interface AdminZadatak {
+  kljuc: string;
+  nivo: "hitno" | "upozorenje" | "info";
+  naslov: string;
+  opis: string;
+  broj: number;
+  link: string;
+  akcija: string;
+}
+
+export interface AdminZadaci {
+  godina: number;
+  sedmica: number;
+  zadaci: AdminZadatak[];
+  /** Brojke uz stavke menija: narudzbe, korpice, proizvodi, partneri. */
+  meni: Record<string, number>;
+}
+
 export interface DashboardStats {
   date: string;
   ordersToday: number;

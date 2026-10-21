@@ -51,6 +51,7 @@ import type {
   AssignRouteRequest,
   CategoryInput,
   CreateOrderRequest,
+  AdminZadaci,
   DashboardStats,
   Driver,
   DriverInput,
@@ -362,6 +363,8 @@ export const accountApi = {
 /* ---------- Admin ---------- */
 
 export const adminApi = {
+  zadaci: () => apiFetch<AdminZadaci>("/admin/zadaci").then((r) => r.data),
+
   dashboard: (date?: string) =>
     apiFetch<DashboardStats>("/admin/dashboard", { query: { date } }).then(
       (r) => r.data,
