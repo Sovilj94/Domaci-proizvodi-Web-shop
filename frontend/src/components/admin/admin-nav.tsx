@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ChefHat,
   ChevronDown,
+  Search,
   FileText,
   Coins,
   FlaskConical,
@@ -35,12 +36,13 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { adminApi } from "@/lib/api/endpoints";
+import { OTVORI_PALETU } from "@/lib/admin/paleta";
 import { narudzbeRijec, prijaveRijec } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 
 type BadgeVrsta = "narudzbe" | "korpice" | "proizvodi" | "partneri";
 
-interface NavItem {
+export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
@@ -100,7 +102,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
   },
 ];
 
-const ITEMS: NavItem[] = [PREGLED, ...GRUPE.flatMap((g) => g.stavke)];
+export const ITEMS: NavItem[] = [PREGLED, ...GRUPE.flatMap((g) => g.stavke)];
 
 function useActive() {
   const pathname = usePathname();
@@ -238,6 +240,18 @@ export function AdminSidebar() {
         </span>
       </div>
 
+      <div className="px-3">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(OTVORI_PALETU))}
+          className="flex w-full items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm text-white/60 transition hover:bg-white/15 hover:text-white"
+        >
+          <Search className="h-4 w-4" />
+          Traži…
+          <kbd className="ml-auto rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold">Ctrl K</kbd>
+        </button>
+      </div>
+
       <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
         <StavkaMenija item={PREGLED} aktivna={isActive(PREGLED.href)} counts={counts} />
         {GRUPE.map((g) => {
@@ -315,6 +329,14 @@ export function AdminMobileBar() {
           U traci nema mjesta za natpis, zato ikona sa aria-label.
         */}
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OTVORI_PALETU))}
+            aria-label="Traži"
+            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+          >
+            <Search className="h-4 w-4" />
+          </button>
           <Link
             href="/"
             aria-label="Nazad u shop"

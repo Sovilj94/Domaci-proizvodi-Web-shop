@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
@@ -137,6 +137,15 @@ function AdminProducts() {
     setEditing(null);
     setOpen(true);
   }
+
+  // „Novi proizvod" iz Ctrl+K palete dolazi kao ?novi=1 — otvori formu i skini parametar.
+  useEffect(() => {
+    if (params.get("novi") !== "1") return;
+    setEditing(null);
+    setOpen(true);
+    postavi("novi", "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
   function openEdit(p: Product) {
     setEditing(p);
     setOpen(true);

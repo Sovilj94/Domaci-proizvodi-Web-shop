@@ -568,6 +568,25 @@ eslint, `npm run build` ✓. Uživo: `/admin/zadaci` na dev bazi vraća 4 zadatk
 Sljedeći krug iz prijedloga: kanban narudžbi sa prevlačenjem, Ctrl+K paleta, bočni panel umjesto prelaska na
 novu stranicu, vizuelni editor korpice.
 
+### Admin, drugi krug: tabla narudžbi, bočni panel, Ctrl+K (2026-10-21) — grana `admin-kanban-pretraga` (nespojena)
+
+- **Tabla narudžbi** (`narudzbe-tabla.tsx`, `lib/admin/kanban.ts`): podrazumijevani prikaz narudžbi (Lista ostaje, i
+  otvara se sama kad link nosi `?status=`; izbor u `?prikaz=`). Kolone Na čekanju → Potvrđeno → Pakovanje → U
+  dostavi → Dostavljeno (dostavljene: zadnjih 15). Kartica se prevlači (HTML5 DnD) samo tamo gdje `Order.Transitions`
+  dozvoljava — dozvoljena kolona svijetli, ostale se priguše; dugme „→ sljedeći status" na kartici radi isto bez
+  miša. Otkazivanje: zona „Spusti ovdje da otkažeš" + potvrda (nepovratno). Neuspješne dostave u crvenoj traci
+  iznad. „Sve" na koloni Na čekanju potvrđuje sve odjednom (jedno obavještenje). Promjena je optimistična;
+  lista se osvježava na 30 s i javlja novu narudžbu obavještenjem.
+- **Bočni panel**: klik na karticu otvara detalje narudžbe (postojeći OrderCard) u AdminLadici, tabla ostaje iza.
+- **Ctrl+K / ⌘K / „/"** (`komandna-paleta.tsx`, `lib/admin/paleta.ts`): akcije (nova narudžba, novi proizvod —
+  `/admin/products?novi=1`, generisanje korpica, pakerska lista, artikli bez zalihe), sve stranice menija,
+  proizvodi (iz keša), narudžbe i kupci (server, od 2 slova). Rangiranje bez kvačica, više riječi. Dugme „Traži…"
+  u sidebaru i ikona na telefonu. Kupci primaju `?pretraga=&kupac=` (otvara ladicu kupca).
+
+Provjere: `npm test` 91/91 (6 novih), `tsc`, eslint, `npm run build` ✓. Uživo u pregledaču: tabla, prevlačenje
+(DragEvent; kolone se pravilno istaknu/priguše, badge pao 2 → 1), Ctrl+K („marko" → 5 narudžbi + kupac, „cvar" →
+Čvarci → filtriran katalog), bočni panel. **Dev baza:** narudžba `EP-2610-0011` je pri provjeri potvrđena.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

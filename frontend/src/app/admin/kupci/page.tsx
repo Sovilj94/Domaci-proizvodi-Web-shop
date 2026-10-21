@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLadica } from "@/components/admin/admin-ladica";
 import { Field, Input } from "@/components/ui/field";
@@ -14,9 +15,21 @@ import type { AdminKupac } from "@/types/domain";
 
 /** Kupci: ko naručuje, koliko, sa kojom pretplatom i poenima. Klik otvara narudžbe, pretplate i adrese. */
 export default function AdminKupciPage() {
-  const [unos, setUnos] = useState("");
-  const [pretraga, setPretraga] = useState("");
+  // useSearchParams traži Suspense iznad sebe, inače `next build` obara stranicu.
+  return (
+    <Suspense fallback={<LoadingBlock />}>
+      <AdminKupci />
+    </Suspense>
+  );
+}
+
+function AdminKupci() {
+  // Ctrl+K paleta otvara kupca linkom: ?pretraga=<email>&kupac=<id>.
+  const params = useSearchParams();
+  const [unos, setUnos] = useState(params.get("pretraga") ?? "");
+  const [pretraga, setPretraga] = useState(unos.trim());
   const [izabran, setIzabran] = useState<AdminKupac | null>(null);
+  const kupacIzLinka = params.get("kupac");
 
   useEffect(() => {
     const t = setTimeout(() => setPretraga(unos.trim()), 300);
@@ -24,6 +37,11 @@ export default function AdminKupciPage() {
   }, [unos]);
 
   const q = useQuery({ queryKey: ["admin", "kupci", pretraga], queryFn: () => adminApi.kupci(pretraga) });
+
+  useEffect(() => {
+    const k = kupacIzLinka && q.data?.find((x) => x.id === kupacIzLinka);
+    if (k) setIzabran(k);
+  }, [kupacIzLinka, q.data]);
 
   return (
     <div className="space-y-6">
