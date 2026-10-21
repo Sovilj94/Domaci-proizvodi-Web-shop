@@ -154,7 +154,7 @@ public class AdminController : ApiControllerBase
     [HttpPost("admin/korpice/sadrzaj/generisi")]
     public async Task<IActionResult> GenerisiSadrzaj([FromBody] GenerisiSadrzajRequest body) =>
         EnvelopeList(await Mediator.Send(
-            new GenerisiSedmicniSadrzajCommand(body.Godina, body.Sedmica, body.KorpicaId)));
+            new GenerisiSedmicniSadrzajCommand(body.Godina, body.Sedmica, body.KorpicaId, body.Ponovo ?? false)));
 
     [HttpGet("admin/korpice/sadrzaj/{id:guid}")]
     public async Task<IActionResult> SadrzajZaIzmjenu(Guid id) =>
@@ -162,7 +162,7 @@ public class AdminController : ApiControllerBase
 
     [HttpPut("admin/korpice/sadrzaj/{id:guid}")]
     public async Task<IActionResult> IzmijeniNacrt(Guid id, [FromBody] IzmijeniNacrtRequest body) =>
-        Envelope(await Mediator.Send(new IzmijeniNacrtCommand(id, body.Stavke)));
+        Envelope(await Mediator.Send(new IzmijeniNacrtCommand(id, body.Stavke, body.Zamjene)));
 
     [HttpPost("admin/korpice/sadrzaj/{id:guid}/objavi")]
     public async Task<IActionResult> ObjaviSadrzaj(Guid id) =>

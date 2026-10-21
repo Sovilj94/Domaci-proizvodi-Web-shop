@@ -8,6 +8,13 @@ public class Product : Entity
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public decimal Price { get; set; }
+
+    /// <summary>
+    /// Nabavna cijena po jedinici — koliko artikal košta kod domaćina. Null = nije unesena;
+    /// generator korpica tada za taj artikal ne može provjeriti maržu i to javlja. Nikad ne
+    /// izlazi na javni API (samo admin DTO-i).
+    /// </summary>
+    public decimal? NabavnaCijena { get; set; }
     public Unit Unit { get; set; } = Unit.Kom;
     public decimal Stock { get; set; }
     public bool IsAvailable { get; set; } = true;

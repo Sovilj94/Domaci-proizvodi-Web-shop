@@ -62,6 +62,16 @@ public static class MappingExtensions
         Mjeseci = p.Mjeseci,
     };
 
+    public static AdminProductDto ToAdminDto(this Product p) => new(p.ToDto())
+    {
+        NabavnaCijena = p.NabavnaCijena,
+        Marza = Marza(p.Price, p.NabavnaCijena),
+    };
+
+    /// <summary>Udio marže u prodajnoj cijeni (0.35 = 35%), zaokružen na 4 decimale.</summary>
+    public static decimal? Marza(decimal prodajna, decimal? nabavna) =>
+        nabavna is null || prodajna <= 0 ? null : Math.Round((prodajna - nabavna.Value) / prodajna, 4);
+
     public static DeliveryZoneDto ToDto(this DeliveryZone z) => new()
     {
         Id = z.Id,

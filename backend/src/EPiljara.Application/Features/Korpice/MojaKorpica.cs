@@ -185,6 +185,15 @@ public class GetMojaKorpicaHandler(
             .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, DayOfWeek.Monday, "00:00")
             .Month;
 
+        // Predložene zamjene objavljenog sadržaja te sedmice — birač zamjene ih nudi prve.
+        var preporucene = await db.ZamjeneSadrzaja
+            .Where(z => z.SedmicniSadrzaj!.KorpicaId == red.ProductId
+                        && z.SedmicniSadrzaj.Godina == red.Order.Godina
+                        && z.SedmicniSadrzaj.Sedmica == red.Order.Sedmica
+                        && z.SedmicniSadrzaj.Status != StatusSadrzaja.Nacrt)
+            .Select(z => z.ProductId)
+            .ToListAsync(ct);
+
         // Mjeseci su CSV u bazi i ne mogu se filtrirati u SQL-u — bazen se mora materijalizovati
         // (ToListAsync) PRIJE nego što USezoni pređe preko njega u memoriji.
         var ponuda = KorpicaPodobnost
@@ -197,8 +206,10 @@ public class GetMojaKorpicaHandler(
                 Cijena = p.Price,
                 ImageUrl = p.ImageUrl,
                 IzOveKorpice = kategorijeKorpice.Contains(p.CategoryId),
+                PreporucenaZamjena = preporucene.Contains(p.Id),
             })
-            .OrderByDescending(p => p.IzOveKorpice)
+            .OrderByDescending(p => p.PreporucenaZamjena)
+            .ThenByDescending(p => p.IzOveKorpice)
             .ThenBy(p => p.Naziv)
             .ToList();
 

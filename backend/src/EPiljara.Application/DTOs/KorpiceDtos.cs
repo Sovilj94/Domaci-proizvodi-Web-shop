@@ -53,6 +53,44 @@ public record SadrzajDto
     public IReadOnlyList<StavkaSadrzajaDto> Stavke { get; init; } = [];
 }
 
+/// <summary>
+/// Sadržaj za admin editor: javni <see cref="SadrzajDto"/> plus cijene, nabavne cijene,
+/// marža i predložene zamjene. Odvojen tip — ništa od ovoga ne smije na javni API.
+/// </summary>
+public record AdminSadrzajDto : SadrzajDto
+{
+    public AdminSadrzajDto(SadrzajDto osnova) : base(osnova) { }
+
+    public decimal CijenaKorpice { get; init; }
+    public decimal Vrijednost { get; init; }
+    /// <summary>Σ(količina × trenutna nabavna cijena) za stavke kojima je nabavna unesena.</summary>
+    public decimal NabavnaVrijednost { get; init; }
+    /// <summary>Marža korpice prema njenoj cijeni (0–1). Null kad nijedna stavka nema nabavnu cijenu.</summary>
+    public decimal? Marza { get; init; }
+    /// <summary>Najviše koliko sadržaj smije koštati u nabavci (cijena × (1 − minimalna marža)).</summary>
+    public decimal NabavniBudzet { get; init; }
+    public decimal MinimalnaMarza { get; init; }
+    public IReadOnlyList<CijenaStavkeDto> Cijene { get; init; } = [];
+    public IReadOnlyList<ZamjenaDto> Zamjene { get; init; } = [];
+}
+
+public record CijenaStavkeDto
+{
+    public Guid ProductId { get; init; }
+    public decimal JedinicnaCijena { get; init; }
+    public decimal? NabavnaCijena { get; init; }
+}
+
+public record ZamjenaDto
+{
+    public Guid ProductId { get; init; }
+    public string Naziv { get; init; } = string.Empty;
+    public string Jedinica { get; init; } = "kom";
+    public decimal Cijena { get; init; }
+    public decimal? NabavnaCijena { get; init; }
+    public string? ImageUrl { get; init; }
+}
+
 public record SedmicaDto
 {
     public int Godina { get; init; }
@@ -82,6 +120,13 @@ public record SadrzajPregledDto
     public int BrojArtikala { get; init; }
     public decimal Vrijednost { get; init; }
     public decimal CiljGenerisanja { get; init; }
+    public decimal CijenaKorpice { get; init; }
+    /// <summary>Σ(količina × trenutna nabavna cijena), samo stavke sa nabavnom cijenom.</summary>
+    public decimal NabavnaVrijednost { get; init; }
+    /// <summary>Marža korpice (0–1). Null kad sadržaja nema ili nijedna stavka nema nabavnu cijenu.</summary>
+    public decimal? Marza { get; init; }
+    public int BezNabavneCijene { get; init; }
+    public int BrojZamjena { get; init; }
 }
 
 /// <summary>
@@ -92,6 +137,9 @@ public record SadrzajPregledDto
 public record PakerskaListaDto
 {
     public int BrojNarudzbi { get; init; }
+    /// <summary>Trošak nabavke cijele liste po trenutnim nabavnim cijenama (bez artikala bez nabavne).</summary>
+    public decimal NabavnaVrijednost { get; init; }
+    public int BezNabavneCijene { get; init; }
     public IReadOnlyList<StavkaPakerskeDto> Stavke { get; init; } = [];
 }
 
@@ -102,6 +150,7 @@ public record StavkaPakerskeDto
     public string Jedinica { get; init; } = "kom";
     public string Proizvodjac { get; init; } = string.Empty;
     public string Selo { get; init; } = string.Empty;
+    public decimal? NabavnaCijena { get; init; }
     /// <summary>Artikal je soft-obrisan (ili trajno nestao) poslije objave sadržaja koji
     /// ga sadrži. Red se i dalje prikazuje sa stvarnom količinom — pakerska lista je
     /// procurement istina i ne smije praviti prazne redove — ali ga operater mora
@@ -146,6 +195,8 @@ public record PonudaArtiklaDto
     public string? ImageUrl { get; init; }
     /// <summary>Artikal pripada kategorijama ove korpice. Birač takve stavlja prve.</summary>
     public bool IzOveKorpice { get; init; }
+    /// <summary>Predložena zamjena iz sedmičnog sadržaja — birač zamjene je nudi prvu.</summary>
+    public bool PreporucenaZamjena { get; init; }
 }
 
 public record MojaKorpicaDetaljiDto

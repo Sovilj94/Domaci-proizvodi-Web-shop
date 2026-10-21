@@ -18,6 +18,7 @@ import type {
   Producer,
   Product,
   SadrzajKorpice,
+  AdminSadrzajKorpice,
   Sedmica,
   TipKorpice,
   Utisak,
@@ -179,7 +180,7 @@ export const adminKorpiceApi = {
 
   /** Jedan sadržaj, uključujući nacrt — javni endpoint nacrt odbija. */
   sadrzaj: (id: string) =>
-    apiFetch<SadrzajKorpice>(`/admin/korpice/sadrzaj/${id}`).then((r) => r.data),
+    apiFetch<AdminSadrzajKorpice>(`/admin/korpice/sadrzaj/${id}`).then((r) => r.data),
 
   generisi: (body: GenerisiSadrzajRequest) =>
     apiFetch<RezultatGenerisanja[]>("/admin/korpice/sadrzaj/generisi", {
@@ -188,13 +189,13 @@ export const adminKorpiceApi = {
     }).then((r) => r.data),
 
   izmijeni: (id: string, body: IzmijeniNacrtRequest) =>
-    apiFetch<SadrzajKorpice>(`/admin/korpice/sadrzaj/${id}`, {
+    apiFetch<AdminSadrzajKorpice>(`/admin/korpice/sadrzaj/${id}`, {
       method: "PUT",
       body,
     }).then((r) => r.data),
 
   objavi: (id: string) =>
-    apiFetch<SadrzajKorpice>(`/admin/korpice/sadrzaj/${id}/objavi`, {
+    apiFetch<AdminSadrzajKorpice>(`/admin/korpice/sadrzaj/${id}/objavi`, {
       method: "POST",
     }).then((r) => r.data),
 
@@ -320,6 +321,13 @@ export const accountApi = {
     apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}`, {
       method: "PUT",
       body: { productIds },
+    }).then((r) => r.data),
+
+  /** Jedan artikal korpice za drugi; količinu novog određuje server. */
+  zamijeniUKorpici: (orderItemId: string, izbaci: string, ubaci: string) =>
+    apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}/zamijeni`, {
+      method: "POST",
+      body: { izbaci, ubaci },
     }).then((r) => r.data),
 
   poeni: () => apiFetch<MojiPoeni>("/account/poeni").then((r) => r.data),

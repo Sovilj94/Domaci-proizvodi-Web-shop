@@ -12,6 +12,7 @@ import { adminApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { Product } from "@/types/domain";
 import { cn, formatPrice, unitSuffix } from "@/lib/utils";
+import { formatMarza } from "@/lib/marza";
 
 export default function AdminProductsPage() {
   const qc = useQueryClient();
@@ -98,6 +99,15 @@ export default function AdminProductsPage() {
                 <div className="hidden w-24 text-right sm:block">
                   <p className="font-semibold">{formatPrice(p.price)}</p>
                   <p className="text-xs text-muted">{unitSuffix(p.unit)} · {p.stock} kom</p>
+                  <p
+                    className={cn(
+                      "text-xs",
+                      p.marza == null ? "text-muted" : p.marza < 0.25 ? "font-medium text-red-700" : "text-brand-700",
+                    )}
+                    title={p.nabavnaCijena != null ? `Nabavna ${formatPrice(p.nabavnaCijena)}` : "Nabavna cijena nije unesena"}
+                  >
+                    marža {formatMarza(p.marza)}
+                  </p>
                 </div>
 
                 <button

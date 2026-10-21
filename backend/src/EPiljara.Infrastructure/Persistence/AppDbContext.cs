@@ -26,6 +26,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<KorpicaKategorija> KorpicaKategorije => Set<KorpicaKategorija>();
     public DbSet<SedmicniSadrzaj> SedmicniSadrzaji => Set<SedmicniSadrzaj>();
     public DbSet<StavkaSadrzaja> StavkeSadrzaja => Set<StavkaSadrzaja>();
+    public DbSet<ZamjenaSadrzaja> ZamjeneSadrzaja => Set<ZamjenaSadrzaja>();
     public DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe => Set<StavkaKorpiceNarudzbe>();
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
@@ -89,6 +90,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // čitanju postojećih redova čim migracija dodijeli tu vrijednost. Obican je
             // ispravno stanje za sve postojeće redove (nijedan još nije korpica).
             e.Property(x => x.Boja).HasMaxLength(7);
+            e.Property(x => x.NabavnaCijena).HasPrecision(10, 2);
             e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(16)
                 .HasDefaultValue(VrstaProizvoda.Obican);
             e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);
@@ -141,6 +143,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.SedmicniSadrzajId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Product).WithMany()
                 .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<ZamjenaSadrzaja>(e =>
+        {
+            e.Property(x => x.JedinicnaCijena).HasPrecision(12, 2);
+            e.HasOne(x => x.SedmicniSadrzaj).WithMany(s => s.Zamjene)
+                .HasForeignKey(x => x.SedmicniSadrzajId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.SedmicniSadrzajId, x.ProductId }).IsUnique();
         });
 
         b.Entity<StavkaKorpiceNarudzbe>(e =>

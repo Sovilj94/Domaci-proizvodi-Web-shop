@@ -63,3 +63,17 @@ public record ProductDto
     /// <summary>Mjeseci (1–12) sezone; praznina znači cijele godine (vidi Product.Mjeseci).</summary>
     public IReadOnlyList<int> Mjeseci { get; init; } = [];
 }
+
+/// <summary>
+/// Proizvod za admin ekran: javni <see cref="ProductDto"/> plus nabavna cijena i marža.
+/// Odvojen tip, da nabavna cijena ne može slučajno procuriti na javni katalog.
+/// </summary>
+public record AdminProductDto : ProductDto
+{
+    public AdminProductDto(ProductDto osnova) : base(osnova) { }
+
+    public decimal? NabavnaCijena { get; init; }
+
+    /// <summary>Udio marže u prodajnoj cijeni, 0–1 (0.35 = 35%). Null bez nabavne cijene.</summary>
+    public decimal? Marza { get; init; }
+}

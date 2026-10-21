@@ -29,6 +29,9 @@ public class SedmicniSadrzaj : Entity
 
     public ICollection<StavkaSadrzaja> Stavke { get; set; } = new List<StavkaSadrzaja>();
 
+    /// <summary>Predložene zamjene — artikli van kutije koje kupac može uzeti umjesto nekog iz nje.</summary>
+    public ICollection<ZamjenaSadrzaja> Zamjene { get; set; } = new List<ZamjenaSadrzaja>();
+
     /// <summary>Dozvoljeni prelazi. Nazad se ne ide — objavljen sadržaj su kupci već vidjeli.</summary>
     public static readonly IReadOnlyDictionary<StatusSadrzaja, StatusSadrzaja[]> Prelazi =
         new Dictionary<StatusSadrzaja, StatusSadrzaja[]>

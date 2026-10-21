@@ -12,10 +12,29 @@ import { ApiRequestError } from "@/lib/api/client";
 import type { ProductInput } from "@/lib/api/contracts";
 import type { Product, Unit } from "@/types/domain";
 import { cn } from "@/lib/utils";
+import { formatMarza, marza, tonMarze } from "@/lib/marza";
+
+const TON_MARZE = {
+  nema: "bg-sand text-muted",
+  losa: "bg-red-50 text-red-700",
+  tijesna: "bg-honey-100 text-honey-700",
+  dobra: "bg-brand-100 text-brand-700",
+} as const;
+
+function MarzaOznaka({ prodajna, nabavna }: { prodajna: number; nabavna: number | null }) {
+  const m = marza(prodajna, nabavna);
+  return (
+    <p className={cn("mb-1 rounded-xl px-3 py-2.5 text-sm", TON_MARZE[tonMarze(m)])}>
+      Marža: <strong>{formatMarza(m)}</strong>
+      {m != null && <span className="block text-xs">zarada {(prodajna - (nabavna ?? 0)).toFixed(2)} KM po jedinici</span>}
+    </p>
+  );
+}
 
 const EMPTY = {
   name: "",
   price: "",
+  nabavnaCijena: "",
   unit: "kg" as Unit,
   stock: "",
   categoryId: "",
@@ -60,6 +79,7 @@ export function ProductForm({
         ? {
             name: product.name,
             price: String(product.price),
+            nabavnaCijena: product.nabavnaCijena != null ? String(product.nabavnaCijena) : "",
             unit: product.unit,
             stock: String(product.stock),
             categoryId: product.categoryId,
@@ -98,6 +118,10 @@ export function ProductForm({
     mutation.mutate({
       name: form.name,
       price: Number(form.price),
+      // Prazno polje: kod novog proizvoda nema nabavne, kod postojećeg se unesena briše.
+      nabavnaCijena: form.nabavnaCijena.trim() ? Number(form.nabavnaCijena) : undefined,
+      ukloniNabavnuCijenu:
+        product?.nabavnaCijena != null && !form.nabavnaCijena.trim() ? true : undefined,
       unit: form.unit,
       stock: Number(form.stock || 0),
       categoryId: form.categoryId,
@@ -162,6 +186,23 @@ export function ProductForm({
               onChange={(e) => setForm({ ...form, stock: e.target.value })}
             />
           </Field>
+        </div>
+
+        <div className="grid grid-cols-2 items-end gap-3">
+          <Field
+            label="Nabavna cijena (KM)"
+            error={errors.nabavnaCijena?.[0] ?? errors["input.nabavnaCijena"]?.[0]}
+          >
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.nabavnaCijena}
+              onChange={(e) => setForm({ ...form, nabavnaCijena: e.target.value })}
+              placeholder="nije unesena"
+            />
+          </Field>
+          <MarzaOznaka prodajna={Number(form.price)} nabavna={form.nabavnaCijena.trim() ? Number(form.nabavnaCijena) : null} />
         </div>
 
         <Field label="Kategorija" required error={errors.categoryId?.[0]}>

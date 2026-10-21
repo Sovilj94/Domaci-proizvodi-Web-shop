@@ -97,6 +97,10 @@ export interface ProductInput {
   mjeseci?: number[];
   /** Boja pločice „#RRGGBB"; "" = boja iz palete, izostanak = ne mijenjaj (R1). */
   boja?: string;
+  /** Nabavna cijena po jedinici; izostanak = ne mijenjaj. */
+  nabavnaCijena?: number;
+  /** true = obriši unesenu nabavnu cijenu. */
+  ukloniNabavnuCijenu?: boolean;
 }
 
 export interface CategoryInput {
@@ -194,6 +198,12 @@ export interface SadrzajPregled {
   brojArtikala: number;
   vrijednost: number;
   ciljGenerisanja: number;
+  cijenaKorpice: number;
+  nabavnaVrijednost: number;
+  /** Odsutno kad nijedna stavka nema nabavnu cijenu. */
+  marza?: number | null;
+  bezNabavneCijene: number;
+  brojZamjena: number;
 }
 
 export interface StavkaPakerske {
@@ -205,10 +215,14 @@ export interface StavkaPakerske {
   /** Artikal je obrisan (ili trajno nestao) poslije objave sadržaja koji ga sadrži —
    * red i dalje nosi pravu količinu, ali ga treba posebno provjeriti pred nabavku. */
   artikalObrisan: boolean;
+  nabavnaCijena?: number | null;
 }
 
 export interface PakerskaLista {
   brojNarudzbi: number;
+  /** Trošak nabavke liste po trenutnim nabavnim cijenama (artikli bez nabavne se ne broje). */
+  nabavnaVrijednost: number;
+  bezNabavneCijene: number;
   stavke: StavkaPakerske[];
 }
 
@@ -216,10 +230,14 @@ export interface GenerisiSadrzajRequest {
   godina: number;
   sedmica: number;
   korpicaId?: string;
+  /** true = postojeći NACRT se briše i sastavlja iznova (objavljen se ne dira). */
+  ponovo?: boolean;
 }
 
 export interface IzmijeniNacrtRequest {
   stavke: { productId: string; kolicina: number }[];
+  /** Spisak predloženih zamjena; izostanak = ne mijenjaj. */
+  zamjene?: string[];
 }
 
 export interface RezultatGenerisanja {
@@ -229,6 +247,11 @@ export interface RezultatGenerisanja {
   brojArtikala: number;
   vrijednost: number;
   ciljGenerisanja: number;
+  nabavnaVrijednost: number;
+  marza?: number | null;
+  /** Artikli u sadržaju bez nabavne cijene — za njih marža nije provjerena. */
+  bezNabavneCijene: string[];
+  brojZamjena: number;
   /** Odsutno na žici kad nema upozorenja — ne stiže kao `null`. */
   upozorenje?: string;
 }
