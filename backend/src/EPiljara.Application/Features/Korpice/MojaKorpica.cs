@@ -52,6 +52,50 @@ public static class MojaKorpicaPravila
 
         return korpica;
     }
+
+    /// <summary>
+    /// Sve provjere prije kupčeve izmjene korpice (zamjena, vraćanje): stavka postoji i jeste
+    /// korpica, pripada prijavljenom kupcu, narudžba se još ne pakuje, rok nije prošao i za tu
+    /// sedmicu postoji objavljen sadržaj sa ciljem. Sadržaj se vraća sa stavkama i zamjenama.
+    /// </summary>
+    public static async Task<(OrderItem Red, Product Korpica, SedmicniSadrzaj Sadrzaj)> UcitajZaIzmjenuAsync(
+        IAppDbContext db, ICurrentUser current, Guid orderItemId, KorpiceOpcije o, CancellationToken ct)
+    {
+        var red = await db.OrderItems
+            .Include(i => i.Order)
+            .Include(i => i.KorpicaStavke)
+            .FirstOrDefaultAsync(i => i.Id == orderItemId, ct)
+            ?? throw new NotFoundException("Korpica nije pronađena.");
+
+        if (!current.IsAuthenticated || red.Order!.CustomerId != current.Id)
+            throw new ForbiddenException("Ova korpica nije tvoja.");
+
+        var korpica = await UcitajKorpicuAsync(db, red, ct);
+
+        if (!StatusiKojiDozvoljavaju.Contains(red.Order.Status))
+            throw new ConflictException(
+                "Narudžba se već pakuje, sadržaj se više ne može mijenjati.", "korpica_se_pakuje");
+
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, o, ct);
+        var rok = SedmicaHelper
+            .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, dan, vrijemeOd)
+            .AddHours(-cutoff);
+        if (DateTime.UtcNow > rok)
+            throw new DomainException("Rok za izmjenu ove korpice je prošao.", "rok_istekao");
+
+        var sadrzaj = await db.SedmicniSadrzaji
+            .Include(s => s.Stavke)
+            .Include(s => s.Zamjene)
+            .FirstOrDefaultAsync(s => s.KorpicaId == red.ProductId
+                                      && s.Godina == red.Order.Godina
+                                      && s.Sedmica == red.Order.Sedmica, ct);
+        if (sadrzaj is null || sadrzaj.CiljnaVrijednost <= 0m)
+            throw new DomainException(
+                $"Za korpicu {korpica.Name} nema objavljenog sadržaja za tu sedmicu, pa se " +
+                "ne može mijenjati.", "korpica_bez_sadrzaja");
+
+        return (red, korpica, sadrzaj);
+    }
 }
 
 public record GetMojeKorpiceQuery : IRequest<IReadOnlyList<MojaKorpicaDto>>;
@@ -245,6 +289,10 @@ public class GetMojaKorpicaHandler(
                 .OrderBy(s => s.Naziv)
                 .ToList(),
             Ponuda = ponuda,
+            Izbjegnuti = await db.IzbjegnutiArtikli
+                .Where(x => x.UserId == current.Id)
+                .Select(x => x.ProductId)
+                .ToListAsync(ct),
         };
     }
 }

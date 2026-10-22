@@ -284,6 +284,43 @@ export interface MojaKorpicaDetalji {
   korpica: MojaKorpica;
   stavke: StavkaMojeKorpice[];
   ponuda: PonudaArtikla[];
+  /** Kupčev spisak „ne stavljaj mi" (productId) — birač zamjene ih ne nudi. */
+  izbjegnuti: string[];
+}
+
+/** Artikal sa kupčevog spiska „ne stavljaj mi". */
+export interface IzbjegnutArtikal {
+  productId: string;
+  naziv: string;
+  imageUrl?: string | null;
+}
+
+/** Korpica jednog kupca u narudžbi, kako je admin uređuje (`/admin/narudzbe/korpica/{id}`). */
+export interface AdminKorpicaNarudzbe {
+  orderItemId: string;
+  kodNarudzbe: string;
+  statusNarudzbe: string;
+  kupac: string;
+  korpica: string;
+  godina: number;
+  sedmica: number;
+  brojKutija: number;
+  cijenaKorpice: number;
+  cilj: number;
+  vrijednost: number;
+  nabavnaVrijednost: number;
+  marza: number | null;
+  mozeSeMijenjati: boolean;
+  stavke: {
+    productId: string;
+    naziv: string;
+    jedinica: string;
+    kolicina: number;
+    jedinicnaCijena: number;
+    nabavnaCijena: number | null;
+    izmijenjeno: boolean;
+  }[];
+  izbjegnuti: IzbjegnutArtikal[];
 }
 
 /**

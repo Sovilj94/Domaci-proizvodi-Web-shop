@@ -25,6 +25,7 @@ public interface IAppDbContext
     DbSet<SedmicniSadrzaj> SedmicniSadrzaji { get; }
     DbSet<StavkaSadrzaja> StavkeSadrzaja { get; }
     DbSet<ZamjenaSadrzaja> ZamjeneSadrzaja { get; }
+    DbSet<IzbjegnutArtikal> IzbjegnutiArtikli { get; }
     DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe { get; }
 
     /// <summary>Nalozi za ponavljanje korpice — vidi Pretplata entitet.</summary>

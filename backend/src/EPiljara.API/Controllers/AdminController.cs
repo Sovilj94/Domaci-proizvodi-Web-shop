@@ -172,6 +172,15 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> ObjaviSadrzaj(Guid id) =>
         Envelope(await Mediator.Send(new ObjaviSadrzajCommand(id)));
 
+    /// <summary>Korpica jednog kupca u narudžbi — admin je uređuje sa količinama (kupac je zvao).</summary>
+    [HttpGet("admin/narudzbe/korpica/{orderItemId:guid}")]
+    public async Task<IActionResult> KorpicaNarudzbe(Guid orderItemId) =>
+        Envelope(await Mediator.Send(new GetAdminKorpicaNarudzbeQuery(orderItemId)));
+
+    [HttpPut("admin/narudzbe/korpica/{orderItemId:guid}")]
+    public async Task<IActionResult> IzmijeniKorpicuNarudzbe(Guid orderItemId, [FromBody] IzmijeniKorpicuNarudzbeRequest body) =>
+        Envelope(await Mediator.Send(new IzmijeniKorpicuNarudzbeCommand(orderItemId, body.Stavke)));
+
     [HttpGet("admin/korpice/pakerska-lista")]
     public async Task<IActionResult> PakerskaLista([FromQuery] int godina, [FromQuery] int sedmica) =>
         Envelope(await Mediator.Send(new GetPakerskaListaQuery(godina, sedmica)));

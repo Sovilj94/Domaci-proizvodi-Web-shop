@@ -587,6 +587,37 @@ Provjere: `npm test` 91/91 (6 novih), `tsc`, eslint, `npm run build` ✓. Uživo
 (DragEvent; kolone se pravilno istaknu/priguše, badge pao 2 → 1), Ctrl+K („marko" → 5 narudžbi + kupac, „cvar" →
 Čvarci → filtriran katalog), bočni panel. **Dev baza:** narudžba `EP-2610-0011` je pri provjeri potvrđena.
 
+### Jednostavnije mijenjanje korpica — kupac, admin za kupca, sedmični sadržaj (2026-10-21) — grana `korpice-jednostavno` (nespojena)
+
+Zahtjev: „jednostavnije dodavanje za admina, lakši način da se mijenja sadržaj korpice, i generalno i za
+kupce; i za klijenta da bude jednostavno".
+
+- **Kupac** (`korpica-editor.tsx` prepisan): nema više dodaj/izbaci + traka budžeta + „Sačuvaj". Na svakom
+  artiklu „Zamijeni" → „Izaberi umjesto mene" (server bira) ili pločica (preporučene prve, „prikaži sve"), uz
+  kvačicu „Ubuduće mi ne stavljaj". Svaka zamjena se upiše odmah; „Vrati kako je bilo"; ispod spisak „Ne
+  stavljamo ti" sa ✕. Stari `PUT /account/korpice/{id}` ostaje na API-ju, ekran ga više ne koristi.
+- **„Ne stavljaj mi"** (entitet `IzbjegnutArtikal`, migracija `IzbjegnutiArtikli`; `GET/PUT/DELETE
+  /account/izbjegnuti-artikli[/{productId}]`): primjenjuje se pri SVAKOJ narudžbi korpice prijavljenog kupca
+  (`SnapshotKorpice` → `AutoZamjena.PrimijeniIzbjegnuteAsync`, pa i pretplate), pri „izaberi umjesto mene" i
+  pri vraćanju. Artikal bez zamjene koja staje ostaje u kutiji (kutija ne pada ispod cilja). Gost nema spisak.
+- **`AutoZamjena`**: jedna logika za sve zamjene (količina u 95–100% cilja, zaliha, nabavni budžet).
+  Kandidati: osnovni artikli prije dopune (svježe za svježe, ne suhi grah), pa predložene zamjene, pa kategorije
+  korpice. `POST /account/korpice/{id}/zamijeni` prima `ubaci: null` i `zapamti`; `POST …/vrati` je novo.
+- **Admin, korpica kupca** (`GET/PUT /admin/narudzbe/korpica/{orderItemId}`, `korpica-kupca-editor.tsx`):
+  dugme „Uredi sadržaj" uz korpicu u detaljima narudžbe (admin lista narudžbi dobila `jeKorpica`). Slobodne
+  količine (bez granica budžeta i roka, do Pakovanja uključivo), vrijednost/cilj i marža uživo, kupčev spisak
+  istaknut. Komad mora biti cio.
+- **Admin, sedmični sadržaj**: `sadrzaj-nacrt-editor.tsx` koristi isti `KutijaEditor` — +/−, zamjena iste
+  vrijednosti (⇄), dodavanje klikom na pločice SEZONSKE ponude (ranije padajuća lista svih 97 artikala, i van
+  sezone) u količini koja popuni ono što fali do cilja; kategorije iz kutije prve. Zamjene se dodaju pločicama.
+
+Provjere: `dotnet test` 564/564 (8 novih), `npm test` 96/96 (5 novih za `lib/admin/kutija`), `tsc`, eslint,
+`npm run build` ✓. Uživo: migracija primijenjena; skripta (narudžba EP-2610-0066) — izaberi umjesto mene +
+zapamti, spisak, vrati sa spiskom, admin pregled/izmjena, čišćenje; pregledač (EP-2610-0067) — kupčev editor
+(Blitva → Krastavac 2,8 kg), adminov editor kupčeve korpice. Obje probne narudžbe **otkazane**, spisak prazan.
+**Dev baza:** sedmica 44 „Mala korpica povrća" generisana i objavljena. Editor sedmičnog nacrta nije gledan u
+pregledaču (isti `KutijaEditor` kao korpica kupca, koja jeste).
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

@@ -1,6 +1,8 @@
 "use client";
 
-import { ChevronDown, Phone } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, PackageOpen, Phone } from "lucide-react";
+import { KorpicaKupcaEditor } from "@/components/admin/korpica-kupca-editor";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { NEXT_STATUSES, STATUS_META } from "@/lib/orders";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "@/types/domain";
@@ -25,6 +27,7 @@ export function OrderCard({
   onAdvance: (status: OrderStatus) => void;
 }) {
   const next = NEXT_STATUSES[order.status];
+  const [korpicaZa, setKorpicaZa] = useState<string | null>(null);
 
   return (
     <div className="overflow-hidden rounded-card bg-white shadow-card">
@@ -84,6 +87,15 @@ export function OrderCard({
                   <span className="min-w-0 truncate">
                     {it.productName} × {it.quantity}
                     {unitSuffix(it.unit)}
+                    {it.jeKorpica && (
+                      <button
+                        type="button"
+                        onClick={() => setKorpicaZa(it.id)}
+                        className="ml-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 transition hover:bg-brand-50"
+                      >
+                        <PackageOpen className="h-3.5 w-3.5" /> Uredi sadržaj
+                      </button>
+                    )}
                   </span>
                   <span className="shrink-0 text-muted">
                     {formatPrice(it.unitPrice * it.quantity)}
@@ -158,6 +170,7 @@ export function OrderCard({
           </div>
         </div>
       )}
+      {korpicaZa && <KorpicaKupcaEditor orderItemId={korpicaZa} onClose={() => setKorpicaZa(null)} />}
     </div>
   );
 }
