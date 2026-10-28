@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import type { StavkaSadrzaja } from "@/types/domain";
+import type { DodatnaKultura, StavkaSadrzaja } from "@/types/domain";
 
 /**
  * Obojena kartica namirnice iz sadržaja korpice (R2, po uzoru na farmit): naziv i količina,
@@ -32,6 +32,27 @@ export function StavkaSadrzajaKartica({ s }: { s: StavkaSadrzaja }) {
           <Image src={s.imageUrl} alt="" fill sizes="80px" className="object-cover" onError={() => setPala(true)} />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Mala obojena pločica dodatne kulture: sličica i naziv, bez količine — nju računamo pri zamjeni. */
+export function DodatnaKulturaPlocica({ d }: { d: DodatnaKultura }) {
+  const [pala, setPala] = useState(false);
+
+  return (
+    <div
+      className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm text-ink"
+      style={{ backgroundColor: d.boja ?? "var(--color-beige)" }}
+    >
+      {d.imageUrl && !pala ? (
+        <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full">
+          <Image src={d.imageUrl} alt="" fill sizes="28px" className="object-cover" onError={() => setPala(true)} />
+        </span>
+      ) : (
+        <span className="h-7 w-1" aria-hidden />
+      )}
+      {d.naziv}
     </div>
   );
 }

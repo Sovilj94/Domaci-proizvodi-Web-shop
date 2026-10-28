@@ -329,6 +329,31 @@ export interface SadrzajKorpice {
   status: StatusSadrzaja;
   ciljnaVrijednost: number;
   stavke: StavkaSadrzaja[];
+  /** Sezonske kulture koje kupac može uzeti umjesto nečega iz kutije (javni pogled). */
+  dodatne?: DodatnaKultura[];
+}
+
+/** „Šta dobijaš u korpici?" — kulture po mjesecima sa okvirnom količinom po veličini. */
+export interface SezonaKorpice {
+  velicine: { velicina: VelicinaKorpice; brojNamirnica: number; vrijednost: number }[];
+  mjeseci: { mjesec: number; kulture: KulturaSezone[] }[];
+}
+
+export interface KulturaSezone {
+  productId: string;
+  naziv: string;
+  jedinica: Unit;
+  imageUrl?: string;
+  boja?: string;
+  kolicine: Partial<Record<VelicinaKorpice, number>>;
+}
+
+export interface DodatnaKultura {
+  productId: string;
+  naziv: string;
+  jedinica: Unit;
+  imageUrl?: string;
+  boja?: string;
 }
 
 /** Predložena zamjena u sedmičnom sadržaju (admin pogled). */

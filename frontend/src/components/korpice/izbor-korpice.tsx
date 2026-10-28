@@ -6,12 +6,17 @@ import { KorpicaKartica } from "@/components/korpice/korpica-kartica";
 import { PlanSegment, VrstaSegment } from "@/components/korpice/segmenti";
 import { SadrzajModal } from "@/components/korpice/sadrzaj-modal";
 import { UtisciKarusel } from "@/components/pocetna/utisci-karusel";
+import { CestaPitanja } from "@/components/pocetna/cesta-pitanja";
+import { BitnoDaZnas } from "@/components/korpice/bitno-da-znas";
+import { StaDobijas } from "@/components/korpice/sta-dobijas";
+import { USvakomTrenutku } from "@/components/korpice/u-svakom-trenutku";
 import { useKorpiceList } from "@/lib/api/hooks";
 import { planIzUrla, VELICINE } from "@/lib/planovi";
 
 /**
  * „Izaberi korpicu" (R2, po uzoru na farmit /gajbice/{vrsta}?plan=): naslov, izbor vrste,
- * izbor plana, tri kartice (Mala/Srednja/Velika) sa cijenom izabranog plana, pa utisci.
+ * izbor plana, tri kartice (Mala/Srednja/Velika) sa cijenom izabranog plana, pa utisci, „Šta je
+ * bitno da znaš", sadržaj po mjesecima, „U svakom trenutku možeš da" i česta pitanja.
  */
 export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
   const plan = planIzUrla(useSearchParams().get("plan"));
@@ -62,6 +67,10 @@ export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
       </section>
 
       <UtisciKarusel />
+      <BitnoDaZnas vrsta={vrsta} />
+      <StaDobijas vrsta={vrsta} />
+      <USvakomTrenutku />
+      <CestaPitanja />
 
       {sadrzajSlug && <SadrzajModal slug={sadrzajSlug} onClose={() => setSadrzajSlug(null)} />}
     </>

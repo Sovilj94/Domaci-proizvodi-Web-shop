@@ -51,6 +51,20 @@ public record SadrzajDto
     public string Status { get; init; } = string.Empty;
     public decimal CiljnaVrijednost { get; init; }
     public IReadOnlyList<StavkaSadrzajaDto> Stavke { get; init; } = [];
+    /// <summary>
+    /// Javni pogled: sezonske kulture koje kupac može uzeti umjesto nečega iz kutije pri izmjeni
+    /// sadržaja (isti kandidati kao „Zamijeni", samo kategorije ove korpice). Admin pogled je prazan.
+    /// </summary>
+    public IReadOnlyList<DodatnaKulturaDto> Dodatne { get; init; } = [];
+}
+
+public record DodatnaKulturaDto
+{
+    public Guid ProductId { get; init; }
+    public string Naziv { get; init; } = string.Empty;
+    public string Jedinica { get; init; } = "kom";
+    public string? ImageUrl { get; init; }
+    public string Boja { get; init; } = string.Empty;
 }
 
 /// <summary>
