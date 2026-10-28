@@ -45,7 +45,10 @@ Redoslijed je bitan jer API mora znati URL frontenda (CORS), a frontend URL API-
    | `CORS_ORIGINS` | za sada prazno; Vercel URL ide u koraku 4 |
    | `App__BaseUrl` | za sada prazno; Vercel URL ide u koraku 4 |
    | `RUN_MIGRATIONS` | `true` |
-   | `SEED_DATA` | `true` ako hoćeš demo proizvode i demo naloge (preporučeno za test) |
+   | `SEED_DATA` | `true` ako hoćeš demo proizvode, demo naloge i objavljen sadržaj korpica (preporučeno za test) |
+   | `ADMIN_EMAIL` | tvoj email za admin panel |
+   | `ADMIN_PASSWORD` | tvoja lozinka, min. 8 znakova (nije u repou; promjena + restart = nova lozinka) |
+   | `ADMIN_NAME` | opciono, ime koje se prikazuje |
    | `Email__*` | prazno, ili vidi „Email" niže |
 
 4. **Apply**. Prvi build traje nekoliko minuta. Kad se završi, otvori
@@ -83,8 +86,8 @@ Na Renderu otvori **epiljara-api → Environment** i postavi:
 - `App__BaseUrl` = `https://epiljara.vercel.app`. Od ovoga se prave linkovi u mejlovima
   (potvrda naloga, potvrda gost-narudžbe, praćenje narudžbe).
 
-**Save Changes** pokreće novi deploy. Poslije toga se sa Vercel sajta prijavi kao
-`marko@example.com` / `marko123` (ako je `SEED_DATA=true`) da provjeriš cijeli lanac.
+**Save Changes** pokreće novi deploy. Poslije toga se sa Vercel sajta prijavi svojim
+`ADMIN_EMAIL` / `ADMIN_PASSWORD` i otvori `/admin` da provjeriš cijeli lanac.
 
 Vercel *preview* deploy (svaki PR ili grana) ima drugi domen i CORS ga odbija, osim ako
 i njega dodaš u `CORS_ORIGINS`. Za testere dijeli samo produkcijski Vercel domen.
@@ -97,7 +100,7 @@ i njega dodaš u `CORS_ORIGINS`. Za testere dijeli samo produkcijski Vercel dome
 
 Demo nalozi (uz `SEED_DATA=true`): `admin@epiljara.ba` / `admin123`, `marko@example.com` /
 `marko123`, `vozac@epiljara.ba` / `vozac123`. Lozinke su javne (u repou su), pa ovo okruženje ne
-koristi za stvarne podatke.
+koristi za stvarne podatke. Tvoj admin iz `ADMIN_EMAIL` je odvojen od njih i ima samo tvoju lozinku.
 
 ---
 

@@ -36,6 +36,13 @@ services:
         sync: false
       - key: SEED_DATA           # "true" = demo podaci i demo nalozi (samo test!)
         sync: false
+      # Pravi admin nalog (ne demo admin123). Pravi se/ažurira na svakom startu.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD      # min. 8 znakova; promjena + restart = nova lozinka
+        sync: false
+      - key: ADMIN_NAME
+        sync: false
 
       # --- Email (opciono). Free Render blokira SMTP portove 25/465/587 — koristi 2525. ---
       - key: Email__SmtpHost

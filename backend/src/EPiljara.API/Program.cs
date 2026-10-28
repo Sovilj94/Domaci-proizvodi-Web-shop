@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -181,7 +182,17 @@ await using (var scope = app.Services.CreateAsyncScope())
             || Ukljuceno(builder.Configuration["Seed:Demo"])
             || Ukljuceno(builder.Configuration["SEED_DATA"]);
         if (seedDemo)
+        {
             await DbSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>());
+            var objavljeno = await DbSeeder.SeedSadrzajKorpicaAsync(db,
+                scope.ServiceProvider.GetRequiredService<IOptions<KorpiceOpcije>>().Value);
+            if (objavljeno > 0)
+                app.Logger.LogInformation("Demo: objavljeno {Broj} sedmičnih sadržaja korpica", objavljeno);
+        }
+        // Pravi admin iz env-a (ne demo admin123) — radi i bez SEED_DATA.
+        if (await AdminNalog.ObezbijediAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>(),
+                builder.Configuration["ADMIN_EMAIL"], builder.Configuration["ADMIN_PASSWORD"], builder.Configuration["ADMIN_NAME"]))
+            app.Logger.LogInformation("Admin nalog {Email} je spreman", builder.Configuration["ADMIN_EMAIL"]!.Trim().ToLowerInvariant());
     }
     catch (Exception ex)
     {

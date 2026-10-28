@@ -53,9 +53,18 @@ is created. It seeds only into an empty database.
 
 ## First admin account (real production)
 
-With `Seed__Demo` unset, a fresh production database has **no accounts**. Create the first admin
-deliberately, e.g.:
-register a normal customer through the app, then promote them once in the DB:
+With `Seed__Demo` unset, a fresh production database has **no accounts**. The simplest way is to set
+`ADMIN_EMAIL`, `ADMIN_PASSWORD` (min. 8 characters) and optionally `ADMIN_NAME` on the API. On every
+start the API makes sure that account exists, is an Admin, has a confirmed email and uses that password
+(an existing customer with that email is promoted). Changing `ADMIN_PASSWORD` and restarting resets the
+password. The password lives only in the host's env (`sync: false` in `render.yaml`), never in the repo.
+
+With the demo seed on, the API also generates **and publishes** each sold korpica's weekly content
+for the current and the next week on every start (same generator and rules as the admin's
+"Generiši" → "Objavi"; existing content and admin drafts are left alone). Real production does
+this by hand in the admin panel.
+
+Alternatively, register a normal customer through the app, then promote them once in the DB:
 
 ```sql
 UPDATE "Users" SET "Role" = 'Admin', "EmailConfirmed" = true WHERE "Email" = 'you@yourdomain.com';
