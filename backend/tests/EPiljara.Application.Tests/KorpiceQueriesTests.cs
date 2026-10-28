@@ -99,6 +99,73 @@ public class KorpiceQueriesTests
     }
 
     [Fact]
+    public async Task Javni_sadrzaj_nudi_dodatne_kulture_iz_sezone_i_kategorija_korpice()
+    {
+        using var t = new TestDb();
+        var (g, s) = Sada();
+        var sadrzaj = Postavi(t, StatusSadrzaja.Objavljen, g, s);
+        var paradajz = await t.Db.Products.SingleAsync(p => p.Slug == "paradajz");
+        var mlijecni = new Category { Name = "Mliječni", Slug = "mlijecni" };
+        t.Db.Categories.Add(mlijecni);
+        t.Db.KorpicaKategorije.Add(new KorpicaKategorija { TipKorpice = TipKorpice.Povrce, CategoryId = paradajz.CategoryId });
+        var mjesec = System.Globalization.ISOWeek.ToDateTime(g, s, DayOfWeek.Thursday).Month;
+        Product Artikal(string naziv, Action<Product>? izmjena = null)
+        {
+            var p = new Product
+            {
+                Name = naziv, Slug = naziv.ToLowerInvariant(), Price = 2m, Unit = Unit.Kg, Stock = 10,
+                MozeUKorpicu = true, CategoryId = paradajz.CategoryId, ProducerId = paradajz.ProducerId,
+            };
+            izmjena?.Invoke(p);
+            t.Db.Products.Add(p);
+            return p;
+        }
+        Artikal("Tikvica");
+        Artikal("Grah", p => p.PrioritetUKorpici = 1);
+        Artikal("Malina", p => p.Mjeseci = [mjesec % 12 + 1]);          // van sezone
+        Artikal("Blitva", p => p.Stock = 0);                            // bez zalihe
+        Artikal("Sir", p => p.CategoryId = mlijecni.Id);                // druga vrsta korpice
+        var kajmak = Artikal("Kajmak", p => p.CategoryId = mlijecni.Id);
+        t.Db.ZamjeneSadrzaja.Add(new ZamjenaSadrzaja { SedmicniSadrzajId = sadrzaj.Id, ProductId = kajmak.Id, JedinicnaCijena = 2m });
+        await t.Db.SaveChangesAsync();
+        t.Db.ChangeTracker.Clear();
+
+        var dto = await new GetSadrzajKorpiceHandler(t.Db, Opcije).Handle(new GetSadrzajKorpiceQuery("mala-korpica-povrca"), default);
+
+        // Svježe prije dopune; predložena zamjena smije i iz druge kategorije; paradajz je već u kutiji.
+        Assert.Equal(["Kajmak", "Tikvica", "Grah"], dto.Dodatne.Select(d => d.Naziv).ToArray());
+        Assert.All(dto.Dodatne, d => Assert.False(string.IsNullOrEmpty(d.Boja)));
+    }
+
+    [Fact]
+    public async Task Sezona_daje_kulture_po_mjesecima_sa_kolicinom_po_velicini()
+    {
+        using var t = new TestDb();
+        var (g, s) = Sada();
+        Postavi(t, StatusSadrzaja.Objavljen, g, s);
+        var paradajz = await t.Db.Products.SingleAsync(p => p.Slug == "paradajz");
+        paradajz.Mjeseci = [7, 8];
+        paradajz.Stock = 0;                                              // zaliha ne smeta pregledu godine
+        t.Db.KorpicaKategorije.Add(new KorpicaKategorija { TipKorpice = TipKorpice.Povrce, CategoryId = paradajz.CategoryId });
+        t.Db.Products.Add(new Product
+        {
+            Name = "Krompir", Slug = "krompir", Price = 1.5m, Unit = Unit.Kg, Stock = 10, MozeUKorpicu = true,
+            CategoryId = paradajz.CategoryId, ProducerId = paradajz.ProducerId,
+        });
+        await t.Db.SaveChangesAsync();
+
+        var dto = await new GetSezonaKorpiceHandler(t.Db, Opcije).Handle(new GetSezonaKorpiceQuery("povrce"), default);
+
+        Assert.Equal(12, dto.Mjeseci.Count);
+        Assert.Equal(["Krompir"], dto.Mjeseci[0].Kulture.Select(k => k.Naziv).ToArray());
+        Assert.Equal(["Krompir", "Paradajz"], dto.Mjeseci[6].Kulture.Select(k => k.Naziv).ToArray());
+        // Mala korpica 25 KM: cilj 28.75 na 5 artikala = 5.75 KM po artiklu → paradajz 4 KM/kg ≈ 1.4 kg.
+        Assert.Equal(1.4m, dto.Mjeseci[6].Kulture[1].Kolicine["mala"]);
+        var mala = Assert.Single(dto.Velicine);
+        Assert.Equal(("mala", 5, 28.75m), (mala.Velicina, mala.BrojNamirnica, mala.Vrijednost));
+    }
+
+    [Fact]
     public async Task Nacrt_nije_vidljiv_javnom_upitu()
     {
         using var t = new TestDb();

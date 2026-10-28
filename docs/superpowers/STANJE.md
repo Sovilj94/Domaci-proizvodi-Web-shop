@@ -618,6 +618,18 @@ zapamti, spisak, vrati sa spiskom, admin pregled/izmjena, čišćenje; pregleda�
 **Dev baza:** sedmica 44 „Mala korpica povrća" generisana i objavljena. Editor sedmičnog nacrta nije gledan u
 pregledaču (isti `KutijaEditor` kao korpica kupca, koja jeste).
 
+### Stranica korpica po uzoru na farmit + dodatne kulture (2026-10-28) — grana `korpica-dodatne-kulture`
+
+- **„Pogledaj sadržaj korpice"**: prozor ima „Trenutno u korpici" pa **„Dodatne kulture"** — ono što „Zamijeni"
+  nudi ove sedmice, bez onoga što je već u kutiji (`SadrzajDto.Dodatne`, samo kategorije te vrste korpice +
+  predložene zamjene; svježe prije dopune).
+- **`/korpice/{vrsta}`** ispod kartica, kao farmit: utisci (postojeći), „Šta je bitno da znaš?", „Šta dobijaš u
+  korpici?" (mjesec ‹ ›, veličina, obojene pločice sa okvirnom količinom; `GET /korpice/sezona?tip=`), „U svakom
+  trenutku možeš da:" (samo ono što aplikacija radi; otkaz po isteku obaveze) i česta pitanja (postojeća).
+- Okvirna količina = porcija generatora (cilj / minimalan broj artikala) — kod nas je ~5 KM po namirnici u svakoj
+  veličini; veća korpica nosi više namirnica, pa uz veličinu piše „najmanje N namirnica, vrijednost X KM".
+  Jeftine namirnice zato ispadnu u velikim količinama (kupus 5,7 kg) — isto radi i generator.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

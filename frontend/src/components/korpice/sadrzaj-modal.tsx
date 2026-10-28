@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { korpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import { StavkaSadrzajaKartica } from "@/components/korpice/stavka-sadrzaja";
+import { DodatnaKulturaPlocica, StavkaSadrzajaKartica } from "@/components/korpice/stavka-sadrzaja";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -150,6 +150,7 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
             />
           ) : (
             <>
+              <h3 className="mb-3 text-base font-semibold text-ink">Trenutno u korpici</h3>
               <ul className="flex flex-col gap-3">
                 {data?.stavke.map((s) => (
                   <li key={s.productId}>
@@ -157,6 +158,24 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
                   </li>
                 ))}
               </ul>
+
+              {data && data.dodatne && data.dodatne.length > 0 && (
+                <section className="mt-6" aria-labelledby="dodatne-kulture-naslov">
+                  <h3 id="dodatne-kulture-naslov" className="text-base font-semibold text-ink">
+                    Dodatne kulture
+                  </h3>
+                  <p className="text-sm text-ink/80">
+                    Ove sedmice možeš ih izabrati umjesto nečega iz korpice, kad poslije kupovine mijenjaš sadržaj.
+                  </p>
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {data.dodatne.map((d) => (
+                      <li key={d.productId}>
+                        <DodatnaKulturaPlocica d={d} />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               <p className="mt-5 text-xs text-muted">
                 Slike su informativnog karaktera, a sadržaj se mijenja u zavisnosti od sezone i

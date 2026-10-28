@@ -18,6 +18,7 @@ import type {
   Producer,
   Product,
   SadrzajKorpice,
+  SezonaKorpice,
   AdminSadrzajKorpice,
   Sedmica,
   TipKorpice,
@@ -127,6 +128,9 @@ export const korpiceApi = {
 
   sadrzaj: (slug: string) =>
     apiFetch<SadrzajKorpice>(`/korpice/${slug}/sadrzaj`, { auth: false }).then((r) => r.data),
+
+  sezona: (tip: TipKorpice) =>
+    apiFetch<SezonaKorpice>("/korpice/sezona", { auth: false, query: { tip } }).then((r) => r.data),
 
   sedmica: () => apiFetch<Sedmica>("/korpice/sedmica", { auth: false }).then((r) => r.data),
   /** Kontakt i česta pitanja koje admin uređuje; null polje = ugrađeni tekst. */

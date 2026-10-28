@@ -279,6 +279,7 @@ public class GetSadrzajKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
 
         var kandidati = await db.SedmicniSadrzaji
             .Include(s => s.Stavke).ThenInclude(st => st.Product).ThenInclude(p => p!.Producer)
+            .Include(s => s.Zamjene)
             .Where(s => s.KorpicaId == korpica.Id && s.Status != StatusSadrzaja.Nacrt
                 && ((s.Godina == prodaje.Godina && s.Sedmica == prodaje.Sedmica)
                     || (s.Godina == tekuca.Godina && s.Sedmica == tekuca.Sedmica)))
@@ -288,7 +289,38 @@ public class GetSadrzajKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
             ?? kandidati.FirstOrDefault()
             ?? throw new NotFoundException("sadrzaj_nije_objavljen");
 
-        return sadrzaj.ToDto();
+        return sadrzaj.ToDto() with { Dodatne = await DodatneAsync(sadrzaj, korpica, ct) };
+    }
+
+    /// <summary>
+    /// Ono što „Zamijeni" nudi za ovu sedmicu, bez onoga što je već u kutiji: svježe prije dopune,
+    /// predložene zamjene prve. Samo kategorije ove vrste korpice — u povrće ne nudimo sir.
+    /// </summary>
+    private async Task<IReadOnlyList<DodatnaKulturaDto>> DodatneAsync(
+        SedmicniSadrzaj sadrzaj, Product korpica, CancellationToken ct)
+    {
+        var mjesec = ISOWeek.ToDateTime(sadrzaj.Godina, sadrzaj.Sedmica, DayOfWeek.Thursday).Month;
+        var kategorije = korpica.TipKorpice is null
+            ? []
+            : await db.KorpicaKategorije
+                .Where(k => k.TipKorpice == korpica.TipKorpice)
+                .Select(k => k.CategoryId)
+                .ToListAsync(ct);
+        var preporucene = sadrzaj.Zamjene.Select(z => z.ProductId).ToHashSet();
+        var uKutiji = sadrzaj.Stavke.Select(s => s.ProductId).ToHashSet();
+
+        return (await AutoZamjena.KandidatiAsync(db, sadrzaj, korpica, mjesec, ct))
+            .Where(p => !uKutiji.Contains(p.Id))
+            .Where(p => kategorije.Count == 0 || kategorije.Contains(p.CategoryId) || preporucene.Contains(p.Id))
+            .Select(p => new DodatnaKulturaDto
+            {
+                ProductId = p.Id,
+                Naziv = p.Name,
+                Jedinica = p.Unit.ToApi(),
+                ImageUrl = p.ImageUrl,
+                Boja = BojaProizvoda.Za(p.Boja, p.Name),
+            })
+            .ToList();
     }
 }
 

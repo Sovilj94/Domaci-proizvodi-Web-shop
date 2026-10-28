@@ -13,6 +13,10 @@ public class KorpiceController : ApiControllerBase
     public async Task<IActionResult> Sedmica() =>
         Envelope(await Mediator.Send(new GetTekucaSedmicaQuery()));
 
+    [HttpGet("korpice/sezona")]
+    public async Task<IActionResult> Sezona([FromQuery] string? tip) =>
+        Envelope(await Mediator.Send(new GetSezonaKorpiceQuery(tip)));
+
     [HttpGet("korpice/{slug}")]
     public async Task<IActionResult> Korpica(string slug) =>
         Envelope(await Mediator.Send(new GetKorpicaBySlugQuery(slug)));
