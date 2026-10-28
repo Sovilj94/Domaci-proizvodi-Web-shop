@@ -103,6 +103,11 @@ koristi za stvarne podatke.
 
 ## Poznata ograničenja ovog okruženja
 
+- **Google ne indeksira test sajt, namjerno.** Bez `SEO_INDEX=true` fajl `robots.txt`
+  zabranjuje sve, a svaka stranica nosi `noindex`. Na pravom domenu na Vercelu postavi
+  `NEXT_PUBLIC_SITE_URL=https://…` i `SEO_INDEX=true`, uradi Redeploy, pa prijavi
+  `/sitemap.xml` u Google Search Console (vidi `PRODUCTION.md`, sekcija SEO).
+
 - **Email (SMTP).** Render free blokira odlazni SMTP na portovima 25, 465 i 587. Bez mejla:
   - nova registracija ne može da potvrdi nalog, a prijava se odbija dok nalog nije potvrđen;
   - gost-narudžba se nikad ne napravi, jer se kreira tek klikom na link iz mejla.

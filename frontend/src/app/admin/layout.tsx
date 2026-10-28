@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminMobileBar, AdminSidebar } from "@/components/admin/admin-nav";
 import { KomandnaPaleta } from "@/components/admin/komandna-paleta";
+import { privatno } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "Admin panel",
-};
+export const metadata: Metadata = privatno("Admin panel");
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

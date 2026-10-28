@@ -3,6 +3,7 @@ import { TrakaRoka } from "@/components/layout/traka-roka";
 import { ShopFooter } from "@/components/layout/shop-footer";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { PismoProvider } from "@/components/pismo/pismo-provider";
+import { JsonLd, sajtLd } from "@/lib/seo/json-ld";
 
 /**
  * Raspored po uzoru na farmit (R1): zaglavlje, krem traka roka (osim na početnoj), sadržaj,
@@ -15,6 +16,8 @@ import { PismoProvider } from "@/components/pismo/pismo-provider";
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      {/* schema.org GroceryStore + WebSite (sa pretragom Špajza) na svakoj javnoj stranici. */}
+      <JsonLd data={sajtLd()} />
       <ShopNavbar />
       <TrakaRoka />
       <main className="flex-1">{children}</main>

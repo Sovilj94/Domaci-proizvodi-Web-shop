@@ -1,4 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import {
+  OG_IMAGE,
+  SEO_INDEX,
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/seo/site";
 import { Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -28,13 +36,41 @@ const montserrat = Montserrat({
   preload: false,
 });
 
+const NASLOV = "E piljara — domaće sa Manjače, na tvoja vrata";
+
+/*
+ * SEO osnova za cijeli sajt (lib/seo/site.ts). Podstranice nasljeđuju Open Graph, a svoje
+ * naslove, opise i kanonske adrese daju kroz `stranica()` / `privatno()` iz lib/seo/metadata.
+ * `robots` slijedi SEO_INDEX: bez njega (test deploy) ništa se ne indeksira.
+ */
 export const metadata: Metadata = {
-  title: {
-    default: "E piljara — domaće sa Manjače, na tvoja vrata",
-    template: "%s · E piljara",
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
+  title: { default: NASLOV, template: "%s · E piljara" },
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  // Kanonski URL i og:url namjerno NISU ovdje: svaka podstranica bez svojih bi ih naslijedila
+  // i pokazivala na početnu. Daje ih `stranica()` po stranici.
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "sr_BA",
+    title: NASLOV,
+    description: SITE_DESCRIPTION,
+    images: [OG_IMAGE],
   },
-  description:
-    "Svježi domaći proizvodi sa Manjače — spakovani i dostavljeni na kućni prag u Banjoj Luci. Bez pijace, bez gužve, bez kompromisa.",
+  twitter: { card: "summary_large_image", title: NASLOV, description: SITE_DESCRIPTION, images: [OG_IMAGE.url] },
+  robots: SEO_INDEX
+    ? { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } }
+    : { index: false, follow: false },
+  formatDetection: { telephone: false, email: false, address: false },
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
+};
+
+export const viewport: Viewport = {
+  themeColor: "#228b22",
 };
 
 export default function RootLayout({

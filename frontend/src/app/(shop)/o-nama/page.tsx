@@ -1,10 +1,15 @@
+import { stranica } from "@/lib/seo/metadata";
 import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { MapPin, Phone, Truck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { KontaktEmail, KontaktPolje, KontaktTelefon } from "@/components/layout/kontakt";
 
-export const metadata = { title: "O nama" };
+export const metadata = stranica({
+  naslov: "O nama",
+  opis: "E piljara spaja domaćinstva sa Manjače sa kupcima u Banjoj Luci i okolini. Kako radimo, odakle dolazi hrana i kako stiže do tebe.",
+  putanja: "/o-nama",
+});
 
 export default function ONamaPage() {
   return (

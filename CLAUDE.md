@@ -100,6 +100,15 @@ build (`/login`, `/register` i `/admin/dostava` su zato izvučene u internu komp
 
 Demo accounts: `admin@epiljara.ba` / `admin123` · `marko@example.com` / `marko123` · `vozac@epiljara.ba` / `vozac123`.
 
+**SEO** (`frontend/src/lib/seo/`, details in `PRODUCTION.md` → SEO): a new public page gets its
+metadata from `stranica({ naslov, opis, putanja })` — never a bare `{ title }`, or it has no canonical
+URL and no description of its own; a private or token page gets `privatno("Naslov")` in its layout and
+its path in `app/robots.ts`. Client pages can't export metadata, so a dynamic one gets a server
+`layout.tsx` beside it with `generateMetadata` + `<JsonLd>` (see `products/[slug]/layout.tsx`).
+Never put `alternates.canonical` or `openGraph.url` in the root layout — every page without its own
+would inherit the home page's. Indexing is **off unless `SEO_INDEX=true`**, so a local or test build
+always shows `noindex`; that's expected, not a bug.
+
 ## The contract is the architecture
 
 Everything hinges on one shared HTTP contract, so understand this before touching either side:

@@ -1,7 +1,12 @@
+import { stranica } from "@/lib/seo/metadata";
 import { Check } from "lucide-react";
 import { PartnerForma } from "@/components/partneri/partner-forma";
 
-export const metadata = { title: "Postani partner" };
+export const metadata = stranica({
+  naslov: "Postani partner",
+  opis: "Imaš domaćinstvo na Manjači ili u okolini? Prodaj svoje proizvode kupcima u Banjoj Luci bez posrednika, u sedmičnom ritmu.",
+  putanja: "/postani-partner",
+});
 
 const PONUDA = [
   "Prodaja kupcima u gradu, bez posrednika",

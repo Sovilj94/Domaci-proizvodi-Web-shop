@@ -27,6 +27,22 @@ Secrets are read from environment variables (ASP.NET uses `__` for nested keys, 
 | `NEXT_PUBLIC_API_URL` | Production API URL, e.g. `https://api.epiljara.ba` (older name `NEXT_PUBLIC_API_BASE_URL` still works). Empty = the built-in mock. Inlined at build time. See `frontend/.env.example`. |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Only if Google login is enabled (same client id as the backend). |
 | `NEXT_PUBLIC_FACEBOOK_APP_ID` | Only if Facebook login is enabled. |
+| `NEXT_PUBLIC_SITE_URL` | Public site URL, e.g. `https://epiljara.ba`. Canonical URLs, `sitemap.xml`, Open Graph. Falls back to the Vercel production domain, then `http://localhost:3000`. |
+| `SEO_INDEX=true` | **Only on the real domain.** Without it `robots.txt` disallows everything and every page is `noindex` (the default, so test deploys never reach Google). |
+| `GOOGLE_SITE_VERIFICATION` | Optional Search Console verification code (the `content` of the HTML tag). |
+
+## SEO
+
+All of it lives in `frontend/src/lib/seo/` (site constants, `stranica()` / `privatno()` metadata
+helpers, schema.org JSON-LD, a server-side API fetcher) plus `app/robots.ts`, `app/sitemap.ts` and
+`app/manifest.ts`. The product, recipe, producer and basket pages are client components, so their
+title, description, canonical URL, Open Graph and JSON-LD come from a **server layout** next to each
+(`products/[slug]/layout.tsx`, …) that fetches the entity with a 4 s timeout and a 10 min cache. If
+the API is asleep or unreachable the page still renders, with a generic title; if the API answers
+**404** the page returns a real 404. Private and token pages (account, cart, checkout, login,
+`/potvrda`, `/narudzba`, admin) are `noindex` via `privatno()` in their layouts and disallowed in
+`robots.txt`. Going live: set the three variables above, redeploy, then submit
+`https://<domain>/sitemap.xml` in Google Search Console.
 
 ## Demo data for testing
 
