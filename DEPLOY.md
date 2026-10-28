@@ -31,7 +31,7 @@ Redoslijed je bitan jer API mora znati URL frontenda (CORS), a frontend URL API-
 
 1. Napravi JWT ključ (min. 32 znaka), na primjer u PowerShell-u:
    ```powershell
-   [Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Max 256 }))
+   [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
    ```
    ili `openssl rand -base64 48`.
 2. Na <https://render.com> otvori **New → Blueprint**, poveži GitHub repo i izaberi granu.
