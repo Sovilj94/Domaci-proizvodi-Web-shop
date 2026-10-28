@@ -1,0 +1,52 @@
+# Render Blueprint — E piljara API, besplatni TEST deploy (vidi DEPLOY.md).
+# Baza je na Neonu, ne na Render Postgresu (free Render baza se briše nakon 30 dana).
+# Vrijednosti sa `sync: false` Render traži pri prvom kreiranju Blueprinta; u repou su prazne.
+services:
+  - type: web
+    name: epiljara-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      # Render-ov proxy šalje X-Forwarded-For; bez ovoga svi posjetioci dijele jedan IP
+      # i rate limit (10/min na login) ih blokira zajedno.
+      - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+        value: "true"
+
+      # --- Secrets ---
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__SigningKey
+        sync: false
+
+      # --- Frontend (Vercel) ---
+      - key: CORS_ORIGINS        # npr. https://epiljara.vercel.app (više: odvojeno zarezom)
+        sync: false
+      - key: App__BaseUrl        # isti Vercel URL — linkovi u mejlovima
+        sync: false
+
+      # --- Start ---
+      - key: RUN_MIGRATIONS      # "true" za prvi deploy (može ostati true na jednoj instanci)
+        sync: false
+      - key: SEED_DATA           # "true" = demo podaci i demo nalozi (samo test!)
+        sync: false
+
+      # --- Email (opciono). Free Render blokira SMTP portove 25/465/587 — koristi 2525. ---
+      - key: Email__SmtpHost
+        sync: false
+      - key: Email__SmtpPort
+        sync: false
+      - key: Email__UseSsl
+        sync: false
+      - key: Email__Username
+        sync: false
+      - key: Email__Password
+        sync: false
+      - key: Email__From
+        sync: false

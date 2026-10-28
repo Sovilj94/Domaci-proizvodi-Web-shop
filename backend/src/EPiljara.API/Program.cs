@@ -24,6 +24,11 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ----- Port iz okruženja (Render postavlja PORT; Docker image bez njega sluša na 8080) -----
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // ----- JWT signing key: a strong secret is REQUIRED in production (set via the
 // Jwt__SigningKey environment variable). Never ship a usable key in the repo. -----
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"];
@@ -93,8 +98,16 @@ builder.Services
 builder.Services.AddAuthorization();
 
 // ----- CORS (Next.js web shop) -----
-var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
-    ?? ["http://localhost:3000"];
+// Izvori: Cors:Origins (Cors__Origins__0 …) i CORS_ORIGINS (lista odvojena zarezom, za
+// Render/Vercel). Localhost frontend je dozvoljen samo u Development.
+var corsOrigins = (builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
+    .Concat((builder.Configuration["CORS_ORIGINS"] ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    .Concat(builder.Environment.IsDevelopment() ? ["http://localhost:3000"] : [])
+    .Select(o => o.TrimEnd('/'))
+    .Where(o => o.Length > 0)
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
 builder.Services.AddCors(o => o.AddPolicy("frontend", p =>
     p.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod()));
 
@@ -150,17 +163,23 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // ----- Migrate + seed on startup -----
+// Migracije se same primjenjuju u Development; van njega samo uz RUN_MIGRATIONS=true
+// (podrazumijevano isključeno, da deploy ne mijenja šemu bez namjere).
+static bool Ukljuceno(string? v) => string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+var runMigrations = app.Environment.IsDevelopment() || Ukljuceno(builder.Configuration["RUN_MIGRATIONS"]);
 await using (var scope = app.Services.CreateAsyncScope())
 {
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
+        if (runMigrations)
+            await db.Database.MigrateAsync();
         // Demo data (incl. accounts with known passwords) seeds in Development, or when
-        // explicitly opted in with Seed:Demo=true (e.g. a staging/test deploy). It stays OFF
-        // by default in production, so real deployments never get a default admin account.
+        // explicitly opted in with Seed:Demo=true or SEED_DATA=true (e.g. a staging/test deploy).
+        // It stays OFF by default in production, so real deployments never get a default admin account.
         var seedDemo = app.Environment.IsDevelopment()
-            || string.Equals(builder.Configuration["Seed:Demo"], "true", StringComparison.OrdinalIgnoreCase);
+            || Ukljuceno(builder.Configuration["Seed:Demo"])
+            || Ukljuceno(builder.Configuration["SEED_DATA"]);
         if (seedDemo)
             await DbSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>());
     }
@@ -212,6 +231,10 @@ app.UseCors("frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+// Render health check — bez auth i bez rate limita, ne dira bazu (Neon free uspava compute).
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+    .AllowAnonymous()
+    .DisableRateLimiting();
 app.MapControllers();
 
 app.Run();

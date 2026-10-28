@@ -4,10 +4,13 @@ import { procitajPismo } from "@/lib/pismo/pismo";
 /**
  * Base URL for the REST API. In development this defaults to the same-origin
  * mock route handlers under /api. In production, point it at the ASP.NET Core
- * backend via NEXT_PUBLIC_API_BASE_URL (e.g. https://api.epiljara.ba).
+ * backend via NEXT_PUBLIC_API_URL (e.g. https://epiljara-api.onrender.com).
+ * NEXT_PUBLIC_API_BASE_URL is the older name and still works as a fallback.
+ * Both are inlined at build time, so a change on Vercel needs a redeploy.
  */
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "/api";
+  (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL)?.replace(/\/$/, "") ||
+  "/api";
 
 const TOKEN_KEY = "epiljara.token";
 

@@ -2,7 +2,15 @@
 **/obj/
 **/.vs/
 **/*.user
+**/node_modules/
 .git/
 .gitignore
+**/.env
+**/*.env
+# Nije potrebno za API image (osrm/data zna imati više GB).
+tests/
+osrm/
+nominatim/
+frontend/
 **/appsettings.*.json
 !**/appsettings.json

@@ -114,7 +114,8 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `frontend/src/types/domain.ts`. A type or a check written as `=== null` for such a field never fires.
 - **Single frontend API surface.** Screens never call `fetch` directly — they call
   `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` derives
-  `API_BASE` as `NEXT_PUBLIC_API_BASE_URL || "/api"`: **unset/empty** → the app's own built-in mock (route
+  `API_BASE` as `NEXT_PUBLIC_API_URL || NEXT_PUBLIC_API_BASE_URL || "/api"` (the first is the deploy name
+  used on Vercel, see `DEPLOY.md`; the second is the older local name, still honoured): **unset/empty** → the app's own built-in mock (route
   handlers under `frontend/src/app/api/**` backed by `frontend/src/server/mock/`, data in `store.ts`);
   **set** (e.g. `http://localhost:5080`) → the real backend. `frontend/.env.local` is git-ignored and
   **does not exist on a fresh clone**, so `npm run dev` talks to the mock until you create it with

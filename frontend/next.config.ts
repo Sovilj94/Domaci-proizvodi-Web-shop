@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       // Cloudflare R2 public bucket used in production.
       { protocol: "https", hostname: "*.r2.dev" },
       { protocol: "https", hostname: "cdn.epiljara.ba" },
+      // Render test deploy (API danas ne servira slike — placeholder ako počne).
+      { protocol: "https", hostname: "*.onrender.com" },
     ],
   },
 };

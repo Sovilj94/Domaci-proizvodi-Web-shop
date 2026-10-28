@@ -13,10 +13,17 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
-        var connectionString =
-            config.GetConnectionString("DefaultConnection")
-            ?? Environment.GetEnvironmentVariable("EPILJARA_CONNECTION")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' nije konfigurisan.");
+        // Bez podrazumijevane vrijednosti u appsettings.json: lokalni string je u
+        // appsettings.Development.json, a cloud ga daje kroz ConnectionStrings__DefaultConnection.
+        var connectionString = PostgresConnectionString.Normalizuj(
+            new[]
+            {
+                config.GetConnectionString("DefaultConnection"),
+                config.GetConnectionString("Default"),
+                Environment.GetEnvironmentVariable("EPILJARA_CONNECTION"),
+            }.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))
+            ?? throw new InvalidOperationException(
+                "Connection string nije konfigurisan. Postavite 'ConnectionStrings__DefaultConnection'."));
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());

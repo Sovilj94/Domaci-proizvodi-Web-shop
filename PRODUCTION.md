@@ -10,8 +10,11 @@ Secrets are read from environment variables (ASP.NET uses `__` for nested keys, 
 |---|---|
 | `ASPNETCORE_ENVIRONMENT=Production` | Disables demo seed + Swagger, enables HSTS. |
 | `Jwt__SigningKey` | **Strong random secret, ≥ 32 chars.** The app **refuses to start** in Production without it (no insecure fallback). Generate e.g. `openssl rand -base64 48`. |
-| `ConnectionStrings__DefaultConnection` | Production PostgreSQL connection string. |
-| `Cors__Origins__0` | Your real frontend origin, e.g. `https://epiljara.ba`. Without it the browser blocks API calls. |
+| `ConnectionStrings__DefaultConnection` | Production PostgreSQL connection string. **No default in `appsettings.json`** (the local one lives in `appsettings.Development.json`). Npgsql form or a `postgresql://…?sslmode=require` URI (Neon) — both work. |
+| `RUN_MIGRATIONS=true` | Applies EF migrations on startup. **Off by default outside Development** — a fresh database stays empty without it. |
+| `Cors__Origins__0` or `CORS_ORIGINS` | Your real frontend origin(s), e.g. `https://epiljara.ba`; `CORS_ORIGINS` takes a comma-separated list. Without it the browser blocks API calls. `http://localhost:3000` is allowed only in Development. |
+| `PORT` | Optional. If set (Render does), the API listens on it; otherwise the Docker image uses 8080. |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` | Behind a reverse proxy (Render). Without it every visitor shares the proxy's IP and the per-IP rate limits. |
 | `Email__SmtpHost` / `Email__SmtpPort` / `Email__UseSsl` / `Email__Username` / `Email__Password` / `Email__From` | Real SMTP (e.g. Gmail 587 + app password, SendGrid, Resend) so order confirmations actually send. Dev uses a local Mailpit catcher. |
 | `App__BaseUrl` | Public URL of the frontend. Builds every link the backend emails: the email-confirmation link, the guest order's confirm link (`/potvrda/{token}`), and the order tracking link (`/narudzba/{token}`). Defaults to `http://localhost:3000` if unset — wrong or missing in production and a guest's confirmation link points nowhere real, so they can never confirm and no order is ever created. |
 | `Auth__Google__ClientId` | Only if Google login is enabled. |
@@ -21,7 +24,7 @@ Secrets are read from environment variables (ASP.NET uses `__` for nested keys, 
 
 | Variable | Why |
 |---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Production API URL, e.g. `https://api.epiljara.ba`. |
+| `NEXT_PUBLIC_API_URL` | Production API URL, e.g. `https://api.epiljara.ba` (older name `NEXT_PUBLIC_API_BASE_URL` still works). Empty = the built-in mock. Inlined at build time. See `frontend/.env.example`. |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Only if Google login is enabled (same client id as the backend). |
 | `NEXT_PUBLIC_FACEBOOK_APP_ID` | Only if Facebook login is enabled. |
 
@@ -29,7 +32,7 @@ Secrets are read from environment variables (ASP.NET uses `__` for nested keys, 
 
 The demo seed (products, zones, and accounts like `admin@epiljara.ba` / `admin123`) runs
 automatically in **Development**. To test on a deployed staging instance, opt in with
-`Seed__Demo=true`. **Leave it unset in real production** — otherwise the default admin account
+`Seed__Demo=true` (or `SEED_DATA=true`). **Leave it unset in real production** — otherwise the default admin account
 is created. It seeds only into an empty database.
 
 ## First admin account (real production)
@@ -170,8 +173,9 @@ Two operational consequences worth knowing before the first real week:
 
 ## Still your call (operational)
 
-- **Migrations** run automatically on startup. For multi-instance deploys, consider applying them
-  once as a separate step instead.
+- **Migrations** run automatically on startup in Development only; elsewhere set `RUN_MIGRATIONS=true`.
+  For multi-instance deploys, consider applying them once as a separate step instead.
+- **Free test deploy** (Vercel + Render + Neon): `DEPLOY.md` and `render.yaml` in the repo root.
 - **Geocoding** runs through our own `/geocode` endpoints (the browser no longer calls Nominatim
   directly). The upstream is `Nominatim__BaseUrl`, and it defaults to the **public** Nominatim — so
   customer addresses still reach a third party, and `Nominatim__ThrottleMs=1000` (their usage policy, not
