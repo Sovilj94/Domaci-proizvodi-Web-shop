@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sekcija } from "@/components/pocetna/sekcija";
 import { SectionHeader } from "@/components/ui/section-header";
 import { useUtisci } from "@/lib/api/hooks";
@@ -28,6 +28,27 @@ export function UtisciKarusel() {
   const [poz, setPoz] = useState(0);
   const [bezPrelaza, setBezPrelaza] = useState(false);
   const [pauza, setPauza] = useState(false);
+  // Širina prozora trake: tačno onoliko cijelih fotografija koliko stane (bez odsječenih na ivici).
+  const okvir = useRef<HTMLDivElement>(null);
+  const [sirinaProzora, setSirinaProzora] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = okvir.current;
+    if (!el) return;
+    const izmjeri = () => {
+      const css = getComputedStyle(el);
+      const px = (ime: string) => parseFloat(css.getPropertyValue(ime)) || 0;
+      const mala = px("--mala-s"), velika = px("--velika-s"), razmak = px("--razmak");
+      const dostupno = el.clientWidth;
+      // Jedna velika + što više malih, sa razmacima između.
+      const malih = Math.max(0, Math.floor((dostupno - velika) / (mala + razmak)));
+      setSirinaProzora(velika + malih * (mala + razmak));
+    };
+    izmjeri();
+    const ro = new ResizeObserver(izmjeri);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [n]);
 
   // Kad stignu podaci, aktivna je prva iz srednje kopije.
   useEffect(() => {
@@ -65,8 +86,9 @@ export function UtisciKarusel() {
       <SectionHeader naslov="Rekli su o E piljari 💭" />
 
       <div
+        ref={okvir}
         className={cn(
-          "relative overflow-hidden",
+          "relative",
           // Mjere kao na uzoru: mala 150×267 → 100×178 → 130×231 → 160×284; velika 240×426 → 340×569.
           "[--mala-s:150px] [--mala-v:267px] [--velika-s:240px] [--velika-v:426px] [--razmak:16px]",
           "sm:[--mala-s:100px] sm:[--mala-v:178px] sm:[--velika-s:200px] sm:[--velika-v:355px]",
@@ -77,6 +99,7 @@ export function UtisciKarusel() {
         onMouseEnter={() => setPauza(true)}
         onMouseLeave={() => setPauza(false)}
       >
+        <div className="mx-auto overflow-hidden" style={sirinaProzora ? { width: sirinaProzora } : undefined}>
         <ul
           className="flex h-[var(--velika-v)] items-end gap-[var(--razmak)]"
           style={{
@@ -119,6 +142,7 @@ export function UtisciKarusel() {
             );
           })}
         </ul>
+        </div>
 
         <figure
           className="mt-6 lg:absolute lg:right-0 lg:top-12 lg:mt-0 lg:w-[420px] xl:right-8 xl:top-20 xl:w-[520px] 2xl:w-[620px]"
