@@ -34,6 +34,17 @@ import type {
 } from "@/types/domain";
 import { apiFetch } from "./client";
 
+/** Red sezonskog kalendara korpica (admin). Prazni `mjeseci` = cijele godine. */
+export interface KalendarStavka {
+  productId: string;
+  naziv: string;
+  imageUrl?: string;
+  izrezUrl?: string;
+  uKorpici: boolean;
+  mjeseci: number[];
+  dostupan: boolean;
+}
+
 /** Folder slike u bazi (`/slike/{folder}/…`) — prati backend `SlikePravila.Folderi`. */
 export type FolderSlike = "products" | "izrezi" | "categories" | "producers" | "korpice" | "recepti";
 import type {
@@ -183,6 +194,13 @@ export const receptiApi = {
 /* ---------- Admin: korpice ---------- */
 
 export const adminKorpiceApi = {
+  /** Sezonski kalendar: kulture vrste korpice sa mjesecima (puni „Šta dobijaš" i generator). */
+  kalendar: (tip: "povrce" | "voce") =>
+    apiFetch<KalendarStavka[]>("/admin/korpice/kalendar", { query: { tip } }).then((r) => r.data),
+
+  postaviKalendar: (productId: string, body: { uKorpici: boolean; mjeseci: number[] }) =>
+    apiFetch<KalendarStavka>(`/admin/korpice/kalendar/${productId}`, { method: "PUT", body }).then((r) => r.data),
+
   pregled: (godina: number, sedmica: number) =>
     apiFetch<SadrzajPregled[]>("/admin/korpice/sadrzaj", {
       query: { godina, sedmica },

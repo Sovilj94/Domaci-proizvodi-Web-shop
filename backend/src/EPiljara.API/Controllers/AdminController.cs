@@ -172,6 +172,15 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> ObjaviSadrzaj(Guid id) =>
         Envelope(await Mediator.Send(new ObjaviSadrzajCommand(id)));
 
+    /// <summary>Sezonski kalendar: kulture vrste korpice sa mjesecima (puni „Šta dobijaš" i generator).</summary>
+    [HttpGet("admin/korpice/kalendar")]
+    public async Task<IActionResult> KalendarKorpica([FromQuery] string? tip) =>
+        EnvelopeList(await Mediator.Send(new GetKalendarKorpicaQuery(tip)));
+
+    [HttpPut("admin/korpice/kalendar/{productId:guid}")]
+    public async Task<IActionResult> PostaviKalendar(Guid productId, [FromBody] PostaviKalendarRequest body) =>
+        Envelope(await Mediator.Send(new PostaviKalendarCommand(productId, body.UKorpici, body.Mjeseci ?? [])));
+
     /// <summary>Korpica jednog kupca u narudžbi — admin je uređuje sa količinama (kupac je zvao).</summary>
     [HttpGet("admin/narudzbe/korpica/{orderItemId:guid}")]
     public async Task<IActionResult> KorpicaNarudzbe(Guid orderItemId) =>
