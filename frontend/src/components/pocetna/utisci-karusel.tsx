@@ -8,62 +8,112 @@ import { useUtisci } from "@/lib/api/hooks";
 import { IZGLED } from "@/lib/izgled";
 import { cn } from "@/lib/utils";
 
-const SMJENA_MS = 7000;
+const SMJENA_MS = 3000;
+const PRELAZ_MS = 300;
 
 /**
- * Utisci kupaca (po uzoru na farmit „Rekli su o farmitu"): niz uspravnih fotografija poravnatih po
- * dnu — aktivna je velika i stoji druga s lijeva, ostale su male. Na desktopu desno gore stoje redni
- * broj i ime (veliko, kapitalke) i tekst utiska. Klik na fotografiju ili tačku je bira; same se
- * smjenjuju svakih 7 s (ne uz smanjene animacije). Utisak nema svoju fotografiju, pa se smjenjuju
- * fotografije iz `IZGLED.utisci`. Bez objavljenih utisaka sekcija se ne prikazuje (spec P4, O2).
+ * Utisci kupaca (po uzoru na farmit „Rekli su o farmitu", Swiper sa petljom): traka uspravnih
+ * fotografija poravnatih po dnu; aktivna je velika i stoji druga s lijeva. Pri smjeni se cijela
+ * traka pomjeri za jedno mjesto (300 ms), a aktivna fotografija istovremeno raste, prethodna se
+ * smanjuje — bez preslagivanja. Petlja je beskonačna: traka sadrži tri kopije niza, a kad pređe u
+ * krajnju kopiju, bez animacije se vrati u srednju. Smjena svake 3 s, pauza dok je miš iznad
+ * (i bez nje uz smanjene animacije). Utisak nema svoju fotografiju — smjenjuju se `IZGLED.utisci`.
+ * Bez objavljenih utisaka sekcija se ne prikazuje (spec P4, O2).
  */
 export function UtisciKarusel() {
   const { data } = useUtisci();
   const lista = (data ?? []).slice(0, 12);
   const n = lista.length;
-  const [aktivan, setAktivan] = useState(0);
+  // Pozicija u traci od 3n fotografija; normalno je u srednjoj kopiji [n, 2n).
+  const [poz, setPoz] = useState(0);
+  const [bezPrelaza, setBezPrelaza] = useState(false);
   const [pauza, setPauza] = useState(false);
+
+  // Kad stignu podaci, aktivna je prva iz srednje kopije.
+  useEffect(() => {
+    if (n) setPoz((p) => (p >= n && p < 2 * n ? p : n));
+  }, [n]);
 
   useEffect(() => {
     if (n < 2 || pauza) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = window.setInterval(() => setAktivan((a) => (a + 1) % n), SMJENA_MS);
+    const t = window.setInterval(() => setPoz((p) => p + 1), SMJENA_MS);
     return () => window.clearInterval(t);
   }, [n, pauza]);
 
+  // Skok nazad u srednju kopiju poslije animacije, bez prelaza; prelaz se vraća u sljedećem kadru.
+  function krajPrelaza() {
+    if (poz >= 2 * n || poz < n) {
+      setBezPrelaza(true);
+      setPoz((p) => (p >= 2 * n ? p - n : p + n));
+    }
+  }
+  useEffect(() => {
+    if (!bezPrelaza) return;
+    const r = requestAnimationFrame(() => requestAnimationFrame(() => setBezPrelaza(false)));
+    return () => cancelAnimationFrame(r);
+  }, [bezPrelaza]);
+
   if (!n) return null;
-  const a = aktivan % n;
+  const a = ((poz % n) + n) % n;
   const u = lista[a];
-  // Aktivna je druga s lijeva, kao na uzoru; ostale idu redom iza nje.
-  const redoslijed = Array.from({ length: n }, (_, k) => (a - 1 + k + n) % n);
-  const slika = (i: number) => IZGLED.utisci[i % IZGLED.utisci.length];
+  const traka = [...lista, ...lista, ...lista];
+  const prelaz = bezPrelaza ? "none" : `all ${PRELAZ_MS}ms ease`;
 
   return (
     <Sekcija siroka>
       <SectionHeader naslov="Rekli su o E piljari 💭" />
 
-      <div className="relative" onMouseEnter={() => setPauza(true)} onMouseLeave={() => setPauza(false)}>
-        <ul className="no-scrollbar flex items-end gap-4 overflow-x-auto pb-1 lg:gap-5 lg:overflow-visible">
-          {redoslijed.map((i) => {
-            const da = i === a;
+      <div
+        className={cn(
+          "relative overflow-hidden",
+          // Mjere kao na uzoru: mala 150×267 → 100×178 → 130×231 → 160×284; velika 240×426 → 340×569.
+          "[--mala-s:150px] [--mala-v:267px] [--velika-s:240px] [--velika-v:426px] [--razmak:16px]",
+          "sm:[--mala-s:100px] sm:[--mala-v:178px] sm:[--velika-s:200px] sm:[--velika-v:355px]",
+          "md:[--velika-s:250px] md:[--velika-v:444px]",
+          "lg:[--mala-s:130px] lg:[--mala-v:231px] lg:[--velika-s:300px] lg:[--velika-v:533px] lg:[--razmak:20px]",
+          "xl:[--mala-s:160px] xl:[--mala-v:284px] xl:[--velika-s:340px] xl:[--velika-v:569px]",
+        )}
+        onMouseEnter={() => setPauza(true)}
+        onMouseLeave={() => setPauza(false)}
+      >
+        <ul
+          className="flex h-[var(--velika-v)] items-end gap-[var(--razmak)]"
+          style={{
+            // Aktivna je druga s lijeva: ispred nje je tačno jedna mala fotografija.
+            transform: `translateX(calc(${-(poz - 1)} * (var(--mala-s) + var(--razmak))))`,
+            transition: bezPrelaza ? "none" : `transform ${PRELAZ_MS}ms ease`,
+          }}
+          onTransitionEnd={(e) => {
+            if (e.target === e.currentTarget && e.propertyName === "transform") krajPrelaza();
+          }}
+        >
+          {traka.map((x, i) => {
+            const da = i === poz;
             return (
               <li
-                key={lista[i].id}
+                key={`${x.id}-${i}`}
                 className={cn(
-                  "shrink-0 transition-all duration-300",
-                  da
-                    ? "h-[426px] w-[240px] md:h-[444px] md:w-[250px] lg:h-[533px] lg:w-[300px] xl:h-[569px] xl:w-[340px]"
-                    : "h-[267px] w-[150px] sm:h-[178px] sm:w-[100px] lg:h-[231px] lg:w-[130px] xl:h-[284px] xl:w-[160px]",
+                  "shrink-0",
+                  da ? "h-[var(--velika-v)] w-[var(--velika-s)]" : "h-[var(--mala-v)] w-[var(--mala-s)]",
                 )}
+                style={{ transition: prelaz }}
               >
                 <button
                   type="button"
-                  onClick={() => setAktivan(i)}
-                  aria-label={`Utisak ${i + 1}: ${lista[i].ime}`}
+                  tabIndex={Math.abs(i - poz) <= n / 2 ? 0 : -1}
+                  onClick={() => setPoz(i)}
+                  aria-label={`Utisak ${(i % n) + 1}: ${x.ime}`}
                   aria-current={da || undefined}
                   className="relative block h-full w-full overflow-hidden rounded-[30px] bg-sand"
                 >
-                  <Image src={slika(i)} alt="" fill sizes={da ? "340px" : "160px"} className="object-cover" />
+                  <Image
+                    src={IZGLED.utisci[(i % n) % IZGLED.utisci.length]}
+                    alt=""
+                    fill
+                    sizes="340px"
+                    className="object-cover"
+                  />
                 </button>
               </li>
             );
@@ -81,24 +131,21 @@ export function UtisciKarusel() {
           {u.mjesto && <p className="mt-1 text-sm text-muted">{u.mjesto}</p>}
           <blockquote className="mt-2 text-sm font-medium text-ink md:text-base md:leading-7">{u.tekst}</blockquote>
         </figure>
-
-        {n > 1 && (
-          <div className="mt-8 flex justify-center gap-2.5">
-            {lista.map((x, i) => (
-              <button
-                key={x.id}
-                type="button"
-                onClick={() => setAktivan(i)}
-                aria-label={`Prikaži utisak ${i + 1}`}
-                className={cn(
-                  "h-2.5 w-2.5 rounded-full transition",
-                  i === a ? "bg-honey-500" : "bg-ink/70 hover:bg-ink",
-                )}
-              />
-            ))}
-          </div>
-        )}
       </div>
+
+      {n > 1 && (
+        <div className="mt-8 flex justify-center gap-2.5">
+          {lista.map((x, i) => (
+            <button
+              key={x.id}
+              type="button"
+              onClick={() => setPoz(n + i)}
+              aria-label={`Prikaži utisak ${i + 1}`}
+              className={cn("h-2.5 w-2.5 rounded-full transition", i === a ? "bg-honey-500" : "bg-ink/70 hover:bg-ink")}
+            />
+          ))}
+        </div>
+      )}
     </Sekcija>
   );
 }
