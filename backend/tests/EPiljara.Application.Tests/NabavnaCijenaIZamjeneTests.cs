@@ -86,8 +86,9 @@ public class NabavnaCijenaIZamjeneTests
     public async Task Zamjene_su_van_kutije_i_bez_artikala_koji_bi_oborili_marzu()
     {
         using var t = new TestDb();
-        // 6 artikala sa dobrom maržom (50%), 6 sa lošom (87.5% nabavna/prodajna).
-        Postavi(t, [2m, 2m, 2m, 2m, 2m, 2m, 3.5m, 3.5m, 3.5m, 3.5m, 3.5m, 3.5m]);
+        // 10 artikala sa dobrom maržom (50%), 6 sa lošom (87.5% nabavna/prodajna) — korpica uzme 8,
+        // pa za zamjene ostaju i dobri i loši.
+        Postavi(t, [2m, 2m, 2m, 2m, 2m, 2m, 2m, 2m, 2m, 2m, 3.5m, 3.5m, 3.5m, 3.5m, 3.5m, 3.5m]);
 
         var r = Assert.Single(await Generisi(t));
 

@@ -165,10 +165,10 @@ public class KorpiceQueriesTests
         Assert.Equal(12, dto.Mjeseci.Count);
         Assert.Equal(["Krompir"], dto.Mjeseci[0].Kulture.Select(k => k.Naziv).ToArray());
         Assert.Equal(["Krompir", "Paradajz"], dto.Mjeseci[6].Kulture.Select(k => k.Naziv).ToArray());
-        // Mala korpica 25 KM: cilj 28.75 na 5 artikala = 5.75 KM po artiklu → paradajz 4 KM/kg ≈ 1.4 kg.
-        Assert.Equal(1.4m, dto.Mjeseci[6].Kulture[1].Kolicine["mala"]);
+        // Mala korpica 25 KM: cilj 28.75 na 8 artikala ≈ 3.59 KM po artiklu → paradajz 4 KM/kg ≈ 0.8 kg.
+        Assert.Equal(0.8m, dto.Mjeseci[6].Kulture[1].Kolicine["mala"]);
         var mala = Assert.Single(dto.Velicine);
-        Assert.Equal(("mala", 5, 28.75m), (mala.Velicina, mala.BrojNamirnica, mala.Vrijednost));
+        Assert.Equal(("mala", 8, 28.75m), (mala.Velicina, mala.BrojNamirnica, mala.Vrijednost));
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class KorpiceQueriesTests
 
         var kolicine = dto.Mjeseci[0].Kulture.Single(k => k.Naziv == "Paradajz").Kolicine;
         // Oba dijele na broj artikala najmanje korpice: velika (45 KM) nosi oko 1,8× više od male (25 KM).
-        Assert.Equal(1.4m, kolicine["mala"]);
+        Assert.Equal(0.8m, kolicine["mala"]);
         Assert.True(kolicine["velika"] > kolicine["mala"] * 1.6m, $"velika {kolicine["velika"]} nije veća od male");
     }
 

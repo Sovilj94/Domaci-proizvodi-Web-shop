@@ -47,10 +47,16 @@ public class KorpiceOpcije
     /// </summary>
     public string VrijemeIsporukeRezerva { get; set; } = "16:00";
 
+    /// <summary>
+    /// Najmanje koliko različitih namirnica ide u korpicu. Isto za sve veličine (po uzoru na
+    /// farmit, „8+ kultura"): veća korpica nosi veće količine istih kultura, ne više kultura.
+    /// Generator i „Šta dobijaš u korpici?" dijele vrijednost korpice na ovaj broj, pa okvirna
+    /// količina koju kupac vidi odgovara onome što se pakuje.
+    /// </summary>
     public Dictionary<VelicinaKorpice, int> MinimalanBrojArtikala { get; set; } = new()
     {
-        [VelicinaKorpice.Mala] = 5,
-        [VelicinaKorpice.Srednja] = 7,
-        [VelicinaKorpice.Velika] = 9,
+        [VelicinaKorpice.Mala] = 8,
+        [VelicinaKorpice.Srednja] = 8,
+        [VelicinaKorpice.Velika] = 8,
     };
 }
