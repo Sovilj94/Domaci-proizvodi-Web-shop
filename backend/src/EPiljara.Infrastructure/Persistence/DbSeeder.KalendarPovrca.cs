@@ -8,18 +8,20 @@ public static partial class DbSeeder
 
     /// <summary>
     /// Kalendar povrća za korpice (2026-10-29), po sezonskom kalendaru sa farmit.rs: u kojim
-    /// mjesecima kultura ide u korpicu. Naše kulture koje tamo nemaju parnjaka (grašak, kiseli
+    /// mjesecima kultura ide u korpicu. Svaka kultura ima tačno svoje mjesece (babura = crvena paprika,
+    /// kupus = kupus, mahune = boranija olovka, zelena salata = puterica, celer korijen = koren celera);
+    /// ostale kulture iz kalendara su posebni proizvodi u SezonskaPonuda. Naše kulture koje tamo nemaju parnjaka (grašak, kiseli
     /// kupus, kopriva, sremuš) ne idu u korpicu — ostaju u Špajzu. Ista lista je u migraciji
     /// <c>SezonaPovrcaKalendar</c>, koja jednom ažurira postojeće baze; ovdje važi za novu bazu.
     /// </summary>
     internal static readonly IReadOnlyDictionary<string, int[]> KalendarPovrca = new Dictionary<string, int[]>
     {
-        ["babura-paprika"] = [7, 8, 9, 10],
+        ["babura-paprika"] = [8, 9, 10],
         ["bijeli-luk"] = [1, 2, 3, 4, 6, 7, 9, 10, 11, 12],
         ["blitva"] = [1, 2, 3, 4, 10, 11, 12],
         ["brokula"] = [11, 12],
         ["bundeva"] = [1, 3, 9, 10, 11, 12],
-        ["celer-korijen"] = [1, 2, 4, 5, 6, 7, 8],
+        ["celer-korijen"] = [4, 5, 6],
         ["crni-luk"] = SvakiMjesec,
         ["cvekla"] = [1, 2, 3, 4, 8, 9, 10, 11, 12],
         ["domaci-krompir"] = SvakiMjesec,
@@ -29,9 +31,9 @@ public static partial class DbSeeder
         ["kelj"] = [1, 2, 3, 12],
         ["krastavac"] = [5, 6, 7, 8, 9, 10],
         ["kukuruz-secerac"] = [8, 9, 10],
-        ["kupus"] = [1, 2, 3, 5, 6, 10, 11, 12],
+        ["kupus"] = [10],
         ["ljuta-paprika"] = [6, 7, 8, 9, 10],
-        ["mahune"] = [7, 8, 10],
+        ["mahune"] = [10],
         ["mladi-luk"] = [1, 2, 3, 4, 5, 6, 11, 12],
         ["mrkva"] = SvakiMjesec,
         ["paradajz-iz-plastenika"] = [6, 7, 8, 9],
@@ -42,7 +44,7 @@ public static partial class DbSeeder
         ["rotkvica"] = [1, 2, 3, 4, 5, 10, 11, 12],
         ["spanac"] = [2, 3, 4, 5, 10],
         ["tikvica"] = [4, 5, 6, 7, 8, 9, 10],
-        ["zelena-salata"] = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12],
+        ["zelena-salata"] = [1, 2, 3, 4, 5, 6, 7, 10, 12],
     };
 
     /// <summary>Povrće koje nije u kalendaru ne ide u korpicu.</summary>
