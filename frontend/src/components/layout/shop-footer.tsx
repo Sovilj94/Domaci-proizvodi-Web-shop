@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/layout/logo";
 import { FooterRok } from "@/components/layout/footer-rok";
 import { PrijavaNovosti } from "@/components/layout/prijava-novosti";
-import { PismoPrekidac } from "@/components/pismo/pismo-prekidac";
+import { JezikPrekidac } from "@/components/jezik/jezik-prekidac";
 import { KontaktEmail, KontaktPolje, KontaktTelefon } from "@/components/layout/kontakt";
 
 const LINKOVI = [
@@ -36,7 +36,7 @@ export function ShopFooter() {
               </Link>
             ))}
           </nav>
-          <PismoPrekidac className="self-start rounded-full border border-line px-4 py-1.5 text-sm text-ink hover:border-honey-500 sm:self-auto" />
+          <JezikPrekidac className="self-start rounded-full border border-line px-4 py-1.5 text-sm text-ink hover:border-honey-500 sm:self-auto" />
         </div>
 
         <div className="mt-6 grid gap-8 sm:grid-cols-3 sm:items-center">

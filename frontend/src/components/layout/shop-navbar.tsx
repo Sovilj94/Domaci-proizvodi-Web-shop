@@ -8,7 +8,7 @@ import { Logo } from "@/components/layout/logo";
 import { MobilniMeni } from "@/components/layout/mobilni-meni";
 import { GLAVNA_NAVIGACIJA, jeAktivna } from "@/components/layout/navigacija";
 import { CartButton } from "@/components/shop/cart-button";
-import { PismoPrekidac } from "@/components/pismo/pismo-prekidac";
+import { JezikPrekidac } from "@/components/jezik/jezik-prekidac";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
@@ -149,7 +149,7 @@ export function ShopNavbar() {
                 </>
             )}
 
-            <PismoPrekidac
+            <JezikPrekidac
               className={cn(
                 "hidden rounded-full px-3 py-2 text-sm font-medium hover:bg-black/5 lg:inline-flex",
                 proziran ? "text-white" : "text-ink",

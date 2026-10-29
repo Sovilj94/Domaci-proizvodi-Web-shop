@@ -114,6 +114,16 @@ html[data-pismo="cir"]:not([data-pismo-spremno]) body {
   }
 }
 
+/*
+ * Engleski (jezik sajta): dok JezikProvider ne prevede stranicu, srpski tekst se ne smije
+ * vidjeti. `data-jezik` postavlja skripta u <head>, `data-jezik-spremno` provajder; animacija
+ * je rezervni izlaz kad JS ne stigne — stranica se pokaže poslije 1,5 s u svakom slučaju.
+ */
+html[data-jezik="en"]:not([data-jezik-spremno]) body {
+  visibility: hidden;
+  animation: pismo-rezerva 0s 1.5s forwards;
+}
+
 body {
   background: var(--color-cream);
   color: var(--color-ink);

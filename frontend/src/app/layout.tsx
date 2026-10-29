@@ -10,7 +10,7 @@ import {
 import { Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { PISMO_SKRIPTA } from "@/lib/pismo/pismo";
+import { JEZIK_SKRIPTA } from "@/lib/jezik/jezik";
 
 /*
  * Poppins — font farmit-a (R1), za tekst i naslove. latin-ext nije opcion: bez njega
@@ -77,14 +77,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    // suppressHydrationWarning: skripta ispod mijenja `lang` i `data-pismo` prije hidratacije.
+    // suppressHydrationWarning: skripta ispod mijenja `lang` i `data-jezik` prije hidratacije.
     <html
       lang="sr-Latn"
       className={`${poppins.variable} ${montserrat.variable} h-full`}
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: PISMO_SKRIPTA }} />
+        <script dangerouslySetInnerHTML={{ __html: JEZIK_SKRIPTA }} />
       </head>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>

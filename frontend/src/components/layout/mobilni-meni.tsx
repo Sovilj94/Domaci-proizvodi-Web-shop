@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Languages, LayoutDashboard, X } from "lucide-react";
 import { GLAVNA_NAVIGACIJA } from "@/components/layout/navigacija";
-import { PismoPrekidac } from "@/components/pismo/pismo-prekidac";
+import { JezikPrekidac } from "@/components/jezik/jezik-prekidac";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
@@ -51,9 +51,9 @@ export function MobilniMeni({ otvoren, onZatvori }: { otvoren: boolean; onZatvor
 
       <div className="mt-4 flex items-center justify-between border-b border-line pb-5">
         <span className="flex items-center gap-4 text-lg text-ink">
-          <Languages className="h-5 w-5" /> Pismo
+          <Languages className="h-5 w-5" /> Jezik
         </span>
-        <PismoPrekidac className="rounded-full bg-beige px-4 py-2 text-base font-medium text-ink" />
+        <JezikPrekidac naMeniju className="rounded-full bg-beige px-4 py-2 text-base font-medium text-ink" />
       </div>
 
       <nav className="mt-2 flex-1 overflow-y-auto">

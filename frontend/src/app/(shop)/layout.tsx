@@ -2,7 +2,7 @@ import { ShopNavbar } from "@/components/layout/shop-navbar";
 import { TrakaRoka } from "@/components/layout/traka-roka";
 import { ShopFooter } from "@/components/layout/shop-footer";
 import { CartDrawer } from "@/components/shop/cart-drawer";
-import { PismoProvider } from "@/components/pismo/pismo-provider";
+import { JezikProvider } from "@/components/jezik/jezik-provider";
 import { JsonLd, sajtLd } from "@/lib/seo/json-ld";
 
 /**
@@ -23,7 +23,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       <main className="flex-1">{children}</main>
       <ShopFooter />
       <CartDrawer />
-      <PismoProvider />
+      <JezikProvider />
     </>
   );
 }
