@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { KorpicaKartica } from "@/components/korpice/korpica-kartica";
 import { PlanSegment, VrstaSegment } from "@/components/korpice/segmenti";
@@ -10,18 +10,21 @@ import { CestaPitanja } from "@/components/pocetna/cesta-pitanja";
 import { BitnoDaZnas } from "@/components/korpice/bitno-da-znas";
 import { StaDobijas } from "@/components/korpice/sta-dobijas";
 import { USvakomTrenutku } from "@/components/korpice/u-svakom-trenutku";
+import { LjepljiveKartice } from "@/components/korpice/ljepljive-kartice";
 import { useKorpiceList } from "@/lib/api/hooks";
 import { planIzUrla, VELICINE } from "@/lib/planovi";
 
 /**
  * „Izaberi korpicu" (R2, po uzoru na farmit /gajbice/{vrsta}?plan=): naslov, izbor vrste,
- * izbor plana, tri kartice (Mala/Srednja/Velika) sa cijenom izabranog plana, pa utisci, „Šta je
+ * izbor plana, tri kartice (Mala/Srednja/Velika) sa cijenom izabranog plana (pri skrolanju
+ * ostaju zalijepljene na vrhu), pa utisci, „Šta je
  * bitno da znaš", sadržaj po mjesecima, „U svakom trenutku možeš da" i česta pitanja.
  */
 export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
   const plan = planIzUrla(useSearchParams().get("plan"));
   const { data, isLoading } = useKorpiceList();
   const [sadrzajSlug, setSadrzajSlug] = useState<string | null>(null);
+  const kartice = useRef<HTMLDivElement>(null);
 
   const korpice = (data ?? [])
     .filter((k) => k.tip === vrsta && k.dostupna)
@@ -42,7 +45,7 @@ export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
           <PlanSegment aktivan={plan.kljuc} href={(k) => `/korpice/${vrsta}?plan=${k}`} />
         </div>
 
-        <div className="mx-auto mt-10 flex max-w-6xl flex-col gap-4 lg:flex-row lg:justify-center lg:gap-8">
+        <div ref={kartice} className="mx-auto mt-10 flex max-w-6xl flex-col gap-4 lg:flex-row lg:justify-center lg:gap-8">
           {isLoading
             ? Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="skeleton h-28 rounded-2xl lg:h-[560px] lg:w-[310px] lg:rounded-[26px]" />
@@ -72,6 +75,7 @@ export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
       <USvakomTrenutku />
       <CestaPitanja />
 
+      <LjepljiveKartice korpice={korpice} plan={plan.plan} kljucPlana={plan.kljuc} sidro={kartice} />
       {sadrzajSlug && <SadrzajModal slug={sadrzajSlug} onClose={() => setSadrzajSlug(null)} />}
     </>
   );

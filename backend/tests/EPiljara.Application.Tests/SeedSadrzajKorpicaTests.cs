@@ -48,4 +48,18 @@ public class SeedSadrzajKorpicaTests
 
         sadrzaj.Stavke.Should().NotBeEmpty();
     }
+
+    [Fact]
+    public async Task Demo_utisci_se_upisuju_samo_u_bazu_bez_utisaka()
+    {
+        using var t = new TestDb();
+
+        var prvi = await DbSeeder.SeedUtisciAsync(t.Db);
+        var drugi = await DbSeeder.SeedUtisciAsync(t.Db);
+
+        prvi.Should().BeGreaterThan(0);
+        drugi.Should().Be(0);
+        (await t.Db.Utisci.CountAsync()).Should().Be(prvi);
+        (await t.Db.Utisci.AllAsync(u => u.Objavljen)).Should().BeTrue();
+    }
 }

@@ -188,6 +188,9 @@ await using (var scope = app.Services.CreateAsyncScope())
                 scope.ServiceProvider.GetRequiredService<IOptions<KorpiceOpcije>>().Value);
             if (objavljeno > 0)
                 app.Logger.LogInformation("Demo: objavljeno {Broj} sedmičnih sadržaja korpica", objavljeno);
+            var utisci = await DbSeeder.SeedUtisciAsync(db);
+            if (utisci > 0)
+                app.Logger.LogInformation("Demo: upisano {Broj} utisaka kupaca", utisci);
         }
         // Pravi admin iz env-a (ne demo admin123) — radi i bez SEED_DATA.
         if (await AdminNalog.ObezbijediAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>(),
