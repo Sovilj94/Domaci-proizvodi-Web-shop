@@ -161,7 +161,7 @@ public class CreateOrderHandler(
         foreach (var line in cmd.Items)
         {
             var product = await db.Products.FirstOrDefaultAsync(p => p.Id == line.ProductId, ct);
-            if (product is null || !product.IsAvailable)
+            if (product is null || !product.IsAvailable || (product.Vrsta == VrstaProizvoda.Obican && !product.USpajzu))
                 throw new DomainException($"Proizvod nije dostupan ({line.ProductId}).", "product_unavailable");
 
             // Cijena se snima u trenutku narudžbe. Za pretplatnu korpicu to je cijena

@@ -49,6 +49,12 @@ public class Product : Entity
     public string? NazivEn { get; set; }
     /// <summary>Opis na engleskom; prazno = prikazuje se srpski opis.</summary>
     public string? OpisEn { get; set; }
+
+    /// <summary>
+    /// Prodaje se pojedinačno u Špajzu (po uzoru na farmit). Sezonsko povrće i voće se ne kupuje
+    /// na kilogram — ide samo u korpice, pa ovdje stoji false; jaja, ajvar, džem, med i mliječno true.
+    /// </summary>
+    public bool USpajzu { get; set; } = true;
     /// <summary>Boja pločice namirnice ("#RRGGBB"); null = boja iz palete (BojaProizvoda).</summary>
     public string? Boja { get; set; }
 

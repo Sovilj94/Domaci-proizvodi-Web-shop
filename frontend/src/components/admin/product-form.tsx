@@ -48,6 +48,7 @@ const EMPTY = {
   isAvailable: true,
   isFeatured: false,
   mozeUKorpicu: false,
+  uSpajzu: true,
   prioritetUKorpici: "0",
   mjeseci: [] as number[],
   boja: "",
@@ -96,6 +97,7 @@ export function ProductForm({
             isAvailable: product.isAvailable,
             isFeatured: product.isFeatured ?? false,
             mozeUKorpicu: product.mozeUKorpicu ?? false,
+            uSpajzu: product.uSpajzu ?? true,
             prioritetUKorpici: String(product.prioritetUKorpici ?? 0),
             mjeseci: product.mjeseci ?? [],
             boja: product.zadanaBoja ?? "",
@@ -141,6 +143,7 @@ export function ProductForm({
       isAvailable: form.isAvailable,
       isFeatured: form.isFeatured,
       mozeUKorpicu: form.mozeUKorpicu,
+      uSpajzu: form.uSpajzu,
       prioritetUKorpici: Number(form.prioritetUKorpici || 0),
       mjeseci: form.mjeseci,
       boja: form.boja.trim(),
@@ -330,6 +333,19 @@ export function ProductForm({
             />
             Smije ući u sadržaj korpice
           </label>
+
+          <label className="mt-2 flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={form.uSpajzu}
+              onChange={(e) => setForm({ ...form, uSpajzu: e.target.checked })}
+              className="h-4 w-4 accent-brand-600"
+            />
+            Prodaje se pojedinačno u Špajzu
+          </label>
+          <p className="ml-6 mt-0.5 text-xs text-muted">
+            Isključi za povrće i voće na kilogram — tada se kupuje samo kroz korpice.
+          </p>
 
           <div className="mt-3">
             <Field label="Prioritet u korpici">

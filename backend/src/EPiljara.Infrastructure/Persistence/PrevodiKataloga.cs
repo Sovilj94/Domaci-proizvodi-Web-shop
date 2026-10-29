@@ -18,6 +18,8 @@ public static class PrevodiKataloga
         ["jaja"] = "Eggs",
         ["med"] = "Honey and bee products",
         ["zimnica"] = "Preserves and jams",
+        ["ajvar"] = "Ajvar",
+        ["dzem"] = "Jam",
     };
 
     private static readonly Dictionary<string, string> Proizvodi = new()

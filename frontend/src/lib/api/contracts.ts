@@ -106,6 +106,8 @@ export interface ProductInput {
   /** Naziv i opis na engleskom (jezik sajta English); prazno = srpski. */
   nazivEn?: string;
   opisEn?: string;
+  /** Prodaje se pojedinačno u Špajzu; false = samo u korpicama. */
+  uSpajzu?: boolean;
 }
 
 export interface CategoryInput {

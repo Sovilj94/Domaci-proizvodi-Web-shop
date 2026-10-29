@@ -241,6 +241,8 @@ public static partial class DbSeeder
             var p = Prod(a.Naziv, a.Cijena, a.Jedinica, a.Zaliha, kategorija, Proizvodjac(a.Proizvodjac), a.Opis);
             p.NabavnaCijena = Math.Round(a.Cijena * DemoUdioNabavne, 2);
             p.MozeUKorpicu = true;
+            // Sezonsko povrće i voće ide samo u korpice, ne prodaje se pojedinačno u Špajzu.
+            p.USpajzu = a.Kategorija is not ("povrce" or "voce" or "meso");
             p.PrioritetUKorpici = a.Prioritet;
             p.Mjeseci = a.Mjeseci;
             p.Boja = a.Boja;

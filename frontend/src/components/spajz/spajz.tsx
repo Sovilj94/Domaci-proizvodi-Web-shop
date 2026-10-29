@@ -8,8 +8,14 @@ import { ProductGrid, ProductGridSkeleton } from "@/components/shop/product-grid
 import { SectionHeader } from "@/components/ui/section-header";
 import { SmartImage } from "@/components/ui/smart-image";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useCategories, useProducts } from "@/lib/api/hooks";
+import { KorpicaUSpajzu } from "@/components/spajz/korpica-u-spajzu";
+import { useCategories, useKorpiceList, useProducts } from "@/lib/api/hooks";
+import { VELICINE } from "@/lib/planovi";
 import { cn } from "@/lib/utils";
+
+/** Slug „kategorije" korpica u Špajzu — korpice nisu proizvodi kataloga, nego svoj katalog. */
+const KORPICE = "korpice";
+const MREZA = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 lg:gap-4";
 
 /**
  * Špajz (R3, po uzoru na farmit /proizvodi): naslov, kategorije u krugovima, „Zavolećeš ove
@@ -43,9 +49,25 @@ export function Spajz() {
 
   const kategorije = useCategories();
   const izdvojeni = useProducts({ featured: true });
-  const proizvodi = useProducts({ category: kategorija ?? undefined, search: pretraga || undefined });
+  const naKorpicama = kategorija === KORPICE;
+  const proizvodi = useProducts({
+    category: naKorpicama ? undefined : (kategorija ?? undefined),
+    search: pretraga || undefined,
+  });
   const filtrirano = !!kategorija || !!pretraga;
-  const nazivKategorije = kategorije.data?.find((c) => c.slug === kategorija)?.name;
+  const nazivKategorije = naKorpicama ? "Korpice" : kategorije.data?.find((c) => c.slug === kategorija)?.name;
+
+  // Po uzoru na farmit: u Špajzu su korpice (povrće i voće), a ne povrće i voće na kilogram.
+  // Kategorija bez ijednog artikla Špajza (povrće, voće, meso) se ne prikazuje.
+  const korpiceLista = useKorpiceList();
+  const korpice = (korpiceLista.data ?? [])
+    .filter((k) => (k.tip === "povrce" || k.tip === "voce") && k.dostupna)
+    .sort((a, b) =>
+      a.tip === b.tip
+        ? VELICINE.findIndex((v) => v.velicina === a.velicina) - VELICINE.findIndex((v) => v.velicina === b.velicina)
+        : a.tip === "povrce" ? -1 : 1,
+    );
+  const vidljiveKategorije = (kategorije.data ?? []).filter((c) => (c.productCount ?? 0) > 0);
 
   return (
     <>
@@ -55,8 +77,8 @@ export function Spajz() {
             Proizvodi čije porijeklo znaš
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base text-ink sm:text-xl">
-            Najukusnije sa Manjače, pažljivo izabrano za tebe. Sir, suho meso, ajvar, zimnica i med — dodaj ih uz
-            korpicu i stižu u istoj dostavi.
+            Najukusnije sa Manjače, pažljivo izabrano za tebe. Korpice, jaja, ajvar, džem, med i mliječni proizvodi —
+            sve stiže u istoj dostavi.
           </p>
         </div>
 
@@ -65,7 +87,12 @@ export function Spajz() {
           <Krug naziv="Svi proizvodi" aktivan={!kategorija} onClick={() => izaberi(null)}>
             <LayoutGrid className="h-9 w-9 text-brand-600" />
           </Krug>
-          {kategorije.data?.map((c) => (
+          {korpice.length > 0 && (
+            <Krug naziv="Korpice" aktivan={naKorpicama} onClick={() => izaberi(KORPICE)}>
+              <SmartImage src={korpice[0].imageUrl} alt="" sizes="120px" />
+            </Krug>
+          )}
+          {vidljiveKategorije.map((c) => (
             <Krug key={c.id} naziv={c.name} aktivan={kategorija === c.slug} onClick={() => izaberi(c.slug)}>
               <SmartImage src={c.imageUrl} alt="" sizes="120px" />
             </Krug>
@@ -85,6 +112,17 @@ export function Spajz() {
 
       <section className="px-4 pb-16">
         <div className="mx-auto max-w-7xl">
+          {!filtrirano && korpice.length > 0 && (
+            <div className="mb-14">
+              <SectionHeader oblik="red" naslov="Korpice" link="/korpice/povrce" linkTekst="Sve o korpicama" />
+              <div className={MREZA}>
+                {korpice.map((k) => (
+                  <KorpicaUSpajzu key={k.id} korpica={k} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {!filtrirano && (
             <div className="mb-14">
               <SectionHeader oblik="red" naslov="Zavolećeš ove proizvode…" link="#svi-proizvodi" linkTekst="Svi proizvodi" />
@@ -102,7 +140,13 @@ export function Spajz() {
               naslov={nazivKategorije ?? (pretraga ? `Rezultati za „${pretraga}"` : "Svi proizvodi")}
             />
           </div>
-          {proizvodi.isLoading ? (
+          {naKorpicama ? (
+            <div className={MREZA}>
+              {korpice.map((k) => (
+                <KorpicaUSpajzu key={k.id} korpica={k} />
+              ))}
+            </div>
+          ) : proizvodi.isLoading ? (
             <ProductGridSkeleton />
           ) : proizvodi.isError ? (
             <EmptyState title="Greška pri učitavanju" description="Nismo uspjeli dohvatiti proizvode. Pokušaj ponovo." />

@@ -75,7 +75,15 @@ export default function ProductDetailPage() {
           <p className="mt-4 text-ink/80">{product.description}</p>
 
           <div className="mt-6">
-            {soldOut ? (
+            {product.uSpajzu === false ? (
+              // Po uzoru na farmit: povrće i voće se ne kupuje na kilogram, nego stiže u korpicama.
+              <div className="rounded-card bg-sand px-4 py-3 text-sm text-ink">
+                <p className="font-medium">Ova namirnica stiže u korpicama.</p>
+                <Link href="/korpice/povrce" className="mt-1 inline-block font-medium text-brand-600 underline underline-offset-2">
+                  Pogledaj korpice
+                </Link>
+              </div>
+            ) : soldOut ? (
               <div className="rounded-card bg-sand px-4 py-3 text-sm font-medium text-muted">
                 Trenutno nedostupno — provjeri ponovo sljedeće sedmice.
               </div>
@@ -93,7 +101,7 @@ export default function ProductDetailPage() {
                 </Button>
               </div>
             )}
-            {!soldOut && product.stock <= 10 && (
+            {!soldOut && product.uSpajzu !== false && product.stock <= 10 && (
               <p className="mt-2 text-xs font-medium text-honey-600">
                 Još samo {product.stock} {product.unit} na stanju.
               </p>

@@ -40,7 +40,8 @@ export default function ReceptDetaljPage() {
   const zaKorpu = (recept.sastojci ?? [])
     .map((s) => s.proizvod)
     .filter((p): p is Product => !!p);
-  const dostupni = zaKorpu.filter((p) => p.isAvailable);
+  // Povrće i voće se ne prodaje na kilogram (stiže u korpicama) — u korpu idu samo artikli Špajza.
+  const dostupni = zaKorpu.filter((p) => p.isAvailable && p.uSpajzu !== false);
   // Isti proizvod u dva sastojka ide u korpu jednom.
   const jedinstveni = [...new Map(dostupni.map((p) => [p.id, p])).values()];
 
@@ -88,6 +89,9 @@ export default function ReceptDetaljPage() {
                 )}
                 {s.proizvod && !s.proizvod.isAvailable && (
                   <span className="text-xs text-muted">trenutno nema</span>
+                )}
+                {s.proizvod?.isAvailable && s.proizvod.uSpajzu === false && (
+                  <span className="text-xs text-muted">stiže u korpici</span>
                 )}
               </li>
             ))}

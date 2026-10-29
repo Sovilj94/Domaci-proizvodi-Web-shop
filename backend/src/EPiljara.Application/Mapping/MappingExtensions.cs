@@ -57,6 +57,7 @@ public static class MappingExtensions
         IzrezUrl = p.IzrezUrl,
         NazivEn = p.NazivEn,
         OpisEn = p.OpisEn,
+        USpajzu = p.USpajzu,
         Boja = BojaProizvoda.Za(p.Boja, p.Name),
         ZadanaBoja = p.Boja,
         Description = p.Description,

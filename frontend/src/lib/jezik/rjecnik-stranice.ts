@@ -88,6 +88,11 @@ export const RJECNIK_STRANICE: Record<string, string> = {
   "Laboratorijske analize su objavljene.": "Lab tests are published.",
   "Zašto kod nas?": "Why us?",
   "Svi": "All",
+  "Sve o korpicama": "All about the boxes",
+  "Najukusnije sa Manjače, pažljivo izabrano za tebe. Korpice, jaja, ajvar, džem, med i mliječni proizvodi — sve stiže u istoj dostavi.":
+    "The tastiest from Manjača, carefully chosen for you. Boxes, eggs, ajvar, jam, honey and dairy — all arriving in the same delivery.",
+  "Ova namirnica stiže u korpicama.": "This produce comes in our boxes.",
+  "stiže u korpici": "comes in the box",
   "Dodaj iz Špajza": "Add from the pantry",
   "Domaći sir, suho meso, ajvar, zimnica, med i sezonsko povrće i voće sa Manjače — naruči uz korpicu, dostava u Banjoj Luci.":
     "Homemade cheese, cured meat, ajvar, preserves, honey and seasonal produce from Manjača — order with your box, delivered in Banja Luka.",

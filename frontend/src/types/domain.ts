@@ -70,6 +70,8 @@ export interface Product {
   /** Naziv i opis na engleskom (jezik sajta English); prazno = srpski. */
   nazivEn?: string;
   opisEn?: string;
+  /** Prodaje se pojedinačno u Špajzu; false = povrće/voće/meso koje ide samo u korpice. */
+  uSpajzu?: boolean;
   /** Boja pločice namirnice — uvijek popunjena (server: BojaProizvoda). */
   boja?: string;
   /** Boja koju je admin zadao; prazno = boja iz palete. */

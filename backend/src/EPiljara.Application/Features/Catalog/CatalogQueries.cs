@@ -27,7 +27,8 @@ public class GetProductsHandler(IAppDbContext db)
         var query = db.Products
             .Include(p => p.Category)
             .Include(p => p.Producer)
-            .Where(p => p.Vrsta == VrstaProizvoda.Obican)
+            // Špajz nudi samo ono što se kupuje pojedinačno; povrće i voće na kilogram ide u korpice.
+            .Where(p => p.Vrsta == VrstaProizvoda.Obican && p.USpajzu)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q.Category))
@@ -86,7 +87,9 @@ public class GetCategoriesHandler(IAppDbContext db)
     public async Task<IReadOnlyList<CategoryDto>> Handle(GetCategoriesQuery q, CancellationToken ct)
     {
         var categories = await db.Categories.OrderBy(c => c.SortOrder).ToListAsync(ct);
+        // Broje se samo artikli Špajza — kategorija bez njih se u Špajzu ne prikazuje.
         var counts = await db.Products
+            .Where(p => p.Vrsta == VrstaProizvoda.Obican && p.USpajzu)
             .GroupBy(p => p.CategoryId)
             .Select(g => new { CategoryId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.CategoryId, x => x.Count, ct);

@@ -54,6 +54,8 @@ public record ProductDto
     public string? IzrezUrl { get; init; }
     public string? NazivEn { get; init; }
     public string? OpisEn { get; init; }
+    /// <summary>Prodaje se pojedinačno u Špajzu; false = samo u korpicama.</summary>
+    public bool USpajzu { get; init; } = true;
     /// <summary>Boja pločice — uvijek popunjena (zadana ili iz palete, vidi BojaProizvoda).</summary>
     public string Boja { get; init; } = string.Empty;
     /// <summary>Boja koju je admin zadao; null kad se koristi paleta. Za formu proizvoda.</summary>

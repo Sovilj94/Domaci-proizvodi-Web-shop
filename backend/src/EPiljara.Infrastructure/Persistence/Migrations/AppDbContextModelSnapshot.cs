@@ -1066,6 +1066,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<bool>("USpajzu")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Unit")
                         .IsRequired()
                         .HasMaxLength(8)

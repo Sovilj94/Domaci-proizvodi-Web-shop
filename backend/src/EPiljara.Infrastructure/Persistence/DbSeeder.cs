@@ -27,8 +27,10 @@ public static partial class DbSeeder
         var meso = Cat("Meso i suhomesnato", 4, "meso");
         var jaja = Cat("Jaja", 5, "jaja");
         var med = Cat("Med i pčelinji proizvodi", 6, "med");
-        var zimnica = Cat("Zimnica i džemovi", 7, "zimnica");
-        var categories = new[] { povrce, voce, mlijecni, meso, jaja, med, zimnica };
+        // Ajvar i Džem kao posebne kategorije Špajza (po uzoru na farmit; ranije „Zimnica i džemovi").
+        var ajvar = Cat("Ajvar", 7, "ajvar");
+        var dzem = Cat("Džem", 8, "dzem");
+        var categories = new[] { povrce, voce, mlijecni, meso, jaja, med, ajvar, dzem };
         db.Categories.AddRange(categories);
 
         // ----- Producers -----
@@ -92,8 +94,8 @@ public static partial class DbSeeder
             Prod("Pršut", 25.0m, Unit.Kg, 12, meso, savic, "Sušen najmanje šest mjeseci, blago dimljen bukovim drvetom."),
             Prod("Livadski med", 12.0m, Unit.Kg, 50, med, jovanovic, "Med sa manjačkih livada, kristališe prirodno — znak kvaliteta.", featured: true),
             Prod("Bagremov med", 15.0m, Unit.Kg, 35, med, jovanovic, "Svijetli, blagi med, dugo ostaje tečan."),
-            Prod("Džem od šljive", 7.0m, Unit.Kom, 40, zimnica, jovanovic, "Tegla 720ml, kuhan bez konzervansa, 60% voća."),
-            Prod("Domaći ajvar", 9.0m, Unit.Kom, 45, zimnica, kovacevic, "Pečena paprika, blagi, tegla 500ml.", available: false),
+            Prod("Džem od šljive", 7.0m, Unit.Kom, 40, dzem, jovanovic, "Tegla 720ml, kuhan bez konzervansa, 60% voća."),
+            Prod("Domaći ajvar", 9.0m, Unit.Kom, 45, ajvar, kovacevic, "Pečena paprika, blagi, tegla 500ml.", available: false),
         };
         // Obična roba je podobna za sedmične korpice; korpice same (ispod) ostaju MozeUKorpicu = false.
         // Boje pločica (R1, po uzoru na farmit): prirodna boja namirnice. Ostali proizvodi
@@ -130,6 +132,8 @@ public static partial class DbSeeder
             // Demo nabavna kao u sezonskoj ponudi — artikal bez nabavne generator stavlja iza onih sa njom.
             p.NabavnaCijena = Math.Round(p.Price * DemoUdioNabavne, 2);
             p.Boja = boje.GetValueOrDefault(p.Name);
+            // Špajz (po uzoru na farmit): povrće, voće i meso se ne prodaju pojedinačno — idu u korpice.
+            p.USpajzu = p.Category != povrce && p.Category != voce && p.Category != meso;
         }
         db.Products.AddRange(products);
 

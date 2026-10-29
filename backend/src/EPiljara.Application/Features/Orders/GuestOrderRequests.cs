@@ -127,7 +127,7 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
         foreach (var line in cmd.Items)
         {
             var product = await db.Products.FirstOrDefaultAsync(p => p.Id == line.ProductId, ct);
-            if (product is null || !product.IsAvailable)
+            if (product is null || !product.IsAvailable || (product.Vrsta == VrstaProizvoda.Obican && !product.USpajzu))
                 throw new DomainException($"Proizvod nije dostupan ({line.ProductId}).", "product_unavailable");
 
             items.Add(new GuestOrderRequestItem
@@ -310,7 +310,7 @@ public class ConfirmGuestOrderHandler(
         foreach (var stavka in zahtjev.Items)
         {
             var product = await db.Products.FirstOrDefaultAsync(p => p.Id == stavka.ProductId, ct);
-            if (product is null || !product.IsAvailable)
+            if (product is null || !product.IsAvailable || (product.Vrsta == VrstaProizvoda.Obican && !product.USpajzu))
                 throw new DomainException(
                     $"Proizvod nije dostupan ({stavka.ProductName}).", "product_unavailable");
 
