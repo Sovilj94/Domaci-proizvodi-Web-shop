@@ -61,7 +61,12 @@ export function HeroKarusel() {
       {SLAJDOVI.map((s, i) => (
         <div
           key={s.naslov}
-          className={cn("absolute inset-0 transition-opacity duration-700", i === aktivan ? "opacity-100" : "opacity-0")}
+          // Neaktivni slajdovi su samo providni i leže preko aktivnog — bez pointer-events-none
+          // klik na „Pogledaj korpice" uhvati dugme zadnjeg slajda (Špajz).
+          className={cn(
+            "absolute inset-0 transition-opacity duration-700",
+            i === aktivan ? "opacity-100" : "pointer-events-none opacity-0",
+          )}
           aria-hidden={i !== aktivan}
         >
           <Image src={s.slika} alt="" fill priority={i === 0} sizes="100vw" className="object-cover" />
