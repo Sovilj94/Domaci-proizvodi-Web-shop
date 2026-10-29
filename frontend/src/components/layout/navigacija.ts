@@ -1,12 +1,13 @@
-import { BarChart3, ChefHat, House, Package, ShoppingBasket, type LucideIcon } from "lucide-react";
+import { House, Package, ShoppingBasket, type LucideIcon } from "lucide-react";
 
-/** Glavne stavke zaglavlja i mobilnog menija — po uzoru na farmit (Početna · Gajbice · Špajz · Analize · Recepti). */
+/**
+ * Glavne stavke zaglavlja i mobilnog menija: Početna · Korpice · Špajz. Analize i Recepti su
+ * skinuti iz menija (odluka 2026-10-29); stranice i dalje postoje i rade preko direktnog linka.
+ */
 export const GLAVNA_NAVIGACIJA: { href: string; naziv: string; ikona: LucideIcon }[] = [
   { href: "/", naziv: "Početna", ikona: House },
   { href: "/korpice", naziv: "Korpice", ikona: Package },
   { href: "/spajz", naziv: "Špajz", ikona: ShoppingBasket },
-  { href: "/analize", naziv: "Analize", ikona: BarChart3 },
-  { href: "/recepti", naziv: "Recepti", ikona: ChefHat },
 ];
 
 /**
