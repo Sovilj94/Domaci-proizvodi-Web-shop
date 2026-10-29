@@ -1,4 +1,5 @@
 import { RJECNIK } from "./rjecnik.ts";
+import { RJECNIK_STRANICE } from "./rjecnik-stranice.ts";
 
 /*
  * Prevod jednog teksta na engleski: tačan pogodak u rječniku, pa nazivi sa servera (proizvodi,
@@ -62,11 +63,18 @@ const OBRASCI: [RegExp, (...g: string[]) => string][] = [
   [/^Utisak (\d+): (.+)$/, (n, ime) => `Review ${n}: ${ime}`],
   [/^Prikaži utisak (\d+)$/, (n) => `Show review ${n}`],
   [/^Odaberi (.+)$/, (s) => `Choose ${prevediJezgro(s)}`],
+  [/^Dodaj (.+) u korpu$/, (s) => `Add ${prevediJezgro(s)} to cart`],
+  [/^Uklonjeno (\d+) nedostupnih proizvoda iz korpe\.$/, (n) => `Removed ${n} unavailable products from the cart.`],
+  [/^Rezultati za „(.+)"$/, (s) => `Results for “${s}”`],
+  [/^Obaveza: još (\d+) od (\d+) (?:isporuka|isporuke)$/, (a, b) => `Commitment: ${a} of ${b} deliveries left`],
+  [/^Obaveza od (\d+) (?:isporuka|isporuke) je ispunjena$/, (n) => `${n}-delivery commitment fulfilled`],
+  [/^Plan: (.+) · (\d+) (?:isporuka|isporuke) iza tebe$/, (p, n) => `Plan: ${prevediJezgro(p)} · ${n} deliveries so far`],
+  [/^(\d+) (narudžba|narudžbe|narudžbi)$/, (n) => `${n} ${mn(n, "order", "orders")}`],
   [/^(\p{L}+), (\d+)$/u, (m, n) => (MJESECI[m.toLowerCase()] ? `${MJESECI[m.toLowerCase()]}, ${n}` : `${m}, ${n}`)],
 ];
 
 function prevediJezgro(s: string): string {
-  const r = RJECNIK[s] ?? dinamicki[s];
+  const r = RJECNIK[s] ?? RJECNIK_STRANICE[s] ?? dinamicki[s];
   if (r !== undefined) return r;
   for (const [obrazac, f] of OBRASCI) {
     const m = obrazac.exec(s);
