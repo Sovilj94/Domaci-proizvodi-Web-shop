@@ -305,6 +305,7 @@ public static partial class DbSeeder
         await SeedReceptiAsync(db, ct);
         await SeedPromoKodoviAsync(db, ct);
         await SeedSezonskaPonudaAsync(db, ct);
+        await PrimijeniKalendarPovrcaAsync(db, ct);
     }
 
     /// <summary>Demo promo kod; idempotentno kao i recepti, i samo u demo seedu.</summary>
