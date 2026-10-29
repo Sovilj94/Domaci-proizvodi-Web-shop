@@ -36,25 +36,25 @@ public static partial class DbSeeder
         {
             Name = "Porodica Kovačević", Village = "Han Kola",
             Description = "Treća generacija koja obrađuje zemlju na obroncima Manjače. Povrće bez pesticida, ubrano istog jutra kad ide na dostavu.",
-            PhotoUrl = "/producers/kovacevic.jpg", Latitude = 44.6321, Longitude = 17.0954, Phone = "+387 65 111 222",
+            PhotoUrl = "/slike/producers/kovacevic.jpg", Latitude = 44.6321, Longitude = 17.0954, Phone = "+387 65 111 222",
         };
         var maric = new Producer
         {
             Name = "OPG Marić", Village = "Stričići",
             Description = "Mala porodična mljekara. Krave na ispaši cijelo ljeto, sir i kajmak po receptu koji se ne mijenja 40 godina.",
-            PhotoUrl = "/producers/maric.jpg", Latitude = 44.667, Longitude = 17.02, Phone = "+387 66 333 444",
+            PhotoUrl = "/slike/producers/maric.jpg", Latitude = 44.667, Longitude = 17.02, Phone = "+387 66 333 444",
         };
         var jovanovic = new Producer
         {
             Name = "Gazdinstvo Jovanović", Village = "Rekavice",
             Description = "Pčelinjak sa 120 košnica i voćnjak starih sorti jabuka i šljiva. Med, džemovi i rakija iz vlastite proizvodnje.",
-            PhotoUrl = "/producers/jovanovic.jpg", Latitude = 44.6, Longitude = 17.15, Phone = "+387 65 555 666",
+            PhotoUrl = "/slike/producers/jovanovic.jpg", Latitude = 44.6, Longitude = 17.15, Phone = "+387 65 555 666",
         };
         var savic = new Producer
         {
             Name = "Domaćinstvo Savić", Village = "Bronzani Majdan",
             Description = "Živina i jaja iz slobodnog uzgoja, domaća suha slanina i kobasice sušene na bukovom dimu.",
-            PhotoUrl = "/producers/savic.jpg", Latitude = 44.72, Longitude = 16.95, Phone = "+387 66 777 888",
+            PhotoUrl = "/slike/producers/savic.jpg", Latitude = 44.72, Longitude = 16.95, Phone = "+387 66 777 888",
         };
         db.Producers.AddRange(kovacevic, maric, jovanovic, savic);
 
@@ -204,11 +204,11 @@ public static partial class DbSeeder
                 Description = $"{opis} {clanovi}.",
                 ImageUrl = tip switch
                 {
-                    TipKorpice.Povrce => "/categories/povrce.jpg",
-                    TipKorpice.Voce => "/categories/voce.jpg",
-                    TipKorpice.Mlijecna => "/products/mladi-kravlji-sir.jpg",
-                    TipKorpice.Suhomesnata => "/products/suha-slanina.jpg",
-                    TipKorpice.Domacinska => "/hero/hero-domacinstvo.jpg",
+                    TipKorpice.Povrce => "/slike/categories/povrce.jpg",
+                    TipKorpice.Voce => "/slike/categories/voce.jpg",
+                    TipKorpice.Mlijecna => "/slike/products/mladi-kravlji-sir.jpg",
+                    TipKorpice.Suhomesnata => "/slike/products/suha-slanina.jpg",
+                    TipKorpice.Domacinska => "/slike/korpice/domacinska.jpg",
                     _ => throw new InvalidOperationException($"Nepoznat tip korpice: {tip}"),
                 },
                 Category = prvaKategorija,
@@ -380,7 +380,7 @@ public static partial class DbSeeder
     }
 
     private static Category Cat(string name, int order, string slug) =>
-        new() { Name = name, Slug = slug, SortOrder = order, ImageUrl = $"/categories/{slug}.jpg" };
+        new() { Name = name, Slug = slug, SortOrder = order, ImageUrl = $"/slike/categories/{slug}.jpg" };
 
     private static Product Prod(string name, decimal price, Unit unit, decimal stock,
         Category category, Producer producer, string description, bool featured = false, bool available = true)
@@ -390,7 +390,7 @@ public static partial class DbSeeder
         {
             Name = name, Slug = slug, Price = price, Unit = unit, Stock = stock,
             IsAvailable = available, IsFeatured = featured, Description = description,
-            ImageUrl = $"/products/{slug}.jpg", Category = category, Producer = producer,
+            ImageUrl = $"/slike/products/{slug}.jpg", Category = category, Producer = producer,
         };
     }
 

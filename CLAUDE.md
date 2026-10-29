@@ -864,11 +864,15 @@ using OSM tiles.
   `import { motion } from "motion/react"`) wrapped globally by `<MotionConfig reducedMotion="user">` in
   `providers.tsx`; reusable `components/ui/reveal.tsx` (scroll fade-in) and `lib/cart/fly-to-cart.ts`
   (add-to-cart dot + badge bump). Everything must honor `prefers-reduced-motion`.
-- **Catalog imagery is self-hosted, not remote.** Product/category/producer photos live in
-  `public/products/<slug>.jpg`, `public/categories/<slug>.jpg`, `public/producers/<name>.jpg`, and
-  `DbSeeder` seeds those root-relative paths (`/products/<slug>.jpg`, …). `SmartImage`
-  (`components/ui/smart-image.tsx`) renders them via `next/image` (`unoptimized`) and falls back to a leaf
-  placeholder on a missing/failed load — so a wrong path degrades gracefully rather than breaking. Any
+- **Catalog imagery lives in the database.** Product/category/producer/korpica/recipe photos are rows
+  in the `Slike` table (bytea, unique `Kljuc` like `products/<slug>.jpg`), served by
+  `GET /slike/{**kljuc}` (`SlikeController`, cached 7 days + ETag). `ImageUrl`/`PhotoUrl`/`SlikaUrl`
+  hold `/slike/<kljuc>`; the frontend requests it on its own origin and `next.config.ts` rewrites
+  `/slike/*` to the API. Admin forms upload through `SlikaPolje` → `POST /admin/slike`, which always
+  creates a NEW key (so caches never serve a stale photo). Starter photos sit in
+  `backend/src/EPiljara.Infrastructure/Persistence/SeedSlike/` and `SlikeUvoz` inserts only missing keys
+  on every start (credits: `docs/slike-izvori.md`). Do not put catalog photos back into `frontend/public`.
+  `SmartImage` falls back to a leaf placeholder on a failed load; `images.unoptimized` is on. Any
   *remote* image host must be whitelisted in `next.config.ts` `images.remotePatterns`.
 
 @frontend/AGENTS.md

@@ -33,6 +33,9 @@ import type {
   Warehouse,
 } from "@/types/domain";
 import { apiFetch } from "./client";
+
+/** Folder slike u bazi (`/slike/{folder}/…`) — prati backend `SlikePravila.Folderi`. */
+export type FolderSlike = "products" | "categories" | "producers" | "korpice" | "recepti";
 import type {
   AdminKupac,
   AdminKupacDetalj,
@@ -448,6 +451,17 @@ export const adminApi = {
 
   deleteCategory: (id: string) =>
     apiFetch<string>(`/admin/categories/${id}`, { method: "DELETE" }).then(() => id),
+
+  /* Slike (u bazi) — vraća URL za polje slike */
+  uploadSlika: (fajl: File, folder: FolderSlike) => {
+    const body = new FormData();
+    body.append("fajl", fajl);
+    body.append("folder", folder);
+    return apiFetch<{ url: string; kljuc: string; velicina: number }>("/admin/slike", {
+      method: "POST",
+      body,
+    }).then((r) => r.data);
+  },
 
   /* Producers */
   createProducer: (body: ProducerInput) =>

@@ -32,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
+    public DbSet<Slika> Slike => Set<Slika>();
     public DbSet<PrijavaNovosti> PrijaveNovosti => Set<PrijavaNovosti>();
     public DbSet<SadrzajSajta> SadrzajSajta => Set<SadrzajSajta>();
 
@@ -347,6 +348,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.ToTable("PrijaveNovosti");
             e.Property(x => x.Email).HasMaxLength(256).IsRequired();
             e.HasIndex(x => x.Email).IsUnique();
+        });
+
+        b.Entity<Slika>(e =>
+        {
+            e.Property(x => x.Kljuc).HasMaxLength(200).IsRequired();
+            e.Property(x => x.ContentType).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Podaci).IsRequired();
+            e.HasIndex(x => x.Kljuc).IsUnique();
         });
 
         b.Entity<Utisak>(e =>

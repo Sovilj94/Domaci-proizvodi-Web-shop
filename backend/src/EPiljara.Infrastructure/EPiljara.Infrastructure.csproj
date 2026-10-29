@@ -29,6 +29,15 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
   </ItemGroup>
 
+  <!--
+    Početne slike (proizvodi, kategorije, domaćini, korpice). Na startu ih SlikeUvoz upiše u
+    tabelu Slike ako ih tamo nema; poslije toga žive samo u bazi (admin ih mijenja uploadom).
+    Kopiraju se uz API (i u Docker image) kao SeedSlike/...
+  -->
+  <ItemGroup>
+    <Content Include="Persistence\SeedSlike\**\*.*" Link="SeedSlike\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

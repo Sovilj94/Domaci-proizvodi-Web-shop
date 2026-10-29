@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { AdminLadica } from "@/components/admin/admin-ladica";
+import { SlikaPolje } from "@/components/admin/slika-polje";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -172,13 +173,13 @@ export function ReceptForm({
           />
         </Field>
 
-        <Field label="URL slike" error={errors["input.slikaUrl"]?.[0]}>
-          <Input
-            value={form.slikaUrl}
-            onChange={(e) => setForm({ ...form, slikaUrl: e.target.value })}
-            maxLength={500}
-          />
-        </Field>
+        <SlikaPolje
+          label="Slika"
+          folder="recepti"
+          value={form.slikaUrl}
+          onChange={(slikaUrl) => setForm((f) => ({ ...f, slikaUrl }))}
+          error={errors["input.slikaUrl"]?.[0]}
+        />
 
         <div className="grid grid-cols-3 gap-3">
           <Field label="Vrijeme (min)" required error={errors["input.vrijemeMinuta"]?.[0]}>

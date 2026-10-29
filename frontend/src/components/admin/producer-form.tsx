@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLadica } from "@/components/admin/admin-ladica";
+import { SlikaPolje } from "@/components/admin/slika-polje";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -112,13 +113,12 @@ export function ProducerForm({
           />
         </Field>
 
-        <Field label="URL fotografije (opcionalno)">
-          <Input
-            value={form.photoUrl}
-            onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
-            placeholder="https://…"
-          />
-        </Field>
+        <SlikaPolje
+          label="Fotografija (opcionalno)"
+          folder="producers"
+          value={form.photoUrl}
+          onChange={(photoUrl) => setForm((f) => ({ ...f, photoUrl }))}
+        />
       </form>
 
       <div className="flex gap-3 border-t border-line p-4">

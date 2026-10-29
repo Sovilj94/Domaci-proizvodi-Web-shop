@@ -44,6 +44,9 @@ public interface IAppDbContext
     DbSet<Recept> Recepti { get; }
     DbSet<ReceptSastojak> ReceptSastojci { get; }
 
+    /// <summary>Slike proizvoda, kategorija i domaćina — vidi Slika entitet.</summary>
+    DbSet<Slika> Slike { get; }
+
     /// <summary>Objavljene laboratorijske analize — vidi Analiza entitet.</summary>
     DbSet<Analiza> Analize { get; }
 

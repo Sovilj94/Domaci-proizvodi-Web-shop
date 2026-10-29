@@ -175,6 +175,19 @@ await using (var scope = app.Services.CreateAsyncScope())
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (runMigrations)
             await db.Database.MigrateAsync();
+        // Slike žive u bazi; početne (SeedSlike/) se upišu samo one kojih tamo još nema.
+        // Zaseban try: baza bez ove migracije (RUN_MIGRATIONS isključen) ne smije oboriti seed ispod.
+        try
+        {
+            var slike = await SlikeUvoz.UveziAsync(db);
+            if (slike > 0)
+                app.Logger.LogInformation("Upisano {Broj} početnih slika u bazu", slike);
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Uvoz početnih slika nije uspio");
+            db.ChangeTracker.Clear();
+        }
         // Demo data (incl. accounts with known passwords) seeds in Development, or when
         // explicitly opted in with Seed:Demo=true or SEED_DATA=true (e.g. a staging/test deploy).
         // It stays OFF by default in production, so real deployments never get a default admin account.

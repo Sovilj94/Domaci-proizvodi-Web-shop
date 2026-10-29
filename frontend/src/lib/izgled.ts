@@ -6,19 +6,19 @@
 export const IZGLED = {
   hero: {
     korpice: "/hero/hero-domacinstvo.jpg",
-    voce: "/products/jabuka-idared.jpg",
-    spajz: "/products/domaci-ajvar.jpg",
+    voce: "/slike/products/jabuka-idared.jpg",
+    spajz: "/slike/products/domaci-ajvar.jpg",
   },
   /** Fotografija preko cijele širine sa porukom o domaćinima. */
   domacini: "/hero/hero-domacinstvo.jpg",
   /** Fotografija korpice u sekciji „Hoću svoju korpicu!". */
-  korpica: "/products/paradajz-iz-plastenika.jpg",
+  korpica: "/slike/products/paradajz-iz-plastenika.jpg",
   /** Fotografije uz utiske kupaca, redom (utisak nema svoju fotografiju). */
   utisci: [
-    "/products/domaci-krompir.jpg",
-    "/products/babura-paprika.jpg",
-    "/products/mrkva.jpg",
-    "/products/crni-luk.jpg",
-    "/products/jabuka-idared.jpg",
+    "/slike/products/domaci-krompir.jpg",
+    "/slike/products/babura-paprika.jpg",
+    "/slike/products/mrkva.jpg",
+    "/slike/products/crni-luk.jpg",
+    "/slike/products/jabuka-idared.jpg",
   ],
 } as const;

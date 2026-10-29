@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLadica } from "@/components/admin/admin-ladica";
+import { SlikaPolje } from "@/components/admin/slika-polje";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -86,13 +87,12 @@ export function CategoryForm({
           />
         </Field>
 
-        <Field label="URL slike (opcionalno)">
-          <Input
-            value={form.imageUrl}
-            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-            placeholder="https://…"
-          />
-        </Field>
+        <SlikaPolje
+          label="Slika (opcionalno)"
+          folder="categories"
+          value={form.imageUrl}
+          onChange={(imageUrl) => setForm((f) => ({ ...f, imageUrl }))}
+        />
       </form>
 
       <div className="flex gap-3 border-t border-line p-4">

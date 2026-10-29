@@ -1,6 +1,6 @@
 # Izvori fotografija proizvoda
 
-Fotografije u `frontend/public/products` dodate 28.10.2026. preuzete su sa Wikimedia Commons, umanjene na širinu 960 px. Licence traže navođenje autora; CC BY-SA traži i da izmijenjena verzija ostane pod istom licencom.
+Fotografije (danas u bazi, tabela `Slike`; početni fajlovi u `backend/src/EPiljara.Infrastructure/Persistence/SeedSlike/products`) dodate 28.10.2026. preuzete su sa Wikimedia Commons, umanjene na širinu 960 px. Licence traže navođenje autora; CC BY-SA traži i da izmijenjena verzija ostane pod istom licencom.
 
 | Fajl | Original | Licenca | Autor |
 |---|---|---|---|

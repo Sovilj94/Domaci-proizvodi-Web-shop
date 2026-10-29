@@ -76,7 +76,9 @@ export async function apiFetch<T>(
   { method = "GET", body, query, auth = true, signal }: RequestOptions = {},
 ): Promise<ApiResult<T>> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData (upload slike) ide kakva jeste — pregledač sam postavi multipart granicu.
+  const forma = body instanceof FormData;
+  if (body !== undefined && !forma) headers["Content-Type"] = "application/json";
   // Server po ovome bira pismo mejla i Vibera za narudžbu, zahtjev gosta i novi nalog.
   if (procitajPismo() === "cir") headers["X-Pismo"] = "cir";
 
@@ -90,7 +92,7 @@ export async function apiFetch<T>(
     res = await fetch(buildUrl(path, query), {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: forma ? body : body !== undefined ? JSON.stringify(body) : undefined,
       signal,
       cache: "no-store",
     });

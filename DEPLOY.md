@@ -133,8 +133,11 @@ koristi za stvarne podatke. Tvoj admin iz `ADMIN_EMAIL` je odvojen od njih i ima
   Ako testirate pretplate ili rokove, otvorite sajt prije roka.
 - **Rute vozača**: OSRM ne postoji na Renderu, pa se ture slažu po zonama (postojeći fallback).
   **Geokodiranje** ide preko javnog Nominatima (1 zahtjev/s).
-- **Slike** su URL-ovi ili statični fajlovi iz `frontend/public`, pa nema uploada na disk API-ja.
-  Disk na Renderu se briše pri svakom deployu/restartu i to ovdje ništa ne gubi.
+- **Slike** proizvoda, kategorija, korpica i domaćina su **u bazi** (tabela `Slike`). API ih servira
+  na `/slike/...`, a Vercel ih prosljeđuje API-ju (rewrite u `next.config.ts`). Admin novu sliku
+  učita dugmetom „Učitaj sliku" u formi i ona odmah važi, bez deploya. Početne slike API upiše sam
+  pri prvom startu. Zato `NEXT_PUBLIC_API_URL` na Vercelu mora biti postavljen, jer bez njega slika
+  nema. Disk na Renderu se briše pri restartu, ali slike nisu na disku, pa se ništa ne gubi.
 - **Prijava preko Google-a** radi tek kad se Vercel domen doda u *Authorized JavaScript origins*
   u Google Cloud konzoli. Do tada koristi email i lozinku.
 - **Limiti**: Render free daje 750 sati mjesečno. Neon Free ima ograničen compute i 0,5 GB

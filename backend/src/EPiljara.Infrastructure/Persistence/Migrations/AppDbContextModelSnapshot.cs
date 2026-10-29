@@ -1333,6 +1333,40 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("SedmicniSadrzaji");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.Slika", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Kljuc")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("Kreirana")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("Podaci")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("Velicina")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kljuc")
+                        .IsUnique();
+
+                    b.ToTable("Slike");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.StavkaKorpiceNarudzbe", b =>
                 {
                     b.Property<Guid>("Id")
