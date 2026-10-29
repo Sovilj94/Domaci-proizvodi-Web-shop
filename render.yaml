@@ -10,7 +10,14 @@ services:
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /health
+    # Deploy ide samo sa main: svaki push na main = novi deploy, ostale grane se ignorišu.
+    branch: main
     autoDeploy: true
+    # Ne rebuildaj API kad se mijenja samo frontend ili dokumentacija.
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production

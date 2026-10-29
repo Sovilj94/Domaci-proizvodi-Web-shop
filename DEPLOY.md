@@ -34,8 +34,10 @@ Redoslijed je bitan jer API mora znati URL frontenda (CORS), a frontend URL API-
    [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
    ```
    ili `openssl rand -base64 48`.
-2. Na <https://render.com> otvori **New → Blueprint**, poveži GitHub repo i izaberi granu.
-   Render pročita `render.yaml` i ponudi servis `epiljara-api`.
+2. Na <https://render.com> otvori **New → Blueprint**, poveži GitHub repo i izaberi granu
+   **`main`**. Render pročita `render.yaml` i ponudi servis `epiljara-api`. U `render.yaml` su
+   `branch: main` i `autoDeploy: true`, pa svaki push na `main` sam pokreće novi deploy API-ja.
+   Push u kom su izmijenjeni samo frontend ili dokumentacija API ne dira (`buildFilter`).
 3. Render pita za vrijednosti sa `sync: false`:
 
    | Varijabla | Vrijednost |
@@ -76,6 +78,11 @@ primijenjene se preskaču. Seed upisuje podatke samo u praznu bazu.
    > ne nad pravim API-jem. Ako vidiš „lažne" podatke, ovo provjeri prvo. Vrijednost se ugrađuje
    > u build, pa poslije svake izmjene treba **Redeploy**.
 4. **Deploy**. Zapiši dobijeni domen, npr. `https://epiljara.vercel.app`.
+5. Provjeri **Settings → Git → Production Branch** = `main` (podrazumijevano jeste). Tada svaki
+   push na `main` sam ide na produkcijski Vercel domen, a ostale grane dobiju samo preview.
+
+> **Kako se deploya od sada:** spoji izmjene u `main` i pushaj, i to je sve. Render i Vercel
+> sami povuku `main` i deployaju. Ručni deploy ne treba.
 
 ## 4. Nazad na Render — CORS i linkovi
 
