@@ -50,6 +50,7 @@ public record ProductDto
     public Guid ProducerId { get; init; }
     public ProducerRefDto? Producer { get; init; }
     public string? ImageUrl { get; init; }
+    public string? IzrezUrl { get; init; }
     /// <summary>Boja pločice — uvijek popunjena (zadana ili iz palete, vidi BojaProizvoda).</summary>
     public string Boja { get; init; } = string.Empty;
     /// <summary>Boja koju je admin zadao; null kad se koristi paleta. Za formu proizvoda.</summary>

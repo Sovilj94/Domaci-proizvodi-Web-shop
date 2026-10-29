@@ -41,6 +41,7 @@ public record KulturaSezoneDto
     public string Naziv { get; init; } = string.Empty;
     public string Jedinica { get; init; } = "kom";
     public string? ImageUrl { get; init; }
+    public string? IzrezUrl { get; init; }
     public string Boja { get; init; } = string.Empty;
     /// <summary>Okvirna količina po veličini korpice (mala | srednja | velika).</summary>
     public IReadOnlyDictionary<string, decimal> Kolicine { get; init; } = new Dictionary<string, decimal>();
@@ -95,6 +96,7 @@ public class GetSezonaKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
                     Naziv = p.Name,
                     Jedinica = p.Unit.ToApi(),
                     ImageUrl = p.ImageUrl,
+                    IzrezUrl = p.IzrezUrl,
                     Boja = BojaProizvoda.Za(p.Boja, p.Name),
                     Kolicine = poStavci.ToDictionary(v => v.Key, v => Math.Max(
                         GenerisiSedmicniSadrzajHandler.Zaokruzi(v.Value / p.Price, p.Unit),

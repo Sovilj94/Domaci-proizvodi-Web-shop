@@ -70,3 +70,79 @@ Fotografije (danas u bazi, tabela `Slike`; početni fajlovi u `backend/src/EPilj
 | `susene-jabuke.jpg` | [Dried apple slices.jpg](https://commons.wikimedia.org/wiki/File:Dried_apple_slices.jpg) | CC0 | Fumikas Sagisavas |
 | `visnja.jpg` | [Prunus cerasus - sour cherry detail photo.jpg](https://commons.wikimedia.org/wiki/File:Prunus_cerasus_-_sour_cherry_detail_photo.jpg) | CC0 | MmmCCC |
 | `ljuta-paprika.jpg` | [Red chilli pepper at ayegbaju market, osogbo.jpg](https://commons.wikimedia.org/wiki/File:Red_chilli_pepper_at_ayegbaju_market,_osogbo.jpg) | CC BY-SA 4.0 | Wittygirlwrites |
+
+## Izrezi za pločice korpica (`SeedSlike/izrezi`)
+
+Dodato 29.10.2026. Pozadina je uklonjena automatski (izmijenjena verzija), pa CC BY-SA izrezi ostaju pod istom licencom.
+
+| Fajl | Original | Licenca | Autor |
+|---|---|---|---|
+| `izrezi/aronija.png` | [Chokeberry corymb.jpg](https://commons.wikimedia.org/wiki/File:Chokeberry_corymb.jpg) | Public domain | honka13 |
+| `izrezi/babura-paprika.png` | [0110 paprika sealed (ro).jpg](https://commons.wikimedia.org/wiki/File:0110_paprika_sealed_(ro).jpg) | CC BY 3.0 | Frits weet het |
+| `izrezi/bijeli-luk.png` | [Opened garlic bulb with garlic clove.jpg](https://commons.wikimedia.org/wiki/File:Opened_garlic_bulb_with_garlic_clove.jpg) | CC BY 2.0 | Dubravko Sorić SoraZG on Flickr |
+| `izrezi/borovnica.png` | [Dish of blueberries.jpg](https://commons.wikimedia.org/wiki/File:Dish_of_blueberries.jpg) | CC BY-SA 4.0 | Petar Milošević |
+| `izrezi/breskva.png` | [Peaches.png](https://commons.wikimedia.org/wiki/File:Peaches.png) | CC0 | eommina |
+| `izrezi/brokula.png` | [Brocoli 03.jpg](https://commons.wikimedia.org/wiki/File:Brocoli_03.jpg) | CC BY-SA 3.0 | Coyau |
+| `izrezi/bundeva.png` | [Orange pumpkin.png](https://commons.wikimedia.org/wiki/File:Orange_pumpkin.png) | CC BY-SA 3.0 | PomPrint |
+| `izrezi/celer-korijen.png` | [CDC celery.jpg](https://commons.wikimedia.org/wiki/File:CDC_celery.jpg) | Public domain | U.S. CDC |
+| `izrezi/crni-luk.png` | [Onion on White.JPG](https://commons.wikimedia.org/wiki/File:Onion_on_White.JPG) | CC BY-SA 3.0 | Colin |
+| `izrezi/cvekla.png` | [CDC beets.jpg](https://commons.wikimedia.org/wiki/File:CDC_beets.jpg) | Public domain | CDC's 5 a Day |
+| `izrezi/dinja.png` | [Cantaloupe.jpg](https://commons.wikimedia.org/wiki/File:Cantaloupe.jpg) | Public domain | Renee Comet (Photographer) |
+| `izrezi/domaci-krompir.png` | [One Potato.jpg](https://commons.wikimedia.org/wiki/File:One_Potato.jpg) | CC BY-SA 4.0 | Fk |
+| `izrezi/dunja.png` | [Quitte.png](https://commons.wikimedia.org/wiki/File:Quitte.png) | Public domain | Zimtstern 2k |
+| `izrezi/grah-tetovac.png` | [Phaseolus lunatus MHNT.BOT.2008.1.40.jpg](https://commons.wikimedia.org/wiki/File:Phaseolus_lunatus_MHNT.BOT.2008.1.40.jpg) | CC BY-SA 3.0 | Roger Culos |
+| `izrezi/grasak.png` | [Green pea pod 8866.jpg](https://commons.wikimedia.org/wiki/File:Green_pea_pod_8866.jpg) | CC BY-SA 4.0 | Amada44 |
+| `izrezi/grozdje.png` | [Table grapes on white.jpg](https://commons.wikimedia.org/wiki/File:Table_grapes_on_white.jpg) | GFDL 1.2 | fir0002 flagstaffotos [at] gmail.com Canon 20D + Sigma 150mm f/2.8 |
+| `izrezi/jabuka-idared.png` | [Red Apple edit.png](https://commons.wikimedia.org/wiki/File:Red_Apple_edit.png) | CC BY 2.0 | Red_Apple.jpg: Abhijit Tembhekar from Mumbai, India derivative work: Afanasovich (talk) |
+| `izrezi/jabuka-kozara.png` | [Dg apple.png](https://commons.wikimedia.org/wiki/File:Dg_apple.png) | CC BY-SA 3.0 | Palosirkka (talk) 04:22, 6 July 2011 (UTC) |
+| `izrezi/jabuka-zlatni-delises.png` | [Apple in lightbox.png](https://commons.wikimedia.org/wiki/File:Apple_in_lightbox.png) | CC BY-SA 2.0 | Apple_in_lightbox.jpg: Slewrate derivative work: Σ |
+| `izrezi/jagoda.png` | [Three Strawberries on White.jpg](https://commons.wikimedia.org/wiki/File:Three_Strawberries_on_White.jpg) | CC BY-SA 2.5 | Darren Hester (Macon, Georgia USA) |
+| `izrezi/kajsija.png` | [Apricot whole444.jpg](https://commons.wikimedia.org/wiki/File:Apricot_whole444.jpg) | CC BY-SA 3.0 | Benjamint444 |
+| `izrezi/karfiol.png` | [Chou-fleur 01.jpg](https://commons.wikimedia.org/wiki/File:Chou-fleur_01.jpg) | CC BY-SA 3.0 | Coyau |
+| `izrezi/keleraba.png` | [Chou-rave 05.jpg](https://commons.wikimedia.org/wiki/File:Chou-rave_05.jpg) | CC BY-SA 3.0 | Coyau |
+| `izrezi/kelj.png` | [Chou de Milan 02.jpg](https://commons.wikimedia.org/wiki/File:Chou_de_Milan_02.jpg) | CC BY-SA 3.0 | Coyau |
+| `izrezi/kesten.png` | [Drei Rosskastanien in Reihe 2021.jpg](https://commons.wikimedia.org/wiki/File:Drei_Rosskastanien_in_Reihe_2021.jpg) | CC BY-SA 4.0 | VSchagow |
+| `izrezi/kiseli-kupus.png` | [Chou cabus pointu 01.jpg](https://commons.wikimedia.org/wiki/File:Chou_cabus_pointu_01.jpg) | CC BY-SA 3.0 | Coyau |
+| `izrezi/kopriva.png` | [2020 year. Herbarium. Urtica dioica. img-002.jpg](https://commons.wikimedia.org/wiki/File:2020_year._Herbarium._Urtica_dioica._img-002.jpg) | CC BY-SA 4.0 | Dmitry Makeev |
+| `izrezi/krastavac.png` | [Cucumber from Denmark.jpg](https://commons.wikimedia.org/wiki/File:Cucumber_from_Denmark.jpg) | CC0 | WiseMan42 |
+| `izrezi/kruska.png` | [2 x Conference pear 2017 C.jpg](https://commons.wikimedia.org/wiki/File:2_x_Conference_pear_2017_C.jpg) | CC0 | Fructibus |
+| `izrezi/kruska-kaludjerka.png` | [2 x Conference pear 2017 D.jpg](https://commons.wikimedia.org/wiki/File:2_x_Conference_pear_2017_D.jpg) | CC0 | Fructibus |
+| `izrezi/kukuruz-secerac.png` | [Corn 001.jpg](https://commons.wikimedia.org/wiki/File:Corn_001.jpg) | CC0 | Ocdp |
+| `izrezi/kupina.png` | [Blackberry close-up.JPG](https://commons.wikimedia.org/wiki/File:Blackberry_close-up.JPG) | CC BY-SA 3.0 | De-okin (talk) 12:34, 6 September 2008 (UTC) |
+| `izrezi/kupus.png` | [Chou cabus pointu 01.jpg](https://commons.wikimedia.org/wiki/File:Chou_cabus_pointu_01.jpg) | CC BY-SA 3.0 | Coyau |
+| `izrezi/ljesnik.png` | [Haselnuss Gr 99.jpg](https://commons.wikimedia.org/wiki/File:Haselnuss_Gr_99.jpg) | CC BY-SA 3.0 | Horst Frank |
+| `izrezi/ljetna-jabuka-petrovaca.png` | [Pomme verte.png](https://commons.wikimedia.org/wiki/File:Pomme_verte.png) | CC BY-SA 3.0 | Doudoulolita |
+| `izrezi/ljuta-paprika.png` | [Chili diagonal.jpg](https://commons.wikimedia.org/wiki/File:Chili_diagonal.jpg) | CC BY-SA 4.0 | Kmtextor |
+| `izrezi/lubenica.png` | [Food Portions (Team Nutrition) (20210902-FNS-UNC-0039).jpg](https://commons.wikimedia.org/wiki/File:Food_Portions_(Team_Nutrition)_(20210902-FNS-UNC-0039).jpg) | Public domain | USDAgov |
+| `izrezi/mahune.png` | [Beans Phaseolus vulgaris Gartenbohne.jpg](https://commons.wikimedia.org/wiki/File:Beans_Phaseolus_vulgaris_Gartenbohne.jpg) | CC BY-SA 3.0 | bluecherry.at |
+| `izrezi/malina.png` | [Raspberries (40971).jpg](https://commons.wikimedia.org/wiki/File:Raspberries_(40971).jpg) | CC BY-SA 4.0 | Rhododendrites |
+| `izrezi/mladi-luk.png` | [Scallion 2.png](https://commons.wikimedia.org/wiki/File:Scallion_2.png) | CC BY-SA 4.0 | Tiia Monto |
+| `izrezi/mrkva.png` | [Carrot-fb.jpg](https://commons.wikimedia.org/wiki/File:Carrot-fb.jpg) | CC BY-SA 4.0 | Collegestudent33 |
+| `izrezi/musmula.png` | [Mespilus germanica-002.jpg](https://commons.wikimedia.org/wiki/File:Mespilus_germanica-002.jpg) | Public domain | Amada44 |
+| `izrezi/orah.png` | [Juglans regia MHNT.BOT.2018.28.42.jpg](https://commons.wikimedia.org/wiki/File:Juglans_regia_MHNT.BOT.2018.28.42.jpg) | CC BY-SA 3.0 | Roger Culos |
+| `izrezi/paradajz-iz-plastenika.png` | [Tomato-global.png](https://commons.wikimedia.org/wiki/File:Tomato-global.png) | GFDL 1.2 | Fir0002 |
+| `izrezi/patlidzan.png` | [Aubergine.jpg](https://commons.wikimedia.org/wiki/File:Aubergine.jpg) | CC BY-SA 3.0 | Horst Frank |
+| `izrezi/persun.png` | [Petersilie.jpg](https://commons.wikimedia.org/wiki/File:Petersilie.jpg) | Public domain | Garitzko |
+| `izrezi/praziluk.png` | [Leek on a white background.png](https://commons.wikimedia.org/wiki/File:Leek_on_a_white_background.png) | Public domain | Craiyon algorithm |
+| `izrezi/rana-sljiva.png` | [Red Plum.jpg](https://commons.wikimedia.org/wiki/File:Red_Plum.jpg) | CC BY-SA 4.0 | Jonclipper24 |
+| `izrezi/ribizla.png` | [Redcurrant.png](https://commons.wikimedia.org/wiki/File:Redcurrant.png) | CC BY-SA 3.0 | Tiia Monto |
+| `izrezi/rotkvica.png` | [Raphanus sativus, red radish variant.jpg](https://commons.wikimedia.org/wiki/File:Raphanus_sativus,_red_radish_variant.jpg) | Public domain | Martin Kozák |
+| `izrezi/sljiva-pozegaca.png` | [Black Amber Plum DS.jpg](https://commons.wikimedia.org/wiki/File:Black_Amber_Plum_DS.jpg) | CC BY-SA 3.0 | Augustus Binu : flickr |
+| `izrezi/spanac.png` | [Spinach leaves.png](https://commons.wikimedia.org/wiki/File:Spinach_leaves.png) | CC BY-SA 4.0 | Tiia Monto |
+| `izrezi/susene-jabuke.png` | [Dried fig.png](https://commons.wikimedia.org/wiki/File:Dried_fig.png) | CC BY-SA 4.0 | Tiia Monto |
+| `izrezi/susene-kruske.png` | [Dried banana.png](https://commons.wikimedia.org/wiki/File:Dried_banana.png) | CC BY-SA 4.0 | Tiia Monto |
+| `izrezi/tikvica.png` | [Zucchini-Whole.jpg](https://commons.wikimedia.org/wiki/File:Zucchini-Whole.jpg) | Public domain | Evan-Amos |
+| `izrezi/tresnja.png` | [Cherry fruit on white background.jpg](https://commons.wikimedia.org/wiki/File:Cherry_fruit_on_white_background.jpg) | Public domain | Paolo Neo |
+| `izrezi/visnja.png` | [Cherries black.png](https://commons.wikimedia.org/wiki/File:Cherries_black.png) | Public domain | The original uploader was Andrikkos at Greek Wikipedia. |
+| `izrezi/zelena-salata.png` | [Lettuce.png](https://commons.wikimedia.org/wiki/File:Lettuce.png) | CC BY-SA 3.0 | Tiia Monto |
+
+## Fotografije korpica (`SeedSlike/korpice`)
+
+| Fajl | Original | Licenca | Autor |
+|---|---|---|---|
+| `korpice/povrce-mala.jpg` | [Vegetable box 4.jpg](https://commons.wikimedia.org/wiki/File:Vegetable_box_4.jpg) | CC BY 2.0 | Andy Roberts |
+| `korpice/povrce-srednja.jpg` | [Organic Vegetable Boxes - 3085908608.jpg](https://commons.wikimedia.org/wiki/File:Organic_Vegetable_Boxes_-_3085908608.jpg) | CC BY 2.0 | Andy Roberts |
+| `korpice/povrce-velika.jpg` | [Vegetables Box 2.jpg](https://commons.wikimedia.org/wiki/File:Vegetables_Box_2.jpg) | CC BY 2.0 | Andy Roberts |
+| `korpice/voce-mala.jpg` | [Sweet cherries in basket 2018 G1.jpg](https://commons.wikimedia.org/wiki/File:Sweet_cherries_in_basket_2018_G1.jpg) | Public domain | George Chernilevsky |
+| `korpice/voce-srednja.jpg` | [Pears in basket 2022 G1.jpg](https://commons.wikimedia.org/wiki/File:Pears_in_basket_2022_G1.jpg) | CC BY-SA 4.0 | George Chernilevsky |
+| `korpice/voce-velika.jpg` | [Apples in basket 2018 G1.jpg](https://commons.wikimedia.org/wiki/File:Apples_in_basket_2018_G1.jpg) | Public domain | George Chernilevsky |

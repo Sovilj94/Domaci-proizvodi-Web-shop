@@ -1,12 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Sekcija } from "@/components/pocetna/sekcija";
 import { SectionHeader } from "@/components/ui/section-header";
+import { SlikaKulture } from "@/components/korpice/slika-kulture";
 import { korpiceApi } from "@/lib/api/endpoints";
+import { jacaBoja } from "@/lib/boja";
 import { VELICINE } from "@/lib/planovi";
 import { cn, formatPrice } from "@/lib/utils";
 import type { KulturaSezone, VelicinaKorpice } from "@/types/domain";
@@ -42,7 +43,7 @@ export function StaDobijas({ vrsta }: { vrsta: "povrce" | "voce" }) {
         opis={`Sa nama uvijek znaš koje ${vrsta === "voce" ? "voće" : "povrće"} možeš očekivati u narednoj isporuci, u zavisnosti od godišnjeg doba.`}
       />
 
-      <div className="mx-auto max-w-[560px]">
+      <div className="mx-auto max-w-[678px]">
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
@@ -97,7 +98,7 @@ export function StaDobijas({ vrsta }: { vrsta: "povrce" | "voce" }) {
         {kulture.length === 0 ? (
           <p className="mt-8 text-center text-muted">Za ovaj mjesec još nemamo kultura u ponudi.</p>
         ) : (
-          <ul className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
+          <ul className="mt-6 grid grid-cols-3 gap-2.5 min-[450px]:grid-cols-4">
             {kulture.map((k) => (
               <li key={k.productId}>
                 <PlocicaKulture k={k} kolicina={k.kolicine[velicina]} />
@@ -114,25 +115,30 @@ export function StaDobijas({ vrsta }: { vrsta: "povrce" | "voce" }) {
   );
 }
 
+/**
+ * Pločica kao na farmitu (162×162 na desktopu): zasićena boja namirnice, bijeli naziv gore lijevo,
+ * izrez namirnice u sredini sa sjenkom. Okvirna količina za izabranu veličinu je sitno ispod naziva.
+ */
 function PlocicaKulture({ k, kolicina }: { k: KulturaSezone; kolicina?: number }) {
-  const [pala, setPala] = useState(false);
-
   return (
     <div
-      className="relative flex aspect-square flex-col overflow-hidden rounded-xl p-2"
-      style={{ backgroundColor: k.boja ?? "var(--color-beige)" }}
+      className="flex aspect-square flex-col items-center justify-between rounded-xl p-[10px] text-white shadow-md transition-shadow hover:shadow-lg"
+      style={{ backgroundColor: jacaBoja(k.boja) }}
     >
-      <span className="relative z-10 text-xs font-semibold leading-tight text-ink sm:text-sm">{k.naziv}</span>
-      {kolicina != null && (
-        <span className="relative z-10 text-[11px] text-ink/80 sm:text-xs">
-          {kolicina} {k.jedinica}
-        </span>
-      )}
-      {k.imageUrl && !pala && (
-        <div className="relative mx-auto mt-auto h-[55%] w-[80%] overflow-hidden rounded-lg">
-          <Image src={k.imageUrl} alt="" fill sizes="120px" className="object-cover" onError={() => setPala(true)} />
-        </div>
-      )}
+      <span className="self-start text-[13px] font-semibold leading-tight md:text-base">
+        {k.naziv}
+        {kolicina != null && (
+          <span className="block text-[11px] font-normal text-white/85 md:text-xs">
+            {kolicina} {k.jedinica}
+          </span>
+        )}
+      </span>
+      <SlikaKulture
+        izrezUrl={k.izrezUrl}
+        imageUrl={k.imageUrl}
+        sizes="130px"
+        className="mt-1 w-[80%] flex-1"
+      />
     </div>
   );
 }

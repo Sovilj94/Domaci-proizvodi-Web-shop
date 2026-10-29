@@ -23,7 +23,7 @@ public static class SlikePravila
 
     /// <summary>Folderi ispod <c>/slike/</c>; prate ono što slika prikazuje.</summary>
     public static readonly IReadOnlySet<string> Folderi =
-        new HashSet<string> { "products", "categories", "producers", "korpice", "recepti" };
+        new HashSet<string> { "products", "izrezi", "categories", "producers", "korpice", "recepti" };
 
     public static string Url(string kljuc) => Prefiks + kljuc;
 

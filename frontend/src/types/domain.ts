@@ -64,6 +64,8 @@ export interface Product {
   producerId: string;
   producer?: ProducerRef;
   imageUrl?: string;
+  /** Slika bez pozadine (PNG) za obojene pločice; bez nje ide imageUrl. */
+  izrezUrl?: string;
   /** Boja pločice namirnice — uvijek popunjena (server: BojaProizvoda). */
   boja?: string;
   /** Boja koju je admin zadao; prazno = boja iz palete. */
@@ -315,6 +317,8 @@ export interface StavkaSadrzaja {
   kolicina: number;
   jedinica: Unit;
   imageUrl?: string;
+  /** Slika bez pozadine (PNG) za obojene pločice; bez nje ide imageUrl. */
+  izrezUrl?: string;
   /** Boja pločice namirnice (server: BojaProizvoda). */
   boja?: string;
   proizvodjacNaziv: string;
@@ -344,6 +348,8 @@ export interface KulturaSezone {
   naziv: string;
   jedinica: Unit;
   imageUrl?: string;
+  /** Slika bez pozadine (PNG) za obojene pločice; bez nje ide imageUrl. */
+  izrezUrl?: string;
   boja?: string;
   kolicine: Partial<Record<VelicinaKorpice, number>>;
 }
@@ -353,6 +359,8 @@ export interface DodatnaKultura {
   naziv: string;
   jedinica: Unit;
   imageUrl?: string;
+  /** Slika bez pozadine (PNG) za obojene pločice; bez nje ide imageUrl. */
+  izrezUrl?: string;
   boja?: string;
   proizvodjacNaziv?: string;
   proizvodjacSelo?: string;

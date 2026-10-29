@@ -209,6 +209,10 @@ await using (var scope = app.Services.CreateAsyncScope())
         if (await AdminNalog.ObezbijediAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>(),
                 builder.Configuration["ADMIN_EMAIL"], builder.Configuration["ADMIN_PASSWORD"], builder.Configuration["ADMIN_NAME"]))
             app.Logger.LogInformation("Admin nalog {Email} je spreman", builder.Configuration["ADMIN_EMAIL"]!.Trim().ToLowerInvariant());
+        // Poslije seeda: proizvodi (i novi iz seeda) dobiju početne izreze za pločice korpica.
+        var izrezi = await SlikeUvoz.PoveziIzrezeAsync(db);
+        if (izrezi > 0)
+            app.Logger.LogInformation("Povezano {Broj} izreza proizvoda", izrezi);
     }
     catch (Exception ex)
     {

@@ -204,8 +204,8 @@ public static partial class DbSeeder
                 Description = $"{opis} {clanovi}.",
                 ImageUrl = tip switch
                 {
-                    TipKorpice.Povrce => "/slike/categories/povrce.jpg",
-                    TipKorpice.Voce => "/slike/categories/voce.jpg",
+                    TipKorpice.Povrce => $"/slike/korpice/povrce-{v.ToString().ToLowerInvariant()}.jpg",
+                    TipKorpice.Voce => $"/slike/korpice/voce-{v.ToString().ToLowerInvariant()}.jpg",
                     TipKorpice.Mlijecna => "/slike/products/mladi-kravlji-sir.jpg",
                     TipKorpice.Suhomesnata => "/slike/products/suha-slanina.jpg",
                     TipKorpice.Domacinska => "/slike/korpice/domacinska.jpg",

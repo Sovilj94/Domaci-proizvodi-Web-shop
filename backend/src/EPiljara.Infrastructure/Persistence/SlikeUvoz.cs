@@ -45,4 +45,32 @@ public static class SlikeUvoz
         db.ChangeTracker.Clear();
         return upisano;
     }
+
+    /// <summary>
+    /// Proizvodu bez izreza dodijeli <c>izrezi/{slug}.png</c> ako ta slika postoji u bazi — tako
+    /// početni izrezi (SeedSlike/izrezi) stignu i na postojeće proizvode. Izrez koji je admin
+    /// postavio ili obrisao (prazan string) se ne dira; dira se samo null.
+    /// </summary>
+    /// <returns>Broj povezanih proizvoda.</returns>
+    public static async Task<int> PoveziIzrezeAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        var izrezi = (await db.Slike
+                .Where(s => s.Kljuc.StartsWith("izrezi/"))
+                .Select(s => s.Kljuc)
+                .ToListAsync(ct))
+            .ToHashSet();
+        if (izrezi.Count == 0) return 0;
+
+        var bez = await db.Products.Where(p => p.IzrezUrl == null).ToListAsync(ct);
+        var povezano = 0;
+        foreach (var p in bez)
+        {
+            var kljuc = $"izrezi/{p.Slug}.png";
+            if (!izrezi.Contains(kljuc)) continue;
+            p.IzrezUrl = SlikePravila.Url(kljuc);
+            povezano++;
+        }
+        await db.SaveChangesAsync(ct);
+        return povezano;
+    }
 }

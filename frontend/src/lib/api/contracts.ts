@@ -101,6 +101,8 @@ export interface ProductInput {
   nabavnaCijena?: number;
   /** true = obriši unesenu nabavnu cijenu. */
   ukloniNabavnuCijenu?: boolean;
+  /** Slika bez pozadine za pločice korpica (`/slike/izrezi/...`). */
+  izrezUrl?: string;
 }
 
 export interface CategoryInput {

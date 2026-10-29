@@ -35,7 +35,7 @@ import type {
 import { apiFetch } from "./client";
 
 /** Folder slike u bazi (`/slike/{folder}/…`) — prati backend `SlikePravila.Folderi`. */
-export type FolderSlike = "products" | "categories" | "producers" | "korpice" | "recepti";
+export type FolderSlike = "products" | "izrezi" | "categories" | "producers" | "korpice" | "recepti";
 import type {
   AdminKupac,
   AdminKupacDetalj,

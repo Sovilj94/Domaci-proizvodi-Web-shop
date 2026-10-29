@@ -73,6 +73,33 @@ public class SlikeTests
         (await t.Db.Slike.CountAsync()).Should().Be(2);
     }
 
+    [Fact]
+    public async Task Izrez_se_povezuje_po_slugu_samo_proizvodima_bez_izreza()
+    {
+        using var t = new TestDb();
+        await DbSeeder.SeedAsync(t.Db, new LazniHasher());
+        var krompir = await t.Db.Products.FirstAsync(p => p.Slug == "domaci-krompir");
+        var mrkva = await t.Db.Products.FirstAsync(p => p.Slug == "mrkva");
+        mrkva.IzrezUrl = "/slike/izrezi/moja-mrkva-1234.png"; // admin je već postavio svoj
+        t.Db.Slike.AddRange(
+            new Domain.Entities.Slika { Kljuc = "izrezi/domaci-krompir.png", ContentType = "image/png", Podaci = [1] },
+            new Domain.Entities.Slika { Kljuc = "izrezi/mrkva.png", ContentType = "image/png", Podaci = [1] });
+        await t.Db.SaveChangesAsync();
+
+        var povezano = await SlikeUvoz.PoveziIzrezeAsync(t.Db);
+
+        povezano.Should().Be(1);
+        (await t.Db.Products.FindAsync(krompir.Id))!.IzrezUrl.Should().Be("/slike/izrezi/domaci-krompir.png");
+        (await t.Db.Products.FindAsync(mrkva.Id))!.IzrezUrl.Should().Be("/slike/izrezi/moja-mrkva-1234.png");
+        (await SlikeUvoz.PoveziIzrezeAsync(t.Db)).Should().Be(0);
+    }
+
+    private sealed class LazniHasher : Common.Interfaces.IPasswordHasher
+    {
+        public string Hash(string password) => password;
+        public bool Verify(string password, string hash) => password == hash;
+    }
+
     [Theory]
     [InlineData("products", "image/gif", 10, "fajl")]
     [InlineData("nepoznat", "image/jpeg", 10, "folder")]

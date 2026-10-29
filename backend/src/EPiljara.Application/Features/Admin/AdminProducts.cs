@@ -37,7 +37,8 @@ public record ProductInput(
     IReadOnlyList<int>? Mjeseci = null,
     string? Boja = null,
     decimal? NabavnaCijena = null,
-    bool? UkloniNabavnuCijenu = null);
+    bool? UkloniNabavnuCijenu = null,
+    string? IzrezUrl = null);
 
 public class ProductInputValidator : AbstractValidator<ProductInput>
 {
@@ -115,6 +116,7 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
             Stock = input.Stock,
             Description = input.Description ?? string.Empty,
             ImageUrl = input.ImageUrl,
+            IzrezUrl = input.IzrezUrl,
             IsAvailable = input.IsAvailable,
             IsFeatured = input.IsFeatured ?? false,
             CategoryId = category.Id,
@@ -176,6 +178,7 @@ public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProd
         product.Stock = input.Stock;
         product.Description = input.Description ?? string.Empty;
         product.ImageUrl = input.ImageUrl ?? product.ImageUrl;
+        product.IzrezUrl = input.IzrezUrl ?? product.IzrezUrl;
         product.IsAvailable = input.IsAvailable;
         product.IsFeatured = input.IsFeatured ?? product.IsFeatured;
         product.CategoryId = category.Id;

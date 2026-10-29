@@ -42,6 +42,7 @@ const EMPTY = {
   producerId: "",
   description: "",
   imageUrl: "",
+  izrezUrl: "",
   isAvailable: true,
   isFeatured: false,
   mozeUKorpicu: false,
@@ -87,6 +88,7 @@ export function ProductForm({
             producerId: product.producerId,
             description: product.description,
             imageUrl: product.imageUrl ?? "",
+            izrezUrl: product.izrezUrl ?? "",
             isAvailable: product.isAvailable,
             isFeatured: product.isFeatured ?? false,
             mozeUKorpicu: product.mozeUKorpicu ?? false,
@@ -129,6 +131,7 @@ export function ProductForm({
       producerId: form.producerId,
       description: form.description,
       imageUrl: form.imageUrl || undefined,
+      izrezUrl: form.izrezUrl || undefined,
       isAvailable: form.isAvailable,
       isFeatured: form.isFeatured,
       mozeUKorpicu: form.mozeUKorpicu,
@@ -246,6 +249,13 @@ export function ProductForm({
           folder="products"
           value={form.imageUrl}
           onChange={(imageUrl) => setForm((f) => ({ ...f, imageUrl }))}
+        />
+
+        <SlikaPolje
+          label="Slika bez pozadine za pločice korpica (PNG, opcionalno)"
+          folder="izrezi"
+          value={form.izrezUrl}
+          onChange={(izrezUrl) => setForm((f) => ({ ...f, izrezUrl }))}
         />
 
         <Field label="Boja pločice (opcionalno)" htmlFor="proizvod-boja" error={errors.boja?.[0]}>

@@ -43,6 +43,8 @@ public class Product : Entity
     public int[] Mjeseci { get; set; } = [];
     public string Description { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    /// <summary>Slika bez pozadine (PNG) za obojene pločice korpica; bez nje pločica koristi ImageUrl.</summary>
+    public string? IzrezUrl { get; set; }
     /// <summary>Boja pločice namirnice ("#RRGGBB"); null = boja iz palete (BojaProizvoda).</summary>
     public string? Boja { get; set; }
 

@@ -1012,6 +1012,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("IzrezUrl")
+                        .HasColumnType("text");
+
                     b.Property<string>("Mjeseci")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

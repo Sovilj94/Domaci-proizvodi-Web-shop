@@ -53,6 +53,7 @@ public static class MappingExtensions
         ProducerId = p.ProducerId,
         Producer = p.Producer?.ToRef(),
         ImageUrl = p.ImageUrl,
+        IzrezUrl = p.IzrezUrl,
         Boja = BojaProizvoda.Za(p.Boja, p.Name),
         ZadanaBoja = p.Boja,
         Description = p.Description,
