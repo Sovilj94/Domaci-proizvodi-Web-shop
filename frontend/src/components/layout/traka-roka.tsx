@@ -21,7 +21,9 @@ export function TrakaRoka() {
   const tekst = `🚚 Poruči do ${rokTekst(rok)} i stiže ti korpica${dani ? ` u ${dani}` : ""}`;
 
   return (
-    <div className="overflow-hidden bg-beige py-2.5 text-sm text-ink">
+    // shrink-0: layout je flex kolona, a overflow-hidden spušta min-height na 0 — bez ovoga
+    // `main` (flex-1) skupi traku na pola visine i odsiječe tekst.
+    <div className="shrink-0 overflow-hidden bg-beige py-2.5 text-sm text-ink">
       <p className="hidden text-center md:block">{tekst}</p>
       <div className="flex w-max animate-marquee gap-16 whitespace-nowrap md:hidden" aria-label={tekst}>
         <span aria-hidden>{tekst}</span>
