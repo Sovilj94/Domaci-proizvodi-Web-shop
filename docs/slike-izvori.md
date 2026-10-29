@@ -146,3 +146,27 @@ Dodato 29.10.2026. Pozadina je uklonjena automatski (izmijenjena verzija), pa CC
 | `korpice/voce-mala.jpg` | [Sweet cherries in basket 2018 G1.jpg](https://commons.wikimedia.org/wiki/File:Sweet_cherries_in_basket_2018_G1.jpg) | Public domain | George Chernilevsky |
 | `korpice/voce-srednja.jpg` | [Pears in basket 2022 G1.jpg](https://commons.wikimedia.org/wiki/File:Pears_in_basket_2022_G1.jpg) | CC BY-SA 4.0 | George Chernilevsky |
 | `korpice/voce-velika.jpg` | [Apples in basket 2018 G1.jpg](https://commons.wikimedia.org/wiki/File:Apples_in_basket_2018_G1.jpg) | Public domain | George Chernilevsky |
+
+## Nove kulture iz sezonskog kalendara (29.10.2026.)
+
+Fotografija proizvoda (`products/`) i izrez (`izrezi/`, pozadina uklonjena) su iz istog originala.
+
+| Fajl | Original | Licenca | Autor |
+|---|---|---|---|
+| `products/batat.jpg`, `izrezi/batat.png` | [SweetPotato.jpg](https://commons.wikimedia.org/wiki/File:SweetPotato.jpg) | Attribution | Petr Kratochvil |
+| `products/celer.jpg`, `izrezi/celer.png` | [Celery (1).jpg](https://commons.wikimedia.org/wiki/File:Celery_(1).jpg) | Public domain | Renee Comet (Photographer) |
+| `products/ceri-paradajz.jpg`, `izrezi/ceri-paradajz.png` | [Cherry Nebula tomatoes 2017 A1.jpg](https://commons.wikimedia.org/wiki/File:Cherry_Nebula_tomatoes_2017_A1.jpg) | CC0 | Fructibus |
+| `products/crveni-krompir.jpg`, `izrezi/crveni-krompir.png` | [Russet and Red Potatoes (35842865704).jpg](https://commons.wikimedia.org/wiki/File:Russet_and_Red_Potatoes_(35842865704).jpg) | CC BY-SA 2.0 | Willis Lam |
+| `products/crveni-kupus.jpg`, `izrezi/crveni-kupus.png` | [Red cabbage cross section 02.jpg](https://commons.wikimedia.org/wiki/File:Red_cabbage_cross_section_02.jpg) | CC BY-SA 3.0 | Amada44 |
+| `products/crveni-luk.jpg`, `izrezi/crveni-luk.png` | [Three whole red onions.jpg](https://commons.wikimedia.org/wiki/File:Three_whole_red_onions.jpg) | CC BY-SA 4.0 | Anja |
+| `products/dajkon-rotkva.jpg`, `izrezi/dajkon-rotkva.png` | [Rettich 2008-3-3.JPG](https://commons.wikimedia.org/wiki/File:Rettich_2008-3-3.JPG) | CC BY-SA 3.0 | Hedwig Storch |
+| `products/ljubicasti-luk.jpg`, `izrezi/ljubicasti-luk.png` | [Shallots-Whole.jpg](https://commons.wikimedia.org/wiki/File:Shallots-Whole.jpg) | CC BY-SA 3.0 | Evan-Amos |
+| `products/paprika-ajvarka.jpg`, `izrezi/paprika-ajvarka.png` | [Red Bell Pepper (5571468261).jpg](https://commons.wikimedia.org/wiki/File:Red_Bell_Pepper_(5571468261).jpg) | CC BY 2.0 | Sharunas Jurevic from Vilnius, Lithuania |
+| `products/paprika-roga.jpg`, `izrezi/paprika-roga.png` | [Spitzpaprika rot.JPG](https://commons.wikimedia.org/wiki/File:Spitzpaprika_rot.JPG) | CC BY-SA 4.0 | Erkaha |
+| `products/prokelj.jpg`, `izrezi/prokelj.png` | [Brussels sprouts on white background 5849.jpg](https://commons.wikimedia.org/wiki/File:Brussels_sprouts_on_white_background_5849.jpg) | CC BY-SA 3.0 | Amada44 |
+| `products/rastan.jpg`, `izrezi/rastan.png` | [Collard-Greens-Bundle.jpg](https://commons.wikimedia.org/wiki/File:Collard-Greens-Bundle.jpg) | Public domain | Evan-Amos |
+| `products/salata-kristalka.jpg`, `izrezi/salata-kristalka.png` | [Cosmopolitan salad.jpg](https://commons.wikimedia.org/wiki/File:Cosmopolitan_salad.jpg) | CC BY-SA 4.0 | Tiia Monto |
+| `products/spargla.jpg`, `izrezi/spargla.png` | [Asparagus-Bundle.jpg](https://commons.wikimedia.org/wiki/File:Asparagus-Bundle.jpg) | CC BY-SA 3.0 | Evan-Amos |
+| `products/zuta-babura.jpg`, `izrezi/zuta-babura.png` | [Yellow bell pepper 2017 A2.jpg](https://commons.wikimedia.org/wiki/File:Yellow_bell_pepper_2017_A2.jpg) | CC0 | Fructibus |
+
+Mladi krompirići, mladi kupus, peršun list, mladi crni i bijeli luk, bundeva hokaido, šarena boranija, boranija puterica, kornišon i crvena salata privremeno koriste fotografiju srodne kulture (domaći krompir, kupus, peršun, crni luk, bijeli luk, bundeva, mahune, krastavac, zelena salata) — izvori su gore u tabeli tih fajlova.
