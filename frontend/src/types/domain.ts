@@ -354,6 +354,8 @@ export interface DodatnaKultura {
   jedinica: Unit;
   imageUrl?: string;
   boja?: string;
+  proizvodjacNaziv?: string;
+  proizvodjacSelo?: string;
 }
 
 /** Predložena zamjena u sedmičnom sadržaju (admin pogled). */

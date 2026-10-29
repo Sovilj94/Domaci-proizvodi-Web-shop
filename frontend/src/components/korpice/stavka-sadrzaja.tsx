@@ -7,9 +7,18 @@ import type { DodatnaKultura, StavkaSadrzaja } from "@/types/domain";
 /**
  * Obojena kartica namirnice iz sadržaja korpice (R2, po uzoru na farmit): naziv i količina,
  * 📍 selo, 🧑‍🌾 domaćin, slika desno. Boja dolazi sa servera (`BojaProizvoda`).
- * Slika koja ne postoji se sakrije — ostaje kartica bez polomljene ikone.
+ * Slika koja ne postoji se sakrije — ostaje kartica bez polomljene ikone. Dodatne kulture
+ * koriste istu karticu bez količine (nju računamo tek pri zamjeni).
  */
-export function StavkaSadrzajaKartica({ s }: { s: StavkaSadrzaja }) {
+export function StavkaSadrzajaKartica({
+  s,
+}: {
+  s: Pick<StavkaSadrzaja, "naziv" | "jedinica" | "imageUrl" | "boja"> & {
+    kolicina?: number;
+    proizvodjacNaziv?: string;
+    proizvodjacSelo?: string;
+  };
+}) {
   const [pala, setPala] = useState(false);
 
   return (
@@ -20,12 +29,14 @@ export function StavkaSadrzajaKartica({ s }: { s: StavkaSadrzaja }) {
       <div className="min-w-0 flex-1">
         <p className="text-base font-semibold leading-tight">
           {s.naziv}{" "}
-          <span className="text-xs font-normal">
-            {s.kolicina} {s.jedinica}
-          </span>
+          {s.kolicina != null && (
+            <span className="text-xs font-normal">
+              {s.kolicina} {s.jedinica}
+            </span>
+          )}
         </p>
-        <p className="mt-1.5 truncate text-xs">📍 {s.proizvodjacSelo}</p>
-        <p className="truncate text-xs">🧑‍🌾 {s.proizvodjacNaziv}</p>
+        {s.proizvodjacSelo && <p className="mt-1.5 truncate text-xs">📍 {s.proizvodjacSelo}</p>}
+        {s.proizvodjacNaziv && <p className="truncate text-xs">🧑‍🌾 {s.proizvodjacNaziv}</p>}
       </div>
       {s.imageUrl && !pala && (
         <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl">

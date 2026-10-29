@@ -65,6 +65,8 @@ public record DodatnaKulturaDto
     public string Jedinica { get; init; } = "kom";
     public string? ImageUrl { get; init; }
     public string Boja { get; init; } = string.Empty;
+    public string ProizvodjacNaziv { get; init; } = string.Empty;
+    public string ProizvodjacSelo { get; init; } = string.Empty;
 }
 
 /// <summary>

@@ -309,9 +309,18 @@ public class GetSadrzajKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
         var preporucene = sadrzaj.Zamjene.Select(z => z.ProductId).ToHashSet();
         var uKutiji = sadrzaj.Stavke.Select(s => s.ProductId).ToHashSet();
 
-        return (await AutoZamjena.KandidatiAsync(db, sadrzaj, korpica, mjesec, ct))
+        var dodatne = (await AutoZamjena.KandidatiAsync(db, sadrzaj, korpica, mjesec, ct))
             .Where(p => !uKutiji.Contains(p.Id))
             .Where(p => kategorije.Count == 0 || kategorije.Contains(p.CategoryId) || preporucene.Contains(p.Id))
+            .ToList();
+
+        // Domaćin i selo, kao na stavkama kutije („od koga kupujem").
+        var idjevi = dodatne.Select(p => p.ProducerId).Distinct().ToList();
+        var domacini = await db.Producers
+            .Where(d => idjevi.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, d => (d.Name, d.Village), ct);
+
+        return dodatne
             .Select(p => new DodatnaKulturaDto
             {
                 ProductId = p.Id,
@@ -319,6 +328,8 @@ public class GetSadrzajKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
                 Jedinica = p.Unit.ToApi(),
                 ImageUrl = p.ImageUrl,
                 Boja = BojaProizvoda.Za(p.Boja, p.Name),
+                ProizvodjacNaziv = domacini.TryGetValue(p.ProducerId, out var d) ? d.Name : string.Empty,
+                ProizvodjacSelo = domacini.TryGetValue(p.ProducerId, out var s) ? s.Village : string.Empty,
             })
             .ToList();
     }

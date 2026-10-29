@@ -135,6 +135,12 @@ public class KorpiceQueriesTests
         // Svježe prije dopune; predložena zamjena smije i iz druge kategorije; paradajz je već u kutiji.
         Assert.Equal(["Kajmak", "Tikvica", "Grah"], dto.Dodatne.Select(d => d.Naziv).ToArray());
         Assert.All(dto.Dodatne, d => Assert.False(string.IsNullOrEmpty(d.Boja)));
+        // Od koga kupujem: domaćin i selo kao na stavkama kutije.
+        Assert.All(dto.Dodatne, d =>
+        {
+            Assert.Equal("Marko Marković", d.ProizvodjacNaziv);
+            Assert.Equal("Stričići", d.ProizvodjacSelo);
+        });
     }
 
     [Fact]

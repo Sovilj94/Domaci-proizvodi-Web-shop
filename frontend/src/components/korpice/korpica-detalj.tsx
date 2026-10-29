@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import { OsobineKorpice } from "@/components/korpice/korpica-kartica";
+import { KorpicaKartica, OsobineKorpice } from "@/components/korpice/korpica-kartica";
+import { UtisciKarusel } from "@/components/pocetna/utisci-karusel";
+import { CestaPitanja } from "@/components/pocetna/cesta-pitanja";
 import { StavkaSadrzajaKartica } from "@/components/korpice/stavka-sadrzaja";
 import { DodajIzSpajza } from "@/components/spajz/dodaj-iz-spajza";
 import { PretplataForma } from "@/components/nalog/pretplata-forma";
@@ -42,6 +44,7 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
   const { show } = useToast();
   const [izbor, setIzbor] = useState<"pretplata" | "jednom">("pretplata");
   const [pretplataOtvorena, setPretplataOtvorena] = useState(false);
+  const kupovina = useRef<HTMLDivElement>(null);
 
   const korpica = korpice?.find((k) => k.tip === vrsta && k.velicina === velicina && k.dostupna);
   const sadrzaj = useQuery({
@@ -142,7 +145,7 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
               </div>
             </div>
 
-            <div className="rounded-[26px] bg-white p-5 shadow-[0_6px_24px_rgba(64,74,61,0.12)]">
+            <div ref={kupovina} className="rounded-[26px] bg-white p-5 shadow-[0_6px_24px_rgba(64,74,61,0.12)]">
               {/* Pretplata */}
               <button
                 type="button"
@@ -230,7 +233,7 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
         </div>
       </section>
 
-      <section className="px-4 pb-16">
+      <section id="sadrzaj-sedmice" className="scroll-mt-28 px-4 pb-16">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center text-2xl font-semibold text-ink sm:text-[32px]">
             Ove sedmice u {vel.lokativ} korpici…
@@ -246,6 +249,43 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
               {sadrzaj.isLoading ? "Učitavam…" : "Sadržaj za ovu sedmicu objavljujemo uskoro."}
             </p>
           )}
+
+          {/* Po uzoru na farmit: kulture koje kupac može uzeti umjesto nečega iz kutije, sa domaćinom. */}
+          {!!sadrzaj.data?.dodatne?.length && (
+            <>
+              <h2 className="mt-16 text-center text-2xl font-semibold text-ink sm:text-[32px]">
+                Od dodatnih kultura…
+              </h2>
+              <p className="mx-auto mt-2 max-w-xl text-center text-sm text-ink/80">
+                Poslije kupovine možeš ih izabrati umjesto nečega iz korpice, do roka za ovu sedmicu.
+              </p>
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {sadrzaj.data.dodatne.map((d) => (
+                  <StavkaSadrzajaKartica key={d.productId} s={d} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      <UtisciKarusel />
+
+      {/* „Ostali paketi" (farmit): ista korpica u druga dva plana. */}
+      <section className="px-4 pb-16 pt-4">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="text-center text-2xl font-semibold text-ink sm:text-[32px]">Ostali paketi</h2>
+          <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:justify-center lg:gap-8">
+            {PLANOVI.filter((p) => p.kljuc !== plan.kljuc).map((p) => (
+              <KorpicaKartica
+                key={p.kljuc}
+                korpica={korpica}
+                plan={p.plan}
+                kljucPlana={p.kljuc}
+                onSadrzaj={() => document.getElementById("sadrzaj-sedmice")?.scrollIntoView({ behavior: "smooth" })}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -254,6 +294,16 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
         <DodajIzSpajza naslov="Dodaj uz korpicu iz Špajza" />
       </div>
 
+      <CestaPitanja />
+
+      <LjepljivaKupovina
+        sidro={kupovina}
+        naziv={`${vel.naziv} korpica`}
+        cijena={izbor === "jednom" ? korpica.cijena : cijenaPretplate}
+        dugme={izbor === "jednom" ? "Dodaj u korpu" : "Pretplati se"}
+        onClick={potvrdi}
+      />
+
       <PretplataForma
         open={pretplataOtvorena}
         onClose={() => setPretplataOtvorena(false)}
@@ -261,6 +311,60 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
         plan={plan.plan}
       />
     </>
+  );
+}
+
+/**
+ * Traka „Mala korpica | cijena | Dodaj u korpu" (farmit): pojavi se na vrhu kad okvir za kupovinu
+ * ode iznad ekrana, pa se korpica kupuje iz bilo koje sekcije.
+ */
+function LjepljivaKupovina({
+  sidro,
+  naziv,
+  cijena,
+  dugme,
+  onClick,
+}: {
+  sidro: RefObject<HTMLElement | null>;
+  naziv: string;
+  cijena: number;
+  dugme: string;
+  onClick: () => void;
+}) {
+  const [vidljiva, setVidljiva] = useState(false);
+
+  useEffect(() => {
+    const el = sidro.current;
+    if (!el) return;
+    const posmatrac = new IntersectionObserver(([u]) =>
+      setVidljiva(!u.isIntersecting && u.boundingClientRect.top < 0),
+    );
+    posmatrac.observe(el);
+    return () => posmatrac.disconnect();
+  }, [sidro]);
+
+  return (
+    <div
+      aria-hidden={!vidljiva}
+      className={cn(
+        "fixed inset-x-0 top-0 z-[45] px-2 pt-2 transition-transform duration-200 sm:px-4 sm:pt-4",
+        vidljiva ? "translate-y-0" : "pointer-events-none -translate-y-[120%]",
+      )}
+    >
+      <div className="mx-auto flex max-w-5xl items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_6px_20px_rgba(64,74,61,0.18)] sm:px-8">
+        <p className="min-w-0 flex-1 truncate text-sm text-ink sm:text-base">
+          {naziv} <span className="text-muted">|</span> <strong>{formatPrice(cijena)}</strong>
+        </p>
+        <button
+          type="button"
+          onClick={onClick}
+          tabIndex={vidljiva ? undefined : -1}
+          className={cn(buttonVariants({ size: "md" }), "shrink-0 sm:px-10")}
+        >
+          {dugme}
+        </button>
+      </div>
+    </div>
   );
 }
 
