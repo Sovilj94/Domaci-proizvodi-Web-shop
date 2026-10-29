@@ -38,7 +38,9 @@ public record ProductInput(
     string? Boja = null,
     decimal? NabavnaCijena = null,
     bool? UkloniNabavnuCijenu = null,
-    string? IzrezUrl = null);
+    string? IzrezUrl = null,
+    string? NazivEn = null,
+    string? OpisEn = null);
 
 public class ProductInputValidator : AbstractValidator<ProductInput>
 {
@@ -117,6 +119,8 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
             Description = input.Description ?? string.Empty,
             ImageUrl = input.ImageUrl,
             IzrezUrl = input.IzrezUrl,
+            NazivEn = string.IsNullOrWhiteSpace(input.NazivEn) ? null : input.NazivEn.Trim(),
+            OpisEn = string.IsNullOrWhiteSpace(input.OpisEn) ? null : input.OpisEn.Trim(),
             IsAvailable = input.IsAvailable,
             IsFeatured = input.IsFeatured ?? false,
             CategoryId = category.Id,
@@ -179,6 +183,8 @@ public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProd
         product.Description = input.Description ?? string.Empty;
         product.ImageUrl = input.ImageUrl ?? product.ImageUrl;
         product.IzrezUrl = input.IzrezUrl ?? product.IzrezUrl;
+        product.NazivEn = string.IsNullOrWhiteSpace(input.NazivEn) ? null : input.NazivEn.Trim();
+        product.OpisEn = string.IsNullOrWhiteSpace(input.OpisEn) ? null : input.OpisEn.Trim();
         product.IsAvailable = input.IsAvailable;
         product.IsFeatured = input.IsFeatured ?? product.IsFeatured;
         product.CategoryId = category.Id;

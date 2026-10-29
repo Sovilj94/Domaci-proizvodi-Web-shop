@@ -148,6 +148,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("NazivEn")
+                        .HasColumnType("text");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(140)
@@ -1033,6 +1036,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NazivEn")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OpisEn")
+                        .HasColumnType("text");
 
                     b.Property<decimal>("Price")
                         .HasPrecision(12, 2)

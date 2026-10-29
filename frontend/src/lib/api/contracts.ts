@@ -103,12 +103,16 @@ export interface ProductInput {
   ukloniNabavnuCijenu?: boolean;
   /** Slika bez pozadine za pločice korpica (`/slike/izrezi/...`). */
   izrezUrl?: string;
+  /** Naziv i opis na engleskom (jezik sajta English); prazno = srpski. */
+  nazivEn?: string;
+  opisEn?: string;
 }
 
 export interface CategoryInput {
   name: string;
   imageUrl?: string;
   sortOrder: number;
+  nazivEn?: string;
 }
 
 export interface ProducerInput {

@@ -14,6 +14,7 @@ public static class MappingExtensions
         Name = c.Name,
         Slug = c.Slug,
         ImageUrl = c.ImageUrl,
+        NazivEn = c.NazivEn,
         SortOrder = c.SortOrder,
         ProductCount = productCount,
     };
@@ -54,6 +55,8 @@ public static class MappingExtensions
         Producer = p.Producer?.ToRef(),
         ImageUrl = p.ImageUrl,
         IzrezUrl = p.IzrezUrl,
+        NazivEn = p.NazivEn,
+        OpisEn = p.OpisEn,
         Boja = BojaProizvoda.Za(p.Boja, p.Name),
         ZadanaBoja = p.Boja,
         Description = p.Description,

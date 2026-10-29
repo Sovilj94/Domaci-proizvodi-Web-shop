@@ -213,6 +213,10 @@ await using (var scope = app.Services.CreateAsyncScope())
         var izrezi = await SlikeUvoz.PoveziIzrezeAsync(db);
         if (izrezi > 0)
             app.Logger.LogInformation("Povezano {Broj} izreza proizvoda", izrezi);
+        // Engleski nazivi kataloga — samo u prazna polja, admin izmjene ostaju.
+        var prevodi = await PrevodiKataloga.PopuniAsync(db);
+        if (prevodi > 0)
+            app.Logger.LogInformation("Upisano {Broj} engleskih naziva kataloga", prevodi);
     }
     catch (Exception ex)
     {

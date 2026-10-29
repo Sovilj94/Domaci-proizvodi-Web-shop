@@ -6,6 +6,7 @@ public record CategoryDto
     public string Name { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
     public string? ImageUrl { get; init; }
+    public string? NazivEn { get; init; }
     public int SortOrder { get; init; }
     public int? ProductCount { get; init; }
 }
@@ -51,6 +52,8 @@ public record ProductDto
     public ProducerRefDto? Producer { get; init; }
     public string? ImageUrl { get; init; }
     public string? IzrezUrl { get; init; }
+    public string? NazivEn { get; init; }
+    public string? OpisEn { get; init; }
     /// <summary>Boja pločice — uvijek popunjena (zadana ili iz palete, vidi BojaProizvoda).</summary>
     public string Boja { get; init; } = string.Empty;
     /// <summary>Boja koju je admin zadao; null kad se koristi paleta. Za formu proizvoda.</summary>

@@ -12,7 +12,7 @@ import { ApiRequestError } from "@/lib/api/client";
 import type { CategoryInput } from "@/lib/api/contracts";
 import type { Category } from "@/types/domain";
 
-const EMPTY = { name: "", imageUrl: "", sortOrder: "" };
+const EMPTY = { name: "", imageUrl: "", sortOrder: "", nazivEn: "" };
 
 export function CategoryForm({
   open,
@@ -36,6 +36,7 @@ export function CategoryForm({
         ? {
             name: category.name,
             imageUrl: category.imageUrl ?? "",
+            nazivEn: category.nazivEn ?? "",
             sortOrder: String(category.sortOrder),
           }
         : EMPTY,
@@ -61,6 +62,7 @@ export function CategoryForm({
     mutation.mutate({
       name: form.name,
       imageUrl: form.imageUrl || undefined,
+      nazivEn: form.nazivEn || undefined,
       sortOrder: Number(form.sortOrder || 0),
     });
   }
@@ -74,6 +76,14 @@ export function CategoryForm({
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </Field>
+
+        <Field label="Naziv na engleskom (opcionalno)">
+          <Input
+            value={form.nazivEn}
+            onChange={(e) => setForm({ ...form, nazivEn: e.target.value })}
+            placeholder="npr. Vegetables"
           />
         </Field>
 

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EPiljara.Application.Features.Admin;
 
 /// <summary>Shared payload for creating and updating categories.</summary>
-public record CategoryInput(string Name, string? ImageUrl, int SortOrder);
+public record CategoryInput(string Name, string? ImageUrl, int SortOrder, string? NazivEn = null);
 
 public class CategoryInputValidator : AbstractValidator<CategoryInput>
 {
@@ -41,6 +41,7 @@ public class CreateCategoryHandler(IAppDbContext db) : IRequestHandler<CreateCat
             Name = input.Name.Trim(),
             Slug = await UniqueSlugAsync(input.Name, ct),
             ImageUrl = input.ImageUrl,
+            NazivEn = string.IsNullOrWhiteSpace(input.NazivEn) ? null : input.NazivEn.Trim(),
             SortOrder = input.SortOrder,
         };
 
@@ -79,6 +80,7 @@ public class UpdateCategoryHandler(IAppDbContext db) : IRequestHandler<UpdateCat
         // Slug stays stable so existing shop links keep working.
         category.Name = cmd.Input.Name.Trim();
         category.ImageUrl = cmd.Input.ImageUrl;
+        category.NazivEn = string.IsNullOrWhiteSpace(cmd.Input.NazivEn) ? null : cmd.Input.NazivEn.Trim();
         category.SortOrder = cmd.Input.SortOrder;
 
         await db.SaveChangesAsync(ct);

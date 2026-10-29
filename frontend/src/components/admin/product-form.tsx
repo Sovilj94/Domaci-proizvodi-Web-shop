@@ -41,6 +41,8 @@ const EMPTY = {
   categoryId: "",
   producerId: "",
   description: "",
+  nazivEn: "",
+  opisEn: "",
   imageUrl: "",
   izrezUrl: "",
   isAvailable: true,
@@ -87,6 +89,8 @@ export function ProductForm({
             categoryId: product.categoryId,
             producerId: product.producerId,
             description: product.description,
+            nazivEn: product.nazivEn ?? "",
+            opisEn: product.opisEn ?? "",
             imageUrl: product.imageUrl ?? "",
             izrezUrl: product.izrezUrl ?? "",
             isAvailable: product.isAvailable,
@@ -130,6 +134,8 @@ export function ProductForm({
       categoryId: form.categoryId,
       producerId: form.producerId,
       description: form.description,
+      nazivEn: form.nazivEn || undefined,
+      opisEn: form.opisEn || undefined,
       imageUrl: form.imageUrl || undefined,
       izrezUrl: form.izrezUrl || undefined,
       isAvailable: form.isAvailable,
@@ -242,6 +248,18 @@ export function ProductForm({
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
+        </Field>
+
+        <Field label="Naziv na engleskom (opcionalno)">
+          <Input
+            value={form.nazivEn}
+            onChange={(e) => setForm({ ...form, nazivEn: e.target.value })}
+            placeholder="npr. Carrots — prikazuje se kad kupac izabere English"
+          />
+        </Field>
+
+        <Field label="Opis na engleskom (opcionalno)">
+          <Textarea value={form.opisEn} onChange={(e) => setForm({ ...form, opisEn: e.target.value })} />
         </Field>
 
         <SlikaPolje

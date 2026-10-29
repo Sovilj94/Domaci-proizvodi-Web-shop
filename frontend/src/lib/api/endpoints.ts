@@ -122,6 +122,9 @@ export const catalogApi = {
     apiFetch<Product>(`/products/${slug}`, { auth: false }).then((r) => r.data),
   categories: () =>
     apiFetch<Category[]>("/categories", { auth: false }).then((r) => r.data),
+  /** Prevodi kataloga srpski → engleski (nazivi i opisi proizvoda, kategorije). */
+  prevodi: () =>
+    apiFetch<Record<string, string>>("/prevodi", { auth: false }).then((r) => r.data),
   producers: () =>
     apiFetch<Producer[]>("/producers", { auth: false }).then((r) => r.data),
   producer: (id: string) =>

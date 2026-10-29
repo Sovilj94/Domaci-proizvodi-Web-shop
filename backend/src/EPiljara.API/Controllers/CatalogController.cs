@@ -19,6 +19,14 @@ public class CatalogController : ApiControllerBase
     public async Task<IActionResult> GetCategories() =>
         EnvelopeList(await Mediator.Send(new GetCategoriesQuery()));
 
+    /// <summary>Prevodi kataloga (srpski → engleski) za jezik sajta English; keš 5 minuta.</summary>
+    [HttpGet("prevodi")]
+    public async Task<IActionResult> GetPrevodi()
+    {
+        Response.Headers.CacheControl = "public, max-age=300";
+        return Envelope(await Mediator.Send(new GetPrevodiQuery()));
+    }
+
     [HttpGet("producers")]
     public async Task<IActionResult> GetProducers() =>
         EnvelopeList(await Mediator.Send(new GetProducersQuery()));

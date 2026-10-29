@@ -25,6 +25,7 @@ export interface Category {
   name: string;
   slug: string;
   imageUrl?: string;
+  nazivEn?: string;
   sortOrder: number;
   productCount?: number;
 }
@@ -66,6 +67,9 @@ export interface Product {
   imageUrl?: string;
   /** Slika bez pozadine (PNG) za obojene pločice; bez nje ide imageUrl. */
   izrezUrl?: string;
+  /** Naziv i opis na engleskom (jezik sajta English); prazno = srpski. */
+  nazivEn?: string;
+  opisEn?: string;
   /** Boja pločice namirnice — uvijek popunjena (server: BojaProizvoda). */
   boja?: string;
   /** Boja koju je admin zadao; prazno = boja iz palete. */

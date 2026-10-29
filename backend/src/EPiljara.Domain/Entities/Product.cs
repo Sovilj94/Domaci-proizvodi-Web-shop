@@ -45,6 +45,10 @@ public class Product : Entity
     public string? ImageUrl { get; set; }
     /// <summary>Slika bez pozadine (PNG) za obojene pločice korpica; bez nje pločica koristi ImageUrl.</summary>
     public string? IzrezUrl { get; set; }
+    /// <summary>Naziv na engleskom (jezik sajta English); prazno = prikazuje se srpski naziv.</summary>
+    public string? NazivEn { get; set; }
+    /// <summary>Opis na engleskom; prazno = prikazuje se srpski opis.</summary>
+    public string? OpisEn { get; set; }
     /// <summary>Boja pločice namirnice ("#RRGGBB"); null = boja iz palete (BojaProizvoda).</summary>
     public string? Boja { get; set; }
 
