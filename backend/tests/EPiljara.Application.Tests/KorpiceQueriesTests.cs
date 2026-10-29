@@ -172,6 +172,30 @@ public class KorpiceQueriesTests
     }
 
     [Fact]
+    public async Task Veca_korpica_pokazuje_vecu_kolicinu_iste_namirnice()
+    {
+        using var t = new TestDb();
+        var (g, s) = Sada();
+        Postavi(t, StatusSadrzaja.Objavljen, g, s);
+        var paradajz = await t.Db.Products.SingleAsync(p => p.Slug == "paradajz");
+        t.Db.KorpicaKategorije.Add(new KorpicaKategorija { TipKorpice = TipKorpice.Povrce, CategoryId = paradajz.CategoryId });
+        t.Db.Products.Add(new Product
+        {
+            Name = "Velika korpica povrća", Slug = "velika-korpica-povrca", Price = 45m, Unit = Unit.Kom,
+            CategoryId = paradajz.CategoryId, ProducerId = paradajz.ProducerId, Stock = 40,
+            Vrsta = VrstaProizvoda.Korpica, TipKorpice = TipKorpice.Povrce, Velicina = VelicinaKorpice.Velika,
+        });
+        await t.Db.SaveChangesAsync();
+
+        var dto = await new GetSezonaKorpiceHandler(t.Db, Opcije).Handle(new GetSezonaKorpiceQuery("povrce"), default);
+
+        var kolicine = dto.Mjeseci[0].Kulture.Single(k => k.Naziv == "Paradajz").Kolicine;
+        // Oba dijele na broj artikala najmanje korpice: velika (45 KM) nosi oko 1,8× više od male (25 KM).
+        Assert.Equal(1.4m, kolicine["mala"]);
+        Assert.True(kolicine["velika"] > kolicine["mala"] * 1.6m, $"velika {kolicine["velika"]} nije veća od male");
+    }
+
+    [Fact]
     public async Task Nacrt_nije_vidljiv_javnom_upitu()
     {
         using var t = new TestDb();

@@ -73,11 +73,16 @@ public class GetSezonaKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
             .OrderBy(p => p.PrioritetUKorpici).ThenBy(p => p.Name)
             .ToListAsync(ct);
 
-        // Okvirna količina = ono što generator stavi u kutiju dok puni minimum artikala:
-        // cilj korpice podijeljen na minimalan broj artikala, zaokružen na korak jedinice.
+        // Okvirna količina po namirnici: cilj korpice podijeljen na broj artikala NAJMANJE korpice, za
+        // sve veličine isto. Tako količina raste sa veličinom (kao na farmitu), umjesto da se veća
+        // vrijednost potroši samo na više artikala pa Mala/Srednja/Velika pokazuju istu količinu.
+        var djelilac = Math.Max(korpice
+            .Select(k => o.MinimalanBrojArtikala.GetValueOrDefault(k.Velicina!.Value, 5))
+            .DefaultIfEmpty(5)
+            .Min(), 1);
         var poStavci = korpice.ToDictionary(
             k => k.Velicina!.Value.ToString().ToLowerInvariant(),
-            k => k.Price * o.KoeficijentVrijednosti / Math.Max(o.MinimalanBrojArtikala.GetValueOrDefault(k.Velicina!.Value, 5), 1));
+            k => k.Price * o.KoeficijentVrijednosti / djelilac);
 
         return new SezonaKorpiceDto
         {
