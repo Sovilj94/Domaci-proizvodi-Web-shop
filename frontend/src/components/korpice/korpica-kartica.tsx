@@ -8,12 +8,23 @@ import { cijenaPlana, isporuka, obavezaPlana, VELICINE, type KljucPlana } from "
 import { cn, formatPrice } from "@/lib/utils";
 import type { Korpica, PlanPretplate } from "@/types/domain";
 
-/** Četiri reda sa emoji kao na farmit kartici — tvrde samo ono što aplikacija stvarno radi. */
+/**
+ * Četiri reda sa emoji kao na farmit kartici — tvrde samo ono što aplikacija stvarno radi.
+ * Uz plan sa obavezom prvi red kaže koliko dostava plan nosi („4 dostave do tvojih vrata").
+ */
 export function OsobineKorpice({ obaveza }: { obaveza: number }) {
   return (
     <ul className="space-y-1.5 text-sm text-ink">
       <li>
-        🚚 <strong>1 dostava</strong> sedmično do tvojih vrata
+        {obaveza > 0 ? (
+          <>
+            🚚 <strong>{dostava(obaveza)}</strong> do tvojih vrata
+          </>
+        ) : (
+          <>
+            🚚 <strong>1 dostava</strong> sedmično do tvojih vrata
+          </>
+        )}
       </li>
       <li>
         🧺 <strong>Sezonske</strong> namirnice sa Manjače
@@ -24,12 +35,41 @@ export function OsobineKorpice({ obaveza }: { obaveza: number }) {
       <li>
         ✨ <strong>Izmijeni sadržaj</strong> nakon kupovine
       </li>
-      {obaveza > 0 && (
-        <li>
-          📅 Obaveza: <strong>{isporuka(obaveza)}</strong>
-        </li>
-      )}
     </ul>
+  );
+}
+
+/** „N dostava" sa pravim oblikom: 1 dostava, 2–4 dostave, 5+ i 11–14 dostava. */
+function dostava(n: number): string {
+  return isporuka(n).replace(/isporuk(a|e)$/, (_, z: string) => `dostav${z}`);
+}
+
+/** „/korpica", „/4 korpice", „/12 korpica" — uz ukupnu cijenu plana, kao na farmitu. */
+function poKorpicama(n: number): string {
+  if (n <= 1) return "/korpica";
+  const j = n % 10;
+  const d = n % 100;
+  return `/${n} ${j >= 2 && j <= 4 && (d < 12 || d > 14) ? "korpice" : "korpica"}`;
+}
+
+/**
+ * Cijena na kartici: za plan sa obavezom ukupno za sve dostave (kao farmit), a ispod sitno
+ * cijena jedne korpice — plaća se pouzećem pri svakoj dostavi, ne unaprijed.
+ */
+function CijenaPlana({ cijena, obaveza, mala = false }: { cijena: number; obaveza: number; mala?: boolean }) {
+  const n = Math.max(obaveza, 1);
+  return (
+    <div>
+      <p className={cn("font-semibold text-ink", mala ? "text-base" : "text-2xl")}>
+        {formatPrice(cijena * n)}{" "}
+        <span className={cn("font-normal text-muted", mala ? "text-xs" : "text-sm")}>{poKorpicama(n)}</span>
+      </p>
+      {n > 1 && (
+        <p className="text-xs text-muted">
+          {formatPrice(cijena)} po korpici · plaćaš pri svakoj dostavi
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -53,6 +93,7 @@ export function KorpicaKartica({
   const istaknuta = korpica.velicina === "srednja";
   const href = `/korpice/${korpica.tip}/${korpica.velicina}?plan=${kljucPlana}`;
   const cijena = cijenaPlana(korpica, plan);
+  const obaveza = obavezaPlana(korpica, plan);
 
   return (
     <>
@@ -70,11 +111,11 @@ export function KorpicaKartica({
           <h3 className="text-[22px] font-semibold text-ink">{vel?.naziv ?? korpica.naziv} korpica</h3>
           <p className="text-xs text-ink/80">Korpica {vel?.clanovi}</p>
           <div className="mt-3">
-            <OsobineKorpice obaveza={obavezaPlana(korpica, plan)} />
+            <OsobineKorpice obaveza={obaveza} />
           </div>
-          <p className="mt-4 text-2xl font-semibold text-ink">
-            {formatPrice(cijena)} <span className="text-sm font-normal text-muted">/korpica</span>
-          </p>
+          <div className="mt-4">
+            <CijenaPlana cijena={cijena} obaveza={obaveza} />
+          </div>
           <Link
             href={href}
             className={cn(buttonVariants({ variant: istaknuta ? "istaknuto" : "primary", size: "lg" }), "mt-3 w-full")}
@@ -102,9 +143,9 @@ export function KorpicaKartica({
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-semibold text-ink">{vel?.naziv ?? korpica.naziv} korpica</h3>
           <p className="text-xs text-ink/80">Korpica {vel?.clanovi}</p>
-          <p className="mt-2 text-base font-semibold text-ink">
-            {formatPrice(cijena)} <span className="text-xs font-normal text-muted">/korpica</span>
-          </p>
+          <div className="mt-2">
+            <CijenaPlana cijena={cijena} obaveza={obaveza} mala />
+          </div>
           <button type="button" onClick={onSadrzaj} className="text-sm text-brand-600 underline underline-offset-2">
             Sadržaj korpice
           </button>

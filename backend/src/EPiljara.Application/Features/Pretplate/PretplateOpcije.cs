@@ -18,7 +18,7 @@ public class PretplateOpcije
     /// (pauza jeste) — otkazuje admin. Pouzećem se obaveza ne može naplatiti; prihvaćen rizik.
     /// </summary>
     public int ObavezaMjesecna { get; set; } = 4;
-    public int ObavezaTriMjeseca { get; set; } = 13;
+    public int ObavezaTriMjeseca { get; set; } = 12;
 
     /// <summary>
     /// Koliko sati prije roka naručivanja pozadinski posao pravi narudžbu za tu sedmicu.

@@ -28,7 +28,7 @@ public class PretplatnaCijenaTests
     [Theory]
     [InlineData(PlanPretplate.Nedjeljna, 0)]
     [InlineData(PlanPretplate.Mjesecna, 4)]
-    [InlineData(PlanPretplate.TriMjeseca, 13)]
+    [InlineData(PlanPretplate.TriMjeseca, 12)]
     public void Obaveza_po_planu(PlanPretplate plan, int obaveza) =>
         Assert.Equal(obaveza, PretplatnaCijena.Obaveza(plan, Opcije));
 

@@ -54,7 +54,7 @@ export const CESTA_PITANJA: Pitanje[] = [
       (popust
         ? `Pretplatnička cijena važi od prve isporuke: ${popust.nedjeljna}% jeftinije uz nedjeljni plan, do ${popust.triMjeseca}% uz plan na 3 mjeseca. `
         : "") +
-      "Mjesečni i tromjesečni plan nose obavezu na 4, odnosno 13 isporuka. Pauzu i promjenu paketa podešavaš u Mom nalogu.",
+      "Mjesečni i tromjesečni plan nose obavezu na 4, odnosno 12 isporuka. Pauzu i promjenu paketa podešavaš u Mom nalogu.",
   },
   {
     pitanje: "Treba li mi nalog?",
@@ -123,7 +123,7 @@ export const PODRAZUMIJEVANA_PITANJA: { pitanje: string; odgovor: string }[] = [
   {
     pitanje: "Kako radi pretplata?",
     odgovor:
-      "Uz pretplatu ti korpica stiže svake sedmice bez novog naručivanja. Pretplatnička cijena važi od prve isporuke: {popustNedjeljna}% jeftinije uz nedjeljni plan, do {popustTriMjeseca}% uz plan na 3 mjeseca. Mjesečni i tromjesečni plan nose obavezu na 4, odnosno 13 isporuka. Pauzu i promjenu paketa podešavaš u Mom nalogu.",
+      "Uz pretplatu ti korpica stiže svake sedmice bez novog naručivanja. Pretplatnička cijena važi od prve isporuke: {popustNedjeljna}% jeftinije uz nedjeljni plan, do {popustTriMjeseca}% uz plan na 3 mjeseca. Mjesečni i tromjesečni plan nose obavezu na 4, odnosno 12 isporuka. Pauzu i promjenu paketa podešavaš u Mom nalogu.",
   },
   {
     pitanje: "Treba li mi nalog?",

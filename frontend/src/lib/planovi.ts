@@ -31,7 +31,7 @@ export function cijenaPlana(k: Korpica, plan: PlanPretplate): number {
 }
 
 export function obavezaPlana(k: Korpica, plan: PlanPretplate): number {
-  return plan === "Mjesecna" ? (k.obavezaMjesecna ?? 4) : plan === "TriMjeseca" ? (k.obavezaTriMjeseca ?? 13) : 0;
+  return plan === "Mjesecna" ? (k.obavezaMjesecna ?? 4) : plan === "TriMjeseca" ? (k.obavezaTriMjeseca ?? 12) : 0;
 }
 
 /** Vrste korpica koje se prodaju (odluka 2026-10-16: samo povrće i voće). */
