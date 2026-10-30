@@ -15,13 +15,13 @@ public class SpajzTests
         var scena = await Scena.NapraviAsync(t);
         var proizvod = await t.Db.Products.SingleAsync();
 
-        (await new GetProductsHandler(t.Db).Handle(new GetProductsQuery(null, null, null, null), default))
+        (await new GetProductsHandler(t.Db, TestOpcije.KorpiceO(), TestOpcije.ProdavnicaO()).Handle(new GetProductsQuery(null, null, null, null), default))
             .Should().ContainSingle();
 
         proizvod.USpajzu = false;
         await t.Db.SaveChangesAsync();
 
-        (await new GetProductsHandler(t.Db).Handle(new GetProductsQuery(null, null, null, null), default))
+        (await new GetProductsHandler(t.Db, TestOpcije.KorpiceO(), TestOpcije.ProdavnicaO()).Handle(new GetProductsQuery(null, null, null, null), default))
             .Should().BeEmpty();
         var izuzetak = await FluentActions.Invoking(scena.Naruci).Should().ThrowAsync<DomainException>();
         izuzetak.Which.Code.Should().Be("product_unavailable");

@@ -113,7 +113,7 @@ internal sealed class Scenario : IDisposable
         await t.Db.SaveChangesAsync();
 
         // Podrazumijevanih 5 bi obaralo svaki test, jer sadržaj scenarija ima dva artikla.
-        var opcije = new KorpiceOpcije();
+        var opcije = TestOpcije.Korpice();
         opcije.MinimalanBrojArtikala[VelicinaKorpice.Mala] = 2;
 
         // Sedmica se nikad ne zakucava — test koji prolazi u oktobru a pada u decembru/
@@ -253,7 +253,7 @@ internal sealed class Scenario : IDisposable
 
     private CreateOrderHandler Handler() => new(
         Db, new FakeCurrentUser(_prijavljen ? KupacId : null), new FakeEmail(), new FakeViber(),
-        Options.Create(Opcije), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
+        Options.Create(Opcije), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
 
     private CreateOrderCommand Komanda(Guid productId, decimal kolicina) => new(
         new CustomerInput("Test Kupac", "test@example.com", "065 000 000"),

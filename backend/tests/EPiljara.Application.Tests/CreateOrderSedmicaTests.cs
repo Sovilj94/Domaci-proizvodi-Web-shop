@@ -35,7 +35,7 @@ public class CreateOrderSedmicaTests
 
     private static CreateOrderHandler Handler(TestDb t) =>
         new(t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
+            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
 
     [Fact]
     public async Task Narudzba_dobija_ISO_sedmicu_isporuke()
@@ -54,7 +54,7 @@ public class CreateOrderSedmicaTests
         var order = await t.Db.Orders.AsNoTracking().FirstAsync(o => o.Id == dto.Id);
 
         var (dan, vrijeme, cutoff) = await SedmicaHelper.UcitajRokAsync(
-            t.Db, new KorpiceOpcije(), default);
+            t.Db, TestOpcije.Korpice(), default);
         var (ocekivanaGodina, ocekivanaSedmica) =
             SedmicaHelper.SedmicaZaNarudzbu(dan, vrijeme, cutoff);
 

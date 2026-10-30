@@ -102,7 +102,7 @@ export default function ProductDetailPage() {
                 </Button>
               </div>
             )}
-            {!soldOut && product.uSpajzu !== false && product.stock <= 10 && (
+            {!soldOut && product.uSpajzu !== false && product.priKraju && (
               <p className="mt-2 text-xs font-medium text-honey-600">
                 Još samo {product.stock} {product.unit} na stanju.
               </p>

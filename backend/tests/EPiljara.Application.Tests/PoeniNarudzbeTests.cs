@@ -62,8 +62,8 @@ public class PoeniNarudzbeTests
 
         public CreateOrderHandler Handler(Guid? prijavljen) =>
             new(T.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
-                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()),
-                Options.Create(new PoeniOpcije()));
+                Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()),
+                Options.Create(TestOpcije.Poeni()));
 
         public CreateOrderCommand Komanda(bool poeni, string? kod = null, Guid? customerId = null) =>
             new(new CustomerInput("Marko", "marko@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,

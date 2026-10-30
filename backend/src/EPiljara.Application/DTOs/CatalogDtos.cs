@@ -44,6 +44,8 @@ public record ProductDto
     public decimal Price { get; init; }
     public string Unit { get; init; } = "kom";
     public decimal Stock { get; init; }
+    /// <summary>Stanje je pozitivno a do praga „pri kraju" iz baze (Podesavanja.PragPriKraju).</summary>
+    public bool PriKraju { get; init; }
     public bool IsAvailable { get; init; }
     public Guid CategoryId { get; init; }
     public string CategoryName { get; init; } = string.Empty;

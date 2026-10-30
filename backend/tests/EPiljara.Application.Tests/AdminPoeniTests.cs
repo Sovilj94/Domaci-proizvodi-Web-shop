@@ -114,7 +114,7 @@ public class AdminPoeniTests
         await Korekcija(t, admin).Handle(new KorigujPoeneCommand(kupac.Id, 20, "Poklon za strpljenje"), default);
 
         var moji = await new GetMojiPoeniHandler(t.Db, new FakeCurrentUser(kupac.Id),
-                Microsoft.Extensions.Options.Options.Create(new PoeniOpcije()))
+                Microsoft.Extensions.Options.Options.Create(TestOpcije.Poeni()))
             .Handle(new GetMojiPoeniQuery(), default);
 
         moji.Istorija.Should().ContainSingle().Which.Opis.Should().Be("Korekcija: Poklon za strpljenje");

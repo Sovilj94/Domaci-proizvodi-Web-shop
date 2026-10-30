@@ -179,11 +179,12 @@ const DANI = [1, 2, 3, 4, 5, 6, 0];
 function TerminForma({ termin, onClose }: { termin: DeliverySlot | null; onClose: () => void }) {
   const qc = useQueryClient();
   const { show } = useToast();
+  // Nov termin kreće prazan: dan, sat i rok unosi admin — kod ne predlaže svoje vrijednosti.
   const [f, setF] = useState({
-    dayOfWeek: String(termin?.dayOfWeek ?? 4),
-    timeFrom: termin?.timeFrom ?? "16:00",
-    timeTo: termin?.timeTo ?? "20:00",
-    cutoffHours: String(termin?.cutoffHours ?? 48),
+    dayOfWeek: termin ? String(termin.dayOfWeek) : "",
+    timeFrom: termin?.timeFrom ?? "",
+    timeTo: termin?.timeTo ?? "",
+    cutoffHours: termin ? String(termin.cutoffHours) : "",
     label: termin?.label ?? "",
   });
   const { m, greske, setGreske } = useSacuvaj(
@@ -225,7 +226,10 @@ function TerminForma({ termin, onClose }: { termin: DeliverySlot | null; onClose
           svim kupcima i pretplatama.
         </p>
         <Field label="Dan" error={greske["input.dayOfWeek"]?.[0]}>
-          <Select value={f.dayOfWeek} onChange={(e) => setF({ ...f, dayOfWeek: e.target.value })}>
+          <Select value={f.dayOfWeek} onChange={(e) => setF({ ...f, dayOfWeek: e.target.value })} required>
+            <option value="" disabled>
+              Izaberi dan
+            </option>
             {DANI.map((d) => (
               <option key={d} value={d}>
                 {weekdayName(d)}

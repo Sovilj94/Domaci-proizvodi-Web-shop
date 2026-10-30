@@ -25,7 +25,7 @@ public class MojiPoeniTests
     }
 
     private static Task<MojiPoeniDto> PozoviAsync(TestDb t, Guid? ko) =>
-        new GetMojiPoeniHandler(t.Db, new FakeCurrentUser(ko), Options.Create(new PoeniOpcije()))
+        new GetMojiPoeniHandler(t.Db, new FakeCurrentUser(ko), Options.Create(TestOpcije.Poeni()))
             .Handle(new GetMojiPoeniQuery(), default);
 
     [Fact]

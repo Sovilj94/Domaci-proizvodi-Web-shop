@@ -129,15 +129,13 @@ korpice, their categories and weekly content are entered through the admin panel
 can still be sold is never stored — the API computes it from the weekly content and the free stock of
 its articles (`Zalihe.cs`).
 
-Config section `Korpice` (`appsettings.json`, override via `Korpice__*` env vars):
-
-| Key | Default | Meaning |
-|---|---|---|
-| `Korpice:KoeficijentVrijednosti` | `1.15` | How many times the content's value exceeds the box's price — the generator's target per box, and what `ciljGenerisanja` on the admin overview reflects. Always in effect. |
-| `Korpice:MinimalanBrojArtikala` | `{Mala: 5, Srednja: 7, Velika: 9}` | Minimum item count the generator aims for, per box size. Always in effect; under-filled pools return a warning for the admin to fix by hand, not an error. |
-| `Korpice:RokSati` | `48` | Ordering-cutoff hours before delivery. **Fallback only** — used only when the database has no `DeliverySlot` row at all. While any `DeliverySlot` exists, its own `CutoffHours` (on the slot with the lowest `DayOfWeek`) is the sole source of truth and this key is not read. |
-| `Korpice:DanIsporukeRezerva` | `Friday` | Delivery day. Same fallback-only caveat as `RokSati` — superseded by the lowest-`DayOfWeek` `DeliverySlot` whenever one exists. |
-| `Korpice:VrijemeIsporukeRezerva` | `16:00` | Delivery time-of-day, combined with `DanIsporukeRezerva` into the delivery instant. Same fallback-only caveat — superseded by the lowest-`DayOfWeek` `DeliverySlot`'s own `TimeFrom` whenever one exists. |
+**Business rules live in the database**, in the one-row `Podesavanja` table (CHECK `CK_Podesavanja_JedanRed`),
+edited at `/admin/settings` → „Poslovna pravila". They are not in code, `appsettings.json` or env vars any
+more; handlers still read them through `IOptions<KorpiceOpcije | PretplateOpcije | PoeniOpcije | ProdavnicaOpcije>`,
+filled per request from that row (`IzvorPodesavanja`). **The API refuses to start without the row** — a new
+database gets it from a dump (see `DEPLOY.md` → „Podaci"). Korpica rules there: content-value coefficient,
+minimal margin, suggested substitutions, minimum items per size, and the cutoff/day/time used **only** when
+no `DeliverySlot` exists (otherwise the slot with the lowest `DayOfWeek` is the sole source of truth).
 
 `ZakljucavanjeSadrzajaService` (a `BackgroundService`, now in `Infrastructure/BackgroundJobs/`)
 runs every **15 minutes** and closes (`Zakljucan`) every published (`Objavljen`) weekly content
@@ -149,15 +147,10 @@ registered and running rather than inferring it from the absence of complaints.
 
 ## Pretplate (recurring basket subscriptions)
 
-Config section `Pretplate` (override via `Pretplate__*` env vars):
-
-| Key | Default | Meaning |
-|---|---|---|
-| `Pretplate:PopustNedjeljna` / `PopustMjesecna` / `PopustTriMjeseca` | `0.10` / `0.15` / `0.20` | Discount per plan, applied **from the first delivery** (R2). |
-| `Pretplate:ObavezaMjesecna` / `ObavezaTriMjeseca` | `4` / `13` | Deliveries the customer commits to. Snapshotted on the subscription at creation; during the commitment only an admin can cancel (`/admin/pretplate`). Cash on delivery means it cannot be enforced financially. |
-| `Pretplate:SatiUnaprijed` | `48` | How many hours before the week's ordering cutoff the job creates that week's orders. Lower it and customers lose the window in which they can still pause; raise it and orders exist long before anyone can change their mind. |
-| `Pretplate:MaksPauzaSedmica` | `8` | Longest pause a customer can set at once, counted in deliveries. |
-| `Pretplate:AlarmSatiPrijeRoka` | `24` | Hours before the cutoff at which every admin (users with role Admin and an e-mail) gets one mail listing baskets with active subscriptions whose week content is still unpublished (A2b). Sent once per basket per week (`Products.AlarmSadrzaja*`). Without published content the job skips that week, and subscribers get the "no delivery this week" mail (A2) after the cutoff. |
+Subscription rules (discount per plan from the first delivery, commitment in deliveries, how many hours before
+the cutoff the job creates orders, longest pause, hours before the cutoff for the unpublished-content alarm)
+are in the same `Podesavanja` row. Commitment is snapshotted on the subscription at creation; during it only
+an admin can cancel (`/admin/pretplate`).
 
 `PretplatneNarudzbeService` (a `BackgroundService` in `Infrastructure/BackgroundJobs/`) runs every
 **15 minutes** and creates one order per active subscription whose week has come. **If it is not

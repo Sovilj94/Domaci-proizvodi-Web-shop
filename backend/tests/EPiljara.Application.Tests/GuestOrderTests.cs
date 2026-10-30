@@ -114,7 +114,7 @@ public class GuestOrderTests
         t.Db.SaveChanges();
 
         var rezultat = await new ConfirmGuestOrderHandler(
-            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         rezultat.Items.Single().UnitPrice.Should().Be(20m, "kupac plaća cijenu koju je vidio");
@@ -134,7 +134,7 @@ public class GuestOrderTests
         var token = zahtjev.Token;
 
         var rezultat = await new ConfirmGuestOrderHandler(
-            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         // Vozačka aplikacija navigira po ovim koordinatama — polovičan ili izgubljen
@@ -157,7 +157,7 @@ public class GuestOrderTests
         var token = t.Db.GuestOrderRequests.Single().Token;
 
         await new ConfirmGuestOrderHandler(
-            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         t.Db.Products.Single().Stock.Should().Be(99);
@@ -175,7 +175,7 @@ public class GuestOrderTests
         t.Db.SaveChanges();
 
         var radnja = () => new ConfirmGuestOrderHandler(
-            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()))
             .Handle(new ConfirmGuestOrderCommand(zahtjev.Token), default);
 
         (await radnja.Should().ThrowAsync<DomainException>())
@@ -192,7 +192,7 @@ public class GuestOrderTests
             .Handle(scena.ZahtjevGosta(), default);
         var token = t.Db.GuestOrderRequests.Single().Token;
         var handler = new ConfirmGuestOrderHandler(
-            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()));
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()));
 
         await handler.Handle(new ConfirmGuestOrderCommand(token), default);
         var drugiKlik = () => handler.Handle(new ConfirmGuestOrderCommand(token), default);
@@ -214,7 +214,7 @@ public class GuestOrderTests
         t.Db.SaveChanges();
 
         var radnja = () => new ConfirmGuestOrderHandler(
-            t.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
+            t.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()))
             .Handle(new ConfirmGuestOrderCommand(token), default);
 
         var greska = (await radnja.Should().ThrowAsync<DomainException>()).Which;

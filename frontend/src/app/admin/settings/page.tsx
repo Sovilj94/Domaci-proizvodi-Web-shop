@@ -10,6 +10,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { adminApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
+import { PoslovnaPravila } from "@/components/admin/poslovna-pravila";
 
 /**
  * Magacin — polazište i krajnja tačka svake ture. Jedna vrijednost za cijelu
@@ -130,6 +131,8 @@ export default function AdminWarehousePage() {
           </div>
         </div>
       )}
+
+      <PoslovnaPravila />
     </div>
   );
 }

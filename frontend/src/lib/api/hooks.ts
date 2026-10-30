@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { accountApi, analizeApi, catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
+import { accountApi, adminApi, analizeApi, catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
 import type { SekcijaSadrzaja } from "@/types/domain";
 
 export const queryKeys = {
@@ -18,6 +18,7 @@ export const queryKeys = {
   sedmica: () => ["korpice", "sedmica"] as const,
   sadrzajSajta: () => ["sadrzaj-sajta"] as const,
   blokoviSadrzaja: () => ["sadrzaj-sajta", "blokovi"] as const,
+  podesavanja: () => ["admin", "podesavanja"] as const,
   mojeKorpice: () => ["account", "korpice"] as const,
   mojaKorpica: (id: string) => ["account", "korpica", id] as const,
   pretplate: () => ["account", "pretplate"] as const,
@@ -205,4 +206,9 @@ export function useBlokovi(sekcija: SekcijaSadrzaja) {
     staleTime: 10 * 60 * 1000,
   });
   return { ...q, blokovi: (q.data ?? []).filter((b) => b.sekcija === sekcija) };
+}
+
+/** Poslovna pravila iz baze (samo admin) — npr. minimalna marža za boju marže. */
+export function usePodesavanja() {
+  return useQuery({ queryKey: queryKeys.podesavanja(), queryFn: adminApi.podesavanja, staleTime: 5 * 60 * 1000 });
 }

@@ -15,7 +15,8 @@ namespace EPiljara.Application.Features.Catalog;
 public record GetProductsQuery(string? Category, string? Search, bool? Featured, Guid? Producer = null)
     : IRequest<IReadOnlyList<ProductDto>>;
 
-public class GetProductsHandler(IAppDbContext db, IOptions<KorpiceOpcije>? opcije = null)
+public class GetProductsHandler(
+    IAppDbContext db, IOptions<KorpiceOpcije> opcije, IOptions<ProdavnicaOpcije> prodavnica)
     : IRequestHandler<GetProductsQuery, IReadOnlyList<ProductDto>>
 {
     public async Task<IReadOnlyList<ProductDto>> Handle(GetProductsQuery q, CancellationToken ct)
@@ -57,16 +58,21 @@ public class GetProductsHandler(IAppDbContext db, IOptions<KorpiceOpcije>? opcij
             .ToListAsync(ct);
 
         // Stanje koje kupac vidi je ono što nije obećano korpicama te sedmice — vidi Zalihe.
-        var (zalihe, _, _) = await Zalihe.ZaSedmicuProdajeAsync(db, opcije?.Value ?? new KorpiceOpcije(), ct);
-        return list.Select(p => p.ToDto() with { Stock = zalihe.Slobodno(p) }).ToList();
+        var (zalihe, _, _) = await Zalihe.ZaSedmicuProdajeAsync(db, opcije.Value, ct);
+        return list.Select(p => SaStanjem(p.ToDto(), zalihe.Slobodno(p), prodavnica.Value)).ToList();
     }
+
+    /// <summary>Slobodno stanje i oznaka „pri kraju" po pragu iz baze — frontend samo prikazuje.</summary>
+    internal static ProductDto SaStanjem(ProductDto dto, decimal slobodno, ProdavnicaOpcije o) =>
+        dto with { Stock = slobodno, PriKraju = slobodno > 0 && slobodno <= o.PragPriKraju };
 }
 
 /* ---------- Product by slug ---------- */
 
 public record GetProductBySlugQuery(string Slug) : IRequest<ProductDto>;
 
-public class GetProductBySlugHandler(IAppDbContext db, IOptions<KorpiceOpcije>? opcije = null)
+public class GetProductBySlugHandler(
+    IAppDbContext db, IOptions<KorpiceOpcije> opcije, IOptions<ProdavnicaOpcije> prodavnica)
     : IRequestHandler<GetProductBySlugQuery, ProductDto>
 {
     public async Task<ProductDto> Handle(GetProductBySlugQuery q, CancellationToken ct)
@@ -77,8 +83,8 @@ public class GetProductBySlugHandler(IAppDbContext db, IOptions<KorpiceOpcije>? 
             .Include(p => p.Producer)
             .FirstOrDefaultAsync(p => p.Slug == q.Slug && p.Vrsta == VrstaProizvoda.Obican, ct)
             ?? throw new NotFoundException("Proizvod nije pronađen.");
-        var (zalihe, _, _) = await Zalihe.ZaSedmicuProdajeAsync(db, opcije?.Value ?? new KorpiceOpcije(), ct);
-        return product.ToDto() with { Stock = zalihe.Slobodno(product) };
+        var (zalihe, _, _) = await Zalihe.ZaSedmicuProdajeAsync(db, opcije.Value, ct);
+        return GetProductsHandler.SaStanjem(product.ToDto(), zalihe.Slobodno(product), prodavnica.Value);
     }
 }
 

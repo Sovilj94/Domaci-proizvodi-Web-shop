@@ -33,6 +33,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
     public DbSet<BlokSadrzaja> BlokoviSadrzaja => Set<BlokSadrzaja>();
+    public DbSet<Podesavanja> Podesavanja => Set<Podesavanja>();
     public DbSet<Slika> Slike => Set<Slika>();
     public DbSet<PrijavaNovosti> PrijaveNovosti => Set<PrijavaNovosti>();
     public DbSet<SadrzajSajta> SadrzajSajta => Set<SadrzajSajta>();
@@ -357,6 +358,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.ContentType).HasMaxLength(50).IsRequired();
             e.Property(x => x.Podaci).IsRequired();
             e.HasIndex(x => x.Kljuc).IsUnique();
+        });
+
+        b.Entity<Podesavanja>(e =>
+        {
+            e.ToTable("Podesavanja", t => t.HasCheckConstraint("CK_Podesavanja_JedanRed",
+                $"\"Id\" = '{Domain.Entities.Podesavanja.JediniId.ToString().ToUpperInvariant()}'"));
+            e.Property(x => x.KoeficijentVrijednosti).HasPrecision(6, 3);
+            e.Property(x => x.MinimalnaMarza).HasPrecision(5, 3);
+            e.Property(x => x.PopustNedjeljna).HasPrecision(5, 3);
+            e.Property(x => x.PopustMjesecna).HasPrecision(5, 3);
+            e.Property(x => x.PopustTriMjeseca).HasPrecision(5, 3);
+            e.Property(x => x.VrijednostPoenaKM).HasPrecision(8, 3);
+            e.Property(x => x.PragPriKraju).HasPrecision(10, 2);
+            e.Property(x => x.VrijemeIsporukeRezerva).HasMaxLength(5).IsRequired();
         });
 
         b.Entity<BlokSadrzaja>(e =>

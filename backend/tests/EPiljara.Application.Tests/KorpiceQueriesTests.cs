@@ -9,9 +9,9 @@ namespace EPiljara.Application.Tests;
 
 public class KorpiceQueriesTests
 {
-    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
+    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(TestOpcije.Korpice());
     private static readonly IOptions<EPiljara.Application.Features.Pretplate.PretplateOpcije> PretplateOpc =
-        Options.Create(new EPiljara.Application.Features.Pretplate.PretplateOpcije());
+        Options.Create(TestOpcije.Pretplate());
 
     private static SedmicniSadrzaj Postavi(TestDb t, StatusSadrzaja status, int godina, int sedmica)
     {
@@ -58,7 +58,7 @@ public class KorpiceQueriesTests
         var (g, s) = Sada();
         Postavi(t, StatusSadrzaja.Objavljen, g, s);
 
-        var rez = await new GetKorpiceHandler(t.Db, PretplateOpc).Handle(new GetKorpiceQuery(null), default);
+        var rez = await new GetKorpiceHandler(t.Db, PretplateOpc, TestOpcije.KorpiceO()).Handle(new GetKorpiceQuery(null), default);
 
         var k = Assert.Single(rez);
         Assert.Equal("mala-korpica-povrca", k.Slug);
@@ -71,8 +71,8 @@ public class KorpiceQueriesTests
         var (g, s) = Sada();
         Postavi(t, StatusSadrzaja.Objavljen, g, s);
 
-        Assert.Single(await new GetKorpiceHandler(t.Db, PretplateOpc).Handle(new GetKorpiceQuery("povrce"), default));
-        Assert.Empty(await new GetKorpiceHandler(t.Db, PretplateOpc).Handle(new GetKorpiceQuery("mlijecna"), default));
+        Assert.Single(await new GetKorpiceHandler(t.Db, PretplateOpc, TestOpcije.KorpiceO()).Handle(new GetKorpiceQuery("povrce"), default));
+        Assert.Empty(await new GetKorpiceHandler(t.Db, PretplateOpc, TestOpcije.KorpiceO()).Handle(new GetKorpiceQuery("mlijecna"), default));
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class KorpiceQueriesTests
         // produkciji nema taj efekat — ovim ga simuliramo.
         t.Db.ChangeTracker.Clear();
 
-        var dto = await new GetSadrzajKorpiceHandler(t.Db, Options.Create(new KorpiceOpcije()))
+        var dto = await new GetSadrzajKorpiceHandler(t.Db, Options.Create(TestOpcije.Korpice()))
             .Handle(new GetSadrzajKorpiceQuery("mala-korpica-povrca"), default);
 
         var stavka = Assert.Single(dto.Stavke);
@@ -203,7 +203,7 @@ public class KorpiceQueriesTests
         Postavi(t, StatusSadrzaja.Nacrt, g, s);
 
         var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
-            new GetSadrzajKorpiceHandler(t.Db, Options.Create(new KorpiceOpcije()))
+            new GetSadrzajKorpiceHandler(t.Db, Options.Create(TestOpcije.Korpice()))
                 .Handle(new GetSadrzajKorpiceQuery("mala-korpica-povrca"), default));
         Assert.Contains("sadrzaj_nije_objavljen", ex.Message);
     }

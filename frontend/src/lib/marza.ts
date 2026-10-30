@@ -14,9 +14,12 @@ export function formatMarza(m: number | null | undefined): string {
   return `${pct < 0 ? "−" : ""}${Math.abs(pct).toLocaleString("sr-Latn-BA")}%`;
 }
 
-/** Boja oznake marže: crvena ispod minimuma, žuta do 10 poena iznad, inače zelena. */
-export function tonMarze(m: number | null | undefined, minimum = 0.25): "nema" | "losa" | "tijesna" | "dobra" {
-  if (m == null) return "nema";
+/**
+ * Boja oznake marže: crvena ispod minimuma, žuta do 10 poena iznad, inače zelena. Minimum je
+ * poslovno pravilo iz baze (Podesavanja.MinimalnaMarza); dok ne stigne, oznaka je neutralna.
+ */
+export function tonMarze(m: number | null | undefined, minimum: number | null | undefined): "nema" | "losa" | "tijesna" | "dobra" {
+  if (m == null || minimum == null) return "nema";
   if (m < minimum) return "losa";
   if (m < minimum + 0.1) return "tijesna";
   return "dobra";

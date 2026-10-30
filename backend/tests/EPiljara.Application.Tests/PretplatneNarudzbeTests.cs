@@ -26,7 +26,7 @@ public class PretplatneNarudzbeTests
     /// ima svoj test ispod.
     /// </summary>
     private static PretplateOpcije Opcije(int satiUnaprijed = 100_000) =>
-        new() { SatiUnaprijed = satiUnaprijed };
+        TestOpcije.Pretplate(o => o.SatiUnaprijed = satiUnaprijed);
 
     private sealed class Scena : IDisposable
     {
@@ -77,7 +77,7 @@ public class PretplatneNarudzbeTests
             db.Products.AddRange(korpica, artikal);
             await db.SaveChangesAsync();
 
-            var (dan, vrijeme, cutoff) = await SedmicaHelper.UcitajRokAsync(db, new KorpiceOpcije(), default);
+            var (dan, vrijeme, cutoff) = await SedmicaHelper.UcitajRokAsync(db, TestOpcije.Korpice(), default);
             var (godina, sedmica) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijeme, cutoff);
             s.Godina = godina;
             s.Sedmica = sedmica;
@@ -117,7 +117,7 @@ public class PretplatneNarudzbeTests
             new(Db,
                 new FakeMediator(Db, opcije ?? Opcije(), mediatorPuca, pucaZa),
                 Mejl,
-                Options.Create(new KorpiceOpcije()),
+                Options.Create(TestOpcije.Korpice()),
                 Options.Create(opcije ?? Opcije()),
                 NullLogger<NapraviPretplatneNarudzbeHandler>.Instance);
 
@@ -149,7 +149,7 @@ public class PretplatneNarudzbeTests
             {
                 var dto = await new CreateOrderHandler(
                         db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-                        Options.Create(new KorpiceOpcije()), Options.Create(opcije), Options.Create(new PoeniOpcije()))
+                        Options.Create(TestOpcije.Korpice()), Options.Create(opcije), Options.Create(TestOpcije.Poeni()))
                     .Handle(cmd, cancellationToken);
                 if (puca || (pucaZa is not null && cmd.PretplataId == pucaZa))
                     throw new InvalidOperationException("Pad poslije nastanka narudžbe.");
@@ -441,7 +441,7 @@ public class PretplatneNarudzbeTests
     // ---- A2b: alarm adminu za neobjavljen sadržaj ----
 
     private static PretplateOpcije OpcijeAlarma(int alarmSati) =>
-        new() { SatiUnaprijed = 100_000, AlarmSatiPrijeRoka = alarmSati };
+        TestOpcije.Pretplate(o => { o.SatiUnaprijed = 100_000; o.AlarmSatiPrijeRoka = alarmSati; });
 
     private static async Task DodajAdminaAsync(Scena s)
     {

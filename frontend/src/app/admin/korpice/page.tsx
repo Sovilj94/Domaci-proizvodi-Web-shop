@@ -17,6 +17,7 @@ import type { VelicinaKorpice } from "@/types/domain";
 import { narudzbeRijec } from "@/lib/orders";
 import { cn, formatPrice } from "@/lib/utils";
 import { formatMarza } from "@/lib/marza";
+import { usePodesavanja } from "@/lib/api/hooks";
 
 const VELICINA_LABEL: Record<VelicinaKorpice, string> = {
   mala: "Mala",
@@ -74,11 +75,11 @@ export default function AdminKorpicePage() {
 }
 
 function AdminKorpiceSadrzaj() {
+  const minimalnaMarza = usePodesavanja().data?.minimalnaMarza;
   const qc = useQueryClient();
   const { show } = useToast();
   const izbor = useIzabranaSedmica();
   const { godina, sedmica } = izbor;
-
 
   const [editor, setEditor] = useState<{
     sadrzajId: string;
@@ -93,7 +94,6 @@ function AdminKorpiceSadrzaj() {
   useEffect(() => {
     setUpozorenja([]);
   }, [godina, sedmica]);
-
 
   const pregledKljuc = ["admin", "korpice", "pregled", godina, sedmica] as const;
   const pakerskaKljuc = ["admin", "korpice", "pakerska", godina, sedmica] as const;
@@ -234,7 +234,7 @@ function AdminKorpiceSadrzaj() {
                     <p
                       className={cn(
                         "text-sm font-semibold",
-                        r.marza == null ? "text-muted" : r.marza < 0.25 ? "text-red-700" : "text-brand-700",
+                        r.marza == null || minimalnaMarza == null ? "text-muted" : r.marza < minimalnaMarza ? "text-red-700" : "text-brand-700",
                       )}
                     >
                       marža {formatMarza(r.marza)}

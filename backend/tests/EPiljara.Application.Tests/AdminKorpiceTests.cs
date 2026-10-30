@@ -9,7 +9,7 @@ namespace EPiljara.Application.Tests;
 
 public class AdminKorpiceTests
 {
-    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
+    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(TestOpcije.Korpice());
 
     private sealed record Postavka(
         Product Korpica1, Product Korpica2,
@@ -106,7 +106,7 @@ public class AdminKorpiceTests
         // prolazi i bez Include-a u handleru — vidi Task 7, Korekcija 2.
         t.Db.ChangeTracker.Clear();
 
-        var dto = await new GetSadrzajZaIzmjenuHandler(t.Db, Microsoft.Extensions.Options.Options.Create(new KorpiceOpcije()))
+        var dto = await new GetSadrzajZaIzmjenuHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice()))
             .Handle(new GetSadrzajZaIzmjenuQuery(s.Id), default);
 
         Assert.Equal("Nacrt", dto.Status);
@@ -135,7 +135,7 @@ public class AdminKorpiceTests
         t.Db.SaveChanges();
         var stareStavkeIdjevi = s.Stavke.Select(x => x.Id).ToList();
 
-        await new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(new KorpiceOpcije())).Handle(
+        await new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(
             new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal3.Id, 5m)]), default);
 
         var preostale = await t.Db.StavkeSadrzaja.AsNoTracking().ToListAsync();
@@ -156,7 +156,7 @@ public class AdminKorpiceTests
         var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Objavljen);
 
         var ex = await Assert.ThrowsAsync<ConflictException>(() =>
-            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(new KorpiceOpcije())).Handle(
+            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(
                 new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 5m)]), default));
 
         Assert.Equal("sadrzaj_nije_nacrt", ex.Code);
@@ -170,7 +170,7 @@ public class AdminKorpiceTests
         var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(new KorpiceOpcije())).Handle(
+            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(
                 new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Korpica2.Id, 1m)]), default));
 
         Assert.Equal("korpica_u_korpici", ex.Code);
@@ -184,7 +184,7 @@ public class AdminKorpiceTests
         var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(new KorpiceOpcije())).Handle(
+            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(
                 new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 0m)]), default));
 
         Assert.Equal("kolicina_nevalidna", ex.Code);
@@ -213,7 +213,7 @@ public class AdminKorpiceTests
         await t.Db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(new KorpiceOpcije())).Handle(
+            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(
                 new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(komAtikal.Id, 2.3m)]), default));
 
         Assert.Equal("kolicina_mora_biti_cio_broj", ex.Code);
@@ -232,7 +232,7 @@ public class AdminKorpiceTests
         var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(new KorpiceOpcije())).Handle(
+            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(
                 new IzmijeniNacrtCommand(
                     s.Id, [new StavkaUnos(p.Artikal2.Id, 1m), new StavkaUnos(p.Artikal2.Id, 3m)]),
                 default));

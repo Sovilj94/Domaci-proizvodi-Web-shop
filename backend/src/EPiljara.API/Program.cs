@@ -63,17 +63,17 @@ builder.Services
 // the built-in filter stops ASP.NET from short-circuiting with its own 400 first.
 builder.Services.Configure<ApiBehaviorOptions>(o => o.SuppressModelStateInvalidFilter = true);
 
-// ----- Korpice (generator sedmičnog sadržaja) -----
-builder.Services.Configure<KorpiceOpcije>(
-    builder.Configuration.GetSection(KorpiceOpcije.Sekcija));
-
-// ----- Poeni (poeni po KM, vrijednost poena, nagrada za preporuku) -----
-builder.Services.Configure<EPiljara.Application.Features.Poeni.PoeniOpcije>(
-    builder.Configuration.GetSection(EPiljara.Application.Features.Poeni.PoeniOpcije.Sekcija));
-
-// ----- Pretplate (prag popusta, koliko unaprijed se pravi narudžba) -----
-builder.Services.Configure<PretplateOpcije>(
-    builder.Configuration.GetSection(PretplateOpcije.Sekcija));
+// ----- Poslovna pravila: iz reda Podesavanja u bazi, ne iz koda ni konfiguracije -----
+// Jedan red po zahtjevu (IzvorPodesavanja), a handleri ih i dalje čitaju kroz IOptions<…>.
+builder.Services.AddScoped<IzvorPodesavanja>();
+builder.Services.AddScoped<IOptions<KorpiceOpcije>>(sp =>
+    Options.Create(PodesavanjaMapa.Korpice(sp.GetRequiredService<IzvorPodesavanja>().Red)));
+builder.Services.AddScoped<IOptions<PretplateOpcije>>(sp =>
+    Options.Create(PodesavanjaMapa.Pretplate(sp.GetRequiredService<IzvorPodesavanja>().Red)));
+builder.Services.AddScoped<IOptions<EPiljara.Application.Features.Poeni.PoeniOpcije>>(sp =>
+    Options.Create(PodesavanjaMapa.Poeni(sp.GetRequiredService<IzvorPodesavanja>().Red)));
+builder.Services.AddScoped<IOptions<EPiljara.Application.Features.Catalog.ProdavnicaOpcije>>(sp =>
+    Options.Create(PodesavanjaMapa.Prodavnica(sp.GetRequiredService<IzvorPodesavanja>().Red)));
 
 // ----- JWT authentication -----
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -207,6 +207,11 @@ await using (var scope = app.Services.CreateAsyncScope())
             throw new InvalidOperationException(
                 $"Magacin je na {magacin.Latitude}, {magacin.Longitude} — izvan Bosne i "
                 + "Hercegovine. Ispravi ga u admin panelu ili u tabeli \"Magacin\" prije pokretanja.");
+        // Poslovna pravila (marža, popusti, poeni…) postoje samo u bazi. Bez reda bi svako
+        // pravilo palo na prvom zahtjevu, pa je pad na startu jasniji.
+        if (!await db.Podesavanja.AnyAsync(p => p.Id == EPiljara.Domain.Entities.Podesavanja.JediniId))
+            throw new InvalidOperationException(
+                "U bazi nema reda \"Podesavanja\" (poslovna pravila). Prenesi bazu iz dumpa — vidi DEPLOY.md → Podaci.");
     }
     catch (DbException ex)
     {

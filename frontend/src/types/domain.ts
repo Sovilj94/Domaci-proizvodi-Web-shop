@@ -58,6 +58,8 @@ export interface Product {
   price: number;
   unit: Unit;
   stock: number;
+  /** Server: stanje je pozitivno a do praga „pri kraju" iz baze. */
+  priKraju?: boolean;
   isAvailable: boolean;
   categoryId: string;
   categoryName: string;
@@ -798,6 +800,32 @@ export interface Pitanje {
   /** Engleska verzija; odsutna = na engleskom sajtu ostaje srpski. */
   pitanjeEn?: string;
   odgovorEn?: string;
+}
+
+/** Poslovna pravila — jedan red u bazi (Podesavanja), admin `/admin/settings`. Udjeli su 0–1. */
+export interface Podesavanja {
+  koeficijentVrijednosti: number;
+  minimalnaMarza: number;
+  brojZamjena: number;
+  minArtikalaMala: number;
+  minArtikalaSrednja: number;
+  minArtikalaVelika: number;
+  rokSatiRezerva: number;
+  /** 0 = nedjelja … 6 = subota. */
+  danIsporukeRezerva: number;
+  vrijemeIsporukeRezerva: string;
+  popustNedjeljna: number;
+  popustMjesecna: number;
+  popustTriMjeseca: number;
+  obavezaMjesecna: number;
+  obavezaTriMjeseca: number;
+  satiUnaprijed: number;
+  alarmSatiPrijeRoka: number;
+  maksPauzaSedmica: number;
+  poenaPoKM: number;
+  vrijednostPoenaKM: number;
+  nagradaPreporuka: number;
+  pragPriKraju: number;
 }
 
 /** Mjesta na sajtu koja se pune iz baze (BlokSadrzaja) — isti ključevi kao SekcijeSadrzaja na backendu. */

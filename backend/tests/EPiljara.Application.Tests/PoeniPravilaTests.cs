@@ -10,7 +10,7 @@ namespace EPiljara.Application.Tests;
 /// <summary>Knjiga poena (P6c, Task 1): pravila trošenja i zarade te upis pri promjeni statusa.</summary>
 public class PoeniPravilaTests
 {
-    private static readonly PoeniOpcije O = new();
+    private static readonly PoeniOpcije O = TestOpcije.Poeni();
 
     [Theory]
     [InlineData(0, 50, 0, 0)]

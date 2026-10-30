@@ -61,8 +61,8 @@ public class MojePretplateTests
             return s;
         }
 
-        private static readonly IOptions<KorpiceOpcije> Ko = Options.Create(new KorpiceOpcije());
-        private static readonly IOptions<PretplateOpcije> Po = Options.Create(new PretplateOpcije());
+        private static readonly IOptions<KorpiceOpcije> Ko = Options.Create(TestOpcije.Korpice());
+        private static readonly IOptions<PretplateOpcije> Po = Options.Create(TestOpcije.Pretplate());
 
         public NapraviPretplatuHandler Novi(Guid? korisnik = null) =>
             new(Db, new FakeCurrentUser(korisnik ?? Kupac.Id), Ko, Po);
@@ -181,7 +181,7 @@ public class MojePretplateTests
 
         Assert.Equal("Pauzirana", dto.Status);
 
-        var (dan, vrijeme, cutoff) = await SedmicaHelper.UcitajRokAsync(s.Db, new KorpiceOpcije(), default);
+        var (dan, vrijeme, cutoff) = await SedmicaHelper.UcitajRokAsync(s.Db, TestOpcije.Korpice(), default);
         var (g, sed) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijeme, cutoff);
         var (og, osed) = SedmicaHelper.Pomjeri(g, sed, 3);
         Assert.Equal(og, dto.PauzaDoGodina);

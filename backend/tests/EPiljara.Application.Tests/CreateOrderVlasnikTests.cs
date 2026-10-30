@@ -40,7 +40,7 @@ public class CreateOrderVlasnikTests
 
     private static CreateOrderHandler Handler(TestDb t, Guid? prijavljen) =>
         new(t.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
-            Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
+            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
 
     private static CreateOrderCommand Komanda(
         Guid zonaId, Guid slotId, Guid productId,

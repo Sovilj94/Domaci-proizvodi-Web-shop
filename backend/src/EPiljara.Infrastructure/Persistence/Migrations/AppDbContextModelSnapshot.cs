@@ -836,6 +836,92 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("PartnerPrijave");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.Podesavanja", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AlarmSatiPrijeRoka")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BrojZamjena")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DanIsporukeRezerva")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("KoeficijentVrijednosti")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<int>("MaksPauzaSedmica")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinArtikalaMala")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinArtikalaSrednja")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinArtikalaVelika")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("MinimalnaMarza")
+                        .HasPrecision(5, 3)
+                        .HasColumnType("numeric(5,3)");
+
+                    b.Property<int>("NagradaPreporuka")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ObavezaMjesecna")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ObavezaTriMjeseca")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PoenaPoKM")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PopustMjesecna")
+                        .HasPrecision(5, 3)
+                        .HasColumnType("numeric(5,3)");
+
+                    b.Property<decimal>("PopustNedjeljna")
+                        .HasPrecision(5, 3)
+                        .HasColumnType("numeric(5,3)");
+
+                    b.Property<decimal>("PopustTriMjeseca")
+                        .HasPrecision(5, 3)
+                        .HasColumnType("numeric(5,3)");
+
+                    b.Property<decimal>("PragPriKraju")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<int>("RokSatiRezerva")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SatiUnaprijed")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("VrijednostPoenaKM")
+                        .HasPrecision(8, 3)
+                        .HasColumnType("numeric(8,3)");
+
+                    b.Property<string>("VrijemeIsporukeRezerva")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Podesavanja", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Podesavanja_JedanRed", "\"Id\" = 'A0000002-0000-4000-8000-000000000001'");
+                        });
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.PoeniStavka", b =>
                 {
                     b.Property<Guid>("Id")

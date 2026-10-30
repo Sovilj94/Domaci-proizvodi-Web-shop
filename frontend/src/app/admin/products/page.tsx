@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePodesavanja } from "@/lib/api/hooks";
 import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,8 @@ function AdminProducts() {
     () => sve.filter((p) => (!kategorija || p.categorySlug === kategorija) && odgovaraPretrazi(p, pretraga)),
     [sve, kategorija, pretraga],
   );
-  const lista = osnova.filter((p) => prolaziFilter(p, filter, mjesec));
+  const minimalnaMarza = usePodesavanja().data?.minimalnaMarza;
+  const lista = osnova.filter((p) => prolaziFilter(p, filter, mjesec, minimalnaMarza));
 
   function openNew() {
     setEditing(null);
@@ -197,7 +199,7 @@ function AdminProducts() {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {FILTERI.map((f) => {
-            const broj = osnova.filter((p) => prolaziFilter(p, f.kljuc, mjesec)).length;
+            const broj = osnova.filter((p) => prolaziFilter(p, f.kljuc, mjesec, minimalnaMarza)).length;
             const problem = f.kljuc === "bez-zalihe" || f.kljuc === "bez-nabavne" || f.kljuc === "niska-marza";
             return (
               <button
@@ -253,7 +255,7 @@ function AdminProducts() {
           <ul className="divide-y divide-line">
             {lista.map((p) => {
               const jed = unitSuffix(p.unit);
-              const ton = tonMarze(p.marza);
+              const ton = tonMarze(p.marza, minimalnaMarza);
               return (
                 <li
                   key={p.id}

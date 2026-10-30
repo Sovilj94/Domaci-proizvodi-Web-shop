@@ -7,7 +7,7 @@ import { SlikaPolje } from "@/components/admin/slika-polje";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
-import { useCategories, useProducers } from "@/lib/api/hooks";
+import { useCategories, usePodesavanja, useProducers } from "@/lib/api/hooks";
 import { adminApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { ProductInput } from "@/lib/api/contracts";
@@ -24,8 +24,9 @@ const TON_MARZE = {
 
 function MarzaOznaka({ prodajna, nabavna }: { prodajna: number; nabavna: number | null }) {
   const m = marza(prodajna, nabavna);
+  const minimum = usePodesavanja().data?.minimalnaMarza;
   return (
-    <p className={cn("mb-1 rounded-xl px-3 py-2.5 text-sm", TON_MARZE[tonMarze(m)])}>
+    <p className={cn("mb-1 rounded-xl px-3 py-2.5 text-sm", TON_MARZE[tonMarze(m, minimum)])}>
       Marža: <strong>{formatMarza(m)}</strong>
       {m != null && <span className="block text-xs">zarada {(prodajna - (nabavna ?? 0)).toFixed(2)} KM po jedinici</span>}
     </p>

@@ -53,7 +53,7 @@ public class PromoKodNarudzbeTests
 
         public CreateOrderHandler Handler(Guid? prijavljen) =>
             new(T.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
-                Options.Create(new KorpiceOpcije()), Options.Create(new PretplateOpcije()), Options.Create(new PoeniOpcije()));
+                Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
 
         public CreateOrderCommand Komanda(string? kod, decimal kolicina = 1m) =>
             new(new CustomerInput("Marko", "marko@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,
@@ -66,7 +66,7 @@ public class PromoKodNarudzbeTests
                     [new OrderItemInput(Proizvod.Id, 1m)], PromoKod: kod), default);
 
         public Task<EPiljara.Application.DTOs.OrderDto> PotvrdiAsync(string token) =>
-            new ConfirmGuestOrderHandler(T.Db, new FakeEmail(), new FakeViber(), Options.Create(new KorpiceOpcije()))
+            new ConfirmGuestOrderHandler(T.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()))
                 .Handle(new ConfirmGuestOrderCommand(token), default);
 
         public void Dispose() => T.Dispose();

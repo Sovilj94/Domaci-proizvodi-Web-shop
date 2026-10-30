@@ -9,7 +9,7 @@ namespace EPiljara.Application.Tests;
 /// </summary>
 public class PretplatnaCijenaTests
 {
-    private static readonly PretplateOpcije Opcije = new();
+    private static readonly PretplateOpcije Opcije = TestOpcije.Pretplate();
 
     [Theory]
     [InlineData(PlanPretplate.Nedjeljna, 22.50)]

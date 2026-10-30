@@ -22,7 +22,7 @@ public class AdminZadaciTests
     }
 
     private static Task<EPiljara.Application.DTOs.AdminZadaciDto> Zadaci(Scenario t) =>
-        new GetAdminZadaciHandler(t.Db, Options.Create(new KorpiceOpcije())).Handle(new GetAdminZadaciQuery(), default);
+        new GetAdminZadaciHandler(t.Db, Options.Create(TestOpcije.Korpice())).Handle(new GetAdminZadaciQuery(), default);
 
     [Fact]
     public async Task Narudzba_na_cekanju_i_korpica_bez_sadrzaja_su_zadaci()

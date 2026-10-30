@@ -8,7 +8,7 @@ namespace EPiljara.Application.Tests;
 
 public class ZakljucavanjeTests
 {
-    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
+    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(TestOpcije.Korpice());
 
     /// <summary>Dodaje DeliverySlot u bazu — pozivaocu bira dan i rok, baš kao u produkciji.</summary>
     private static void SeedSlot(TestDb t, int dayOfWeek, int cutoffHours)

@@ -57,6 +57,7 @@ import type {
   Pitanje,
   SadrzajSajta,
   BlokSadrzaja,
+  Podesavanja,
   SekcijaSadrzaja,
 } from "@/types/domain";
 import { pismoNaZici, type Pismo } from "@/lib/pismo/pismo";
@@ -569,6 +570,9 @@ export const adminApi = {
     podrucje?: string | null;
     pitanja?: Pitanje[] | null;
   }) => apiFetch<SadrzajSajta>("/admin/sadrzaj-sajta", { method: "PUT", body }).then((r) => r.data),
+  podesavanja: () => apiFetch<Podesavanja>("/admin/podesavanja").then((r) => r.data),
+  sacuvajPodesavanja: (body: Podesavanja) =>
+    apiFetch<Podesavanja>("/admin/podesavanja", { method: "PUT", body }).then((r) => r.data),
   blokovi: (sekcija: SekcijaSadrzaja) =>
     apiFetch<BlokSadrzaja[]>("/admin/blokovi/" + sekcija).then((r) => r.data),
   sacuvajBlokove: (sekcija: SekcijaSadrzaja, blokovi: Omit<BlokSadrzaja, "id" | "sekcija" | "redoslijed">[]) =>

@@ -16,8 +16,9 @@ test("marža se ispisuje u procentima, i negativna", () => {
 });
 
 test("ton marže prema minimumu", () => {
-  assert.equal(tonMarze(0.2), "losa");
-  assert.equal(tonMarze(0.3), "tijesna");
-  assert.equal(tonMarze(0.5), "dobra");
-  assert.equal(tonMarze(null), "nema");
+  assert.equal(tonMarze(0.2, 0.25), "losa");
+  assert.equal(tonMarze(0.3, 0.25), "tijesna");
+  assert.equal(tonMarze(0.5, 0.25), "dobra");
+  assert.equal(tonMarze(null, 0.25), "nema");
+  assert.equal(tonMarze(0.5, undefined), "nema", "bez minimuma iz baze nema ni ocjene");
 });

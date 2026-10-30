@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePodesavanja } from "@/lib/api/hooks";
 import { Ban } from "lucide-react";
 import { AdminLadica } from "@/components/admin/admin-ladica";
 import { KutijaEditor } from "@/components/admin/kutija-editor";
@@ -26,6 +27,7 @@ export function KorpicaKupcaEditor({ orderItemId, onClose }: { orderItemId: stri
 
   const kljuc = ["admin", "korpica-narudzbe", orderItemId] as const;
   const { data, isLoading, isError } = useQuery({ queryKey: kljuc, queryFn: () => adminApi.korpicaNarudzbe(orderItemId) });
+  const { data: podesavanja } = usePodesavanja();
   const { data: sviArtikli } = useQuery({ queryKey: ["admin", "products"], queryFn: () => adminApi.products() });
   const poId = useMemo(() => new Map<string, Product>((sviArtikli ?? []).map((a) => [a.id, a])), [sviArtikli]);
 
@@ -102,6 +104,7 @@ export function KorpicaKupcaEditor({ orderItemId, onClose }: { orderItemId: stri
               onChange={setRedovi}
               cilj={data!.cilj}
               cijenaKorpice={data!.cijenaKorpice}
+              minimalnaMarza={podesavanja?.minimalnaMarza}
               ponuda={ponuda}
               samoPregled={samoPregled}
               izbjegnuti={izbjegnuti}

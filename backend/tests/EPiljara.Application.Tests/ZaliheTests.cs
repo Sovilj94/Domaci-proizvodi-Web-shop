@@ -26,7 +26,7 @@ public class ZaliheTests
     {
         t.Db.ChangeTracker.Clear();
         var lista = await new GetKorpiceHandler(
-                t.Db, Options.Create(new PretplateOpcije()), Options.Create(t.Opcije))
+                t.Db, Options.Create(TestOpcije.Pretplate()), Options.Create(t.Opcije))
             .Handle(new GetKorpiceQuery(null), default);
         return lista.Single(k => k.Id == t.KorpicaId);
     }
@@ -88,7 +88,7 @@ public class ZaliheTests
         Assert.Equal("nema_zalihe", ex.Code);
 
         t.Db.ChangeTracker.Clear();
-        var katalog = await new GetProductsHandler(t.Db, Options.Create(t.Opcije))
+        var katalog = await new GetProductsHandler(t.Db, Options.Create(t.Opcije), TestOpcije.ProdavnicaO())
             .Handle(new GetProductsQuery(null, null, null), default);
         Assert.Equal(0m, katalog.Single(p => p.Id == t.KrompirId).Stock);
     }

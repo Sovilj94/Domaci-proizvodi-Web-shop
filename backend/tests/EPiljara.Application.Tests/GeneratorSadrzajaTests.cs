@@ -9,7 +9,7 @@ namespace EPiljara.Application.Tests;
 public class GeneratorSadrzajaTests
 {
     private static readonly IOptions<KorpiceOpcije> Opcije =
-        Options.Create(new KorpiceOpcije());
+        Options.Create(TestOpcije.Korpice());
 
     /// <summary>Korpica + kategorija + proizvođač + N artikala u bazenu.</summary>
     private static Product Postavi(TestDb t, int[] mjeseciArtikala, int brojArtikala = 10, decimal stock = 100m)
@@ -123,7 +123,7 @@ public class GeneratorSadrzajaTests
     {
         using var t = new TestDb();
         var korpica = Postavi(t, mjeseciArtikala: []);
-        var cilj = korpica.Price * new KorpiceOpcije().KoeficijentVrijednosti;
+        var cilj = korpica.Price * TestOpcije.Korpice().KoeficijentVrijednosti;
 
         var rez = await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default);
 

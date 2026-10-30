@@ -226,6 +226,14 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
 
+    /// <summary>Poslovna pravila (marža, popusti, poeni, prag „pri kraju“) — jedan red u bazi.</summary>
+    [HttpGet("admin/podesavanja")]
+    public async Task<IActionResult> Podesavanja() => Envelope(await Mediator.Send(new GetPodesavanjaQuery()));
+
+    [HttpPut("admin/podesavanja")]
+    public async Task<IActionResult> SacuvajPodesavanja([FromBody] PodesavanjaDto body) =>
+        Envelope(await Mediator.Send(new SacuvajPodesavanjaCommand(body)));
+
     /// <summary>Blokovi jedne sekcije sajta (i neobjavljeni).</summary>
     [HttpGet("admin/blokovi/{sekcija}")]
     public async Task<IActionResult> Blokovi(string sekcija) =>

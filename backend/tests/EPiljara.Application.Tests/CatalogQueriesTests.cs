@@ -45,7 +45,7 @@ public class CatalogQueriesTests
         using var t = new TestDb();
         Postavi(t);
 
-        var rez = await new GetProductsHandler(t.Db).Handle(new GetProductsQuery(null, null, null), default);
+        var rez = await new GetProductsHandler(t.Db, TestOpcije.KorpiceO(), TestOpcije.ProdavnicaO()).Handle(new GetProductsQuery(null, null, null), default);
 
         var p = Assert.Single(rez);
         Assert.Equal("babura-paprika", p.Slug);
@@ -67,7 +67,7 @@ public class CatalogQueriesTests
         });
         t.Db.SaveChanges();
 
-        var rez = await new GetProductsHandler(t.Db)
+        var rez = await new GetProductsHandler(t.Db, TestOpcije.KorpiceO(), TestOpcije.ProdavnicaO())
             .Handle(new GetProductsQuery(null, null, null, obican.ProducerId), default);
 
         Assert.Equal(["babura-paprika"], rez.Select(p => p.Slug));
@@ -80,10 +80,10 @@ public class CatalogQueriesTests
         Postavi(t);
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            new GetProductBySlugHandler(t.Db)
+            new GetProductBySlugHandler(t.Db, TestOpcije.KorpiceO(), TestOpcije.ProdavnicaO())
                 .Handle(new GetProductBySlugQuery("mala-domacinska-korpica"), default));
 
-        var obican = await new GetProductBySlugHandler(t.Db)
+        var obican = await new GetProductBySlugHandler(t.Db, TestOpcije.KorpiceO(), TestOpcije.ProdavnicaO())
             .Handle(new GetProductBySlugQuery("babura-paprika"), default);
         Assert.Equal("Babura paprika", obican.Name);
     }

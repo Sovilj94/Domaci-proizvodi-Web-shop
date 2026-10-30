@@ -233,7 +233,7 @@ public static class SedmicaHelper
 public record GetKorpiceQuery(string? Tip) : IRequest<IReadOnlyList<KorpicaDto>>;
 
 public class GetKorpiceHandler(
-    IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije, IOptions<KorpiceOpcije>? korpiceOpcije = null)
+    IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije, IOptions<KorpiceOpcije> korpiceOpcije)
     : IRequestHandler<GetKorpiceQuery, IReadOnlyList<KorpicaDto>>
 {
     public async Task<IReadOnlyList<KorpicaDto>> Handle(GetKorpiceQuery q, CancellationToken ct)
@@ -246,7 +246,7 @@ public class GetKorpiceHandler(
             .OrderBy(p => p.TipKorpice).ThenBy(p => p.Velicina)
             .ToListAsync(ct);
 
-        var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije?.Value ?? new KorpiceOpcije(), ct);
+        var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije.Value, ct);
         return lista
             .Select(p => p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null))
             .ToList();
@@ -258,7 +258,7 @@ public class GetKorpiceHandler(
 public record GetKorpicaBySlugQuery(string Slug) : IRequest<KorpicaDto>;
 
 public class GetKorpicaBySlugHandler(
-    IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije, IOptions<KorpiceOpcije>? korpiceOpcije = null)
+    IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije, IOptions<KorpiceOpcije> korpiceOpcije)
     : IRequestHandler<GetKorpicaBySlugQuery, KorpicaDto>
 {
     public async Task<KorpicaDto> Handle(GetKorpicaBySlugQuery q, CancellationToken ct)
@@ -266,7 +266,7 @@ public class GetKorpicaBySlugHandler(
         var p = await db.Products
             .FirstOrDefaultAsync(x => x.Slug == q.Slug && x.Vrsta == VrstaProizvoda.Korpica, ct)
             ?? throw new NotFoundException("Korpica nije pronađena.");
-        var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije?.Value ?? new KorpiceOpcije(), ct);
+        var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije.Value, ct);
         return p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null);
     }
 }

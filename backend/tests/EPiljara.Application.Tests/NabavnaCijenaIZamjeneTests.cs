@@ -16,7 +16,7 @@ namespace EPiljara.Application.Tests;
 /// </summary>
 public class NabavnaCijenaIZamjeneTests
 {
-    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(new KorpiceOpcije());
+    private static readonly IOptions<KorpiceOpcije> Opcije = Options.Create(TestOpcije.Korpice());
 
     /// <summary>Korpica 25 KM (cilj 28.75, nabavni budžet 18.75) + artikli po 4 KM/kg.</summary>
     private static Product Postavi(TestDb t, params decimal?[] nabavne)

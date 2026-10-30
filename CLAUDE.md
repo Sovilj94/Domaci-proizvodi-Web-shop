@@ -74,6 +74,11 @@ Site copy that is content (hero slides, cards, tiles, layout photos, FAQ, contac
 `types/domain.ts`) and `SadrzajSajta`, edited at `/admin/sadrzaj`; English sits in the same row (`NaslovEn`…)
 and reaches the DOM translator through `GET /prevodi`. A section with no rows renders nothing. Headings and
 button labels that are part of the interface stay in components.
+Business rules (margin, discounts, commitments, points, low-stock threshold, fallback cutoff) are the one-row
+`Podesavanja` table, edited at `/admin/settings`; handlers keep reading `IOptions<…Opcije>`, which `Program.cs`
+fills per request from that row (`IzvorPodesavanja`). The option classes have **no default values** — tests use
+`TestOpcije`. The API refuses to start without the row. The frontend never repeats a rule: it reads it from
+`usePodesavanja()` (admin) or gets the result computed (`Product.priKraju`, korpica prices).
 
 **EF Core migrations** (dotnet-ef is pinned in `.config/dotnet-tools.json`):
 ```bash

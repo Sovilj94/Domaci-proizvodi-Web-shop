@@ -50,7 +50,7 @@ export const FILTERI = [
   { kljuc: "sve", naziv: "Sve" },
   { kljuc: "bez-zalihe", naziv: "Bez zalihe" },
   { kljuc: "bez-nabavne", naziv: "Bez nabavne" },
-  { kljuc: "niska-marza", naziv: "Marža ispod 25%" },
+  { kljuc: "niska-marza", naziv: "Marža ispod minimuma" },
   { kljuc: "u-sezoni", naziv: "U sezoni" },
   { kljuc: "skriveni", naziv: "Skriveni" },
 ] as const;
@@ -65,14 +65,15 @@ export function uSezoni(p: Product, mjesec: number): boolean {
   return !p.mjeseci || p.mjeseci.length === 0 || p.mjeseci.includes(mjesec);
 }
 
-export function prolaziFilter(p: Product, filter: Filter, mjesec: number): boolean {
+/** `minimalnaMarza` je pravilo iz baze (Podesavanja); bez njega filter „niska marža" ništa ne nalazi. */
+export function prolaziFilter(p: Product, filter: Filter, mjesec: number, minimalnaMarza?: number): boolean {
   switch (filter) {
     case "bez-zalihe":
       return p.isAvailable && p.stock <= 0 && uSezoni(p, mjesec);
     case "bez-nabavne":
       return !!p.mozeUKorpicu && (p.nabavnaCijena == null || p.nabavnaCijena <= 0);
     case "niska-marza":
-      return p.marza != null && p.marza < 0.25;
+      return p.marza != null && minimalnaMarza != null && p.marza < minimalnaMarza;
     case "u-sezoni":
       return p.isAvailable && uSezoni(p, mjesec);
     case "skriveni":

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePodesavanja } from "@/lib/api/hooks";
 import { useState } from "react";
 import { ArrowLeftRight, Minus, Plus, Search, X } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
@@ -29,7 +30,7 @@ export function KutijaEditor({
   onChange,
   cilj,
   cijenaKorpice,
-  minimalnaMarza = 0.25,
+  minimalnaMarza,
   ponuda,
   samoPregled = false,
   izbjegnuti,
@@ -38,7 +39,8 @@ export function KutijaEditor({
   onChange: (redovi: KutijaRed[]) => void;
   cilj: number;
   cijenaKorpice: number;
-  minimalnaMarza?: number;
+  /** Iz baze (Podesavanja); dok ne stigne, marža se ne boji. */
+  minimalnaMarza: number | undefined;
   /** Sezonska ponuda za taj mjesec (vidi `sezonskaPonuda`). */
   ponuda: Product[];
   samoPregled?: boolean;
@@ -248,6 +250,7 @@ export function Plocice({
 }) {
   const [upit, setUpit] = useState("");
   const [sve, setSve] = useState(false);
+  const minimalnaMarza = usePodesavanja().data?.minimalnaMarza;
   const q = bezKvacica(upit.trim());
   const filtrirano = q ? ponuda.filter((p) => bezKvacica(`${p.name} ${p.categoryName}`).includes(q)) : ponuda;
   const prikaz = sve || q ? filtrirano : filtrirano.slice(0, najvise);
@@ -285,7 +288,7 @@ export function Plocice({
                 <span className="block truncate text-xs font-medium">{p.name}</span>
                 <span className="block truncate text-[11px] text-muted">
                   {opis ? opis(p) : `${formatPrice(p.price)}${unitSuffix(p.unit)}`}
-                  {p.marza != null && <span className={cn("ml-1", TON[tonMarze(p.marza)])}>{formatMarza(p.marza)}</span>}
+                  {p.marza != null && <span className={cn("ml-1", TON[tonMarze(p.marza, minimalnaMarza)])}>{formatMarza(p.marza)}</span>}
                 </span>
               </span>
             </button>

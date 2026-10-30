@@ -2,26 +2,24 @@ using EPiljara.Domain.Enums;
 
 namespace EPiljara.Application.Features.Korpice;
 
-/// <summary>Podešavanja korpica, iz sekcije „Korpice" u konfiguraciji.</summary>
+/// <summary>Podešavanja korpica — puni ih red <c>Podesavanja</c> iz baze (vidi PodesavanjaMapa).</summary>
 public class KorpiceOpcije
 {
-    public const string Sekcija = "Korpice";
-
     /// <summary>
     /// Koliko puta vrijednost sadržaja prelazi cijenu korpice. 1.15 znači da kupac
     /// dobija 15% više vrijednosti nego što plati — to je popust za to što ne bira sam.
     /// </summary>
-    public decimal KoeficijentVrijednosti { get; set; } = 1.15m;
+    public decimal KoeficijentVrijednosti { get; set; }
 
     /// <summary>
     /// Najmanja marža korpice, kao udio njene cijene. 0.25 znači da nabavna vrijednost
     /// sadržaja smije biti najviše 75% cijene korpice. Generator po tome određuje količine
     /// artikala sa unesenom nabavnom cijenom, a kupčeva zamjena je ne smije probiti.
     /// </summary>
-    public decimal MinimalnaMarza { get; set; } = 0.25m;
+    public decimal MinimalnaMarza { get; set; }
 
     /// <summary>Koliko predloženih zamjena generator dodaje uz svaki sadržaj.</summary>
-    public int BrojZamjena { get; set; } = 4;
+    public int BrojZamjena { get; set; }
 
     /// <summary>
     /// Koliko sati prije isporuke se zatvara naručivanje — SAMO rezerva za slučaj
@@ -30,7 +28,7 @@ public class KorpiceOpcije
     /// CutoffHours je jedini izvor istine i ovo polje se ne čita — ciklus je vezan za
     /// DeliverySlot, ne za konfiguraciju.
     /// </summary>
-    public int RokSati { get; set; } = 48;
+    public int RokSati { get; set; }
 
     /// <summary>
     /// Dan u sedmici za isporuku korpica — SAMO rezerva za slučaj kad u bazi ne
@@ -38,14 +36,14 @@ public class KorpiceOpcije
     /// DeliverySlot postoji, dan sa najnižim DayOfWeek (prvi dan isporuke u sedmici)
     /// je jedini izvor istine i ovo polje se ne čita.
     /// </summary>
-    public DayOfWeek DanIsporukeRezerva { get; set; } = DayOfWeek.Friday;
+    public DayOfWeek DanIsporukeRezerva { get; set; }
 
     /// <summary>
     /// Vrijeme isporuke (npr. "16:00") — SAMO rezerva za slučaj kad u bazi ne postoji
     /// nijedan <see cref="EPiljara.Domain.Entities.DeliverySlot"/>. Dok DeliverySlot
     /// postoji, njegov TimeFrom je jedini izvor istine i ovo polje se ne čita.
     /// </summary>
-    public string VrijemeIsporukeRezerva { get; set; } = "16:00";
+    public string VrijemeIsporukeRezerva { get; set; } = string.Empty;
 
     /// <summary>
     /// Najmanje koliko različitih namirnica ide u korpicu. Isto za sve veličine (po uzoru na
@@ -53,10 +51,5 @@ public class KorpiceOpcije
     /// Generator i „Šta dobijaš u korpici?" dijele vrijednost korpice na ovaj broj, pa okvirna
     /// količina koju kupac vidi odgovara onome što se pakuje.
     /// </summary>
-    public Dictionary<VelicinaKorpice, int> MinimalanBrojArtikala { get; set; } = new()
-    {
-        [VelicinaKorpice.Mala] = 8,
-        [VelicinaKorpice.Srednja] = 8,
-        [VelicinaKorpice.Velika] = 8,
-    };
+    public Dictionary<VelicinaKorpice, int> MinimalanBrojArtikala { get; set; } = new();
 }
