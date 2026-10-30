@@ -313,7 +313,12 @@ export interface Korpica {
   obavezaTriMjeseca?: number;
   imageUrl?: string;
   opis: string;
+  /** Koliko ih još može da se proda — server računa iz sadržaja sedmice i stanja artikala. */
   stock: number;
+  /** Artikal koji prvi ponestane; odsutno kad nema objavljenog sadržaja. */
+  uskoGrlo?: string | null;
+  /** Admin je drži u ponudi, bez obzira na kapacitet. */
+  uProdaji: boolean;
   dostupna: boolean;
 }
 

@@ -88,8 +88,10 @@ public class VratiMojuKorpicuHandler(
 
         var redovi = await SnapshotKorpice.SablonAsync(db, red.Id, sadrzaj, ct);
         var mjesec = SedmicaHelper.DatumIsporuke(red.Order!.Godina, red.Order.Sedmica, DayOfWeek.Monday, "00:00").Month;
+        var zalihe = await Zalihe.UcitajAsync(db, red.Order.Godina, red.Order.Sedmica, ct, red.Id);
         await AutoZamjena.PrimijeniIzbjegnuteAsync(
-            db, redovi, red.Id, sadrzaj, korpica, red.UnitPrice, current.Id!.Value, mjesec, opcije.Value, ct);
+            db, redovi, red.Id, sadrzaj, korpica, red.UnitPrice, current.Id!.Value, mjesec, opcije.Value, ct,
+            p => zalihe.Slobodno(p) / red.Quantity);
 
         // Brisanje kroz DbSet, ne Clear() na kolekciji — vidi IzmijeniMojuKorpicuHandler.
         db.StavkeKorpiceNarudzbe.RemoveRange(red.KorpicaStavke);

@@ -49,6 +49,9 @@ public class ZamijeniArtikalUKorpiciHandler(
             .Month;
         var kandidati = await AutoZamjena.KandidatiAsync(db, sadrzaj, korpica, mjesec, ct);
         var nabavne = await AutoZamjena.NabavneAsync(db, red.KorpicaStavke, ct);
+        // Slobodno po jednoj korpici: stanje minus ono što su druge korpice i Špajz već uzeli.
+        var zalihe = await Zalihe.UcitajAsync(db, red.Order.Godina, red.Order.Sedmica, ct, red.Id);
+        decimal Slobodno(Product p) => zalihe.Slobodno(p) / red.Quantity;
 
         AutoZamjena.Izbor izbor;
         if (cmd.Ubaci is null)
@@ -58,7 +61,7 @@ public class ZamijeniArtikalUKorpiciHandler(
                 .Select(x => x.ProductId)
                 .ToListAsync(ct)).ToHashSet();
             izbjegnuti.Add(stara.ProductId);
-            izbor = AutoZamjena.Nadji(kandidati, stara, ostale, sadrzaj, red.UnitPrice, nabavne, izbjegnuti, o)
+            izbor = AutoZamjena.Nadji(kandidati, stara, ostale, sadrzaj, red.UnitPrice, nabavne, izbjegnuti, o, Slobodno)
                 ?? throw new DomainException(
                     $"Za {stara.ProductName} ove sedmice nema zamjene koja staje u korpicu.", "nema_zamjene");
         }
@@ -78,7 +81,7 @@ public class ZamijeniArtikalUKorpiciHandler(
             if (ostale.Any(s => s.ProductId == nov.Id))
                 throw new DomainException($"{nov.Name} je već u korpici.", "artikal_vec_u_korpici");
 
-            var (probano, prepreka) = AutoZamjena.Probaj(nov, stara, ostale, sadrzaj, red.UnitPrice, nabavne, o);
+            var (probano, prepreka) = AutoZamjena.Probaj(nov, stara, ostale, sadrzaj, red.UnitPrice, nabavne, o, Slobodno);
             izbor = probano ?? throw prepreka switch
             {
                 AutoZamjena.Prepreka.NemaZalihe => new DomainException(

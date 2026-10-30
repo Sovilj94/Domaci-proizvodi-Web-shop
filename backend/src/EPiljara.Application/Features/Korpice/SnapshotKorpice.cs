@@ -46,7 +46,8 @@ public static class SnapshotKorpice
         int sedmica,
         Guid? kupacId,
         KorpiceOpcije opcije,
-        CancellationToken ct)
+        CancellationToken ct,
+        Zalihe? zalihe = null)
     {
         if (proizvod.Vrsta != VrstaProizvoda.Korpica) return;
 
@@ -67,7 +68,8 @@ public static class SnapshotKorpice
         {
             var mjesec = SedmicaHelper.DatumIsporuke(godina, sedmica, DayOfWeek.Monday, "00:00").Month;
             await AutoZamjena.PrimijeniIzbjegnuteAsync(
-                db, redovi, stavka.Id, sadrzaj, proizvod, stavka.UnitPrice, kupacId.Value, mjesec, opcije, ct);
+                db, redovi, stavka.Id, sadrzaj, proizvod, stavka.UnitPrice, kupacId.Value, mjesec, opcije, ct,
+                zalihe is null ? null : p => zalihe.Slobodno(p) / stavka.Quantity);
         }
         foreach (var r in redovi) stavka.KorpicaStavke.Add(r);
     }

@@ -460,6 +460,24 @@ public class IzmijeniMojuKorpicuHandler(
             throw new DomainException(
                 $"Korpica mora imati bar {minimum} artikala.", "premalo_artikala");
 
+        // Dodat artikal (ili veća količina zadržanog) mora imati slobodnog stanja — onog što
+        // već nije obećano drugim korpicama i Špajzu. Zadržan artikal u istoj količini se ne
+        // provjerava, iz istog razloga iz kojeg preskače podobnost gore.
+        var zalihe = await Zalihe.UcitajAsync(db, red.Order.Godina, red.Order.Sedmica, ct, red.Id);
+        var novoUzeti = nove
+            .Where(s => !zadrzani.TryGetValue(s.ProductId, out var z) || s.Kolicina > z.Kolicina)
+            .ToList();
+        var novoIdjevi = novoUzeti.Select(s => s.ProductId).ToList();
+        var artikli = await db.Products.IgnoreQueryFilters().Where(p => novoIdjevi.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
+        foreach (var s in novoUzeti)
+        {
+            var slobodno = artikli.TryGetValue(s.ProductId, out var p) ? zalihe.Slobodno(p) : 0m;
+            if (s.Kolicina * red.Quantity > slobodno)
+                throw new DomainException(
+                    $"Artikla {s.ProductName} nema dovoljno za ovu korpicu. Izaberi drugi artikal.",
+                    "nema_zalihe");
+        }
+
         // Stari redovi se brišu eksplicitno kroz DbSet. `Clear()` na kolekciji praćenog
         // roditelja je u P1 dao DbUpdateConcurrencyException — EF je pokušao da ih i obriše i
         // ažurira. Vidi CLAUDE.md.

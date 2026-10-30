@@ -306,6 +306,9 @@ public class ConfirmGuestOrderHandler(
             }
         }
 
+        // Ista provjera slobodnog stanja kao CreateOrderHandler — vidi Zalihe.
+        var zalihe = await Zalihe.UcitajAsync(db, godina, sedmica, ct);
+
         var items = new List<OrderItem>();
         foreach (var stavka in zahtjev.Items)
         {
@@ -313,6 +316,7 @@ public class ConfirmGuestOrderHandler(
             if (product is null || !product.IsAvailable || (product.Vrsta == VrstaProizvoda.Obican && !product.USpajzu))
                 throw new DomainException(
                     $"Proizvod nije dostupan ({stavka.ProductName}).", "product_unavailable");
+            if (product.Vrsta == VrstaProizvoda.Obican) zalihe.ProvjeriArtikal(product, stavka.Quantity);
 
             var red = new OrderItem
             {
@@ -329,13 +333,17 @@ public class ConfirmGuestOrderHandler(
             // vidi. Odbijanje potvrde sa `korpica_bez_sadrzaja` je NOV način da ovaj
             // endpoint padne — i jedini ispravan, jer je prodaja kutije koju ne možemo
             // napuniti gora od odbijene potvrde.
-            await SnapshotKorpice.PricvrstiAsync(db, red, product, godina, sedmica, null, korpiceOpcije.Value, ct);
+            await SnapshotKorpice.PricvrstiAsync(db, red, product, godina, sedmica, null, korpiceOpcije.Value, ct, zalihe);
 
             items.Add(red);
 
             // Zalihe se skidaju tek sada — CreateGuestOrderRequestHandler ih namjerno
-            // nije dirao dok je zahtjev bio samo nepotvrđena namjera.
-            product.Stock = Math.Max(0, product.Stock - stavka.Quantity);
+            // nije dirao dok je zahtjev bio samo nepotvrđena namjera. Korpica nema svoju
+            // zalihu: troši artikle svog sadržaja (vidi Zalihe).
+            if (product.Vrsta == VrstaProizvoda.Korpica)
+                await zalihe.UzmiKorpicuAsync(db, red, product, ct);
+            else
+                product.Stock = Math.Max(0, product.Stock - stavka.Quantity);
         }
 
         var order = new Order

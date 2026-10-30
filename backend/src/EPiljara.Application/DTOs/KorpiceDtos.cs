@@ -25,7 +25,16 @@ public record KorpicaDto
 
     public string? ImageUrl { get; init; }
     public string Opis { get; init; } = string.Empty;
+    /// <summary>
+    /// Koliko ih još može da se proda u sedmici prodaje — izračunato iz sadržaja sedmice i
+    /// slobodnog stanja artikala (Zalihe.Kapacitet), ne čuvano. Važi kao da se prodaje samo
+    /// ova korpica: sve dijele iste artikle.
+    /// </summary>
     public decimal Stock { get; init; }
+    /// <summary>Artikal koji prvi ponestane; null kad nema objavljenog sadržaja.</summary>
+    public string? UskoGrlo { get; init; }
+    /// <summary>Admin je drži u ponudi (Product.IsAvailable) — bez obzira na kapacitet.</summary>
+    public bool UProdaji { get; init; }
     public bool Dostupna { get; init; }
 }
 

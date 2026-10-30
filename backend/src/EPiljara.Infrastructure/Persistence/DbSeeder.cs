@@ -201,7 +201,8 @@ public static partial class DbSeeder
                 Slug = slug,
                 Price = Math.Round(osnovneCijene[tip] * faktor, 0),
                 Unit = Unit.Kom,
-                Stock = 40,
+                // Bez Stock: korpica nema svoju zalihu — koliko ih može da se proda računa se
+                // iz sadržaja sedmice i stanja artikala (Zalihe.Kapacitet).
                 // R2: prodaju se samo korpice povrća i voća (odluka korisnika 2026-10-16); ostale
                 // vrste ostaju u bazi, sakrivene, i mogu se vratiti uključivanjem dostupnosti.
                 IsAvailable = tip is TipKorpice.Povrce or TipKorpice.Voce,

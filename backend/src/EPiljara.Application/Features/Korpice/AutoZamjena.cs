@@ -70,7 +70,8 @@ public static class AutoZamjena
         SedmicniSadrzaj sadrzaj,
         decimal cijenaKorpice,
         IReadOnlyDictionary<Guid, decimal> nabavne,
-        KorpiceOpcije o)
+        KorpiceOpcije o,
+        Func<Product, decimal>? slobodno = null)
     {
         var cijena = Cijena(sadrzaj, nov);
         if (cijena <= 0) return (null, Prepreka.NeStaje);
@@ -84,7 +85,8 @@ public static class AutoZamjena
             Math.Round(cilj * IzmijeniMojuKorpicuHandler.GornjaGranica, 2),
             nov.Unit);
         if (kolicina is null) return (null, Prepreka.NeStaje);
-        if (kolicina > nov.Stock) return (null, Prepreka.NemaZalihe);
+        // Slobodno po jednoj korpici (vidi Zalihe); bez njega ostaje golo stanje.
+        if (kolicina > (slobodno?.Invoke(nov) ?? nov.Stock)) return (null, Prepreka.NemaZalihe);
 
         // Nabavni budžet: zamjena koja kutiju gura preko njega se odbija — osim kad je i
         // dalje jeftinija od stanja prije. Bez nabavne cijene novog artikla nema provjere.
@@ -110,12 +112,13 @@ public static class AutoZamjena
         decimal cijenaKorpice,
         IReadOnlyDictionary<Guid, decimal> nabavne,
         ISet<Guid> iskljuci,
-        KorpiceOpcije o)
+        KorpiceOpcije o,
+        Func<Product, decimal>? slobodno = null)
     {
         foreach (var p in kandidati)
         {
             if (p.Id == stara.ProductId || iskljuci.Contains(p.Id) || ostale.Any(s => s.ProductId == p.Id)) continue;
-            var (izbor, _) = Probaj(p, stara, ostale, sadrzaj, cijenaKorpice, nabavne, o);
+            var (izbor, _) = Probaj(p, stara, ostale, sadrzaj, cijenaKorpice, nabavne, o, slobodno);
             if (izbor is not null) return izbor;
         }
         return null;
@@ -148,7 +151,8 @@ public static class AutoZamjena
         Guid kupacId,
         int mjesec,
         KorpiceOpcije o,
-        CancellationToken ct)
+        CancellationToken ct,
+        Func<Product, decimal>? slobodno = null)
     {
         var izbjegnuti = (await db.IzbjegnutiArtikli
             .Where(x => x.UserId == kupacId)
@@ -164,7 +168,7 @@ public static class AutoZamjena
         foreach (var stara in stavke.Where(s => izbjegnuti.Contains(s.ProductId)).ToList())
         {
             var ostale = stavke.Where(s => s != stara).ToList();
-            var izbor = Nadji(kandidati, stara, ostale, sadrzaj, cijenaKorpice, nabavne, izbjegnuti, o);
+            var izbor = Nadji(kandidati, stara, ostale, sadrzaj, cijenaKorpice, nabavne, izbjegnuti, o, slobodno);
             if (izbor is null) continue;
             stavke[stavke.IndexOf(stara)] = Red(orderItemId, izbor, sadrzaj);
         }

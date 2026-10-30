@@ -15,12 +15,14 @@ const OSVJEZI = 30_000;
 
 const TON: Record<Oznaka, string> = {
   ok: "text-ink",
-  malo: "text-honey-700",
   rasprodato: "text-red-700",
   vanProdaje: "text-muted",
 };
 
-/** Koliko je korpica i artikala iz Špajza ostalo za prodaju — da se pri potvrđivanju zna šta još ima. */
+/**
+ * Koliko je korpica i artikala iz Špajza ostalo za prodaju — da se pri potvrđivanju zna šta još
+ * ima. Sve brojeve računa server iz baze; ovdje se samo raspoređuju.
+ */
 export function StanjeZaliha() {
   const korpice = useQuery({ queryKey: queryKeys.korpiceLista(), queryFn: () => korpiceApi.lista(), refetchInterval: OSVJEZI });
   const proizvodi = useQuery({ queryKey: queryKeys.products({}), queryFn: () => catalogApi.products({}), refetchInterval: OSVJEZI });
@@ -45,9 +47,7 @@ export function StanjeZaliha() {
     });
   }
 
-  const svi = [...s.korpice, ...s.spajz];
-  const rasprodato = svi.filter((r) => r.oznaka === "rasprodato").length;
-  const malo = svi.filter((r) => r.oznaka === "malo").length;
+  const rasprodato = [...s.korpice, ...s.spajz].filter((r) => r.oznaka === "rasprodato").length;
 
   return (
     <section className="rounded-card border border-line bg-surface">
@@ -60,13 +60,17 @@ export function StanjeZaliha() {
         <span>
           <span className="font-display text-lg font-bold text-ink">Preostalo za prodaju</span>
           {rasprodato > 0 && <span className="ml-2 text-sm font-medium text-red-700">{rasprodato} rasprodato</span>}
-          {malo > 0 && <span className="ml-2 text-sm font-medium text-honey-700">{malo} pri kraju</span>}
         </span>
         <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted transition", otvoreno && "rotate-180")} />
       </button>
       {otvoreno && (
         <div className="grid gap-6 border-t border-line px-5 py-4 lg:grid-cols-2">
-          <Spisak naslov="Korpice" redovi={s.korpice} ucitava={korpice.isLoading} />
+          <Spisak
+            naslov="Korpice"
+            napomena="Svaki broj važi kao da se prodaje samo ta korpica — sve troše iste artikle."
+            redovi={s.korpice}
+            ucitava={korpice.isLoading}
+          />
           <Spisak naslov="Špajz" redovi={s.spajz} ucitava={proizvodi.isLoading} />
         </div>
       )}
@@ -74,10 +78,21 @@ export function StanjeZaliha() {
   );
 }
 
-function Spisak({ naslov, redovi, ucitava }: { naslov: string; redovi: StanjeRed[]; ucitava: boolean }) {
+function Spisak({
+  naslov,
+  napomena,
+  redovi,
+  ucitava,
+}: {
+  naslov: string;
+  napomena?: string;
+  redovi: StanjeRed[];
+  ucitava: boolean;
+}) {
   return (
     <div>
       <h3 className="text-sm font-semibold text-ink">{naslov}</h3>
+      {napomena && <p className="text-xs text-muted">{napomena}</p>}
       {ucitava ? (
         <p className="mt-2 text-sm text-muted">Učitavanje…</p>
       ) : redovi.length === 0 ? (
@@ -89,6 +104,7 @@ function Spisak({ naslov, redovi, ucitava }: { naslov: string; redovi: StanjeRed
               <span>
                 {r.naziv}
                 {r.oznaka === "vanProdaje" && <span className="ml-1.5 text-xs">· skinuto iz prodaje</span>}
+                {r.uskoGrlo && <span className="ml-1.5 text-xs text-muted">· prvo ponestane: {r.uskoGrlo}</span>}
               </span>
               <span className={cn("font-semibold tabular-nums", TON[r.oznaka])}>
                 {r.oznaka === "rasprodato" ? "rasprodato" : `${r.ostalo} ${r.jedinica}`}

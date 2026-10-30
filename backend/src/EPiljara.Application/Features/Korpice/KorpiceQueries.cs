@@ -179,7 +179,12 @@ public static class SedmicaHelper
     /// kopija tog množenja u pregledaču bi se razišla sa računom čim se prag ili procenat
     /// promijene.
     /// </param>
-    public static KorpicaDto ToKorpicaDto(this Product p, PretplateOpcije? pretplateOpcije = null) => new()
+    /// <param name="kapacitet">
+    /// Iz <see cref="Zalihe.KapacitetiAsync"/>; bez njega (ili bez objavljenog sadržaja) je 0 —
+    /// korpica bez sadržaja se ne može napuniti, pa se ni ne prodaje.
+    /// </param>
+    public static KorpicaDto ToKorpicaDto(
+        this Product p, PretplateOpcije? pretplateOpcije = null, (int Moguce, string? UskoGrlo)? kapacitet = null) => new()
     {
         Id = p.Id,
         Naziv = p.Name,
@@ -194,8 +199,10 @@ public static class SedmicaHelper
         ObavezaTriMjeseca = pretplateOpcije?.ObavezaTriMjeseca,
         ImageUrl = p.ImageUrl,
         Opis = p.Description,
-        Stock = p.Stock,
-        Dostupna = p.IsAvailable && p.Stock > 0,
+        Stock = kapacitet?.Moguce ?? 0,
+        UskoGrlo = kapacitet?.UskoGrlo,
+        UProdaji = p.IsAvailable,
+        Dostupna = p.IsAvailable && (kapacitet?.Moguce ?? 0) > 0,
     };
 
     public static SadrzajDto ToDto(this SedmicniSadrzaj s) => new()
@@ -225,7 +232,8 @@ public static class SedmicaHelper
 
 public record GetKorpiceQuery(string? Tip) : IRequest<IReadOnlyList<KorpicaDto>>;
 
-public class GetKorpiceHandler(IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije)
+public class GetKorpiceHandler(
+    IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije, IOptions<KorpiceOpcije>? korpiceOpcije = null)
     : IRequestHandler<GetKorpiceQuery, IReadOnlyList<KorpicaDto>>
 {
     public async Task<IReadOnlyList<KorpicaDto>> Handle(GetKorpiceQuery q, CancellationToken ct)
@@ -238,7 +246,10 @@ public class GetKorpiceHandler(IAppDbContext db, IOptions<PretplateOpcije> pretp
             .OrderBy(p => p.TipKorpice).ThenBy(p => p.Velicina)
             .ToListAsync(ct);
 
-        return lista.Select(p => p.ToKorpicaDto(pretplateOpcije.Value)).ToList();
+        var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije?.Value ?? new KorpiceOpcije(), ct);
+        return lista
+            .Select(p => p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null))
+            .ToList();
     }
 }
 
@@ -246,7 +257,8 @@ public class GetKorpiceHandler(IAppDbContext db, IOptions<PretplateOpcije> pretp
 
 public record GetKorpicaBySlugQuery(string Slug) : IRequest<KorpicaDto>;
 
-public class GetKorpicaBySlugHandler(IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije)
+public class GetKorpicaBySlugHandler(
+    IAppDbContext db, IOptions<PretplateOpcije> pretplateOpcije, IOptions<KorpiceOpcije>? korpiceOpcije = null)
     : IRequestHandler<GetKorpicaBySlugQuery, KorpicaDto>
 {
     public async Task<KorpicaDto> Handle(GetKorpicaBySlugQuery q, CancellationToken ct)
@@ -254,7 +266,8 @@ public class GetKorpicaBySlugHandler(IAppDbContext db, IOptions<PretplateOpcije>
         var p = await db.Products
             .FirstOrDefaultAsync(x => x.Slug == q.Slug && x.Vrsta == VrstaProizvoda.Korpica, ct)
             ?? throw new NotFoundException("Korpica nije pronađena.");
-        return p.ToKorpicaDto(pretplateOpcije.Value);
+        var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije?.Value ?? new KorpiceOpcije(), ct);
+        return p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null);
     }
 }
 

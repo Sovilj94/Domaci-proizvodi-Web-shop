@@ -230,6 +230,13 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   The shared part now lives in `Features/Korpice/SnapshotKorpice.cs` and both real sites call it; the
   seeder never orders a korpica, so it stays out. **Before adding an order-level invariant, run
   `grep -rn "new Order {" backend/src --include=*.cs` and decide about each hit explicitly.**
+- **A korpica has no stock of its own — `Zalihe.cs` is the only place that knows what is left.** Its
+  `Product.Stock` is ignored and no longer decremented. "How many can still be sold" is computed per sale
+  week from the published `SedmicniSadrzaj` × free stock of its articles, where free = `Stock` − what
+  `StavkaKorpiceNarudzbe` rows of that week (× `OrderItem.Quantity`, all but Cancelled) already promise.
+  Špajz stock is still decremented on order, and the catalog returns it minus that promise. Order
+  creation (both paths), customer edits and substitutions all go through `Zalihe`; subscription orders
+  are counted but never rejected. Never reintroduce a seeded or stored korpica count.
 - **`StavkaKorpiceNarudzbe` is not `StavkaSadrzaja`, and confusing them is the easiest mistake here.**
   `StavkaSadrzaja` is the weekly template, shared by every customer. `StavkaKorpiceNarudzbe` belongs to one
   `OrderItem` and the customer may edit it. The content is **copied** at order time, never referenced — an

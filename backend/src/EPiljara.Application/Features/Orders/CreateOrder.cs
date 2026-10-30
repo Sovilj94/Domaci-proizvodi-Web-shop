@@ -157,12 +157,16 @@ public class CreateOrderHandler(
         if (cmd.PretplataId is not null)
             pretplata = await db.Pretplate.FirstOrDefaultAsync(x => x.Id == cmd.PretplataId, ct);
 
+        // Slobodno stanje te sedmice: Špajz stanje minus sadržaj korpica koji je već obećan.
+        var zalihe = await Zalihe.UcitajAsync(db, godina, sedmica, ct);
+
         var items = new List<OrderItem>();
         foreach (var line in cmd.Items)
         {
             var product = await db.Products.FirstOrDefaultAsync(p => p.Id == line.ProductId, ct);
             if (product is null || !product.IsAvailable || (product.Vrsta == VrstaProizvoda.Obican && !product.USpajzu))
                 throw new DomainException($"Proizvod nije dostupan ({line.ProductId}).", "product_unavailable");
+            if (product.Vrsta == VrstaProizvoda.Obican) zalihe.ProvjeriArtikal(product, line.Quantity);
 
             // Cijena se snima u trenutku narudžbe. Za pretplatnu korpicu to je cijena
             // umanjena za popust koji je kupac dotad ZARADIO — popust visi o broju
@@ -184,11 +188,21 @@ public class CreateOrderHandler(
             // Korpica nosi sadržaj sedmice koju narudžba isporučuje. Isti poziv stoji i u
             // ConfirmGuestOrderHandler-u — vidi SnapshotKorpice za razlog zašto je ovo
             // zajednički pomoćnik, a ne kopiran blok.
-            await SnapshotKorpice.PricvrstiAsync(db, stavka, product, godina, sedmica, customerId, korpiceOpcije.Value, ct);
+            await SnapshotKorpice.PricvrstiAsync(db, stavka, product, godina, sedmica, customerId, korpiceOpcije.Value, ct, zalihe);
 
             items.Add(stavka);
 
-            product.Stock = Math.Max(0, product.Stock - line.Quantity);
+            // Korpica nema svoju zalihu — troši artikle svog sadržaja (vidi Zalihe). Pretplatnička
+            // korpica se ne odbija: obećana je kupcu unaprijed, pa samo ulazi u obećano.
+            if (product.Vrsta == VrstaProizvoda.Korpica)
+            {
+                if (pretplata is null) await zalihe.UzmiKorpicuAsync(db, stavka, product, ct);
+                else foreach (var r in stavka.KorpicaStavke) zalihe.Uzmi(r.ProductId, r.Kolicina * stavka.Quantity);
+            }
+            else
+            {
+                product.Stock = Math.Max(0, product.Stock - line.Quantity);
+            }
         }
 
         var subtotal = Math.Round(items.Sum(i => i.UnitPrice * i.Quantity), 2);

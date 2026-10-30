@@ -1,10 +1,12 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPiljara.Application.Features.Catalog;
 
@@ -13,7 +15,7 @@ namespace EPiljara.Application.Features.Catalog;
 public record GetProductsQuery(string? Category, string? Search, bool? Featured, Guid? Producer = null)
     : IRequest<IReadOnlyList<ProductDto>>;
 
-public class GetProductsHandler(IAppDbContext db)
+public class GetProductsHandler(IAppDbContext db, IOptions<KorpiceOpcije>? opcije = null)
     : IRequestHandler<GetProductsQuery, IReadOnlyList<ProductDto>>
 {
     public async Task<IReadOnlyList<ProductDto>> Handle(GetProductsQuery q, CancellationToken ct)
@@ -54,7 +56,9 @@ public class GetProductsHandler(IAppDbContext db)
             .ThenBy(p => p.Name)
             .ToListAsync(ct);
 
-        return list.Select(p => p.ToDto()).ToList();
+        // Stanje koje kupac vidi je ono što nije obećano korpicama te sedmice — vidi Zalihe.
+        var (zalihe, _, _) = await Zalihe.ZaSedmicuProdajeAsync(db, opcije?.Value ?? new KorpiceOpcije(), ct);
+        return list.Select(p => p.ToDto() with { Stock = zalihe.Slobodno(p) }).ToList();
     }
 }
 
@@ -62,7 +66,7 @@ public class GetProductsHandler(IAppDbContext db)
 
 public record GetProductBySlugQuery(string Slug) : IRequest<ProductDto>;
 
-public class GetProductBySlugHandler(IAppDbContext db)
+public class GetProductBySlugHandler(IAppDbContext db, IOptions<KorpiceOpcije>? opcije = null)
     : IRequestHandler<GetProductBySlugQuery, ProductDto>
 {
     public async Task<ProductDto> Handle(GetProductBySlugQuery q, CancellationToken ct)
@@ -73,7 +77,8 @@ public class GetProductBySlugHandler(IAppDbContext db)
             .Include(p => p.Producer)
             .FirstOrDefaultAsync(p => p.Slug == q.Slug && p.Vrsta == VrstaProizvoda.Obican, ct)
             ?? throw new NotFoundException("Proizvod nije pronađen.");
-        return product.ToDto();
+        var (zalihe, _, _) = await Zalihe.ZaSedmicuProdajeAsync(db, opcije?.Value ?? new KorpiceOpcije(), ct);
+        return product.ToDto() with { Stock = zalihe.Slobodno(product) };
     }
 }
 
