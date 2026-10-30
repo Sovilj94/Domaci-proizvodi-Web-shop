@@ -4,8 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Sekcija } from "@/components/pocetna/sekcija";
 import { SectionHeader } from "@/components/ui/section-header";
-import { useUtisci } from "@/lib/api/hooks";
-import { IZGLED } from "@/lib/izgled";
+import { useBlokovi, useUtisci } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 
 const SMJENA_MS = 3000;
@@ -17,11 +16,12 @@ const PRELAZ_MS = 300;
  * traka pomjeri za jedno mjesto (300 ms), a aktivna fotografija istovremeno raste, prethodna se
  * smanjuje — bez preslagivanja. Petlja je beskonačna: traka sadrži tri kopije niza, a kad pređe u
  * krajnju kopiju, bez animacije se vrati u srednju. Smjena svake 3 s, pauza dok je miš iznad
- * (i bez nje uz smanjene animacije). Utisak nema svoju fotografiju — smjenjuju se `IZGLED.utisci`.
+ * (i bez nje uz smanjene animacije). Utisak nema svoju fotografiju — smjenjuju se slike iz baze (sekcija „pocetna-utisci").
  * Bez objavljenih utisaka sekcija se ne prikazuje (spec P4, O2).
  */
 export function UtisciKarusel() {
   const { data } = useUtisci();
+  const slike = useBlokovi("pocetna-utisci").blokovi.flatMap((b) => (b.slikaUrl ? [b.slikaUrl] : []));
   const lista = (data ?? []).slice(0, 12);
   const n = lista.length;
   // Pozicija u traci od 3n fotografija; normalno je u srednjoj kopiji [n, 2n).
@@ -130,13 +130,15 @@ export function UtisciKarusel() {
                   aria-current={da || undefined}
                   className="relative block h-full w-full overflow-hidden rounded-[30px] bg-sand"
                 >
-                  <Image
-                    src={IZGLED.utisci[(i % n) % IZGLED.utisci.length]}
-                    alt=""
-                    fill
-                    sizes="340px"
-                    className="object-cover"
-                  />
+                  {slike.length > 0 && (
+                    <Image
+                      src={slike[(i % n) % slike.length]}
+                      alt=""
+                      fill
+                      sizes="340px"
+                      className="object-cover"
+                    />
+                  )}
                 </button>
               </li>
             );

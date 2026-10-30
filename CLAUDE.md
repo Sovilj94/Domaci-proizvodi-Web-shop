@@ -69,6 +69,11 @@ ensures the admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD`. A fresh database is there
 environment is filled by restoring a dump of an existing one (`DEPLOY.md` → „Podaci"), and everything after
 that is entered through the admin. Do not add seed data, sample objects, constants that pose as data, or
 "default" texts in code — put a table and an admin screen behind them instead.
+Site copy that is content (hero slides, cards, tiles, layout photos, FAQ, contact) lives in `BlokoviSadrzaja`
+(one row per slide/card, keyed by `Sekcija` — `SekcijeSadrzaja` on the backend, `SEKCIJE_SADRZAJA` in
+`types/domain.ts`) and `SadrzajSajta`, edited at `/admin/sadrzaj`; English sits in the same row (`NaslovEn`…)
+and reaches the DOM translator through `GET /prevodi`. A section with no rows renders nothing. Headings and
+button labels that are part of the interface stay in components.
 
 **EF Core migrations** (dotnet-ef is pinned in `.config/dotnet-tools.json`):
 ```bash

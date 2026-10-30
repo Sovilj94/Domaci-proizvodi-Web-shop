@@ -46,7 +46,7 @@ export interface KalendarStavka {
 }
 
 /** Folder slike u bazi (`/slike/{folder}/…`) — prati backend `SlikePravila.Folderi`. */
-export type FolderSlike = "products" | "izrezi" | "categories" | "producers" | "korpice" | "recepti";
+export type FolderSlike = "products" | "izrezi" | "categories" | "producers" | "korpice" | "recepti" | "izgled";
 import type {
   AdminKupac,
   AdminKupacDetalj,
@@ -56,6 +56,8 @@ import type {
   Pakovanje,
   Pitanje,
   SadrzajSajta,
+  BlokSadrzaja,
+  SekcijaSadrzaja,
 } from "@/types/domain";
 import { pismoNaZici, type Pismo } from "@/lib/pismo/pismo";
 import { uLatinicu } from "@/lib/pismo/preslovi";
@@ -152,6 +154,8 @@ export const korpiceApi = {
   sedmica: () => apiFetch<Sedmica>("/korpice/sedmica", { auth: false }).then((r) => r.data),
   /** Kontakt i česta pitanja koje admin uređuje; null polje = ugrađeni tekst. */
   sadrzajSajta: () => apiFetch<SadrzajSajta>("/sadrzaj-sajta", { auth: false }).then((r) => r.data),
+  blokoviSadrzaja: () =>
+    apiFetch<BlokSadrzaja[]>("/sadrzaj-sajta/blokovi", { auth: false }).then((r) => r.data),
 };
 
 /* ---------- Utisci ---------- */
@@ -565,6 +569,10 @@ export const adminApi = {
     podrucje?: string | null;
     pitanja?: Pitanje[] | null;
   }) => apiFetch<SadrzajSajta>("/admin/sadrzaj-sajta", { method: "PUT", body }).then((r) => r.data),
+  blokovi: (sekcija: SekcijaSadrzaja) =>
+    apiFetch<BlokSadrzaja[]>("/admin/blokovi/" + sekcija).then((r) => r.data),
+  sacuvajBlokove: (sekcija: SekcijaSadrzaja, blokovi: Omit<BlokSadrzaja, "id" | "sekcija" | "redoslijed">[]) =>
+    apiFetch<BlokSadrzaja[]>("/admin/blokovi/" + sekcija, { method: "PUT", body: { blokovi } }).then((r) => r.data),
 
   /* Poeni kupaca (B4) */
   poeniKupci: (pretraga?: string) =>

@@ -1,18 +1,12 @@
 import { stranica } from "@/lib/seo/metadata";
-import { Check } from "lucide-react";
 import { PartnerForma } from "@/components/partneri/partner-forma";
+import { PartnerPonuda } from "@/components/partneri/partner-ponuda";
 
 export const metadata = stranica({
   naslov: "Postani partner",
   opis: "Imaš domaćinstvo na Manjači ili u okolini? Prodaj svoje proizvode kupcima u Banjoj Luci bez posrednika, u sedmičnom ritmu.",
   putanja: "/postani-partner",
 });
-
-const PONUDA = [
-  "Prodaja kupcima u gradu, bez posrednika",
-  "Sedmični ritam koji se zna unaprijed",
-  "Mjesto na stranici „Naši domaćini“",
-];
 
 export default function PostaniPartnerPage() {
   return (
@@ -24,14 +18,7 @@ export default function PostaniPartnerPage() {
             Imate gazdinstvo na Manjači ili u okolini Banje Luke i proizvodite hranu na
             tradicionalan način? Javite nam se.
           </p>
-          <ul className="mt-6 space-y-3">
-            {PONUDA.map((t) => (
-              <li key={t} className="flex items-start gap-3 text-ink">
-                <Check className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden />
-                {t}
-              </li>
-            ))}
-          </ul>
+          <PartnerPonuda />
         </div>
         <div className="relative rounded-card bg-white p-5 shadow-card sm:p-6">
           <PartnerForma />

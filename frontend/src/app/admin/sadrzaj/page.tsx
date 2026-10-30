@@ -10,14 +10,15 @@ import { useToast } from "@/components/ui/toast";
 import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
 import { queryKeys, useSadrzajSajta } from "@/lib/api/hooks";
-import { OZNAKE_PITANJA, PODRAZUMIJEVANA_PITANJA } from "@/lib/cesta-pitanja";
-import { KONTAKT } from "@/lib/kontakt";
+import { OZNAKE_PITANJA } from "@/lib/cesta-pitanja";
+import { BlokoviEditor } from "@/components/admin/blokovi-editor";
 import { formatDateTime } from "@/lib/utils";
 import type { Pitanje } from "@/types/domain";
 
 /**
- * Kontakt (footer, /o-nama) i česta pitanja (početna). Prazno polje znači „ugrađena vrijednost";
- * dok pitanja nisu sačuvana ovdje, sajt prikazuje svoja ugrađena, i ista se nude kao polazna verzija.
+ * Sadržaj sajta: kontakt (footer, /o-nama), česta pitanja (početna) i blokovi sekcija (slajdovi,
+ * kartice, pločice, slike). Sve je u bazi — sajt nema svoje ugrađene tekstove, pa prazno polje znači
+ * da se to mjesto na sajtu ne prikazuje.
  */
 export default function AdminSadrzajPage() {
   const q = useSadrzajSajta();
@@ -25,7 +26,6 @@ export default function AdminSadrzajPage() {
   const { show } = useToast();
   const [kontakt, setKontakt] = useState({ telefon: "", email: "", adresa: "", podrucje: "" });
   const [pitanja, setPitanja] = useState<Pitanje[]>([]);
-  const [vlastita, setVlastita] = useState(false);
   const [greske, setGreske] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
@@ -36,13 +36,11 @@ export default function AdminSadrzajPage() {
       adresa: q.data.adresa ?? "",
       podrucje: q.data.podrucje ?? "",
     });
-    setVlastita(!!q.data.pitanja?.length);
-    setPitanja(q.data.pitanja?.length ? q.data.pitanja : PODRAZUMIJEVANA_PITANJA);
+    setPitanja(q.data.pitanja ?? []);
   }, [q.data]);
 
   const sacuvaj = useMutation({
-    mutationFn: (ugradjena: boolean) =>
-      adminApi.sacuvajSadrzajSajta({ ...kontakt, pitanja: ugradjena ? null : pitanja }),
+    mutationFn: () => adminApi.sacuvajSadrzajSajta({ ...kontakt, pitanja }),
     onSuccess: (dto) => {
       qc.setQueryData(queryKeys.sadrzajSajta(), dto);
       show("Sadržaj sajta sačuvan");
@@ -72,18 +70,19 @@ export default function AdminSadrzajPage() {
   if (q.isLoading) return <LoadingBlock />;
 
   return (
+    <div className="max-w-3xl space-y-8">
     <form
       onSubmit={(e) => {
         e.preventDefault();
         setGreske({});
-        sacuvaj.mutate(false);
+        sacuvaj.mutate();
       }}
-      className="max-w-3xl space-y-8"
+      className="space-y-8"
     >
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink">Kontakt i česta pitanja</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Sadržaj sajta</h1>
         <p className="text-sm text-muted">
-          Prazno polje vraća ugrađenu vrijednost.
+          Sve što sajt prikazuje u ovim dijelovima je ovdje; prazno polje se na sajtu ne prikazuje.
           {q.data?.izmijenjeno && ` Zadnja izmjena: ${formatDateTime(q.data.izmijenjeno)}.`}
         </p>
       </div>
@@ -92,16 +91,16 @@ export default function AdminSadrzajPage() {
         <h2 className="font-display text-lg font-bold text-ink">Kontakt (footer i „O nama“)</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Telefon" error={greske.telefon?.[0]}>
-            <Input value={kontakt.telefon} onChange={(e) => setKontakt({ ...kontakt, telefon: e.target.value })} placeholder={KONTAKT.telefon} maxLength={40} />
+            <Input value={kontakt.telefon} onChange={(e) => setKontakt({ ...kontakt, telefon: e.target.value })} placeholder="npr. +387 65 000 000" maxLength={40} />
           </Field>
           <Field label="E-mail (opcionalno)" error={greske.email?.[0]}>
             <Input type="email" value={kontakt.email} onChange={(e) => setKontakt({ ...kontakt, email: e.target.value })} placeholder="npr. info@epiljara.ba" maxLength={120} />
           </Field>
           <Field label="Adresa" error={greske.adresa?.[0]}>
-            <Input value={kontakt.adresa} onChange={(e) => setKontakt({ ...kontakt, adresa: e.target.value })} placeholder={KONTAKT.adresa} maxLength={200} />
+            <Input value={kontakt.adresa} onChange={(e) => setKontakt({ ...kontakt, adresa: e.target.value })} placeholder="npr. Manjača, Banja Luka" maxLength={200} />
           </Field>
           <Field label="Područje dostave" error={greske.podrucje?.[0]}>
-            <Input value={kontakt.podrucje} onChange={(e) => setKontakt({ ...kontakt, podrucje: e.target.value })} placeholder={KONTAKT.podrucje} maxLength={120} />
+            <Input value={kontakt.podrucje} onChange={(e) => setKontakt({ ...kontakt, podrucje: e.target.value })} placeholder="npr. Banja Luka i okolina" maxLength={120} />
           </Field>
         </div>
       </section>
@@ -110,9 +109,9 @@ export default function AdminSadrzajPage() {
         <div>
           <h2 className="font-display text-lg font-bold text-ink">Česta pitanja (početna)</h2>
           <p className="text-sm text-muted">
-            {vlastita ? "Sajt prikazuje pitanja sačuvana ovdje." : "Sajt sada prikazuje ugrađena pitanja — ispod je njihova polazna verzija."}{" "}
-            U odgovoru možeš koristiti oznake {OZNAKE_PITANJA.join(", ")} — sajt ih zamijeni tekućim rokom, danom isporuke i
-            procentima popusta.
+            Bez pitanja se sekcija na početnoj ne prikazuje. U odgovoru možeš koristiti oznake {OZNAKE_PITANJA.join(", ")} —
+            sajt ih zamijeni tekućim rokom, danom isporuke, procentima popusta i obavezom plana; rečenica čiji broj server
+            ne pošalje se izostavlja.
           </p>
         </div>
 
@@ -139,6 +138,12 @@ export default function AdminSadrzajPage() {
               <Field label="Odgovor" required error={greske[`pitanja[${i}].odgovor`]?.[0]}>
                 <Textarea value={p.odgovor} onChange={(e) => izmijeni(i, "odgovor", e.target.value)} rows={3} maxLength={1500} />
               </Field>
+              <Field label="Pitanje (engleski)" error={greske[`pitanja[${i}].pitanjeEn`]?.[0]}>
+                <Input value={p.pitanjeEn ?? ""} onChange={(e) => izmijeni(i, "pitanjeEn", e.target.value)} maxLength={200} />
+              </Field>
+              <Field label="Odgovor (engleski)" error={greske[`pitanja[${i}].odgovorEn`]?.[0]}>
+                <Textarea value={p.odgovorEn ?? ""} onChange={(e) => izmijeni(i, "odgovorEn", e.target.value)} rows={3} maxLength={1500} />
+              </Field>
             </li>
           ))}
         </ol>
@@ -147,17 +152,15 @@ export default function AdminSadrzajPage() {
           <Button type="button" variant="secondary" size="sm" disabled={pitanja.length >= 30} onClick={() => setPitanja((p) => [...p, { pitanje: "", odgovor: "" }])}>
             <Plus className="h-4 w-4" /> Dodaj pitanje
           </Button>
-          {vlastita && (
-            <Button type="button" variant="ghost" size="sm" disabled={sacuvaj.isPending} onClick={() => sacuvaj.mutate(true)}>
-              Vrati ugrađena pitanja
-            </Button>
-          )}
         </div>
       </section>
 
       <Button type="submit" disabled={sacuvaj.isPending}>
-        {sacuvaj.isPending ? "Čuvam…" : "Sačuvaj sve"}
+        {sacuvaj.isPending ? "Čuvam…" : "Sačuvaj kontakt i pitanja"}
       </Button>
     </form>
+
+    <BlokoviEditor />
+    </div>
   );
 }

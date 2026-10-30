@@ -4,22 +4,27 @@ import { ChevronDown } from "lucide-react";
 import { Sekcija } from "@/components/pocetna/sekcija";
 import { SectionHeader } from "@/components/ui/section-header";
 import { useKorpiceList, useSadrzajSajta, useSedmica } from "@/lib/api/hooks";
-import { CESTA_PITANJA, kontekstPitanja, popuniOdgovor } from "@/lib/cesta-pitanja";
+import { kontekstPitanja, naJeziku, popuniOdgovor } from "@/lib/cesta-pitanja";
+import { procitajJezik } from "@/lib/jezik/jezik";
 
 /**
  * Česta pitanja (R1, po uzoru na farmit): krem pojas sa lukom, harmonika bez okvira, red
  * po pitanju sa linijom ispod. Harmonika je na <details>/<summary>: radi i bez JS-a i čitač
- * ekrana je zna sam. Odgovori čitaju brojeve sa servera kroz `kontekstPitanja`.
+ * ekrana je zna sam. Pitanja su u bazi; odgovori čitaju brojeve sa servera kroz `kontekstPitanja`.
+ * Bez pitanja u bazi sekcija se ne prikazuje.
  */
 export function CestaPitanja() {
   const { data: sedmica } = useSedmica();
   const { data: korpice } = useKorpiceList();
   const { data: sadrzaj } = useSadrzajSajta();
   const kontekst = kontekstPitanja(sedmica, korpice);
-  // Pitanja iz admin panela imaju prednost; dok ih admin nije unio, važe ugrađena.
-  const pitanja = sadrzaj?.pitanja?.length
-    ? sadrzaj.pitanja.map((p) => ({ pitanje: p.pitanje, odgovor: popuniOdgovor(p.odgovor, kontekst) }))
-    : CESTA_PITANJA.map((p) => ({ pitanje: p.pitanje, odgovor: p.odgovor(kontekst) }));
+  // Engleski dolazi iz baze uz svako pitanje; promjena jezika osvježava stranicu.
+  const engleski = procitajJezik() === "en";
+  const pitanja = (sadrzaj?.pitanja ?? []).map((p) => {
+    const t = naJeziku(p, engleski);
+    return { pitanje: t.pitanje, odgovor: popuniOdgovor(t.odgovor, kontekst) };
+  });
+  if (pitanja.length === 0) return null;
 
   return (
     <Sekcija ton="krem" luk className="pb-28 sm:pb-36">

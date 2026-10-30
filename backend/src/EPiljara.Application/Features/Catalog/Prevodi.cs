@@ -6,7 +6,7 @@ namespace EPiljara.Application.Features.Catalog;
 
 /// <summary>
 /// Prevodi kataloga za jezik sajta: srpski tekst → engleski (nazivi proizvoda i kategorija,
-/// opisi proizvoda). Frontend ih koristi isto kao rječnik interfejsa — gdje god se na stranici
+/// opisi proizvoda, blokovi sadržaja sajta). Frontend ih koristi isto kao rječnik interfejsa — gdje god se na stranici
 /// pojavi srpski naziv, zamijeni ga engleskim. Ono bez prevoda ostaje na srpskom.
 /// </summary>
 public record GetPrevodiQuery : IRequest<IReadOnlyDictionary<string, string>>;
@@ -28,6 +28,14 @@ public class GetPrevodiHandler(IAppDbContext db) : IRequestHandler<GetPrevodiQue
         {
             Dodaj(p.Name, p.NazivEn);
             Dodaj(p.Description, p.OpisEn);
+        }
+        // Sadržaj sajta (slajdovi, kartice, pločice) nosi svoj engleski u istom redu.
+        foreach (var b in await db.BlokoviSadrzaja.Where(b => b.Objavljen)
+                     .Select(b => new { b.Naslov, b.NaslovEn, b.Tekst, b.TekstEn, b.Dugme, b.DugmeEn }).ToListAsync(ct))
+        {
+            Dodaj(b.Naslov, b.NaslovEn);
+            Dodaj(b.Tekst, b.TekstEn);
+            Dodaj(b.Dugme, b.DugmeEn);
         }
         return mapa;
     }

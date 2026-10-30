@@ -1,5 +1,4 @@
 import type { Korpica, Producer, Product, Recept } from "@/types/domain";
-import { KONTAKT } from "@/lib/kontakt";
 import { absoluteUrl, OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site";
 
 /**
@@ -14,8 +13,11 @@ export function JsonLd({ data }: { data: object | object[] }) {
 
 const ORG_ID = `${SITE_URL}/#organizacija`;
 
-/** Trgovina + sajt; ide u layout prodavnice, pa važi za svaku javnu stranicu. */
-export function sajtLd() {
+/**
+ * Trgovina + sajt; ide u layout prodavnice, pa važi za svaku javnu stranicu. Telefon dolazi iz
+ * baze (SadrzajSajta) — bez njega se polje izostavlja.
+ */
+export function sajtLd(telefon?: string | null) {
   return [
     {
       "@context": "https://schema.org",
@@ -26,7 +28,7 @@ export function sajtLd() {
       url: SITE_URL,
       logo: absoluteUrl("/favicon.ico"),
       image: absoluteUrl(OG_IMAGE.url),
-      telephone: KONTAKT.telefon,
+      ...(telefon ? { telephone: telefon } : {}),
       priceRange: "KM",
       currenciesAccepted: "BAM",
       paymentAccepted: "Gotovina (pouzećem)",

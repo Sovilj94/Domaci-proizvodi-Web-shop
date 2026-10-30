@@ -69,23 +69,8 @@ export const RJECNIK_STRANICE: Record<string, string> = {
   "Nismo uspjeli dohvatiti proizvode. Pokušaj ponovo.": "We couldn't load the products. Please try again.",
   "Nema rezultata": "No results",
   "Pokušaj drugu kategoriju ili pojam pretrage.": "Try another category or search term.",
-  "Dobro za tebe i za domaćinstva": "Good for you and for the farms",
-  "Sve dolazi direktno od domaćina koje poznajemo lično. Kupovinom podržavaš porodična gazdinstva sa Manjače.":
-    "Everything comes straight from farmers we know personally. Your purchase supports family farms on Manjača.",
-  "Odabir sa stavom": "A selection with a point of view",
-  "Kad ovdje biraš proizvod, znaš ko ga je napravio i u kom selu. Biraš ono što vrijedi.":
-    "When you choose a product here, you know who made it and in which village. You choose what's worth it.",
-  "Manje robe, više kvaliteta": "Fewer products, more quality",
-  "Ne nudimo stotinu vrsta istog proizvoda — samo one koje smo sami probali i u koje vjerujemo.":
-    "We don't offer a hundred versions of the same thing — only the ones we've tried ourselves and trust.",
   "Zato što znaš šta vrijedi": "Because you know what's worth it",
-  "Ista dostava": "Same delivery",
-  "Proizvodi iz Špajza stižu zajedno sa korpicom.": "Pantry products arrive together with your box.",
   "Pouzećem": "Cash on delivery",
-  "Plaćaš pri dostavi, bez kartice.": "You pay on delivery, no card needed.",
-  "Uz svaki proizvod piše ko ga pravi.": "Every product shows who makes it.",
-  "Javni nalazi": "Public results",
-  "Laboratorijske analize su objavljene.": "Lab tests are published.",
   "Zašto kod nas?": "Why us?",
   "Svi": "All",
   "Sve o korpicama": "All about the boxes",
@@ -414,9 +399,6 @@ export const RJECNIK_STRANICE: Record<string, string> = {
     "Do you have a farm on Manjača or around Banja Luka and produce food the traditional way? Get in touch.",
   "Imaš domaćinstvo na Manjači ili u okolini? Prodaj svoje proizvode kupcima u Banjoj Luci bez posrednika, u sedmičnom ritmu.":
     "Do you have a farm on Manjača or nearby? Sell your products to customers in Banja Luka without middlemen, on a weekly rhythm.",
-  "Prodaja kupcima u gradu, bez posrednika": "Selling to city customers, without middlemen",
-  "Sedmični ritam koji se zna unaprijed": "A weekly rhythm known in advance",
-  "Mjesto na stranici „Naši domaćini“": "A place on the “Our farmers” page",
   "Hvala! Prijava je primljena. Javićemo vam se telefonom.": "Thank you! Your application was received. We'll call you.",
   "Previše pokušaja, pokušajte za minut.": "Too many attempts, please try again in a minute.",
   "Slanje nije uspjelo": "Sending failed",

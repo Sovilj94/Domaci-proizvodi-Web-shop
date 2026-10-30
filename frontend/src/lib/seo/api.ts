@@ -9,7 +9,7 @@ import type { Korpica, Producer, Product, Recept, ReceptKratko, SadrzajSajta } f
  * se budi i do minute, a metadata koja čeka API zadržava cijelu stranicu — bolje je vratiti
  * opšti naslov nego da kupac gleda praznu stranicu.
  */
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5080").replace(
   /\/+$/,
   "",
 );
@@ -24,8 +24,6 @@ const REVALIDATE_S = 600;
 export type SeoOdgovor<T> = { data: T | null; nema: boolean };
 
 async function seoFetch<T>(path: string): Promise<SeoOdgovor<T>> {
-  // Bez API-ja frontend radi nad ugrađenim mockom (/api), koji na serveru u build-u ne postoji.
-  if (!API_URL) return { data: null, nema: false };
   try {
     const res = await fetch(`${API_URL}${path}`, {
       headers: { Accept: "application/json" },

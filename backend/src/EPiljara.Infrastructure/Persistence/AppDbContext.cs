@@ -32,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Pretplata> Pretplate => Set<Pretplata>();
     public DbSet<PoeniStavka> PoeniStavke => Set<PoeniStavka>();
     public DbSet<Utisak> Utisci => Set<Utisak>();
+    public DbSet<BlokSadrzaja> BlokoviSadrzaja => Set<BlokSadrzaja>();
     public DbSet<Slika> Slike => Set<Slika>();
     public DbSet<PrijavaNovosti> PrijaveNovosti => Set<PrijavaNovosti>();
     public DbSet<SadrzajSajta> SadrzajSajta => Set<SadrzajSajta>();
@@ -356,6 +357,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.ContentType).HasMaxLength(50).IsRequired();
             e.Property(x => x.Podaci).IsRequired();
             e.HasIndex(x => x.Kljuc).IsUnique();
+        });
+
+        b.Entity<BlokSadrzaja>(e =>
+        {
+            // Dužine prate validator (SacuvajSekcijuValidator).
+            e.Property(x => x.Sekcija).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Ikona).HasMaxLength(40);
+            e.Property(x => x.Naslov).HasMaxLength(200);
+            e.Property(x => x.Tekst).HasMaxLength(1000);
+            e.Property(x => x.Dugme).HasMaxLength(60);
+            e.Property(x => x.Link).HasMaxLength(300);
+            e.Property(x => x.SlikaUrl).HasMaxLength(300);
+            e.Property(x => x.Boja).HasMaxLength(7);
+            e.Property(x => x.BojaTeksta).HasMaxLength(7);
+            e.Property(x => x.NaslovEn).HasMaxLength(200);
+            e.Property(x => x.TekstEn).HasMaxLength(1000);
+            e.Property(x => x.DugmeEn).HasMaxLength(60);
+            e.HasIndex(x => new { x.Sekcija, x.Redoslijed });
         });
 
         b.Entity<Utisak>(e =>

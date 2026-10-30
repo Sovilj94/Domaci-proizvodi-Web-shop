@@ -1,3 +1,6 @@
+"use client";
+
+import { useBlokovi } from "@/lib/api/hooks";
 import { Sekcija } from "@/components/pocetna/sekcija";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -6,25 +9,11 @@ import { SectionHeader } from "@/components/ui/section-header";
  * naslov i tekst; na mobilnom vertikalno sa ikonom lijevo. Namjerno bez brojeva (rok, dan,
  * cijena) — oni dolaze sa servera na drugim mjestima (spec P4, O12).
  */
-const KORACI = [
-  {
-    emoji: "📦",
-    naslov: "Biraš korpicu",
-    opis: "Izaberi korpicu povrća ili voća i veličinu po broju ukućana. Možeš se pretplatiti ili naručiti jednom.",
-  },
-  {
-    emoji: "🧑‍🌾",
-    naslov: "Znaš domaćina",
-    opis: "Uz svaku namirnicu u korpici piše ko ju je uzgojio i iz kog je sela.",
-  },
-  {
-    emoji: "🍅",
-    naslov: "Stiže na vrata",
-    opis: "Dostavljamo u dan koji izabereš, a plaćaš pouzećem. Adresu dostave možeš da mijenjaš.",
-  },
-] as const;
 
+/** Koraci su u bazi (sekcija „pocetna-koraci"); bez njih se sekcija ne prikazuje. */
 export function KakoFunkcionise() {
+  const { blokovi: koraci } = useBlokovi("pocetna-koraci");
+  if (koraci.length === 0) return null;
   return (
     <Sekcija ton="krem" luk>
       <SectionHeader naslov="Kako funkcioniše?" />
@@ -34,14 +23,14 @@ export function KakoFunkcionise() {
           className="absolute left-[16.6%] right-[16.6%] top-10 hidden border-t-[3px] border-dashed border-white md:block"
           aria-hidden
         />
-        {KORACI.map((k) => (
-          <li key={k.naslov} className="relative flex gap-5 md:flex-col md:items-center md:text-center">
+        {koraci.map((k) => (
+          <li key={k.id} className="relative flex gap-5 md:flex-col md:items-center md:text-center">
             <span className="grid h-20 w-20 shrink-0 place-items-center rounded-full bg-white text-4xl shadow-sm" aria-hidden>
-              {k.emoji}
+              {k.ikona}
             </span>
             <div>
               <h3 className="text-2xl font-semibold text-ink md:mt-4 md:text-[28px]">{k.naslov}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink/80 md:mx-auto md:max-w-[270px]">{k.opis}</p>
+              <p className="mt-2 text-sm leading-relaxed text-ink/80 md:mx-auto md:max-w-[270px]">{k.tekst}</p>
             </div>
           </li>
         ))}

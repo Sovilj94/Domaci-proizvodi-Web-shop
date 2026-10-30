@@ -8,7 +8,7 @@ import { DomaciniBaner } from "@/components/pocetna/domacini-baner";
 import { DomaciniKarusel } from "@/components/pocetna/domacini-karusel";
 import { HocuKorpicu } from "@/components/pocetna/hocu-korpicu";
 import { CestaPitanja } from "@/components/pocetna/cesta-pitanja";
-import { CESTA_PITANJA, popuniOdgovor } from "@/lib/cesta-pitanja";
+import { popuniOdgovor } from "@/lib/cesta-pitanja";
 import { stranica } from "@/lib/seo/metadata";
 import { seoApi } from "@/lib/seo/api";
 import { JsonLd, pitanjaLd } from "@/lib/seo/json-ld";
@@ -32,16 +32,14 @@ export const revalidate = 600;
  * same klijentske.
  */
 export default async function HomePage() {
-  // Isti izvor kao harmonika: pitanja iz admin panela, a dok ih nema — ugrađena.
-  // Bez brojeva iz sedmice (rok, popust), pa odgovor ostaje tačan i kad se rok promijeni.
+  // Isti izvor kao harmonika: pitanja iz baze. Bez brojeva iz sedmice (rok, popust) — rečenica
+  // sa takvim brojem otpada, pa odgovor ostaje tačan i kad se rok promijeni.
   const sadrzaj = await seoApi.sadrzajSajta();
-  const pitanja = sadrzaj?.pitanja?.length
-    ? sadrzaj.pitanja.map((p) => ({ pitanje: p.pitanje, odgovor: popuniOdgovor(p.odgovor, {}) }))
-    : CESTA_PITANJA.map((p) => ({ pitanje: p.pitanje, odgovor: p.odgovor({}) }));
+  const pitanja = (sadrzaj?.pitanja ?? []).map((p) => ({ pitanje: p.pitanje, odgovor: popuniOdgovor(p.odgovor, {}) }));
 
   return (
     <div>
-      <JsonLd data={pitanjaLd(pitanja)} />
+      {pitanja.length > 0 && <JsonLd data={pitanjaLd(pitanja)} />}
       <HeroKarusel />
       <OvaSedmica />
       <UtisciKarusel />

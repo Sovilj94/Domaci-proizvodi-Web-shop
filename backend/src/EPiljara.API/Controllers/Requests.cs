@@ -36,3 +36,5 @@ public record KorekcijaPoenaRequest(int Iznos, string Razlog);
 public record SadrzajSajtaRequest(
     string? Telefon, string? Email, string? Adresa, string? Podrucje,
     IReadOnlyList<EPiljara.Application.DTOs.PitanjeDto>? Pitanja);
+
+public record SacuvajBlokoveRequest(IReadOnlyList<EPiljara.Application.Features.Admin.BlokUnos>? Blokovi);

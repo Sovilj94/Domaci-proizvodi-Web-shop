@@ -300,4 +300,7 @@ public record PitanjeDto
 {
     public string Pitanje { get; init; } = string.Empty;
     public string Odgovor { get; init; } = string.Empty;
+    /// <summary>Engleska verzija; prazno = na engleskom sajtu ostaje srpski.</summary>
+    public string? PitanjeEn { get; init; }
+    public string? OdgovorEn { get; init; }
 }

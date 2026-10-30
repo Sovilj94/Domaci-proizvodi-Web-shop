@@ -39,7 +39,7 @@ internal static class SadrzajSajtaMapa
         pitanja is null ? null : JsonSerializer.Serialize(pitanja, Json);
 }
 
-/// <summary>Prazno polje (ili `pitanja: null`) vraća sajt na ugrađeni tekst.</summary>
+/// <summary>Prazno polje se ne prikazuje — sajt nema svoj ugrađeni tekst (sve je u bazi).</summary>
 public record SacuvajSadrzajSajtaCommand(
     string? Telefon, string? Email, string? Adresa, string? Podrucje, IReadOnlyList<PitanjeDto>? Pitanja)
     : IRequest<SadrzajSajtaDto>;
@@ -61,6 +61,8 @@ public class SacuvajSadrzajSajtaValidator : AbstractValidator<SacuvajSadrzajSajt
                 .MaximumLength(200).WithMessage("Pitanje može imati najviše 200 znakova.");
             p.RuleFor(x => x.Odgovor).NotEmpty().WithMessage("Odgovor ne smije biti prazan.")
                 .MaximumLength(1500).WithMessage("Odgovor može imati najviše 1500 znakova.");
+            p.RuleFor(x => x.PitanjeEn).MaximumLength(200).WithMessage("Pitanje (EN) može imati najviše 200 znakova.");
+            p.RuleFor(x => x.OdgovorEn).MaximumLength(1500).WithMessage("Odgovor (EN) može imati najviše 1500 znakova.");
         }).When(x => x.Pitanja is not null);
     }
 }
@@ -83,7 +85,11 @@ public class SacuvajSadrzajSajtaHandler(IAppDbContext db) : IRequestHandler<Sacu
         red.Adresa = Ocisti(cmd.Adresa);
         red.Podrucje = Ocisti(cmd.Podrucje);
         red.PitanjaJson = SadrzajSajtaMapa.UJson(cmd.Pitanja?
-            .Select(p => new PitanjeDto { Pitanje = p.Pitanje.Trim(), Odgovor = p.Odgovor.Trim() }).ToList());
+            .Select(p => new PitanjeDto
+            {
+                Pitanje = p.Pitanje.Trim(), Odgovor = p.Odgovor.Trim(),
+                PitanjeEn = Ocisti(p.PitanjeEn), OdgovorEn = Ocisti(p.OdgovorEn),
+            }).ToList());
         red.Izmijenjeno = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);

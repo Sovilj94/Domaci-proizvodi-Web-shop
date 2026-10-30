@@ -27,6 +27,7 @@ public interface IAppDbContext
     DbSet<ZamjenaSadrzaja> ZamjeneSadrzaja { get; }
     DbSet<IzbjegnutArtikal> IzbjegnutiArtikli { get; }
     DbSet<StavkaKorpiceNarudzbe> StavkeKorpiceNarudzbe { get; }
+    DbSet<BlokSadrzaja> BlokoviSadrzaja { get; }
 
     /// <summary>Nalozi za ponavljanje korpice — vidi Pretplata entitet.</summary>
     DbSet<Pretplata> Pretplate { get; }

@@ -226,6 +226,16 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> DeleteUtisak(Guid id) =>
         Envelope(await Mediator.Send(new DeleteUtisakCommand(id)));
 
+    /// <summary>Blokovi jedne sekcije sajta (i neobjavljeni).</summary>
+    [HttpGet("admin/blokovi/{sekcija}")]
+    public async Task<IActionResult> Blokovi(string sekcija) =>
+        EnvelopeList(await Mediator.Send(new GetAdminBlokoviQuery(sekcija)));
+
+    /// <summary>Cijela sekcija odjednom — redoslijed je redoslijed liste.</summary>
+    [HttpPut("admin/blokovi/{sekcija}")]
+    public async Task<IActionResult> SacuvajBlokove(string sekcija, [FromBody] SacuvajBlokoveRequest body) =>
+        EnvelopeList(await Mediator.Send(new SacuvajSekcijuCommand(sekcija, body.Blokovi ?? [])));
+
     [HttpGet("admin/novosti")]
     public async Task<IActionResult> Novosti() =>
         EnvelopeList(await Mediator.Send(new GetAdminNovostiQuery()));

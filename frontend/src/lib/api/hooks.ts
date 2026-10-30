@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { accountApi, analizeApi, catalogApi, deliveryApi, korpiceApi, orderApi, receptiApi, utisciApi, type ProductQuery } from "./endpoints";
+import type { SekcijaSadrzaja } from "@/types/domain";
 
 export const queryKeys = {
   products: (q: ProductQuery) => ["products", q] as const,
@@ -16,6 +17,7 @@ export const queryKeys = {
   korpiceLista: () => ["korpice", "lista", undefined] as const,
   sedmica: () => ["korpice", "sedmica"] as const,
   sadrzajSajta: () => ["sadrzaj-sajta"] as const,
+  blokoviSadrzaja: () => ["sadrzaj-sajta", "blokovi"] as const,
   mojeKorpice: () => ["account", "korpice"] as const,
   mojaKorpica: (id: string) => ["account", "korpica", id] as const,
   pretplate: () => ["account", "pretplate"] as const,
@@ -151,7 +153,7 @@ export function useSedmica() {
   });
 }
 
-/** Kontakt i česta pitanja iz admin panela; null polje = ugrađeni tekst (lib/kontakt.ts, lib/cesta-pitanja.ts). */
+/** Kontakt i česta pitanja iz admin panela. Polje koje nije uneseno se ne prikazuje. */
 export function useSadrzajSajta() {
   return useQuery({
     queryKey: queryKeys.sadrzajSajta(),
@@ -190,4 +192,17 @@ export function useMojiPoeni(enabled: boolean) {
     queryFn: () => accountApi.poeni(),
     enabled,
   });
+}
+
+/**
+ * Blokovi jedne sekcije sajta, redom. Sve sekcije stižu jednim pozivom i dijele keš; sekcija bez
+ * blokova je prazna lista — komponenta se tada ne prikazuje (sajt nema svoj ugrađeni tekst).
+ */
+export function useBlokovi(sekcija: SekcijaSadrzaja) {
+  const q = useQuery({
+    queryKey: queryKeys.blokoviSadrzaja(),
+    queryFn: () => korpiceApi.blokoviSadrzaja(),
+    staleTime: 10 * 60 * 1000,
+  });
+  return { ...q, blokovi: (q.data ?? []).filter((b) => b.sekcija === sekcija) };
 }

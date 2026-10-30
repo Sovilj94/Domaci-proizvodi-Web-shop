@@ -795,6 +795,44 @@ export interface AdminKupacDetalj {
 export interface Pitanje {
   pitanje: string;
   odgovor: string;
+  /** Engleska verzija; odsutna = na engleskom sajtu ostaje srpski. */
+  pitanjeEn?: string;
+  odgovorEn?: string;
+}
+
+/** Mjesta na sajtu koja se pune iz baze (BlokSadrzaja) — isti ključevi kao SekcijeSadrzaja na backendu. */
+export const SEKCIJE_SADRZAJA = [
+  "pocetna-slajdovi",
+  "pocetna-koraci",
+  "pocetna-plocice",
+  "pocetna-domacini",
+  "pocetna-korpica",
+  "pocetna-utisci",
+  "spajz-razlozi",
+  "spajz-zasto",
+  "korpice-mogucnosti",
+  "partner-ponuda",
+] as const;
+export type SekcijaSadrzaja = (typeof SEKCIJE_SADRZAJA)[number];
+
+/** Slajd, kartica, pločica ili slika sajta — admin ga uređuje u /admin/sadrzaj. */
+export interface BlokSadrzaja {
+  id: string;
+  sekcija: SekcijaSadrzaja;
+  redoslijed: number;
+  /** Emoji ili naziv ikone interfejsa (npr. „Sprout"). */
+  ikona?: string;
+  naslov?: string;
+  tekst?: string;
+  dugme?: string;
+  link?: string;
+  slikaUrl?: string;
+  boja?: string;
+  bojaTeksta?: string;
+  naslovEn?: string;
+  tekstEn?: string;
+  dugmeEn?: string;
+  objavljen: boolean;
 }
 
 /** `GET /sadrzaj-sajta` — null polje znači „sajt koristi ugrađeni tekst". */

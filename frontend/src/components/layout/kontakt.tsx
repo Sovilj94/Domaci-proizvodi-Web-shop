@@ -4,8 +4,8 @@ import { useSadrzajSajta } from "@/lib/api/hooks";
 import { kontaktIz } from "@/lib/kontakt";
 
 /**
- * Kontakt podaci za serverske stranice (footer, /o-nama). Prvo se prikaže ugrađena vrijednost,
- * pa ona koju je admin unio čim stigne — tako stranica ne čeka API da bi se nacrtala.
+ * Kontakt podaci za serverske stranice (footer, /o-nama), iz baze. Dok ne stignu (ili ako ih
+ * admin nije unio), polje se ne prikazuje.
  */
 export function useKontakt() {
   const { data } = useSadrzajSajta();
@@ -14,6 +14,7 @@ export function useKontakt() {
 
 export function KontaktTelefon({ className }: { className?: string }) {
   const k = useKontakt();
+  if (!k.telefon || !k.telefonHref) return null;
   return (
     <a href={k.telefonHref} translate="no" className={className}>
       {k.telefon}

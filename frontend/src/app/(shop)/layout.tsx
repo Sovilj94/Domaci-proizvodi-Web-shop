@@ -4,6 +4,7 @@ import { ShopFooter } from "@/components/layout/shop-footer";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { JezikProvider } from "@/components/jezik/jezik-provider";
 import { JsonLd, sajtLd } from "@/lib/seo/json-ld";
+import { seoApi } from "@/lib/seo/api";
 
 /**
  * Raspored po uzoru na farmit (R1): zaglavlje, krem traka roka (osim na početnoj), sadržaj,
@@ -13,11 +14,12 @@ import { JsonLd, sajtLd } from "@/lib/seo/json-ld";
  * Traka roka NIJE u <header>-u i ne lijepi se: ljepljivi elementi stranica (`top-[88px]`,
  * `lg:top-28`) računaju samo visinu zaglavlja (72px / 96px).
  */
-export default function ShopLayout({ children }: { children: React.ReactNode }) {
+export default async function ShopLayout({ children }: { children: React.ReactNode }) {
+  const sadrzaj = await seoApi.sadrzajSajta();
   return (
     <>
       {/* schema.org GroceryStore + WebSite (sa pretragom Špajza) na svakoj javnoj stranici. */}
-      <JsonLd data={sajtLd()} />
+      <JsonLd data={sajtLd(sadrzaj?.telefon)} />
       <ShopNavbar />
       <TrakaRoka />
       <main className="flex-1">{children}</main>

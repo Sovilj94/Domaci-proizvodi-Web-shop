@@ -34,34 +34,11 @@ export const RJECNIK: Record<string, string> = {
   "tvoj@email.primjer": "your@email.example",
 
   // ----- Početna -----
-  "Domaće sa Manjače.": "Homegrown on Manjača.",
-  "Svježe povrće sa provjerenih domaćinstava stiže na tvoju adresu. Biraš korpicu, mi je pakujemo svake sedmice.":
-    "Fresh vegetables from trusted family farms, delivered to your door. You pick a box, we pack it every week.",
-  "🥦 Pogledaj korpice": "🥦 See the boxes",
-  "Voće iz voćnjaka.": "Fruit from the orchard.",
-  "Jabuke, šljive i kruške ubrane kad su zrele, spakovane u korpicu po tvojoj mjeri.":
-    "Apples, plums and pears picked ripe and packed in a box that fits you.",
-  "🍎 Korpica voća": "🍎 Fruit box",
-  "Špajz pun domaćeg.": "A pantry full of homemade goods.",
-  "Sir, suho meso, ajvar i zimnica — dodaj ih uz korpicu i stižu u istoj dostavi.":
-    "Cheese, cured meat, ajvar and preserves — add them to your box and they arrive in the same delivery.",
-  "🫙 Pogledaj Špajz": "🫙 See the pantry",
   "Plaćaš pouzećem, pri dostavi.": "You pay cash on delivery.",
   "Prethodni slajd": "Previous slide",
   "Sljedeći slajd": "Next slide",
-  "Hoću svoju korpicu! 🥕": "I want my box! 🥕",
   "Pogledaj korpice": "See the boxes",
-  "Korpica sa domaćim povrćem": "Box of homegrown vegetables",
   "Kako funkcioniše?": "How does it work?",
-  "Biraš korpicu": "Pick a box",
-  "Izaberi korpicu povrća ili voća i veličinu po broju ukućana. Možeš se pretplatiti ili naručiti jednom.":
-    "Choose a vegetable or fruit box and a size for your household. Subscribe or order just once.",
-  "Znaš domaćina": "Know your farmer",
-  "Uz svaku namirnicu u korpici piše ko ju je uzgojio i iz kog je sela.":
-    "Every item in the box shows who grew it and which village it comes from.",
-  "Stiže na vrata": "Delivered to your door",
-  "Dostavljamo u dan koji izabereš, a plaćaš pouzećem. Adresu dostave možeš da mijenjaš.":
-    "We deliver on the day you choose and you pay on delivery. You can change the delivery address.",
   "Sljedeće": "Next",
   "Povrće": "Vegetables",
   "Voće": "Fruit",
@@ -70,9 +47,6 @@ export const RJECNIK: Record<string, string> = {
   "Sa njive do tvog stola": "From the field to your table",
   "Pogledaj naše korpice povrća i voća i izaberi šta ti treba iz Špajza.":
     "Browse our vegetable and fruit boxes and pick what you need from the pantry.",
-  "Iza svake namirnice stoji domaćin": "There is a farmer behind every item",
-  "Naši domaćini su porodična gazdinstva sa Manjače i okoline. Svako ima svoje ime, selo i namirnice koje najbolje radi — zato znaš odakle stiže ono što jedeš.":
-    "Our farmers are family farms from Manjača and the surrounding area. Each has a name, a village and the produce they do best — so you know where your food comes from.",
   "Ovo su tvoji domaćini 🧑‍🌾": "Meet your farmers 🧑‍🌾",
   "Vidi sve analize": "See all lab tests",
   "Šta tačno jedeš?": "What exactly are you eating?",
@@ -170,18 +144,10 @@ export const RJECNIK: Record<string, string> = {
   "U svakom trenutku možeš da:": "At any time you can:",
   "Iz svog naloga upravljaš pretplatom i korpicom jednim klikom.":
     "Manage your subscription and box from your account in one click.",
-  "Paket": "Plan",
-  "Zamijeniš korpicu prema svojim potrebama": "Switch your box to suit your needs",
   "Sadržaj": "Contents",
-  "Zamijeniš namirnicu koju ne želiš": "Swap an item you don't want",
   "Pauza": "Pause",
-  "Pauziraš dostavu kad god želiš": "Pause deliveries whenever you like",
   "Dostava": "Delivery",
-  "Promijeniš adresu i termin dostave": "Change the address and delivery slot",
-  "Podrška": "Support",
-  "Javiš nam se telefonom ili porukom": "Reach us by phone or message",
   "Pretplata": "Subscription",
-  "Otkažeš pretplatu kad istekne obaveza plana": "Cancel once the plan commitment ends",
   "Otvori Moj nalog": "Open My account",
 
   // ----- Korpica: detalj -----
@@ -229,22 +195,4 @@ export const RJECNIK: Record<string, string> = {
   "Prikaži sve": "Show all",
 
   // ----- Česta pitanja -----
-  "Šta je korpica?": "What is a box?",
-  "Pakovanje domaćih namirnica sa Manjače po fiksnoj cijeni. Vrstu i veličinu biraš ti, a sadržaj sastavljamo svake sedmice od onoga što je tada najbolje.":
-    "A pack of homegrown produce from Manjača at a fixed price. You choose the type and size; we put together the contents each week from what is best at the time.",
-  "Do kada mogu naručiti?": "Until when can I order?",
-  "Svaka sedmica ima rok naručivanja. Narudžba poslije roka ide za sljedeću sedmicu.":
-    "Every week has an order deadline. Orders after the deadline go to the following week.",
-  "Kada stiže dostava?": "When does delivery arrive?",
-  "Dostavljamo jednom sedmično, u Banjoj Luci i okolini.": "We deliver once a week in Banja Luka and the surrounding area.",
-  "Kako se plaća?": "How do I pay?",
-  "Pouzećem, prilikom dostave. Ne tražimo karticu ni plaćanje unaprijed.":
-    "Cash on delivery. We don't ask for a card or payment in advance.",
-  "Mogu li promijeniti šta je u korpici?": "Can I change what's in the box?",
-  "Možeš, do roka naručivanja, u okviru vrijednosti korpice. Izmjena je u Mom nalogu, pod „Moja korpica“. Cijena korpice se pri tome ne mijenja.":
-    "Yes, before the order deadline and within the box value. You'll find it in My account under “My box”. The price of the box stays the same.",
-  "Kako radi pretplata?": "How does a subscription work?",
-  "Treba li mi nalog?": "Do I need an account?",
-  "Za jednu narudžbu ne treba, možeš naručiti kao gost. Za pretplatu i izmjenu sadržaja korpice treba nalog.":
-    "Not for a single order — you can order as a guest. You need an account to subscribe or change the box contents.",
 };

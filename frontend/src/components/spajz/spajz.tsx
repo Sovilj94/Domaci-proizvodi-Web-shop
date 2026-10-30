@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Award, LayoutGrid, MapPin, Search, Sprout } from "lucide-react";
+import { Award, LayoutGrid, MapPin, Search, Sprout, type LucideIcon } from "lucide-react";
 import { Sekcija } from "@/components/pocetna/sekcija";
 import { ProductGrid, ProductGridSkeleton } from "@/components/shop/product-grid";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SmartImage } from "@/components/ui/smart-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { KorpicaUSpajzu } from "@/components/spajz/korpica-u-spajzu";
-import { useCategories, useKorpiceList, useProducts } from "@/lib/api/hooks";
+import { useBlokovi, useCategories, useKorpiceList, useProducts } from "@/lib/api/hooks";
 import { VELICINE } from "@/lib/planovi";
 import { cn } from "@/lib/utils";
 
@@ -190,60 +190,51 @@ function Krug({
   );
 }
 
-const RAZLOZI = [
-  {
-    ikona: Sprout,
-    naslov: "Dobro za tebe i za domaćinstva",
-    tekst: "Sve dolazi direktno od domaćina koje poznajemo lično. Kupovinom podržavaš porodična gazdinstva sa Manjače.",
-  },
-  {
-    ikona: MapPin,
-    naslov: "Odabir sa stavom",
-    tekst: "Kad ovdje biraš proizvod, znaš ko ga je napravio i u kom selu. Biraš ono što vrijedi.",
-  },
-  {
-    ikona: Award,
-    naslov: "Manje robe, više kvaliteta",
-    tekst: "Ne nudimo stotinu vrsta istog proizvoda — samo one koje smo sami probali i u koje vjerujemo.",
-  },
-] as const;
+/** Ikone interfejsa koje blok sadržaja smije imenovati; sve ostalo se prikazuje kao emoji. */
+const IKONE: Record<string, LucideIcon> = { Sprout, MapPin, Award };
 
 /** „Zato što znaš šta vrijedi" (R3, po uzoru na farmit): krem pojas, tri narandžaste ikone. */
 function ZatoSto() {
+  const { blokovi: razlozi } = useBlokovi("spajz-razlozi");
+  if (razlozi.length === 0) return null;
   return (
     <Sekcija ton="krem">
       <SectionHeader naslov="Zato što znaš šta vrijedi" />
       <div className="grid gap-10 md:grid-cols-3">
-        {RAZLOZI.map((r) => (
-          <div key={r.naslov} className="text-center">
-            <r.ikona className="mx-auto h-16 w-16 text-honey-500" strokeWidth={1.6} />
+        {razlozi.map((r) => {
+          const Ikona = r.ikona ? IKONE[r.ikona] : undefined;
+          return (
+          <div key={r.id} className="text-center">
+            {Ikona ? (
+              <Ikona className="mx-auto h-16 w-16 text-honey-500" strokeWidth={1.6} />
+            ) : (
+              <span className="block text-6xl" aria-hidden>
+                {r.ikona}
+              </span>
+            )}
             <h3 className="mx-auto mt-5 max-w-[260px] text-2xl font-semibold leading-tight text-ink sm:text-[28px]">
               {r.naslov}
             </h3>
             <p className="mx-auto mt-3 max-w-[300px] text-sm leading-relaxed text-ink/80">{r.tekst}</p>
           </div>
-        ))}
+          );
+        })}
       </div>
     </Sekcija>
   );
 }
 
-const ZASTO = [
-  { emoji: "🚚", naslov: "Ista dostava", tekst: "Proizvodi iz Špajza stižu zajedno sa korpicom." },
-  { emoji: "💵", naslov: "Pouzećem", tekst: "Plaćaš pri dostavi, bez kartice." },
-  { emoji: "🧑‍🌾", naslov: "Poznat domaćin", tekst: "Uz svaki proizvod piše ko ga pravi." },
-  { emoji: "🔬", naslov: "Javni nalazi", tekst: "Laboratorijske analize su objavljene." },
-] as const;
-
 function ZastoKodNas() {
+  const { blokovi: zasto } = useBlokovi("spajz-zasto");
+  if (zasto.length === 0) return null;
   return (
     <Sekcija>
       <SectionHeader naslov="Zašto kod nas?" />
       <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-        {ZASTO.map((z) => (
-          <div key={z.naslov} className="rounded-[26px] bg-white p-6 text-center shadow-[0_6px_20px_rgba(64,74,61,0.12)]">
+        {zasto.map((z) => (
+          <div key={z.id} className="rounded-[26px] bg-white p-6 text-center shadow-[0_6px_20px_rgba(64,74,61,0.12)]">
             <span className="text-4xl" aria-hidden>
-              {z.emoji}
+              {z.ikona}
             </span>
             <h3 className="mt-3 text-lg font-semibold text-ink">{z.naslov}</h3>
             <p className="mt-1 text-sm text-ink/80">{z.tekst}</p>

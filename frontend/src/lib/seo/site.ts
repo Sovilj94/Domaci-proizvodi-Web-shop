@@ -24,7 +24,7 @@ export const SITE_KEYWORDS = [
 ];
 
 /** Podrazumijevana slika za dijeljenje (Facebook, Viber, WhatsApp, X). */
-export const OG_IMAGE = { url: "/hero/hero-domacinstvo.jpg", alt: "Domaćinstvo na Manjači" };
+export const OG_IMAGE = { url: "/slike/izgled/hero-domacinstvo.jpg", alt: "Domaćinstvo na Manjači" };
 
 /**
  * Javna adresa frontenda, bez kose crte na kraju. Redom: NEXT_PUBLIC_SITE_URL (postavlja se
