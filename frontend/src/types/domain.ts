@@ -251,6 +251,10 @@ export interface GeocodeHit {
   longitude: number;
   displayName: string;
   localities: string[];
+  /** Ulica bez broja, kad je geokoder zna. */
+  street?: string | null;
+  houseNumber?: string | null;
+  city?: string | null;
 }
 
 export const TIPOVI_KORPICE = [

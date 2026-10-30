@@ -121,7 +121,23 @@ public class NominatimGeocodingService(
             return null;
 
         var display = hit.TryGetProperty("display_name", out var d) ? d.GetString() ?? "" : "";
-        return new GeocodeHit(lat, lon, display, Naselja(hit));
+        return new GeocodeHit(lat, lon, display, Naselja(hit))
+        {
+            Ulica = Polje(hit, "road", "pedestrian", "footway", "square"),
+            Broj = Polje(hit, "house_number"),
+            Grad = Polje(hit, "city", "town", "village", "hamlet"),
+        };
+    }
+
+    /// <summary>Prvo neprazno od navedenih polja iz <c>address</c>, ili null.</summary>
+    private static string? Polje(JsonElement hit, params string[] kljucevi)
+    {
+        if (!hit.TryGetProperty("address", out var adresa) || adresa.ValueKind != JsonValueKind.Object)
+            return null;
+        foreach (var k in kljucevi)
+            if (adresa.TryGetProperty(k, out var v) && !string.IsNullOrWhiteSpace(v.GetString()))
+                return v.GetString();
+        return null;
     }
 
     /// <summary>

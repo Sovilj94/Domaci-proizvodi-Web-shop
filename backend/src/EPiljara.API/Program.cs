@@ -141,6 +141,13 @@ builder.Services.AddRateLimiter(options =>
         o.PermitLimit = 30;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    // /geocode/suggest: prijedlozi dok se kuca (debounce ~300 ms), pa jedna adresa bude
+    // desetak poziva. Particija po IP-u, kao "auth": zajednički prozor bi posjetioci trošili
+    // jedni drugima.
+    options.AddPolicy("geocode-suggest", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // ----- Swagger (with JWT) -----

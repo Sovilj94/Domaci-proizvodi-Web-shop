@@ -1,41 +1,59 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type * as LType from "leaflet";
-import { MapPin } from "lucide-react";
+import { CheckCircle2, LocateFixed, MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { fieldClass } from "@/components/ui/field";
 import { geocodeApi } from "@/lib/api/endpoints";
+import { redoviPrijedloga, tekstIzPogotka } from "@/lib/adresa-prijedlog";
 import type { GeocodeHit } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
 /**
- * Address field with a small OpenStreetMap map underneath (Leaflet tiles).
- * Type an address → it's geocoded and pinned on the map so you can confirm it;
- * if it's off, drag the pin or click the map to correct it and the field updates
- * to match. Keyless and free — no Google Maps API key required.
+ * Polje adrese po uzoru na farmit.rs checkout:
  *
- * Geokodiranje ide kroz NAŠ backend (`geocodeApi`), nikad direktno na Nominatim:
- * inače bi adresa svakog kupca išla trećoj strani sa IP-a tog kupca, na svako
- * kucanje. Ne vraćati `fetch` na nominatim.openstreetmap.org ovdje.
+ * 1. Kupac kuca, ispod polja iskaču **prijedlozi** („Gundulićeva 10 / Banja Luka").
+ *    Izbor prijedloga upisuje adresu i postavlja tačku.
+ * 2. Tačka se pokazuje na **mirnoj mapi** sa pinom, uz dugme „Izmijeni lokaciju na mapi".
+ * 3. U izmjeni pin stoji u centru, a kupac pomjera mapu ispod njega; „Potvrdi lokaciju"
+ *    uzima centar i iz njega čita adresu.
+ *
+ * Uz to „Koristi moju trenutnu lokaciju" (GPS pregledača) i „Ne možeš da pronađeš
+ * adresu?" (mapa za ručno označavanje). Ko upiše tekst a ne izabere prijedlog, dobija
+ * tačku iz geokodiranja upisanog teksta kad napusti polje — kao i ranije.
+ *
+ * Sve ide kroz NAŠ backend (`geocodeApi`), nikad direktno na Nominatim/Photon: inače bi
+ * adresa svakog kupca išla trećoj strani sa IP-a tog kupca, na svako kucanje. Ne vraćati
+ * `fetch` na spoljne geokodere ovdje.
  */
 
+// Polazni pogled mape kad tačke još nema — grad dostave.
 const BANJA_LUKA: [number, number] = [44.7722, 17.191];
 
-/** Pogodak koji ne uspije nije greška ekrana — polje ostaje kako je, bez pina. */
-async function geocode(query: string): Promise<GeocodeHit | null> {
-  try {
-    return await geocodeApi.search(query);
-  } catch {
-    return null;
-  }
-}
+/** Pin u bojama sajta; vrh mu je donja sredina, pa se sidri na dno. */
+const PIN_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">' +
+  '<path d="M17 43C17 43 32 27.5 32 17A15 15 0 0 0 2 17C2 27.5 17 43 17 43Z" fill="#fe7e0f" stroke="#fff" stroke-width="2"/>' +
+  '<circle cx="17" cy="17" r="6" fill="#fff"/></svg>';
 
-async function reverse(lat: number, lon: number): Promise<GeocodeHit | null> {
+type Tacka = { lat: number; lon: number };
+
+type Status =
+  | "idle"
+  | "sacuvana" // tačka je došla iz baze uz polazni tekst
+  | "izabrana" // izabran prijedlog
+  | "pronadjena" // geokodiran upisani tekst (bez izbora prijedloga)
+  | "rucno" // potvrđena na mapi, adresa pročitana iz tačke
+  | "bezAdrese" // potvrđena na mapi, ali za tačku nema adrese
+  | "nijePronadjena"
+  | "lokacijaGreska";
+
+async function bezGreske<T>(p: Promise<T>, prazno: T): Promise<T> {
   try {
-    return await geocodeApi.reverse(lat, lon);
+    return await p;
   } catch {
-    return null;
+    return prazno;
   }
 }
 
@@ -44,6 +62,7 @@ export function AddressPicker({
   onChange,
   onLocalities,
   onCoordinates,
+  onBroj,
   initialCoordinates,
   id = "address",
   querySuffix = "",
@@ -57,99 +76,159 @@ export function AddressPicker({
    * `null` the moment they stop describing the address in the field, so a point can
    * never outlive the address it was found for.
    */
-  onCoordinates?: (coords: { lat: number; lon: number } | null) => void;
+  onCoordinates?: (coords: Tacka | null) => void;
+  /**
+   * Ekran sa zasebnim poljem za kućni broj (checkout): polje adrese tada dobija samo
+   * ulicu, a broj iz izabranog prijedloga ili tačke stiže ovdje. Zove se samo kad pogodak
+   * broj zaista ima — ulica bez broja ne briše broj koji je kupac već upisao.
+   */
+  onBroj?: (broj: string) => void;
   /**
    * Tačka koja je već negdje sačuvana (npr. magacin iz baze): pin i pogled mape polaze
-   * od nje umjesto od centra Banje Luke, da ekran pokaže gdje je lokacija *sada*.
-   * Čita se jednom, na mount, i **ne** emituje se kroz `onCoordinates` — vlasnik te
-   * vrijednosti je ionako već ima, a emitovanje bi se sudarilo sa poništavanjem iznad.
-   * Zato ova tačka i ukida geokodiranje polaznog teksta (vidi `polazniTekst`): inače bi
-   * mount odmah prijavio `null`, pa eventualno tuđu tačku za istu adresu.
+   * od nje. Čita se jednom, na mount, i **ne** emituje se kroz `onCoordinates` — vlasnik
+   * te vrijednosti je ionako već ima. Ova tačka i ukida geokodiranje polaznog teksta
+   * (vidi `polazniTekst`), inače bi mount odmah prijavio `null`.
    */
-  initialCoordinates?: { lat: number; lon: number };
+  initialCoordinates?: Tacka;
   id?: string;
   /**
-   * Tekst koji se dodaje SAMO geokodirajućem upitu (npr. kućni broj iz posebnog polja u
+   * Tekst koji se dodaje SAMO upitima geokodera (npr. kućni broj iz posebnog polja u
    * checkoutu) — nikad prikazanoj vrijednosti polja niti onChange-u. Namjerno odvojeno
-   * od `value`: kad bi input prikazivao "ulica broj" i onChange upisivao taj cijeli
-   * tekst nazad, svaka izmjena ulice bi ponovo zalijepila stari broj na kraj (dvosmjerno
-   * vezivanje koje samo sebe truje). Ovako input ostaje vezan isključivo za ulicu, a broj
-   * utiče samo na to gdje se traži pin.
+   * od `value`: dvosmjerno vezivanje „ulica broj" bi pri svakoj izmjeni ulice ponovo
+   * zalijepilo stari broj na kraj.
    */
   querySuffix?: string;
 }) {
+  const listaId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<LType.Map | null>(null);
   const markerRef = useRef<LType.Marker | null>(null);
-  // Keep live references so the map handlers never go stale.
+  const [mapaSpremna, setMapaSpremna] = useState(false);
+
+  // Žive reference, da handleri mape i odgođeni pozivi nikad ne zastare.
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onLocalitiesRef = useRef(onLocalities);
   onLocalitiesRef.current = onLocalities;
   const onCoordinatesRef = useRef(onCoordinates);
   onCoordinatesRef.current = onCoordinates;
-  // Pročitano jednom, na mount: kasnije promjene ne smiju vraćati pin natrag pod rukom
-  // korisniku koji ga je upravo pomjerio.
-  const pocetnaTacka = useRef(initialCoordinates);
-  // Holds the exact address text we ourselves wrote from the map, so the geocode effect
-  // below does not re-geocode (and re-null) our own reverse-geocoded value. Keyed to the
-  // value rather than a bare boolean: a second click near the first returns the same
-  // display_name, so `value` never changes, the effect never runs, and a boolean would
-  // stay armed — swallowing the NEXT real edit of the address, pin and all.
-  const suppressFor = useRef<string | null>(null);
-  // Polazni tekst uz `initialCoordinates`: taj par (tekst + tačka) je neko ranije
-  // sačuvao, pa ga efekat ispod ne smije geokodirati — poslao bi `onCoordinates(null)`
-  // i onda, u najboljem slučaju suvišno, tražio tuđu tačku za istu adresu; u najgorem
-  // tiho pomjeri ili izgubi pin koji je kupac ručno postavio.
-  //
-  // Zašto zaseban ref a ne `suppressFor` iznad: ono se troši pri prvom prolazu, a React
-  // u razvoju (StrictMode) montira i pušta efekte dvaput — drugi prolaz bi zatekao
-  // razoružan ref i ipak obrisao tačku. Ovo je idempotentno: dok je tekst isti kao
-  // polazni, prolaz se preskače koliko god puta došao. Prva izmjena teksta ga gasi
-  // zauvijek, pa i ponovo otkucan isti tekst poslije toga normalno geokodira.
-  const polazniTekst = useRef<string | null>(initialCoordinates ? value : null);
+  const onBrojRef = useRef(onBroj);
+  onBrojRef.current = onBroj;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const suffixRef = useRef(querySuffix);
+  suffixRef.current = querySuffix;
 
+  const [tacka, setTacka] = useState<Tacka | null>(initialCoordinates ?? null);
+  const tackaRef = useRef(tacka);
+  tackaRef.current = tacka;
+  const [izmjena, setIzmjena] = useState(false);
+  // Gdje mapa u izmjeni polazi kad to nije trenutna tačka (GPS pregledača).
+  const polaziste = useRef<Tacka | null>(null);
+
+  const [prijedlozi, setPrijedlozi] = useState<GeocodeHit[]>([]);
+  const [otvoreno, setOtvoreno] = useState(false);
+  const [aktivan, setAktivan] = useState(-1);
   const [found, setFound] = useState<string | null>(null);
-  // `sacuvana` je samo polazno stanje za tačku koja je došla iz baze: efekat ispod nad
-  // polaznim tekstom ćuti (vidi `polazniTekst`), pa bi bez ovoga ekran pored pina na mapi
-  // pisao „Upišite adresu iznad" kao da tačke nema. Gasi ga prva izmjena teksta ili pina.
-  const [status, setStatus] = useState<
-    "idle" | "searching" | "notfound" | "pinned" | "sacuvana"
-  >(initialCoordinates ? "sacuvana" : "idle");
+  const [status, setStatus] = useState<Status>(initialCoordinates ? "sacuvana" : "idle");
+  const [radi, setRadi] = useState(false);
 
-  // Je li ovo polje ikad javilo tačku roditelju. Sve prijave idu kroz `javiTacku` baš
-  // zbog toga.
+  // Tekst koji smo SAMI upisali u polje (iz prijedloga ili sa mape), da ga efekat ispod ne
+  // shvati kao kucanje i ne obriše tačku koja mu upravo odgovara. Vezano za vrijednost a
+  // ne boolean: kad je upisani tekst isti kao postojeći, efekat se ne pokrene i boolean bi
+  // ostao naoružan — progutao bi SLJEDEĆU pravu izmjenu.
+  const suppressFor = useRef<string | null>(null);
+  // Polazni tekst uz `initialCoordinates`: taj par je neko ranije sačuvao, pa se ne
+  // geokodira. Idempotentno (StrictMode pušta efekte dvaput); prva izmjena ga gasi.
+  const polazniTekst = useRef<string | null>(initialCoordinates ? value : null);
+  // Broj koji smo sami predali kroz `onBroj` — njegov povratak kroz `querySuffix` nije
+  // kupčeva izmjena i ne smije pomjeriti tačku koju je prijedlog upravo dao.
+  const brojIzPogotka = useRef<string | null>(null);
+  // Je li kupac kucao od posljednjeg izbora — samo tada napuštanje polja geokodira tekst.
+  const kucano = useRef(false);
+  // Svaki asinhroni odgovor nosi redni broj; stariji od posljednje radnje se baca.
+  const radnja = useRef(0);
+
+  // Je li ovo polje ikad javilo tačku roditelju. Sve prijave idu kroz `javiTacku`.
   const preuzeoTacku = useRef(false);
-  const javiTacku = useCallback((coords: { lat: number; lon: number } | null) => {
+  const javiTacku = useCallback((coords: Tacka | null) => {
     preuzeoTacku.current = true;
+    setTacka(coords);
     onCoordinatesRef.current?.(coords);
   }, []);
 
-  // The pin is gone when the picker goes: whoever holds the coordinates must not keep
-  // them after this field disappears (e.g. checkout switching back to a saved address).
-  //
-  // Ali samo ako je tačka naša. Tuđu — onu koju je roditelj dobio iz baze i dao nam kao
-  // `initialCoordinates` — ovo bi obrisalo a da je niko nije ni dirao. U razvoju je to
-  // odmah vidljivo: StrictMode montira, pusti čišćenje, pa montira ponovo, pa je forma
-  // adresara gubila sačuvani pin čim bi se otvorila.
+  // Tačka nestaje sa poljem — ali samo naša, ne ona koju je roditelj dao iz baze (StrictMode
+  // montira, čisti i montira ponovo, pa bi forma adresara gubila sačuvani pin čim se otvori).
   useEffect(() => () => {
     if (preuzeoTacku.current) onCoordinatesRef.current?.(null);
   }, []);
 
-  // Initialise the map once, client-side only.
+  /** Upisuje tekst iz pogotka u polje (i broj u njegovo polje), bez brisanja tačke. */
+  const upisiIzPogotka = useCallback((hit: GeocodeHit) => {
+    const { tekst, broj } = tekstIzPogotka(hit, !!onBrojRef.current);
+    if (tekst !== valueRef.current) {
+      suppressFor.current = tekst;
+      onChangeRef.current(tekst);
+    }
+    if (broj && onBrojRef.current) {
+      brojIzPogotka.current = broj;
+      onBrojRef.current(broj);
+    }
+  }, []);
+
+  const izaberi = useCallback(
+    (hit: GeocodeHit) => {
+      radnja.current++;
+      kucano.current = false;
+      upisiIzPogotka(hit);
+      javiTacku({ lat: hit.latitude, lon: hit.longitude });
+      onLocalitiesRef.current?.(hit.localities);
+      setFound(hit.displayName);
+      setStatus("izabrana");
+      setRadi(false);
+      setPrijedlozi([]);
+      setOtvoreno(false);
+      setAktivan(-1);
+      setIzmjena(false);
+    },
+    [javiTacku, upisiIzPogotka],
+  );
+
+  /** Geokodira upisani tekst (bez izbora prijedloga) i postavlja tačku ako je nađe. */
+  const geokodirajTekst = useCallback(async () => {
+    const q = [valueRef.current.trim(), suffixRef.current.trim()].filter(Boolean).join(" ");
+    if (q.length < 4) return;
+    const moja = ++radnja.current;
+    setRadi(true);
+    const hit = await bezGreske(geocodeApi.search(q), null);
+    if (moja !== radnja.current) return;
+    setRadi(false);
+    if (hit) {
+      javiTacku({ lat: hit.latitude, lon: hit.longitude });
+      onLocalitiesRef.current?.(hit.localities);
+      setFound(hit.displayName);
+      setStatus("pronadjena");
+    } else {
+      javiTacku(null);
+      setFound(null);
+      setStatus("nijePronadjena");
+    }
+  }, [javiTacku]);
+
+  // ---------- Mapa: pravi se jednom, na klijentu ----------
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current || mapRef.current) return;
 
-      const pocetak: LType.LatLngExpression = pocetnaTacka.current
-        ? [pocetnaTacka.current.lat, pocetnaTacka.current.lon]
-        : BANJA_LUKA;
-      const map = L.map(containerRef.current, { attributionControl: true }).setView(
-        pocetak,
-        pocetnaTacka.current ? 15 : 13,
-      );
+      const map = L.map(containerRef.current, {
+        attributionControl: true,
+        // Leaflet-ova inercija je po defaultu neograničena: brz potez mišem odbaci mapu
+        // stotinama kilometara, pa „Potvrdi" pročita tačku u drugoj državi.
+        inertiaMaxSpeed: 1200,
+      }).setView(BANJA_LUKA, 13);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap",
@@ -157,47 +236,13 @@ export function AddressPicker({
 
       const icon = L.divIcon({
         className: "",
-        html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))">📍</div>',
-        iconSize: [28, 28],
-        iconAnchor: [14, 26],
+        html: PIN_SVG,
+        iconSize: [34, 44],
+        iconAnchor: [17, 43],
       });
-      const marker = L.marker(pocetak, { draggable: true, icon }).addTo(map);
-
-      const commitFromMap = async (lat: number, lon: number) => {
-        const res = await reverse(lat, lon);
-        // Unmounted while the lookup was in flight: the cleanup below already told the
-        // parent to forget the point, and reporting one now would resurrect it.
-        if (cancelled) return;
-        if (res) {
-          setFound(res.displayName);
-          setStatus("idle");
-          suppressFor.current = res.displayName;
-          onChangeRef.current(res.displayName);
-          onLocalitiesRef.current?.(res.localities);
-          javiTacku({ lat, lon });
-          return;
-        }
-        // Reverse geocoding missed, so the address text stays as typed — but the pin the
-        // user dropped is still the truth about where to deliver, and leaving the previous
-        // point in place would silently disagree with the marker on screen.
-        setFound(null);
-        setStatus("pinned");
-        javiTacku({ lat, lon });
-      };
-
-      marker.on("dragend", () => {
-        const { lat, lng } = marker.getLatLng();
-        void commitFromMap(lat, lng);
-      });
-      map.on("click", (e: LType.LeafletMouseEvent) => {
-        marker.setLatLng(e.latlng);
-        void commitFromMap(e.latlng.lat, e.latlng.lng);
-      });
-
+      markerRef.current = L.marker(BANJA_LUKA, { icon, interactive: false });
       mapRef.current = map;
-      markerRef.current = marker;
-      // The map often mounts before its container has final size.
-      setTimeout(() => map.invalidateSize(), 0);
+      setMapaSpremna(true);
     })();
 
     return () => {
@@ -205,125 +250,336 @@ export function AddressPicker({
       mapRef.current?.remove();
       mapRef.current = null;
       markerRef.current = null;
+      setMapaSpremna(false);
     };
-  // `javiTacku` je stabilna (useCallback bez zavisnosti) — stoji ovdje samo zbog
-  // pravila o zavisnostima i ne ponovo pokreće inicijalizaciju mape.
-  }, [javiTacku]);
+  }, []);
 
-  // Geocode the typed address (debounced) and move the pin to it.
+  // Mirna mapa sa pinom ↔ mapa koja se pomjera ispod fiksnog pina.
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = markerRef.current;
+    if (!mapaSpremna || !map || !marker) return;
+    if (!tacka && !izmjena) return;
+
+    const kontrole = [
+      map.dragging,
+      map.touchZoom,
+      map.doubleClickZoom,
+      map.scrollWheelZoom,
+      map.boxZoom,
+      map.keyboard,
+    ];
+    if (izmjena) {
+      kontrole.forEach((k) => k.enable());
+      map.zoomControl.addTo(map);
+      marker.remove();
+      const p = polaziste.current ?? tacka;
+      polaziste.current = null;
+      // Visina kontejnera se upravo promijenila — Leaflet to mora znati prije pomjeranja.
+      map.invalidateSize();
+      map.setView(p ? [p.lat, p.lon] : BANJA_LUKA, p ? 17 : 13);
+    } else if (tacka) {
+      kontrole.forEach((k) => k.disable());
+      map.zoomControl.remove();
+      map.invalidateSize();
+      marker.setLatLng([tacka.lat, tacka.lon]).addTo(map);
+      map.setView([tacka.lat, tacka.lon], 16);
+    }
+  }, [mapaSpremna, tacka, izmjena]);
+
+  // ---------- Kucanje: prijedlozi ----------
   useEffect(() => {
     if (polazniTekst.current !== null) {
-      // Tekst je i dalje onaj sa kojim je došla sačuvana tačka — ništa se nije desilo.
       if (polazniTekst.current === value) return;
-      // Krenulo je kucanje: od sad je ovo polje kao i svako drugo.
       polazniTekst.current = null;
     }
     if (suppressFor.current === value) {
-      // This exact text is ours, straight from the pin: the coordinates already match it.
+      // Ovaj tekst smo upisali mi, iz pogotka — tačka mu već odgovara.
       suppressFor.current = null;
       return;
     }
-    // Any other text is the user editing, so an armed value is stale by definition —
-    // disarm it here so it can never match a later edit that happens to retype it.
     suppressFor.current = null;
-    // The address text just changed under us, so whatever point we last reported belongs
-    // to the previous address. Drop it now — before the debounce, before the request — so
-    // there is no window in which a submit could pair this address with the old pin. A
-    // missing coordinate is recoverable (admin can set it); a wrong one is invisible.
+    radnja.current++;
+    // Tekst se promijenio, pa tačka pripada staroj adresi. Briše se odmah — prije
+    // debounce-a i prije zahtjeva — da submit ne upari novu adresu sa starim pinom.
+    // Tačka koja fali se može dopuniti (admin); pogrešna je nevidljiva.
     javiTacku(null);
+    setFound(null);
+    setStatus("idle");
+    setRadi(false);
 
-    // `querySuffix` (e.g. the house number, typed in its own field) only ever widens the
-    // geocoding query — it never touches `value`/`onChange`, so it can't round-trip back
-    // into the street text the way baking it into `value` did.
-    const q = [value.trim(), querySuffix.trim()].filter(Boolean).join(" ");
-    if (q.length < 4) {
-      setFound(null);
-      setStatus("idle");
+    if (value.trim().length < 3) {
+      setPrijedlozi([]);
+      setOtvoreno(false);
       return;
     }
-    setStatus("searching");
-    let stale = false;
+    const q = [value.trim(), suffixRef.current.trim()].filter(Boolean).join(" ");
+    const kontrola = new AbortController();
     const t = setTimeout(async () => {
-      const hit = await geocode(q);
-      // `clearTimeout` cannot recall a request that already left. Without this the answer
-      // for a previous address could arrive after the field moved on and re-attach its
-      // coordinates to the new text.
-      if (stale) return;
-      const map = mapRef.current;
-      const marker = markerRef.current;
-      if (!map || !marker) return;
-      if (hit) {
-        const { latitude: lat, longitude: lon } = hit;
-        marker.setLatLng([lat, lon]);
-        map.setView([lat, lon], 16);
-        setFound(hit.displayName);
-        setStatus("idle");
-        onLocalitiesRef.current?.(hit.localities);
-        javiTacku({ lat, lon });
-      } else {
-        setStatus("notfound");
-        setFound(null);
-        // Nothing was found for this address; make sure nothing is reported for it either.
-        javiTacku(null);
-      }
-    }, 800);
+      const lista = await bezGreske(geocodeApi.suggest(q, kontrola.signal), [] as GeocodeHit[]);
+      if (kontrola.signal.aborted) return;
+      setPrijedlozi(lista);
+      setAktivan(-1);
+      setOtvoreno(document.activeElement === inputRef.current);
+    }, 300);
     return () => {
-      stale = true;
       clearTimeout(t);
+      kontrola.abort();
     };
-  }, [value, querySuffix, javiTacku]);
+  }, [value, javiTacku]);
+
+  // Mount sa tekstom a bez sačuvane tačke (npr. admin postavlja lokaciju narudžbe): pin
+  // se traži odmah, kao i ranije, da mapa ne bude prazna. Ref se gasi pri prvom prolazu,
+  // a `radnja` baca odgovor ako drugi (StrictMode) prolaz ipak stigne.
+  const pocetnoGeokodiranje = useRef(!initialCoordinates && value.trim().length >= 4);
+  useEffect(() => {
+    if (!pocetnoGeokodiranje.current) return;
+    pocetnoGeokodiranje.current = false;
+    void geokodirajTekst();
+  }, [geokodirajTekst]);
+
+  // Kućni broj iz zasebnog polja: kad ga kupac promijeni, tačka se traži ponovo za
+  // „ulica broj". Broj koji smo sami predali iz pogotka se preskače.
+  const prethodniSuffix = useRef(querySuffix);
+  useEffect(() => {
+    if (prethodniSuffix.current === querySuffix) return;
+    prethodniSuffix.current = querySuffix;
+    if (brojIzPogotka.current !== null && brojIzPogotka.current === querySuffix) return;
+    brojIzPogotka.current = null;
+    if (valueRef.current.trim().length < 3) return;
+    const t = setTimeout(() => void geokodirajTekst(), 800);
+    return () => clearTimeout(t);
+  }, [querySuffix, geokodirajTekst]);
+
+  // ---------- Radnje ----------
+  const potvrdiLokaciju = async () => {
+    const map = mapRef.current;
+    if (!map) return;
+    const c = map.getCenter();
+    const nova = { lat: c.lat, lon: c.lng };
+    const moja = ++radnja.current;
+    kucano.current = false;
+    setIzmjena(false);
+    // Tačka koju je kupac potvrdio je istina o mjestu dostave — javlja se prije čitanja
+    // adrese, pa ostaje i kad za nju adrese nema.
+    javiTacku(nova);
+    setStatus("bezAdrese");
+    setFound(null);
+    setRadi(true);
+    const res = await bezGreske(geocodeApi.reverse(nova.lat, nova.lon), null);
+    if (moja !== radnja.current) return;
+    setRadi(false);
+    if (res) {
+      upisiIzPogotka(res);
+      onLocalitiesRef.current?.(res.localities);
+      setFound(res.displayName);
+      setStatus("rucno");
+    }
+  };
+
+  const mojaLokacija = () => {
+    if (!navigator.geolocation) {
+      setStatus("lokacijaGreska");
+      return;
+    }
+    setRadi(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setRadi(false);
+        polaziste.current = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setIzmjena(true);
+      },
+      () => {
+        setRadi(false);
+        setStatus("lokacijaGreska");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!otvoreno || prijedlozi.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setAktivan((i) => (i + 1) % prijedlozi.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setAktivan((i) => (i <= 0 ? prijedlozi.length - 1 : i - 1));
+    } else if (e.key === "Enter" && aktivan >= 0) {
+      // Inače bi Enter u formi poslao narudžbu umjesto da izabere adresu.
+      e.preventDefault();
+      izaberi(prijedlozi[aktivan]);
+    } else if (e.key === "Escape") {
+      setOtvoreno(false);
+    }
+  };
+
+  const mapaVidljiva = !!tacka || izmjena;
+  const listaOtvorena = otvoreno && prijedlozi.length > 0;
 
   return (
     <div className="space-y-2">
       <div className="relative">
-        <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-600" />
+        <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-honey-500" />
         <input
+          ref={inputRef}
           id={id}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Ulica i broj, Banja Luka"
+          onChange={(e) => {
+            kucano.current = true;
+            onChange(e.target.value);
+          }}
+          onKeyDown={onKeyDown}
+          onFocus={() => prijedlozi.length > 0 && setOtvoreno(true)}
+          onBlur={() => {
+            setOtvoreno(false);
+            // Upisan tekst bez izabranog prijedloga: tačka se traži za sam tekst.
+            if (kucano.current && !tackaRef.current) {
+              kucano.current = false;
+              void geokodirajTekst();
+            }
+          }}
+          placeholder={onBroj ? "Ime ulice" : "Ime ulice i broj"}
           className={cn(fieldClass, "pl-9")}
           autoComplete="off"
+          role="combobox"
+          aria-expanded={listaOtvorena}
+          aria-controls={listaId}
+          aria-autocomplete="list"
+          aria-activedescendant={listaOtvorena && aktivan >= 0 ? `${listaId}-${aktivan}` : undefined}
         />
+
+        {listaOtvorena && (
+          <ul
+            id={listaId}
+            role="listbox"
+            className="absolute inset-x-0 top-full z-[1000] mt-1 overflow-hidden rounded-xl border border-line bg-surface shadow-lg"
+          >
+            {prijedlozi.map((p, i) => {
+              const { naslov, podnaslov } = redoviPrijedloga(p);
+              return (
+                <li
+                  key={`${p.latitude},${p.longitude},${naslov}`}
+                  id={`${listaId}-${i}`}
+                  role="option"
+                  aria-selected={i === aktivan}
+                  // mousedown, ne click: click bi stigao poslije blur-a koji zatvara listu.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    izaberi(p);
+                  }}
+                  onMouseEnter={() => setAktivan(i)}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 border-b border-line/60 px-3.5 py-2.5 last:border-b-0",
+                    i === aktivan ? "bg-sand" : "bg-surface",
+                  )}
+                >
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ink" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-ink">{naslov}</span>
+                    {podnaslov && (
+                      <span className="block truncate text-xs text-muted">{podnaslov}</span>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
-      <div
-        ref={containerRef}
-        className="h-48 w-full overflow-hidden rounded-xl ring-1 ring-line"
-        style={{ zIndex: 0 }}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <button
+          type="button"
+          onClick={mojaLokacija}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-honey-600 underline-offset-2 hover:underline"
+        >
+          <LocateFixed className="h-3.5 w-3.5" />
+          Koristi moju trenutnu lokaciju
+        </button>
+        {!izmjena && (
+          <button
+            type="button"
+            onClick={() => setIzmjena(true)}
+            className="text-xs font-medium text-honey-600 underline underline-offset-2"
+          >
+            Ne možeš da pronađeš adresu?
+          </button>
+        )}
+      </div>
 
-      {status === "searching" && (
-        <p className="text-xs text-muted">Tražim lokaciju na mapi…</p>
+      {/* Visina je na omotaču, ne na kontejneru mape: Leaflet kontejneru dodaje svoje
+          klase (`leaflet-container`…), a promjena `className` bi ih React-om pregazila. */}
+      <div className={cn("relative", izmjena ? "h-72" : "h-40", !mapaVidljiva && "hidden")}>
+        <div
+          ref={containerRef}
+          className="h-full w-full overflow-hidden rounded-xl ring-1 ring-line"
+          style={{ zIndex: 0 }}
+        />
+        {izmjena && (
+          <>
+            {/* Pin stoji, mapa se pomjera — vrh pina je tačno centar mape. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 z-[500] -translate-x-1/2 -translate-y-full"
+              dangerouslySetInnerHTML={{ __html: PIN_SVG }}
+            />
+            <div className="absolute inset-x-0 bottom-7 z-[500] flex justify-center gap-2 px-3">
+              {tacka && (
+                <button
+                  type="button"
+                  onClick={() => setIzmjena(false)}
+                  className="rounded-xl bg-surface px-4 py-2 text-sm font-medium text-ink shadow-md ring-1 ring-line"
+                >
+                  Odustani
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => void potvrdiLokaciju()}
+                className="inline-flex items-center gap-2 rounded-xl bg-honey-500 px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-honey-600"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Potvrdi lokaciju
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {tacka && !izmjena && (
+        <div className="flex flex-col items-center gap-2 pt-1 text-center">
+          <p className="text-xs text-muted">Želiš li da izmijeniš tačnu lokaciju na mapi?</p>
+          <button
+            type="button"
+            onClick={() => setIzmjena(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-honey-500 px-4 py-2 text-sm font-medium text-honey-600 hover:bg-honey-100"
+          >
+            <MapPin className="h-4 w-4" />
+            Izmijeni lokaciju na mapi
+          </button>
+        </div>
       )}
-      {status === "notfound" && (
-        <p className="text-xs text-honey-600">
-          Adresa nije pronađena — klikni na mapu ili prevuci pin da označiš tačnu lokaciju.
-        </p>
-      )}
-      {status === "sacuvana" && (
-        <p className="text-xs text-muted">
-          📍 Sačuvana lokacija je označena na mapi. Ako nije tačna, prevuci pin ili
-          klikni na mapu.
-        </p>
-      )}
-      {status === "pinned" && (
-        <p className="text-xs text-muted">
-          📍 Lokacija je označena na mapi. Adresu nismo prepoznali — provjeri da tekst iznad
-          odgovara označenoj tački.
-        </p>
-      )}
-      {status === "idle" && found && (
-        <p className="text-xs text-muted">
-          📍 <span className="font-medium text-ink">{found}</span> — je li ovo tačna adresa? Ako
-          nije, prevuci pin ili klikni na mapu.
-        </p>
-      )}
-      {status === "idle" && !found && (
-        <p className="text-xs text-muted">
-          Upiši adresu iznad ili klikni na mapu da označiš lokaciju dostave.
-        </p>
-      )}
+
+      <p className="text-xs text-muted" aria-live="polite">
+        {radi
+          ? "Tražim lokaciju…"
+          : izmjena
+            ? "Pomjeri mapu tako da pin pokazuje tačno mjesto dostave, pa potvrdi."
+            : status === "nijePronadjena"
+              ? "Adresu nismo pronašli na mapi — izaberi je sa liste prijedloga ili je označi na mapi."
+              : status === "lokacijaGreska"
+                ? "Ne možemo da pročitamo tvoju lokaciju — dozvoli pristup lokaciji u pregledaču ili upiši adresu."
+                : status === "bezAdrese"
+                  ? "📍 Lokacija je označena. Adresu za tu tačku nismo prepoznali — provjeri da tekst iznad odgovara pinu."
+                  : status === "pronadjena" && found
+                    ? `📍 ${found} — je li ovo tačno mjesto? Ako nije, izmijeni lokaciju na mapi.`
+                    : status === "sacuvana"
+                      ? "📍 Sačuvana lokacija je označena na mapi."
+                      : !tacka
+                        ? "Počni da kucaš ulicu i izaberi adresu sa liste."
+                        : null}
+      </p>
     </div>
   );
 }

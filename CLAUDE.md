@@ -776,6 +776,16 @@ A miss returns `200` with no `data`; because responses serialize with `WhenWriti
   `nominatim` is deliberately **not** in the `api` service's `depends_on` — a failed geocode returns
   `null` and the screens handle it, so the API must not wait on a tens-of-minutes import.
 
+**Suggestions while typing come from Photon, not Nominatim.** `GET /geocode/suggest?q=` →
+`IAddressSuggester` → `PhotonAddressSuggester` (`Photon:BaseUrl`, default `https://photon.komoot.io/`). The
+public Nominatim's usage policy **forbids autocomplete**, so the picker's dropdown must never be pointed at
+`/geocode`. Photon results are clipped to BiH (`countrycode` + `GeoBounds`), biased to `Photon:BiasLatitude/
+BiasLongitude` with `location_bias_scale=0.1&zoom=12` (without those, the same street in Bileća outranks Banja
+Luka), and identical streets from several OSM ways are collapsed. House numbers are sparse in OSM: for
+"Ulica 10" with no exact house nearby, the street itself is added with the typed number. The endpoint has its
+own **per-IP** policy `geocode-suggest` (60/min) — one address is about ten calls, and the shared `geocode`
+window would have made visitors starve each other. Like Nominatim, Photon is only ever called from the server.
+
 What stays with a third party either way: map **tiles** load from `tile.openstreetmap.org` in the
 browser. That reveals roughly which area is being viewed, not the address string, and it is inherent to
 using OSM tiles.
@@ -809,7 +819,10 @@ using OSM tiles.
   Both components take that optional prop, append it **only to the query sent to `/geocode`**, and leave
   the displayed value and `onChange` bound to `form.ulica` alone. Concatenating "ulica broj" into the value
   was self-poisoning: every keystroke in the street field re-appended the old number, so it grew without
-  bound. Editing the number still moves the pin because the geocoding effect depends on `querySuffix`.
+  bound. Editing the number still moves the pin (an 800 ms debounced `/geocode` on `querySuffix`). The
+  reverse direction goes through `onBroj`: picking a suggestion (or confirming a pin) that carries a house
+  number puts the street into the field and the number into checkout's own *Kućni broj* field — and only
+  when there is a number, so a street-level hit never wipes one the customer typed.
   Picking a saved address pushes `onCoordinates(null)` — a history string has no pin of its own, and the
   abandoned one must not travel with it.
 - **A point the picker was *given* is not a point the picker *owns*.** `AddressPicker` has two rules around
@@ -821,8 +834,16 @@ using OSM tiles.
   mounts, cleans up and mounts again in dev, which is exactly how both bugs showed up. A screen that hands
   over `initialCoordinates` therefore keeps its point until the customer edits the address or moves the pin.
 - **Address entry** (customer checkout, admin *Nova narudžba* at `admin/orders/new`, Adresar form) uses a keyless
-  **OpenStreetMap + Leaflet** map picker (`components/shop/address-picker.tsx`): type → `geocodeApi`
-  (our `/geocode`, see Geocoding) → draggable pin → reverse-geocode via `/geocode/reverse`. No Google Maps key. **Coordinates are persisted** alongside the address
+  **OpenStreetMap + Leaflet** map picker (`components/shop/address-picker.tsx`), modelled on farmit.rs's
+  checkout: type → dropdown of suggestions (`/geocode/suggest`) → picking one shows a **still** map with the
+  pin → "Izmijeni lokaciju na mapi" makes the map movable under a **fixed centre pin** → "Potvrdi lokaciju"
+  takes the centre and reverse-geocodes it (`/geocode/reverse`). Plus "Koristi moju trenutnu lokaciju"
+  (browser geolocation, opens the movable map there) and "Ne možeš da pronađeš adresu?" (movable map on Banja
+  Luka). Text typed but never picked is geocoded once on blur (`/geocode`), as before. Two traps fixed while
+  building it: the map's **height lives on a wrapper**, because changing `className` on Leaflet's own
+  container lets React wipe `leaflet-container` and the tiles vanish; and `inertiaMaxSpeed` is capped, because
+  Leaflet's default (Infinity) flings a quick drag hundreds of km and "Potvrdi" then reads a point in
+  Croatia. No Google Maps key. **Coordinates are persisted** alongside the address
   (`Order.Latitude`/`Longitude`, both nullable) and drive route optimization — an earlier version of this
   file said only the address string was kept, which stopped being true when the driver app gained a map.
   Nominatim does not resolve every real address, so `null` coordinates are normal and must stay nullable

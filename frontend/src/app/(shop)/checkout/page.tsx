@@ -407,6 +407,7 @@ export default function CheckoutPage() {
                   onLocalities={applyZoneHint}
                   onCoordinates={setCoords}
                   querySuffix={form.broj}
+                  onBroj={set("broj")}
                 />
               </Field>
 

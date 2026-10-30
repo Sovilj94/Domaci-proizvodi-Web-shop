@@ -26,7 +26,7 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 |---|---|---|---|---|
 | C1 | **Adrese sačuvane prije P2c nemaju pin** (i one prenesene iz starog `User.Address`). | tabela `Addresses` | Batch geokodiranje kao `admin/orders/geocode-missing`. Treba radno geokodiranje (C3/D2). | S |
 | C2 | Niko ne provjerava da **pin i tekst adrese** govore o istom mjestu (kad reverzno geokodiranje ne uspije). | `address-picker.tsx`, `AddressRules` | Upozorenje već postoji; opcija: server odbije tačku dalje od X km od geokodiranog teksta. | M |
-| C3 | **Lokalno geokodiranje ne radi** — `dotnet` procesi na ovom računaru ne mogu van (socket 10013), `/geocode` vraća `{}`. U ručnim provjerama pin se postavlja klikom. | okruženje | Vlastiti Nominatim kontejner (`backend/nominatim/README.md`) — riješava i lokalno i produkciju (D2). | M |
+| C3 | **Lokalno geokodiranje povremeno ne radi** — dugo pokrenut API (`dotnet run`) zna dobiti socket 10013 za odlazni HTTPS, `/geocode` tada vraća `{}`. 30.10. je svježe pokrenut API (`dotnet EPiljara.API.dll`) normalno dosezao Nominatim i Photon. | okruženje | Prvo restart API-ja; trajno: vlastiti Nominatim kontejner (`backend/nominatim/README.md`, D2). Prijedlozi (Photon) bi tad i dalje izlazili — za njih postoji i Photon docker image. | S |
 
 ## D. Do produkcije (`PRODUCTION.md`)
 

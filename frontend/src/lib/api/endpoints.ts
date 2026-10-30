@@ -698,6 +698,15 @@ export const geocodeApi = {
       (r) => r.data ?? null,
     ),
 
+  /**
+   * Prijedlozi dok kupac kuca (do pet). `signal` prekida zahtjev koji je kucanje
+   * prestiglo, da stari odgovor ne pregazi listu za novi tekst.
+   */
+  suggest: (q: string, signal?: AbortSignal) =>
+    apiFetch<GeocodeHit[]>("/geocode/suggest", { auth: false, query: { q }, signal }).then(
+      (r) => r.data ?? [],
+    ),
+
   /** Tačka → adresa. `null` kad nema pogotka. */
   reverse: (lat: number, lon: number) =>
     apiFetch<GeocodeHit | null>("/geocode/reverse", {

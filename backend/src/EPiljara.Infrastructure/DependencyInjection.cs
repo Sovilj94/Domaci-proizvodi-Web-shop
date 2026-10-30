@@ -80,6 +80,20 @@ public static class DependencyInjection
         // pišu cijeli URI na Information nivou, a u URI-ju je adresa kupca. Ne vraćati.
         .RemoveAllLoggers();
 
+        services.Configure<PhotonOptions>(config.GetSection("Photon"));
+        services.AddHttpClient<IAddressSuggester, PhotonAddressSuggester>(c =>
+        {
+            c.BaseAddress = new Uri(
+                config["Photon:BaseUrl"]
+                ?? throw new InvalidOperationException(
+                    "Photon:BaseUrl nije podešen. Bez njega polje adrese ne bi davalo prijedloge."));
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("EPiljara/1.0 (dostava Banja Luka)");
+            // Kratko: prijedlog koji kasni više od par sekundi kupcu više ne treba.
+            c.Timeout = TimeSpan.FromSeconds(5);
+        })
+        // I ovdje je adresa kupca u URI-ju — isti razlog kao gore.
+        .RemoveAllLoggers();
+
         return services;
     }
 }

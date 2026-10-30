@@ -19,6 +19,15 @@ public class GeocodingController : ApiControllerBase
     public async Task<IActionResult> Search([FromQuery] string q) =>
         Envelope(await Mediator.Send(new GeocodeQuery(q ?? string.Empty)));
 
+    /// <summary>
+    /// Prijedlozi adresa dok kupac kuca (do pet). Ima svoju, per-IP particiju: zove se
+    /// mnogo češće od pretrage, pa bi zajednički prozor od 30/min gostima međusobno gasio polje.
+    /// </summary>
+    [HttpGet("geocode/suggest")]
+    [EnableRateLimiting("geocode-suggest")]
+    public async Task<IActionResult> Suggest([FromQuery] string q) =>
+        Envelope(await Mediator.Send(new SuggestAddressQuery(q ?? string.Empty)));
+
     /// <summary>Tačka → adresa. <c>data: null</c> kad nema pogotka.</summary>
     [HttpGet("geocode/reverse")]
     public async Task<IActionResult> Reverse([FromQuery] double lat, [FromQuery] double lon) =>

@@ -27,6 +27,22 @@ public class GeocodeHandler(IGeocodingService geocoder) : IRequestHandler<Geocod
     }
 }
 
+public record SuggestAddressQuery(string Q) : IRequest<IReadOnlyList<GeocodeHitDto>>;
+
+public class SuggestAddressHandler(IAddressSuggester suggester)
+    : IRequestHandler<SuggestAddressQuery, IReadOnlyList<GeocodeHitDto>>
+{
+    public async Task<IReadOnlyList<GeocodeHitDto>> Handle(SuggestAddressQuery q, CancellationToken ct)
+    {
+        // Dva slova pogađaju pola države; prijedlozi imaju smisla od trećeg.
+        var upit = q.Q.Trim();
+        if (upit.Length < 3) return [];
+        if (upit.Length > 200) upit = upit[..200];
+        var pogoci = await suggester.SuggestAsync(upit, ct);
+        return pogoci.Select(h => GeocodeHitDto.Od(h)!).ToList();
+    }
+}
+
 public record ReverseGeocodeQuery(double Lat, double Lon) : IRequest<GeocodeHitDto?>;
 
 public class ReverseGeocodeHandler(IGeocodingService geocoder)
