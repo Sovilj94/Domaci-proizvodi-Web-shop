@@ -736,7 +736,7 @@ na čekanju i otkazanih); narudžbe na čekanju se uzimaju redom kojim su stigle
 isto stanje — pa brojevi zajedno važe. Uz manjak stoji artikal kojeg je prvog nestalo. „Preostalo za prodaju“
 ostaje kakvo je (broji i narudžbe na čekanju), zato iz njega nije moglo da se pročita koliko smije da se potvrdi.
 
-**Roba za sedmicu** (pakerska lista proširena; sklopivo na `/admin/orders`, i umjesto stare liste na `/admin/korpice`):
+**Nabavka za sedmicu** (pakerska lista proširena; prva sekcija na `/admin/orders`, otvorena, i umjesto stare liste na `/admin/korpice`): grupisano po proizvođaču sa nabavnim zbirom, glavna kolona „Nabaviti“;
 po artiklu Korpice / Špajz / Ukupno / Na stanju / Fali, i traka „otvoreno do roka“ ili „zaključeno — količine su
 konačne“ (`Rok`, `Zakljucena`). Lista sad sabira i Špajz (red same korpice se ne broji). Fali = korpice − stanje,
 jer je Špajz već skinut sa stanja pri narudžbi. Backend testova 607 (+4).

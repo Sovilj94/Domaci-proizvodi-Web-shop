@@ -182,6 +182,17 @@ function AdminOrders() {
         </div>
       </div>
 
+      <details open className="group rounded-card border border-line bg-surface">
+        <summary className="cursor-pointer list-none px-5 py-3 font-display text-lg font-bold text-ink">
+          Nabavka za sedmicu {izbor.sedmica}. — koliko robe treba
+          <span className="ml-2 text-sm font-normal text-muted group-open:hidden">(otvori)</span>
+        </summary>
+        <div className="space-y-3 border-t border-line px-5 py-4">
+          <IzborSedmice s={izbor} />
+          <RobaZaSedmicu godina={izbor.godina} sedmica={izbor.sedmica} />
+        </div>
+      </details>
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full max-w-xs">
           <Input
@@ -205,17 +216,6 @@ function AdminOrders() {
       <ZaPotvrdu />
 
       <StanjeZaliha />
-
-      <details className="group rounded-card border border-line bg-surface">
-        <summary className="cursor-pointer list-none px-5 py-3 font-display text-lg font-bold text-ink">
-          Roba za sedmicu {izbor.sedmica}. — koliko treba nabaviti
-          <span className="ml-2 text-sm font-normal text-muted group-open:hidden">(otvori)</span>
-        </summary>
-        <div className="space-y-3 border-t border-line px-5 py-4">
-          <IzborSedmice s={izbor} />
-          <RobaZaSedmicu godina={izbor.godina} sedmica={izbor.sedmica} />
-        </div>
-      </details>
 
       {prikaz === "lista" && (
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
