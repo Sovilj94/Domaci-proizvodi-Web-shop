@@ -40,7 +40,7 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
   const { data: sedmica } = useSedmica();
   const { data: slotovi } = useDeliverySlots();
   const { user } = useAuth();
-  const { add } = useCart();
+  const { add, openCart } = useCart();
   const { show } = useToast();
   const [izbor, setIzbor] = useState<"pretplata" | "jednom">("pretplata");
   const [pretplataOtvorena, setPretplataOtvorena] = useState(false);
@@ -77,6 +77,7 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
   function potvrdi() {
     if (izbor === "jednom") {
       add(korpicaKaoProizvod(korpica!));
+      openCart();
       show(`${korpica!.naziv} je u korpi`);
       return;
     }

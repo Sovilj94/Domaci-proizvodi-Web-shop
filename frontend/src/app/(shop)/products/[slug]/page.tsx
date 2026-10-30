@@ -19,7 +19,7 @@ export default function ProductDetailPage() {
   const slug = String(useParams().slug);
   const { data: product, isLoading, isError } = useProduct(slug);
   const related = useProducts({ category: product?.categorySlug });
-  const { add } = useCart();
+  const { add, openCart } = useCart();
   const { show } = useToast();
   const [qty, setQty] = useState(1);
 
@@ -94,6 +94,7 @@ export default function ProductDetailPage() {
                   size="lg"
                   onClick={() => {
                     add(product, qty);
+                    openCart();
                     show(`${product.name} (${qty} ${product.unit}) dodano u korpu`);
                   }}
                 >
