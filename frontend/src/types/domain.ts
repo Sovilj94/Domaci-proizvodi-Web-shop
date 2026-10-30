@@ -255,6 +255,10 @@ export interface GeocodeHit {
   street?: string | null;
   houseNumber?: string | null;
   city?: string | null;
+  /** Pada li adresa u grad dostave; `null` kad geokoder ne zna grad (tada se ne odlučuje). */
+  uPodrucjuDostave?: boolean | null;
+  /** Grad dostave iz podešavanja, za poruku. */
+  gradDostave?: string | null;
 }
 
 export const TIPOVI_KORPICE = [
@@ -830,6 +834,8 @@ export interface Podesavanja {
   vrijednostPoenaKM: number;
   nagradaPreporuka: number;
   pragPriKraju: number;
+  /** Grad dostave kako ga piše geokoder („Banja Luka"); prazno = bez ograničenja. */
+  gradDostave: string;
 }
 
 /** Mjesta na sajtu koja se pune iz baze (BlokSadrzaja) — isti ključevi kao SekcijeSadrzaja na backendu. */

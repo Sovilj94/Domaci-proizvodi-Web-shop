@@ -786,6 +786,16 @@ Luka), and identical streets from several OSM ways are collapsed. House numbers 
 own **per-IP** policy `geocode-suggest` (60/min) — one address is about ten calls, and the shared `geocode`
 window would have made visitors starve each other. Like Nominatim, Photon is only ever called from the server.
 
+**Delivery area = `Podesavanja.GradDostave`** ("Banja Luka", edited in *Poslovna pravila*; empty = no limit).
+Every hit from `/geocode`, `/geocode/suggest` and `/geocode/reverse` carries `uPodrucjuDostave` (+ `gradDostave`),
+decided by `PodrucjeDostave.Pripada`: the hit's city **or** municipality (`county` — villages inside the city
+have their own city name but county "Grad Banja Luka") matched after lowercasing, transliterating Cyrillic and
+dropping diacritics and the "Grad "/"Opština " prefix. `null` when the geocoder knows neither (no verdict, not
+blocked). Suggestions in the area are listed first; the rest stay, tagged "Ne dostavljamo". The picker shows a
+red "Ne dostavljamo na ovu adresu" box and reports `onVanPodrucja(true)`; checkout step 1, the Adresar form and
+the subscription form refuse to continue while it is true. Admin screens only see the warning. **Not enforced
+by `CreateOrder`** — the server has no polygon, only the geocoder's verdict in the browser.
+
 What stays with a third party either way: map **tiles** load from `tile.openstreetmap.org` in the
 browser. That reveals roughly which area is being viewed, not the address string, and it is inherent to
 using OSM tiles.

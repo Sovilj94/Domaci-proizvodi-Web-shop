@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type * as LType from "leaflet";
-import { CheckCircle2, LocateFixed, MapPin } from "lucide-react";
+import { AlertTriangle, CheckCircle2, LocateFixed, MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { fieldClass } from "@/components/ui/field";
 import { geocodeApi } from "@/lib/api/endpoints";
@@ -63,6 +63,7 @@ export function AddressPicker({
   onLocalities,
   onCoordinates,
   onBroj,
+  onVanPodrucja,
   initialCoordinates,
   id = "address",
   querySuffix = "",
@@ -83,6 +84,12 @@ export function AddressPicker({
    * broj zaista ima — ulica bez broja ne briše broj koji je kupac već upisao.
    */
   onBroj?: (broj: string) => void;
+  /**
+   * `true` kad je izabrana/označena adresa van grada dostave (`Podesavanja.GradDostave`),
+   * `false` čim to prestane da važi (nova adresa, izmjena teksta). Ekran koji prima narudžbu
+   * ili čuva adresu blokira se dok je `true`; birač sam prikazuje upozorenje.
+   */
+  onVanPodrucja?: (van: boolean) => void;
   /**
    * Tačka koja je već negdje sačuvana (npr. magacin iz baze): pin i pogled mape polaze
    * od nje. Čita se jednom, na mount, i **ne** emituje se kroz `onCoordinates` — vlasnik
@@ -115,6 +122,8 @@ export function AddressPicker({
   onCoordinatesRef.current = onCoordinates;
   const onBrojRef = useRef(onBroj);
   onBrojRef.current = onBroj;
+  const onVanPodrucjaRef = useRef(onVanPodrucja);
+  onVanPodrucjaRef.current = onVanPodrucja;
   const valueRef = useRef(value);
   valueRef.current = value;
   const suffixRef = useRef(querySuffix);
@@ -133,6 +142,8 @@ export function AddressPicker({
   const [found, setFound] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>(initialCoordinates ? "sacuvana" : "idle");
   const [radi, setRadi] = useState(false);
+  // Grad dostave kad je trenutna adresa van njega (prazan string ako ga server nije poslao).
+  const [vanPodrucja, setVanPodrucja] = useState<string | null>(null);
 
   // Tekst koji smo SAMI upisali u polje (iz prijedloga ili sa mape), da ga efekat ispod ne
   // shvati kao kucanje i ne obriše tačku koja mu upravo odgovara. Vezano za vrijednost a
@@ -162,6 +173,19 @@ export function AddressPicker({
   // montira, čisti i montira ponovo, pa bi forma adresara gubila sačuvani pin čim se otvori).
   useEffect(() => () => {
     if (preuzeoTacku.current) onCoordinatesRef.current?.(null);
+    // Ni blokada „van područja" ne smije nadživjeti polje (npr. povratak na sačuvanu adresu).
+    onVanPodrucjaRef.current?.(false);
+  }, []);
+
+  /**
+   * Područje dostave za novu tačku: `false` sa servera znači „ne dostavljamo ovdje" — pin ostaje
+   * na mapi da kupac vidi gdje je, ali roditelj dobija znak da adresa ne smije dalje. `null`
+   * (geokoder ne zna grad) i `true` ne blokiraju.
+   */
+  const procijeniPodrucje = useCallback((hit: GeocodeHit | null) => {
+    const van = hit?.uPodrucjuDostave === false;
+    setVanPodrucja(van ? hit?.gradDostave || "" : null);
+    onVanPodrucjaRef.current?.(van);
   }, []);
 
   /** Upisuje tekst iz pogotka u polje (i broj u njegovo polje), bez brisanja tačke. */
@@ -184,6 +208,7 @@ export function AddressPicker({
       upisiIzPogotka(hit);
       javiTacku({ lat: hit.latitude, lon: hit.longitude });
       onLocalitiesRef.current?.(hit.localities);
+      procijeniPodrucje(hit);
       setFound(hit.displayName);
       setStatus("izabrana");
       setRadi(false);
@@ -192,7 +217,7 @@ export function AddressPicker({
       setAktivan(-1);
       setIzmjena(false);
     },
-    [javiTacku, upisiIzPogotka],
+    [javiTacku, upisiIzPogotka, procijeniPodrucje],
   );
 
   /** Geokodira upisani tekst (bez izbora prijedloga) i postavlja tačku ako je nađe. */
@@ -204,6 +229,7 @@ export function AddressPicker({
     const hit = await bezGreske(geocodeApi.search(q), null);
     if (moja !== radnja.current) return;
     setRadi(false);
+    procijeniPodrucje(hit);
     if (hit) {
       javiTacku({ lat: hit.latitude, lon: hit.longitude });
       onLocalitiesRef.current?.(hit.localities);
@@ -214,7 +240,7 @@ export function AddressPicker({
       setFound(null);
       setStatus("nijePronadjena");
     }
-  }, [javiTacku]);
+  }, [javiTacku, procijeniPodrucje]);
 
   // ---------- Mapa: pravi se jednom, na klijentu ----------
   useEffect(() => {
@@ -304,6 +330,7 @@ export function AddressPicker({
     // debounce-a i prije zahtjeva — da submit ne upari novu adresu sa starim pinom.
     // Tačka koja fali se može dopuniti (admin); pogrešna je nevidljiva.
     javiTacku(null);
+    procijeniPodrucje(null);
     setFound(null);
     setStatus("idle");
     setRadi(false);
@@ -326,7 +353,7 @@ export function AddressPicker({
       clearTimeout(t);
       kontrola.abort();
     };
-  }, [value, javiTacku]);
+  }, [value, javiTacku, procijeniPodrucje]);
 
   // Mount sa tekstom a bez sačuvane tačke (npr. admin postavlja lokaciju narudžbe): pin
   // se traži odmah, kao i ranije, da mapa ne bude prazna. Ref se gasi pri prvom prolazu,
@@ -363,12 +390,14 @@ export function AddressPicker({
     // Tačka koju je kupac potvrdio je istina o mjestu dostave — javlja se prije čitanja
     // adrese, pa ostaje i kad za nju adrese nema.
     javiTacku(nova);
+    procijeniPodrucje(null);
     setStatus("bezAdrese");
     setFound(null);
     setRadi(true);
     const res = await bezGreske(geocodeApi.reverse(nova.lat, nova.lon), null);
     if (moja !== radnja.current) return;
     setRadi(false);
+    procijeniPodrucje(res);
     if (res) {
       upisiIzPogotka(res);
       onLocalitiesRef.current?.(res.localities);
@@ -475,12 +504,24 @@ export function AddressPicker({
                   )}
                 >
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ink" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-ink">{naslov}</span>
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "block truncate text-sm font-semibold",
+                        p.uPodrucjuDostave === false ? "text-muted" : "text-ink",
+                      )}
+                    >
+                      {naslov}
+                    </span>
                     {podnaslov && (
                       <span className="block truncate text-xs text-muted">{podnaslov}</span>
                     )}
                   </span>
+                  {p.uPodrucjuDostave === false && (
+                    <span className="shrink-0 self-center rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                      Ne dostavljamo
+                    </span>
+                  )}
                 </li>
               );
             })}
@@ -547,6 +588,21 @@ export function AddressPicker({
         )}
       </div>
 
+      {vanPodrucja !== null && !izmjena && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            <span className="block font-semibold">Ne dostavljamo na ovu adresu.</span>
+            {vanPodrucja
+              ? `Dostava je moguća samo na području grada ${vanPodrucja}. Izaberi adresu u tom gradu.`
+              : "Ova adresa je van našeg područja dostave. Izaberi drugu adresu."}
+          </span>
+        </div>
+      )}
+
       {tacka && !izmjena && (
         <div className="flex flex-col items-center gap-2 pt-1 text-center">
           <p className="text-xs text-muted">Želiš li da izmijeniš tačnu lokaciju na mapi?</p>
@@ -572,7 +628,9 @@ export function AddressPicker({
                 ? "Ne možemo da pročitamo tvoju lokaciju — dozvoli pristup lokaciji u pregledaču ili upiši adresu."
                 : status === "bezAdrese"
                   ? "📍 Lokacija je označena. Adresu za tu tačku nismo prepoznali — provjeri da tekst iznad odgovara pinu."
-                  : status === "pronadjena" && found
+                  : vanPodrucja !== null
+                    ? null
+                    : status === "pronadjena" && found
                     ? `📍 ${found} — je li ovo tačno mjesto? Ako nije, izmijeni lokaciju na mapi.`
                     : status === "sacuvana"
                       ? "📍 Sačuvana lokacija je označena na mapi."

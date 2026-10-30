@@ -18,6 +18,12 @@ public record GeocodeHit(
 
     /// <summary>Grad ili naselje, za drugi red prijedloga.</summary>
     public string? Grad { get; init; }
+
+    /// <summary>
+    /// Opština / grad kao teritorija („Grad Banja Luka") — selo ima svoj <see cref="Grad"/>, a
+    /// pripada opštini grada dostave. Služi samo provjeri područja dostave.
+    /// </summary>
+    public string? Opstina { get; init; }
 }
 
 /// <summary>

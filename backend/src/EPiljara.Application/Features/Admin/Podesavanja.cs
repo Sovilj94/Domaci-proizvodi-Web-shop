@@ -35,6 +35,8 @@ public record PodesavanjaDto
     public decimal VrijednostPoenaKM { get; init; }
     public int NagradaPreporuka { get; init; }
     public decimal PragPriKraju { get; init; }
+    /// <summary>Grad dostave kako ga piše geokoder; prazno = bez ograničenja.</summary>
+    public string GradDostave { get; init; } = string.Empty;
 }
 
 /// <summary>Red <c>Podesavanja</c> → opcije koje handleri čitaju kroz <c>IOptions</c>.</summary>
@@ -77,6 +79,8 @@ public static class PodesavanjaMapa
 
     public static ProdavnicaOpcije Prodavnica(Domain.Entities.Podesavanja p) => new() { PragPriKraju = p.PragPriKraju };
 
+    public static Geocoding.DostavaOpcije Dostava(Domain.Entities.Podesavanja p) => new() { GradDostave = p.GradDostave };
+
     public static PodesavanjaDto UDto(Domain.Entities.Podesavanja p) => new()
     {
         KoeficijentVrijednosti = p.KoeficijentVrijednosti, MinimalnaMarza = p.MinimalnaMarza, BrojZamjena = p.BrojZamjena,
@@ -87,7 +91,7 @@ public static class PodesavanjaMapa
         ObavezaMjesecna = p.ObavezaMjesecna, ObavezaTriMjeseca = p.ObavezaTriMjeseca, SatiUnaprijed = p.SatiUnaprijed,
         AlarmSatiPrijeRoka = p.AlarmSatiPrijeRoka, MaksPauzaSedmica = p.MaksPauzaSedmica,
         PoenaPoKM = p.PoenaPoKM, VrijednostPoenaKM = p.VrijednostPoenaKM, NagradaPreporuka = p.NagradaPreporuka,
-        PragPriKraju = p.PragPriKraju,
+        PragPriKraju = p.PragPriKraju, GradDostave = p.GradDostave,
     };
 }
 
@@ -145,6 +149,7 @@ public class SacuvajPodesavanjaValidator : AbstractValidator<SacuvajPodesavanjaC
         RuleFor(x => x.Podesavanja.VrijednostPoenaKM).InclusiveBetween(0m, 10m).WithMessage("Vrijednost poena: od 0 do 10 KM.");
         RuleFor(x => x.Podesavanja.NagradaPreporuka).InclusiveBetween(0, 10000).WithMessage("Nagrada: od 0 do 10000 poena.");
         RuleFor(x => x.Podesavanja.PragPriKraju).InclusiveBetween(0m, 10000m).WithMessage("Prag mora biti od 0 do 10000.");
+        RuleFor(x => x.Podesavanja.GradDostave).MaximumLength(100).WithMessage("Grad dostave: najviše 100 znakova.");
     }
 }
 
@@ -176,6 +181,7 @@ public class SacuvajPodesavanjaHandler(IAppDbContext db) : IRequestHandler<Sacuv
         p.VrijednostPoenaKM = d.VrijednostPoenaKM;
         p.NagradaPreporuka = d.NagradaPreporuka;
         p.PragPriKraju = d.PragPriKraju;
+        p.GradDostave = (d.GradDostave ?? string.Empty).Trim();
         await db.SaveChangesAsync(ct);
         return PodesavanjaMapa.UDto(p);
     }

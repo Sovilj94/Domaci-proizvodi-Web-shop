@@ -73,6 +73,7 @@ export function PoslovnaPravila() {
     for (const g of GRUPE) for (const p of g.polja) u[p.k] = uPolje(q.data[p.k] as number, p.procenat);
     u.danIsporukeRezerva = String(q.data.danIsporukeRezerva);
     u.vrijemeIsporukeRezerva = q.data.vrijemeIsporukeRezerva;
+    u.gradDostave = q.data.gradDostave ?? "";
     setUnos(u);
   }, [q.data]);
 
@@ -82,6 +83,7 @@ export function PoslovnaPravila() {
       for (const g of GRUPE) for (const p of g.polja) tijelo[p.k] = izPolja(unos[p.k] ?? "", p.procenat);
       tijelo.danIsporukeRezerva = Number(unos.danIsporukeRezerva);
       tijelo.vrijemeIsporukeRezerva = unos.vrijemeIsporukeRezerva;
+      tijelo.gradDostave = unos.gradDostave ?? "";
       return adminApi.sacuvajPodesavanja(tijelo as unknown as Podesavanja);
     },
     onSuccess: (dto) => {
@@ -162,6 +164,21 @@ export function PoslovnaPravila() {
               </div>
             </fieldset>
           ))}
+          <fieldset className="space-y-3">
+            <legend className="font-semibold text-ink">Dostava</legend>
+            <Field label="Grad dostave" error={greska("gradDostave")}>
+              <Input
+                value={unos.gradDostave ?? ""}
+                onChange={(e) => setUnos({ ...unos, gradDostave: e.target.value })}
+                placeholder="npr. Banja Luka"
+                maxLength={100}
+              />
+            </Field>
+            <p className="text-xs text-muted">
+              Kupac koji izabere adresu van ovog grada (ili njegove opštine) vidi „Ne dostavljamo na
+              ovu adresu&ldquo; i ne može naručiti. Prazno polje = bez ograničenja.
+            </p>
+          </fieldset>
           <div className="flex justify-end">
             <Button type="submit" disabled={sacuvaj.isPending}>
               {sacuvaj.isPending ? "Spremam…" : "Spremi pravila"}

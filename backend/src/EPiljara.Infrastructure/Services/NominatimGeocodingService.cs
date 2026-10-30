@@ -126,6 +126,7 @@ public class NominatimGeocodingService(
             Ulica = Polje(hit, "road", "pedestrian", "footway", "square"),
             Broj = Polje(hit, "house_number"),
             Grad = Polje(hit, "city", "town", "village", "hamlet"),
+            Opstina = Polje(hit, "municipality", "county"),
         };
     }
 

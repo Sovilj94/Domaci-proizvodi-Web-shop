@@ -178,6 +178,7 @@ public class PhotonAddressSuggester(
                 Ulica = ulica,
                 Broj = broj,
                 Grad = grad,
+                Opstina = Tekst(p, "county"),
             });
             if (rezultat.Count == Najvise) break;
         }

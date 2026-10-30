@@ -372,6 +372,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.VrijednostPoenaKM).HasPrecision(8, 3);
             e.Property(x => x.PragPriKraju).HasPrecision(10, 2);
             e.Property(x => x.VrijemeIsporukeRezerva).HasMaxLength(5).IsRequired();
+            e.Property(x => x.GradDostave).HasMaxLength(100).IsRequired();
         });
 
         b.Entity<BlokSadrzaja>(e =>

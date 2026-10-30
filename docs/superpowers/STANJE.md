@@ -717,6 +717,13 @@ da pronađeš adresu?". Kod nas isto, na OSM + Leaflet, bez ključa (`address-pi
 - Testovi: backend 596 (+6 prijedlozi), frontend 114 (+5 `adresa-prijedlog`); `tsc`, lint, `next build` čisti;
   ručno u pregledaču na :3001 + API :5081.
 
+**Samo Banja Luka (isti dan).** Grad dostave je u bazi, `Podesavanja.GradDostave` (migracija `GradDostave`
+postavlja „Banja Luka"; admin ga mijenja u „Poslovna pravila → Dostava"). Svaki pogodak geokodera nosi
+`uPodrucjuDostave` (grad ili opština, i sela na teritoriji grada prolaze). Prijedlozi iz Banje Luke idu prvi,
+ostali su označeni „Ne dostavljamo"; izbor takve adrese (ili tačke na mapi / GPS) daje crveno upozorenje
+„Ne dostavljamo na ovu adresu" i blokira „Nastavi" u checkoutu, čuvanje u adresaru i pretplati. Backend
+testovi 603 (+7 područje dostave). **Nije provjereno na serveru** pri `CreateOrder` — vidi ZA-URADITI C4.
+
 **Zašto je lokalno pisalo „nema te adrese":** API koji je radio na :5080 vraćao je `{}` i za pretragu i za
 reverse, a ista verzija koda pokrenuta svježe na :5081 geokodira normalno (Render takođe). Restart API-ja
 na :5080 to rješava; nije greška u kodu (vidi ZA-URADITI C3).

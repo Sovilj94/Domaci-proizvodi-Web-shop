@@ -94,6 +94,9 @@ public class PrijedloziAdresaTests
         PhotonAddressSuggester.OdvojiBroj(upit).Should().Be((ulica, broj));
     }
 
+    private static readonly Microsoft.Extensions.Options.IOptions<DostavaOpcije> BanjaLuka =
+        Microsoft.Extensions.Options.Options.Create(new DostavaOpcije { GradDostave = "Banja Luka" });
+
     private sealed class BrojacPoziva : IAddressSuggester
     {
         public int Pozivi { get; private set; }
@@ -110,7 +113,7 @@ public class PrijedloziAdresaTests
     public async Task Kratak_upit_ne_izlazi_iz_sistema()
     {
         var servis = new BrojacPoziva();
-        var rezultat = await new SuggestAddressHandler(servis).Handle(new SuggestAddressQuery(" ab "), default);
+        var rezultat = await new SuggestAddressHandler(servis, BanjaLuka).Handle(new SuggestAddressQuery(" ab "), default);
 
         rezultat.Should().BeEmpty();
         servis.Pozivi.Should().Be(0);
@@ -119,7 +122,7 @@ public class PrijedloziAdresaTests
     [Fact]
     public async Task Prijedlog_nosi_ulicu_i_broj_do_pregledaca()
     {
-        var rezultat = await new SuggestAddressHandler(new BrojacPoziva())
+        var rezultat = await new SuggestAddressHandler(new BrojacPoziva(), BanjaLuka)
             .Handle(new SuggestAddressQuery("Srpska 5"), default);
 
         var dto = rezultat.Should().ContainSingle().Subject;
