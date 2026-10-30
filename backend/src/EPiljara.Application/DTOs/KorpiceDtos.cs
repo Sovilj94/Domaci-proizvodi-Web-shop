@@ -164,6 +164,10 @@ public record SadrzajPregledDto
 public record PakerskaListaDto
 {
     public int BrojNarudzbi { get; init; }
+    /// <summary>Rok naručivanja te sedmice (UTC); poslije njega kupci korpice više ne mijenjaju.</summary>
+    public DateTime Rok { get; init; }
+    /// <summary>Rok je prošao — količine su konačne.</summary>
+    public bool Zakljucena { get; init; }
     /// <summary>Trošak nabavke cijele liste po trenutnim nabavnim cijenama (bez artikala bez nabavne).</summary>
     public decimal NabavnaVrijednost { get; init; }
     public int BezNabavneCijene { get; init; }
@@ -173,7 +177,14 @@ public record PakerskaListaDto
 public record StavkaPakerskeDto
 {
     public string Artikal { get; init; } = string.Empty;
+    /// <summary>Ukupno potrebno: sadržaj korpica + Špajz.</summary>
     public decimal Kolicina { get; init; }
+    public decimal UKorpicama { get; init; }
+    public decimal USpajzu { get; init; }
+    /// <summary>Trenutno stanje — već umanjeno za ono što je prodato iz Špajza.</summary>
+    public decimal NaStanju { get; init; }
+    /// <summary>Koliko sadržaj korpica traži preko stanja — to treba nabaviti.</summary>
+    public decimal Fali { get; init; }
     public string Jedinica { get; init; } = "kom";
     public string Proizvodjac { get; init; } = string.Empty;
     public string Selo { get; init; } = string.Empty;
@@ -183,6 +194,26 @@ public record StavkaPakerskeDto
     /// procurement istina i ne smije praviti prazne redove — ali ga operater mora
     /// posebno provjeriti umjesto da naruči "nepoznato".</summary>
     public bool ArtikalObrisan { get; init; }
+}
+
+/// <summary>Korpice na čekanju za jednu sedmicu i koliko ih stanje dozvoljava da se potvrdi.</summary>
+public record PotvrdjivanjeSedmiceDto
+{
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
+    public IReadOnlyList<PotvrdjivanjeKorpiceDto> Korpice { get; init; } = [];
+}
+
+public record PotvrdjivanjeKorpiceDto
+{
+    public Guid KorpicaId { get; init; }
+    public string Naziv { get; init; } = string.Empty;
+    /// <summary>Kutija na čekanju (zbir količina redova).</summary>
+    public int NaCekanju { get; init; }
+    /// <summary>Koliko od njih stanje pokriva, kad se potvrđuju redom kojim su stigle.</summary>
+    public int MozeSePotvrditi { get; init; }
+    /// <summary>Artikal kojeg je prvog nestalo, kad ne mogu sve.</summary>
+    public string? Nedostaje { get; init; }
 }
 
 /// <summary>Jedna korpica koju kupac trenutno može mijenjati.</summary>

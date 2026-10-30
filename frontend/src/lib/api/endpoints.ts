@@ -82,6 +82,7 @@ import type {
   MojaKorpicaDetalji,
   OcjenaInput,
   PakerskaLista,
+  PotvrdjivanjeSedmice,
   PretplataInput,
   ProvjeraPromoKoda,
   ProducerInput,
@@ -239,6 +240,9 @@ export const adminKorpiceApi = {
     apiFetch<PakerskaLista>("/admin/korpice/pakerska-lista", {
       query: { godina, sedmica },
     }).then((r) => r.data),
+
+  potvrdjivanje: () =>
+    apiFetch<PotvrdjivanjeSedmice[]>("/admin/korpice/potvrdjivanje").then((r) => r.data),
 };
 
 /* ---------- Delivery ---------- */

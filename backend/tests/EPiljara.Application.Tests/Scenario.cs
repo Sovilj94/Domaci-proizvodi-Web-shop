@@ -263,7 +263,7 @@ internal sealed class Scenario : IDisposable
     // ---------- Task 6 ----------
 
     public Task<PakerskaListaDto> PakerskaListaAsync() =>
-        new GetPakerskaListaHandler(Db).Handle(new GetPakerskaListaQuery(Godina, Sedmica), default);
+        new GetPakerskaListaHandler(Db, Options.Create(Opcije)).Handle(new GetPakerskaListaQuery(Godina, Sedmica), default);
 
     // ---------- Task 7 ----------
 

@@ -8,13 +8,13 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { SadrzajNacrtEditor } from "@/components/admin/sadrzaj-nacrt-editor";
+import { RobaZaSedmicu } from "@/components/admin/roba-za-sedmicu";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { NAZIVI as NAZIVI_TIPA } from "@/components/korpice/tipovi-tabovi";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { RezultatGenerisanja, StatusPregleda } from "@/lib/api/contracts";
 import type { VelicinaKorpice } from "@/types/domain";
-import { narudzbeRijec } from "@/lib/orders";
 import { cn, formatPrice } from "@/lib/utils";
 import { formatMarza } from "@/lib/marza";
 import { usePodesavanja } from "@/lib/api/hooks";
@@ -332,7 +332,7 @@ function AdminKorpiceSadrzaj() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-ink">Pakerska lista</h2>
+          <h2 className="font-display text-lg font-bold text-ink">Pakerska lista — roba za sedmicu</h2>
           {pakerska.data && pakerska.data.stavke.length > 0 && (
             <Button
               variant="secondary"
@@ -345,73 +345,7 @@ function AdminKorpiceSadrzaj() {
           )}
         </div>
 
-        {pakerska.isLoading ? (
-          <LoadingBlock />
-        ) : pakerska.isError ? (
-          <EmptyState
-            title="Ne mogu da učitam pakersku listu"
-            description="Provjeri konekciju pa pokušaj ponovo."
-            action={<Button onClick={() => pakerska.refetch()}>Pokušaj ponovo</Button>}
-          />
-        ) : !pakerska.data || pakerska.data.stavke.length === 0 ? (
-          <>
-            <p className="text-sm text-muted">
-              {pakerska.data?.brojNarudzbi === 0
-                ? "Za ovu sedmicu još nema nijedne narudžbe."
-                : `${pakerska.data?.brojNarudzbi} ${narudzbeRijec(pakerska.data?.brojNarudzbi ?? 0)} za ovu sedmicu.`}
-            </p>
-            <EmptyState
-              title="Pakerska lista je prazna"
-              description="Nema narudžbi za ovu sedmicu, pa nema ni šta da se pakuje."
-            />
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-muted">
-              {pakerska.data.brojNarudzbi} {narudzbeRijec(pakerska.data.brojNarudzbi)} za ovu sedmicu.
-              {" "}Trošak nabavke:{" "}
-              <strong className="text-ink">{formatPrice(pakerska.data.nabavnaVrijednost)}</strong>
-              {pakerska.data.bezNabavneCijene > 0 &&
-                ` (bez ${pakerska.data.bezNabavneCijene} ${artikalaRijec(pakerska.data.bezNabavneCijene)} kojima nabavna nije unesena)`}
-            </p>
-            <div className="overflow-hidden rounded-card bg-white shadow-card">
-              <ul className="divide-y divide-line">
-                {[...pakerska.data.stavke]
-                  .sort((a, b) => a.artikal.localeCompare(b.artikal, "sr"))
-                  .map((r) => (
-                    <li
-                      key={`${r.artikal}-${r.proizvodjac}-${r.selo}`}
-                      className="flex items-center gap-4 p-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-ink">
-                          {r.artikal}
-                          {r.artikalObrisan && (
-                            <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                              Obrisan artikal — provjeriti
-                            </span>
-                          )}
-                        </p>
-                        <p className="truncate text-xs text-muted">
-                          {r.proizvodjac} · {r.selo}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-sm font-semibold text-ink">
-                          {r.kolicina} {r.jedinica}
-                        </p>
-                        {r.nabavnaCijena != null && (
-                          <p className="text-xs text-muted">
-                            {formatPrice(r.kolicina * r.nabavnaCijena)} nabavno
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          </>
-        )}
+        <RobaZaSedmicu godina={godina} sedmica={sedmica} />
       </section>
 
       {editor && (

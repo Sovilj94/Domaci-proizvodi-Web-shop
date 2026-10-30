@@ -728,6 +728,19 @@ testovi 603 (+7 područje dostave). **Nije provjereno na serveru** pri `CreateOr
 reverse, a ista verzija koda pokrenuta svježe na :5081 geokodira normalno (Render takođe). Restart API-ja
 na :5080 to rješava; nije greška u kodu (vidi ZA-URADITI C3).
 
+### Narudžbe: koliko korpica može da se potvrdi i roba za sedmicu (2026-10-30) — grana `potvrda-i-roba`
+
+**Korpice na čekanju** (panel na `/admin/orders`, `GET /admin/korpice/potvrdjivanje`): po sedmici isporuke i
+korpici „M od N kom“ može da se potvrdi. Slobodno stanje se računa samo naspram potvrđenih korpica (sve osim
+na čekanju i otkazanih); narudžbe na čekanju se uzimaju redom kojim su stigle, sa stvarnim sadržajem, i dijele
+isto stanje — pa brojevi zajedno važe. Uz manjak stoji artikal kojeg je prvog nestalo. „Preostalo za prodaju“
+ostaje kakvo je (broji i narudžbe na čekanju), zato iz njega nije moglo da se pročita koliko smije da se potvrdi.
+
+**Roba za sedmicu** (pakerska lista proširena; sklopivo na `/admin/orders`, i umjesto stare liste na `/admin/korpice`):
+po artiklu Korpice / Špajz / Ukupno / Na stanju / Fali, i traka „otvoreno do roka“ ili „zaključeno — količine su
+konačne“ (`Rok`, `Zakljucena`). Lista sad sabira i Špajz (red same korpice se ne broji). Fali = korpice − stanje,
+jer je Špajz već skinut sa stanja pri narudžbi. Backend testova 607 (+4).
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
