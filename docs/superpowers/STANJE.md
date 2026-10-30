@@ -808,52 +808,31 @@ Nisu obrisani namjerno: to je jedino mjesto gdje piše šta je odlučeno umjesto
 
 ## Podaci koje sam ostavio u dev bazi
 
-Sedmica 42/2026 je generisana i objavljena za „Malu domaćinsku korpicu", i na njoj stoji
-narudžba `EP-2610-0052` (Marko) čiji sam sadržaj mijenjao kroz ekran dok sam ga provjeravao.
-Rok za izmjenu te korpice je bio `2026-10-13 16:00`, pa je vjerovatno ispao iz prozora za
-uređivanje — to je očekivano, ne kvar. Ako treba svježa korpica za ručnu provjeru,
-generisati i objaviti novu sedmicu kroz admin endpointe.
+**30.10.2026. dev baza je očišćena i napunjena iznova** (backup prije toga:
+`Desktop\epiljara-backupi\epiljara-2026-10-30-prije-novih-podataka.dump`, `pg_restore` u kontejner
+`epiljara-postgres`). Punio ju je jednokratni program van repoa (`Desktop\epiljara-backupi\punjenje`,
+`dotnet run` dok je API ugašen) kroz kod aplikacije: generator i objava sadržaja korpica, `SnapshotKorpice`,
+`PoeniPravila`, `PretplatnaCijena`, zaključavanje sadržaja. U kodu aplikacije nema seeda.
 
-Iz P2c je ostala Mujina adresa „Kuća" (Kralja Petra I Karađorđevića 93), sa pinom
-postavljenim klikom na mapu — jedini red u `Addresses`. Ostavljena je namjerno: to je jedina
-adresa sa tačkom u bazi, pa je zgodna i za provjeru rute i kao polazna adresa za checkout.
-Geokodiranje je i dalje mrtvo lokalno (`GET /geocode` vraća `{}`, izlazni soket 10013), pa se
-pin u ručnoj provjeri postavlja klikom na mapu, a ne kucanjem adrese.
+- **Zadržano:** katalog (proizvodi, korpice, kategorije, proizvođači), slike, sadržaj sajta, podešavanja,
+  zone, termini, vozači, magacin, recepti, admin (`admin@epiljara.ba`) i vozač (`vozac@epiljara.ba`).
+- **Obrisano i napravljeno novo:** 14 kupaca (lozinka = ime malim slovima + `123`, npr. `marko@example.com` /
+  `marko123`, `jelena@`, `dragan@`, `milica@`, `nikola@`, `ivana@`, `stefan@`, `tijana@`, `nemanja@`, `jovana@`,
+  `milos@`, `sanja@`, `vladimir@`, `dusica@`), sa adresom i pinom u Banjoj Luci; gosti bez naloga.
+- **Sedmice 37–45/2026:** sadržaj 6 korpica u ponudi generisan i objavljen za svaku; 37–44 zaključane.
+  155 narudžbi (14–20 po sedmici, korpice + Špajz, 70 % četvrtak / 30 % petak). 37–43 isporučene (pokoja
+  otkazana), 44: četvrtak isporučen, petak u pakovanju/dostavi; **45 (u prodaji): 8 na čekanju, 4 potvrđene**.
+- **Pretplate:** Marko (Srednja povrća, mjesečna), Milica (Velika povrća, 3 mjeseca), Jelena (Mala voća,
+  nedjeljna), Nikola (Mala povrća, pauzirana do 46). Sve imaju narudžbu do sedmice 45, pa ih posao ne duplira.
+- **Poeni** za svaku isporučenu narudžbu prijavljenog kupca; **38 ocjena isporuke**, od njih 6 objavljenih utisaka.
+- **Stanje artikala** je postavljeno za sedmicu 45: Špajz umanjen za naručeno, sadržaj korpica pokriven, osim
+  **Mladog luka** — namjerno tijesan, pa „Korpice na čekanju“ pokazuje Srednju korpicu povrća „2 od 5“.
+- Obrisani test promo kodovi `SMOKE39006` i `UITEST5`.
 
-Iz P3 su ostali: **sedmica 43/2026 generisana i objavljena** za „Malu domaćinsku korpicu",
-**jedna aktivna pretplata** Mujina na tu korpicu, i **narudžba `EP-2610-0053`** koju je napravio
-sam posao (pa sam je kroz admin prošetao do `Delivered`, da se vidi da brojač ide na 1).
-Pretplata je zato na „još 4 isporuke do niže cijene". Ako treba ispočetka: obrisati red iz
-`Pretplate` i narudžbu, pa napraviti novu pretplatu kroz ekran.
+Geokodiranje lokalno zna da vrati `{}` (izlazni soket 10013) — restart API-ja pomaže (vidi ZA-URADITI C3).
 
-**Da bi se posao vidio uživo** treba mu proširiti prozor — podrazumijevano pravi narudžbe tek
-48 sati prije roka, a to je obično nekoliko dana unaprijed. Privremeno u
-`appsettings.Development.json`:
-`"Pretplate": { "SatiUnaprijed": 10000 }`, pa restart API-ja (prvi prolaz ide odmah po dizanju).
-**Vratiti poslije** — ostavljeno podešeno znači da narudžbe nastaju mjesecima unaprijed.
+**Da bi se posao pretplata vidio uživo** treba mu proširiti prozor — podrazumijevano pravi narudžbe tek
+48 sati prije roka. Privremeno u `appsettings.Development.json`: `"Pretplate": { "SatiUnaprijed": 10000 }`,
+pa restart API-ja. **Vratiti poslije.**
 
-Iz P4: migracija `DodajUtiske` je **primijenjena** na dev bazu; tabela `Utisci` je prazna (privremeni
-utisak za provjeru je obrisan). `DeliverySlot` za četvrtak je tokom provjere odbrojavanja
-privremeno mijenjan i **vraćen** na `16:00` / `CutoffHours = 48`.
-
-**P4 sesija je zatekla sve ugašeno** (Docker nije radio). Na kraju su ostavljeni: Docker i
-`epiljara-postgres` upaljeni, **API upaljen** (`dotnet run`), **Next dev server ugašen** (zbog
-`npm run build`) — dići ga sa `npm run dev` u `frontend/`.
-
-Prije P4 je za predaju pisalo — **Dev server i API su ostavljeni upaljeni**, isti kakvi su i zatečeni: `npm run dev` i
-`dotnet run --project src/EPiljara.API` u zasebnim prozorima. Oba su usput morala biti ugašena —
-dev server zbog `npm run build`, API zbog toga što drži Debug DLL-ove zaključane dok traje
-`dotnet build` i `dotnet ef`.
-
-Iz žive provjere P6 (2026-10-15): narudžba **`EP-2610-0054`** (Marko, kod `SMOKE39006`, `Delivered`) daje Marku
-**36 poena** — ostavljena kao primjer za `/moj-nalog/poeni` i admin promo kodove. `EP-2610-0055`–`0058` su
-test narudžbe, sve **otkazane**. Kodovi `SMOKE39006` i `UITEST5` su korišćeni pa se ne mogu obrisati (stoje
-aktivni; isključiti na `/admin/promo-kodovi` ako smetaju). API i Next dev server su ostavljeni **upaljeni**.
-
-Iz P7 (2026-10-15): narudžba `EP-2610-0059` (Marko, ćirilica) je test i **otkazana**; zahtjev gosta
-`nikola@example.com` (ćirilica) ističe sam za 15 minuta. Markov nalog i kolačić u Chromeu su vraćeni na latinicu.
-
-Iz 28.–30.10.: na dev bazu su primijenjene sve nove migracije (slike, izrezi, kalendar, prevodi, Špajz);
-u `Slike` stoje početne slike i **jedna probna** `products/dunja-dabbe80f.jpg` (test uploada, ništa ne pokazuje
-na nju); upisano je 5 demo utisaka i objavljen sadržaj korpica za sedmice 44–45. Kolačić `jezik` u Chromeu je
-mijenjan tokom provjere engleskog.
+API i Next dev server rade u zasebnim prozorima („EPiljara API“, „EPiljara web“).

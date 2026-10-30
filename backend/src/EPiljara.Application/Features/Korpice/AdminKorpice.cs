@@ -279,6 +279,10 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
         var (godina, sedmica) = q.Godina is int g && q.Sedmica is int s
             ? (g, s)
             : SedmicaHelper.ZaNabavku(dan, vrijemeOd, cutoff);
+        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd);
+        // Stanje je današnje: ima smisla porediti ga samo sa sedmicom čija isporuka tek dolazi.
+        // Za isporučenu sedmicu bi „fali“ mjerio današnje zalihe naspram prošle robe.
+        var porediSaStanjem = DateTime.UtcNow < isporuka;
 
         // Od P2b lista sabira SADRŽAJ NARUDŽBI, ne šablon. Prije toga je sabirala
         // StavkeSadrzaja — redove jedne kutije — pa je četrdeset narudžbi i jedna davale isti
@@ -347,7 +351,7 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
                     UKorpicama = korpice,
                     USpajzu = uSpajzu.GetValueOrDefault(id),
                     NaStanju = naStanju,
-                    Fali = Math.Max(0m, korpice - naStanju),
+                    Fali = porediSaStanjem ? Math.Max(0m, korpice - naStanju) : 0m,
                     Jedinica = (p?.Unit ?? prvi.Unit).ToApi(),
                     Proizvodjac = p?.Producer?.Name ?? string.Empty,
                     Selo = p?.Producer?.Village ?? string.Empty,
@@ -359,7 +363,6 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
             .OrderBy(r => r.Proizvodjac).ThenBy(r => r.Artikal)
             .ToList();
 
-        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd);
         var rok = isporuka.AddHours(-cutoff);
 
         return new PakerskaListaDto
