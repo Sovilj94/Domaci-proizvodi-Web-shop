@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { OrderCard } from "@/components/admin/order-card";
 import { NarudzbeTabla } from "@/components/admin/narudzbe-tabla";
-import { ZbirNarudzbi } from "@/components/admin/zbir-narudzbi";
+import { StanjeZaliha } from "@/components/admin/stanje-zaliha";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { Input } from "@/components/ui/field";
 import { ApiRequestError } from "@/lib/api/client";
@@ -200,7 +200,7 @@ function AdminOrders() {
         </Link>
       </div>
 
-      {orders.data && <ZbirNarudzbi narudzbe={orders.data} />}
+      <StanjeZaliha />
 
       {prikaz === "lista" && (
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
