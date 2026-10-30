@@ -86,3 +86,27 @@ public class PotvrdjivanjeTests
         Assert.DoesNotContain(lista.Stavke, s => s.Artikal == "Mala korpica povrća");
     }
 }
+
+public class NabavkaSedmiceTests
+{
+    [Fact]
+    public void Za_nabavku_je_sedmica_prije_one_koja_se_prodaje()
+    {
+        // Četvrtak 16:00, rok 48 h: u srijedu 29.10.2026. rok sedmice 44 je prošao (utorak 16:00),
+        // pa se prodaje 45, a nabavlja za 44.
+        var sada = new DateTime(2026, 10, 29, 9, 0, 0, DateTimeKind.Utc);
+        Assert.Equal((2026, 45), SedmicaHelper.SedmicaZaNarudzbu(DayOfWeek.Thursday, "16:00", 48, sada));
+        Assert.Equal((2026, 44), SedmicaHelper.ZaNabavku(DayOfWeek.Thursday, "16:00", 48, sada));
+    }
+
+    [Fact]
+    public async Task Bez_sedmice_lista_je_za_zadnju_zakljucenu()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        var lista = await new GetPakerskaListaHandler(t.Db, Microsoft.Extensions.Options.Options.Create(t.Opcije))
+            .Handle(new GetPakerskaListaQuery(), default);
+
+        Assert.Equal(SedmicaHelper.Pomjeri(t.Godina, t.Sedmica, -1), (lista.Godina, lista.Sedmica));
+        Assert.True(lista.Zakljucena);
+    }
+}

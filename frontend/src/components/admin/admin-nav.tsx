@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChefHat,
   ChevronDown,
+  ClipboardList,
   Search,
   FileText,
   Coins,
@@ -41,7 +42,7 @@ import { OTVORI_PALETU } from "@/lib/admin/paleta";
 import { narudzbeRijec, prijaveRijec } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 
-type BadgeVrsta = "narudzbe" | "korpice" | "proizvodi" | "partneri";
+type BadgeVrsta = "narudzbe" | "nabavka" | "korpice" | "proizvodi" | "partneri";
 
 export interface NavItem {
   href: string;
@@ -59,6 +60,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
     naziv: "Prodaja",
     stavke: [
       { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag, badge: "narudzbe" },
+      { href: "/admin/nabavka", label: "Nabavka", icon: ClipboardList, badge: "nabavka" },
       { href: "/admin/pakovanje", label: "Pakovanje", icon: PackageCheck },
       { href: "/admin/pretplate", label: "Pretplate", icon: Repeat },
     ],
@@ -126,6 +128,7 @@ function useBadgeCounts(): Record<BadgeVrsta, number> {
   const m = data?.meni ?? {};
   return {
     narudzbe: m.narudzbe ?? 0,
+    nabavka: m.nabavka ?? 0,
     korpice: m.korpice ?? 0,
     proizvodi: m.proizvodi ?? 0,
     partneri: m.partneri ?? 0,
@@ -136,6 +139,8 @@ function badgeLabel(vrsta: BadgeVrsta, count: number): string {
   switch (vrsta) {
     case "narudzbe":
       return `${count} ${narudzbeRijec(count)} na čekanju`;
+    case "nabavka":
+      return `${count} artikala za nabavku`;
     case "partneri":
       return `${count} ${prijaveRijec(count)}`;
     case "korpice":

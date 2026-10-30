@@ -246,6 +246,7 @@ export interface StavkaPakerske {
   jedinica: string;
   proizvodjac: string;
   selo: string;
+  telefon?: string | null;
   /** Artikal je obrisan (ili trajno nestao) poslije objave sadržaja koji ga sadrži —
    * red i dalje nosi pravu količinu, ali ga treba posebno provjeriti pred nabavku. */
   artikalObrisan: boolean;
@@ -253,9 +254,13 @@ export interface StavkaPakerske {
 }
 
 export interface PakerskaLista {
+  godina: number;
+  sedmica: number;
   brojNarudzbi: number;
   /** Rok naručivanja te sedmice (ISO, UTC). */
   rok: string;
+  /** Prvi dan isporuke te sedmice (ISO, UTC) — do tada roba mora biti nabavljena. */
+  isporuka: string;
   /** Rok je prošao — količine su konačne. */
   zakljucena: boolean;
   /** Trošak nabavke liste po trenutnim nabavnim cijenama (artikli bez nabavne se ne broje). */

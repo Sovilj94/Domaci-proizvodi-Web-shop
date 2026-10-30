@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
-import type { StavkaPakerske } from "@/lib/api/contracts";
+import { poProizvodjacu } from "@/lib/admin/nabavka";
 import { narudzbeRijec } from "@/lib/orders";
 import { cn, formatDateTime, formatPrice } from "@/lib/utils";
 
@@ -38,18 +38,7 @@ export function RobaZaSedmicu({ godina, sedmica }: { godina: number; sedmica: nu
   const d = q.data;
   const fali = d.stavke.filter((s) => s.fali > 0);
 
-  // Nabavka ide po proizvođaču: koga zvati, šta i za koliko.
-  const grupe = new Map<string, { proizvodjac: string; selo: string; stavke: StavkaPakerske[]; trosak: number }>();
-  for (const s of d.stavke) {
-    const kljuc = `${s.proizvodjac}|${s.selo}`;
-    const g = grupe.get(kljuc) ?? { proizvodjac: s.proizvodjac, selo: s.selo, stavke: [], trosak: 0 };
-    g.stavke.push(s);
-    if (s.nabavnaCijena) g.trosak += s.kolicina * s.nabavnaCijena;
-    grupe.set(kljuc, g);
-  }
-  const poProizvodjacu = [...grupe.values()]
-    .map((g) => ({ ...g, stavke: g.stavke.sort((a, b) => a.artikal.localeCompare(b.artikal, "sr-Latn")) }))
-    .sort((a, b) => (a.proizvodjac || "~").localeCompare(b.proizvodjac || "~", "sr-Latn"));
+  const grupe = poProizvodjacu(d.stavke);
 
   return (
     <div className="space-y-3">
@@ -71,8 +60,8 @@ export function RobaZaSedmicu({ godina, sedmica }: { godina: number; sedmica: nu
               <strong className="font-display text-xl text-ink">{formatPrice(d.nabavnaVrijednost)}</strong>
             </p>
             <p className="text-sm text-muted">
-              {d.stavke.length} {d.stavke.length === 1 ? "artikal" : "artikala"} · {poProizvodjacu.length}{" "}
-              {poProizvodjacu.length === 1 ? "proizvođač" : "proizvođača"} · {d.brojNarudzbi} {narudzbeRijec(d.brojNarudzbi)}
+              {d.stavke.length} {d.stavke.length === 1 ? "artikal" : "artikala"} · {grupe.length}{" "}
+              {grupe.length === 1 ? "proizvođač" : "proizvođača"} · {d.brojNarudzbi} {narudzbeRijec(d.brojNarudzbi)}
               {d.bezNabavneCijene > 0 && ` · ${d.bezNabavneCijene} bez nabavne cijene (nisu u zbiru)`}
             </p>
           </div>
@@ -87,7 +76,7 @@ export function RobaZaSedmicu({ godina, sedmica }: { godina: number; sedmica: nu
                   <th className="p-3 text-right font-medium">Nabavno</th>
                 </tr>
               </thead>
-              {poProizvodjacu.map((g) => (
+              {grupe.map((g) => (
                 <tbody key={`${g.proizvodjac}|${g.selo}`} className="tabular-nums">
                   <tr className="border-b border-line bg-surface">
                     <th colSpan={3} className="px-3 py-2 text-left font-semibold text-ink">

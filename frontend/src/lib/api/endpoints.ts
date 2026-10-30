@@ -236,9 +236,10 @@ export const adminKorpiceApi = {
       method: "POST",
     }).then((r) => r.data),
 
-  pakerskaLista: (godina: number, sedmica: number) =>
+  /** Bez sedmice server vraća zadnju zaključenu — onu za koju se sad nabavlja. */
+  pakerskaLista: (godina?: number, sedmica?: number) =>
     apiFetch<PakerskaLista>("/admin/korpice/pakerska-lista", {
-      query: { godina, sedmica },
+      query: godina && sedmica ? { godina, sedmica } : {},
     }).then((r) => r.data),
 
   potvrdjivanje: () =>

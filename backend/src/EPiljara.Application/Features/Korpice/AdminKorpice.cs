@@ -267,13 +267,19 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
 
 /* ---------- pakerska lista ---------- */
 
-public record GetPakerskaListaQuery(int Godina, int Sedmica) : IRequest<PakerskaListaDto>;
+/// <summary>Bez sedmice: zadnja zaključena — ona za koju se sad nabavlja (vidi <see cref="SedmicaHelper.ZaNabavku"/>).</summary>
+public record GetPakerskaListaQuery(int? Godina = null, int? Sedmica = null) : IRequest<PakerskaListaDto>;
 
 public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
     : IRequestHandler<GetPakerskaListaQuery, PakerskaListaDto>
 {
     public async Task<PakerskaListaDto> Handle(GetPakerskaListaQuery q, CancellationToken ct)
     {
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        var (godina, sedmica) = q.Godina is int g && q.Sedmica is int s
+            ? (g, s)
+            : SedmicaHelper.ZaNabavku(dan, vrijemeOd, cutoff);
+
         // Od P2b lista sabira SADRŽAJ NARUDŽBI, ne šablon. Prije toga je sabirala
         // StavkeSadrzaja — redove jedne kutije — pa je četrdeset narudžbi i jedna davale isti
         // broj, i nabavka po toj listi je bila za jednu korpicu.
@@ -284,16 +290,16 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
         // artikal je ispod, na upitu nad Products (vidi komentar tamo).
         var redovi = await db.StavkeKorpiceNarudzbe
             .Include(s => s.OrderItem).ThenInclude(i => i!.Order)
-            .Where(s => s.OrderItem!.Order!.Godina == q.Godina
-                        && s.OrderItem.Order.Sedmica == q.Sedmica
+            .Where(s => s.OrderItem!.Order!.Godina == godina
+                        && s.OrderItem.Order.Sedmica == sedmica
                         && s.OrderItem.Order.Status != OrderStatus.Cancelled)
             .ToListAsync(ct);
 
         // Artikli iz Špajza iste sedmice: redovi bez sadržaja korpice. Red same korpice se
         // izbacuje ispod (po vrsti proizvoda) — nabavlja se njen sadržaj, koji je gore.
         var spajz = await db.OrderItems
-            .Where(i => i.Order!.Godina == q.Godina
-                        && i.Order.Sedmica == q.Sedmica
+            .Where(i => i.Order!.Godina == godina
+                        && i.Order.Sedmica == sedmica
                         && i.Order.Status != OrderStatus.Cancelled
                         && !i.KorpicaStavke.Any())
             .Select(i => new { i.OrderId, i.ProductId, i.ProductName, i.Unit, i.Quantity })
@@ -345,6 +351,7 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
                     Jedinica = (p?.Unit ?? prvi.Unit).ToApi(),
                     Proizvodjac = p?.Producer?.Name ?? string.Empty,
                     Selo = p?.Producer?.Village ?? string.Empty,
+                    Telefon = p?.Producer?.Phone,
                     NabavnaCijena = p?.NabavnaCijena,
                     ArtikalObrisan = p is null || p.IsDeleted,
                 };
@@ -352,13 +359,16 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
             .OrderBy(r => r.Proizvodjac).ThenBy(r => r.Artikal)
             .ToList();
 
-        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
-        var rok = SedmicaHelper.DatumIsporuke(q.Godina, q.Sedmica, dan, vrijemeOd).AddHours(-cutoff);
+        var isporuka = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd);
+        var rok = isporuka.AddHours(-cutoff);
 
         return new PakerskaListaDto
         {
+            Godina = godina,
+            Sedmica = sedmica,
             BrojNarudzbi = brojNarudzbi,
             Rok = rok,
+            Isporuka = isporuka,
             Zakljucena = DateTime.UtcNow > rok,
             Stavke = stavke,
             NabavnaVrijednost = Math.Round(
