@@ -131,6 +131,17 @@ public static class SedmicaHelper
     }
 
     /// <summary>
+    /// Sedmica za koju se nabavlja: zadnja kojoj je rok prošao — korpice su zaključane i sve je
+    /// naručeno. To je sedmica prije <see cref="SedmicaZaNarudzbu"/>.
+    /// </summary>
+    public static (int Godina, int Sedmica) ZaNabavku(
+        DayOfWeek dan, string vrijemeOd, int cutoffSati, DateTime? sada = null)
+    {
+        var (godina, sedmica) = SedmicaZaNarudzbu(dan, vrijemeOd, cutoffSati, sada);
+        return Pomjeri(godina, sedmica, -1);
+    }
+
+    /// <summary>
     /// Sedmica pomjerena za <paramref name="zaSedmica"/> unaprijed (pauza pretplate).
     /// Računa se preko datuma, ne sabiranjem brojeva: 52 + 3 nije 55, a godine imaju i 52 i
     /// 53 sedmice — isti razlog zbog kojeg <see cref="SedmicaZaNarudzbu"/> ide preko

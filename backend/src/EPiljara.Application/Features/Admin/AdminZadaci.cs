@@ -59,6 +59,29 @@ public class GetAdminZadaciHandler(IAppDbContext db, IOptions<KorpiceOpcije> opc
                 Akcija = bezSadrzaja > 0 ? "Generiši" : "Pregledaj i objavi",
             });
 
+        // Nabavka: od roka do dana isporuke zaključene sedmice — sve je naručeno, robu treba kupiti.
+        var (gNabavke, sNabavke) = SedmicaHelper.ZaNabavku(dan, vrijemeOd, cutoff);
+        var isporukaNabavke = TimeZoneInfo.ConvertTimeFromUtc(
+            SedmicaHelper.DatumIsporuke(gNabavke, sNabavke, dan, vrijemeOd), SedmicaHelper.Zona);
+        if (TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, SedmicaHelper.Zona).Date <= isporukaNabavke.Date)
+        {
+            var nabavka = await new GetPakerskaListaHandler(db, opcije)
+                .Handle(new GetPakerskaListaQuery(gNabavke, sNabavke), ct);
+            if (nabavka.Stavke.Count > 0)
+            {
+                var proizvodjaca = nabavka.Stavke.Select(s => s.Proizvodjac).Distinct().Count();
+                zadaci.Add(new ZadatakDto
+                {
+                    Kljuc = "nabavka", Nivo = "hitno", Broj = nabavka.Stavke.Count,
+                    Naslov = $"Sedmica {sNabavke} je zaključena — nabavi robu ({nabavka.NabavnaVrijednost.ToString("0.00", CultureInfo.InvariantCulture)} KM)",
+                    Opis = $"{Mnozina(nabavka.Stavke.Count, "artikal", "artikla", "artikala")} od " +
+                           $"{Mnozina(proizvodjaca, "proizvođača", "proizvođača", "proizvođača")}, " +
+                           $"isporuka {isporukaNabavke.ToString("dd.MM.", CultureInfo.InvariantCulture)}.",
+                    Link = "/admin/nabavka", Akcija = "Otvori nabavku",
+                });
+            }
+        }
+
         var potvrdjene = await db.Orders.CountAsync(o => o.Status == OrderStatus.Confirmed, ct);
         if (potvrdjene > 0)
             zadaci.Add(new ZadatakDto
@@ -115,6 +138,7 @@ public class GetAdminZadaciHandler(IAppDbContext db, IOptions<KorpiceOpcije> opc
             Meni = new Dictionary<string, int>
             {
                 ["narudzbe"] = naCekanju,
+                ["nabavka"] = zadaci.FirstOrDefault(z => z.Kljuc == "nabavka")?.Broj ?? 0,
                 ["korpice"] = neobjavljeno,
                 ["proizvodi"] = bezZalihe.Count,
                 ["partneri"] = prijave,

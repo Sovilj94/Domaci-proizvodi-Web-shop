@@ -163,9 +163,13 @@ public record SadrzajPregledDto
 /// </summary>
 public record PakerskaListaDto
 {
+    public int Godina { get; init; }
+    public int Sedmica { get; init; }
     public int BrojNarudzbi { get; init; }
     /// <summary>Rok naručivanja te sedmice (UTC); poslije njega kupci korpice više ne mijenjaju.</summary>
     public DateTime Rok { get; init; }
+    /// <summary>Prvi dan isporuke te sedmice (UTC) — do tada roba mora biti nabavljena.</summary>
+    public DateTime Isporuka { get; init; }
     /// <summary>Rok je prošao — količine su konačne.</summary>
     public bool Zakljucena { get; init; }
     /// <summary>Trošak nabavke cijele liste po trenutnim nabavnim cijenama (bez artikala bez nabavne).</summary>
@@ -188,6 +192,8 @@ public record StavkaPakerskeDto
     public string Jedinica { get; init; } = "kom";
     public string Proizvodjac { get; init; } = string.Empty;
     public string Selo { get; init; } = string.Empty;
+    /// <summary>Telefon proizvođača, da se iz nabavke odmah zove.</summary>
+    public string? Telefon { get; init; }
     public decimal? NabavnaCijena { get; init; }
     /// <summary>Artikal je soft-obrisan (ili trajno nestao) poslije objave sadržaja koji
     /// ga sadrži. Red se i dalje prikazuje sa stvarnom količinom — pakerska lista je
