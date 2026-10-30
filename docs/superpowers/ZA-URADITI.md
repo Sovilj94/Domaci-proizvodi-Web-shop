@@ -1,7 +1,7 @@
 # E piljara — šta nije urađeno ili nije dobro urađeno
 
-Ažurirano **2026-10-19** (grana `zavrsetak`). Plan P1–P7 i redizajn R1–R4 su
-završeni; ovo je sve što je usput svjesno odloženo, nađeno u recenzijama ili fali do produkcije.
+Ažurirano **2026-10-30** (sve u `main`). Plan P1–P7, redizajn R1–R4 i rad od 28.–30.10. (deploy, slike u bazi,
+kalendar, engleski, Špajz) su završeni; ovo je sve što je usput svjesno odloženo, nađeno u recenzijama ili fali do produkcije.
 Detalji i istorija su u `STANJE.md`; ovaj fajl je radna lista — **kad se stavka uradi, briše se
 odavde** (i upiše u `STANJE.md`).
 
@@ -36,8 +36,9 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 | D2 | **Geokodiranje ide na javni Nominatim** (adrese kupaca idu trećoj strani, 1 zahtjev/s). | Self-host (vidi C3), `Nominatim__BaseUrl`, `ThrottleMs=0`. | M |
 | D3 | JWT bez opoziva — nema prisilne odjave. | Po potrebi: lista opozvanih ili kratki token + refresh. | M |
 | D4 | Migracije se primjenjuju pri startu API-ja — za više instanci zasebni korak. | Kad bude više instanci. | S |
-| D5 | Prvi pravi admin nalog, lokacija magacina, env varijable — checklista u `PRODUCTION.md`. | Proći checklistu pri deployu. | S |
-| D6 | Pretraživači indeksiraju samo latinicu (ćirilica je samo preslovljavanje u pregledaču). | Svjesno (P7 spec). Ako zatreba: `/cir/...` rute sa serverskim preslovljavanjem. | L |
+| D5 | Lokacija magacina i ostatak checkliste u `PRODUCTION.md` (prvi admin je riješen: `ADMIN_EMAIL`/`ADMIN_PASSWORD`). | Proći checklistu pri pravom deployu. | S |
+| D7 | **Mejl na test deployu ne radi** — Render free blokira SMTP 25/465/587 (registracija, gost-narudžba). | SMTP provajder na portu 2525 (Brevo, SendGrid…) u `Email__*` (`DEPLOY.md`). | S |
+| D8 | SEO je isključen na test sajtu. | Na pravom domenu: `NEXT_PUBLIC_SITE_URL`, `SEO_INDEX=true`, Redeploy, sitemap u Search Console. | S |
 
 ## E. Kvalitet koda i testova
 
@@ -51,7 +52,18 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 | E8 | Sitnice P2b: mrtva `undefined` grana u praznom stanju admina; zastarjeli komentari. | razno |
 | E9 | Admin putanje `Order.ToDto` ne učitavaju `Ocjena` (polje tamo nije u upotrebi). | `AdminOrders` |
 | E10 | Utisak (P4) se ne može dokazati kao utisak stvarnog kupca kad ga admin unese ručno; samo oni iz ocjene nose `OcjenaId`. | `Utisak` |
-| E11 | Ćirilica: tekst koji je kupac unio prikazuje se preslovljen („Kralja Petra I" → „Краља Петра И"). Ako smeta — `translate="no"` na prikazima imena/adrese. | `order-receipt.tsx`, nalog |
+
+## G. Katalog, slike i jezik (otvoreno poslije 28.–30.10.)
+
+| # | Šta | Prijedlog | Vel. |
+|---|---|---|---|
+| G1 | **Cijene 32 nove kulture** iz sezonskog kalendara su okvirna procjena. | Admin provjeri u Proizvodima. | S |
+| G2 | **7 kultura bez slike** (čičoka, crna rotkva, rukola, pak čoj, zelena i žuta šilja, kineski kupus); 10 koristi sliku srodne kulture. | Vlastite fotografije ili kupljeni izrezi, upload u formi proizvoda. | S |
+| G3 | **Engleski — sadržaj iz baze**: opisi proizvoda (`OpisEn`), utisci, recepti, analize ostaju na srpskom; mejlovi samo srpski. | Popuniti u adminu; za utiske/recepte trebaju EN polja ako zatreba. | M |
+| G4 | Engleski je rječnik nad DOM-om — tekst koji nije u `lib/jezik/rjecnik*.ts` ostaje srpski (bez greške). | Dopunjavati rječnik kad se primijeti. | S |
+| G5 | **Meso je van Špajza** (odluka 29.10., farmit ga nema); „Domaći ajvar" je u seedu nedostupan. | Ako treba — u formi proizvoda „Prodaje se pojedinačno u Špajzu" / dostupnost. | S |
+| G6 | Generator može malo povećati količine (dopuna do cilja) ili smanjiti (zaliha, marža) u odnosu na prikazane okvirne količine. | Prihvaćeno — količine su „okvirne". | — |
+| G7 | Voće nema sezonski kalendar po uzoru (farmit ga nema). | Po potrebi ručno u Sezonskom kalendaru. | S |
 
 ## F. Okruženje i repozitorijumi
 

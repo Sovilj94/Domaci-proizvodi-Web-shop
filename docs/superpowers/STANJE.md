@@ -1,15 +1,17 @@
-# Stanje projekta — 2026-10-19 (P1–P7 i R1–R4 u `main`, završni prolaz na grani `zavrsetak`)
+# Stanje projekta — 2026-10-30 (sve u `main` i pushovano; test deploy živi)
 
 Predaja sesije. Šta je urađeno, šta nije, i gdje tačno stati nogom kad se nastavi.
+Najnoviji posao (28.–30.10.) je u sekciji **„Deploy, slike u bazi, kalendar, engleski i Špajz"** pri kraju
+spiska urađenog.
 
 ## Gdje je kod
 
 | | |
 |---|---|
-| Grane | `main` + **`zavrsetak`** (završni prolaz kroz `ZA-URADITI.md`, vidi sekciju „Završni prolaz" ispod). |
-| HEAD `main` | merge `za-uraditi` (`61f63a5`, 2026-10-16) — R1–R4 i spisak zadataka |
-| Nespojeno | `zavrsetak` — **čeka korisnikovo odobrenje za merge i push** |
-| `main` vs `origin/main` | **pushovan 2026-10-16**, na korisnikov zahtjev. |
+| Grane | Samo **`main`** — sve task grane su spojene i obrisane (lokalno i na GitHubu). |
+| HEAD `main` | `b6496d1` (2026-10-29) — Recepti i Analize skinuti iz menija |
+| `main` vs `origin/main` | **isto — pushovano 2026-10-29**, na korisnikov zahtjev. |
+| Produkcija (test) | Frontend <https://domaci-proizvodi-web-shop.vercel.app> (Vercel), API <https://epiljara-api.onrender.com> (Render free), baza Neon. **Push na `main` = automatski deploy** oba dijela (`DEPLOY.md`). |
 | Radna kopija | `C:/Users/soviljn/Desktop/epiljara-backend-wt` (ovdje se radi) |
 | Druga kopija | `C:/Users/soviljn/Desktop/Kumov Web Shop` — detached HEAD na `0dadb11`, daleko iza. Ne dirati. |
 
@@ -629,6 +631,76 @@ pregledaču (isti `KutijaEditor` kao korpica kupca, koja jeste).
 - Okvirna količina = porcija generatora (cilj / minimalan broj artikala) — kod nas je ~5 KM po namirnici u svakoj
   veličini; veća korpica nosi više namirnica, pa uz veličinu piše „najmanje N namirnica, vrijednost X KM".
   Jeftine namirnice zato ispadnu u velikim količinama (kupus 5,7 kg) — isto radi i generator.
+  *(Zamijenjeno 29.10. — vidi „Korpice u sinku" ispod: sad je 8 kultura u svakoj veličini.)*
+
+### Deploy, slike u bazi, kalendar, engleski i Špajz (2026-10-28 – 2026-10-30) — sve u `main`, pushovano
+
+Sve je spojeno u `main` i pushovano; backend testovi 590, frontend 102, `tsc`/lint/`next build` čisti.
+
+**Test deploy (Vercel + Render + Neon).** `render.yaml` (Blueprint, `branch: main`, `autoDeploy`,
+`buildFilter` na `backend/**`), `backend/Dockerfile`, env aliasi (`CORS_ORIGINS`, `RUN_MIGRATIONS` — van
+Developmenta migracije samo uz `true`, `SEED_DATA`, `PORT`, frontend `NEXT_PUBLIC_API_URL`), Neon `postgresql://`
+URI se prevodi u Npgsql. Vodič `DEPLOY.md`, checklista kao artifact. Render free blokira odlazni SMTP
+(25/465/587) i spava poslije ~15 min. Ništa tajno nije u repou.
+
+**SEO.** Metapodaci po stranici (`lib/seo`), `sitemap.xml`, `robots.txt`, JSON-LD (GroceryStore, Product…).
+Indeksiranje je **isključeno** dok se ne postave `SEO_INDEX=true` i `NEXT_PUBLIC_SITE_URL` (test sajt je `noindex`).
+
+**Admin iz env-a.** `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` — pravi admin se pravi ili ažurira na
+svakom startu (`AdminNalog.cs`), nezavisno od `SEED_DATA`. Demo `admin@epiljara.ba/admin123` i dalje postoji uz seed.
+
+**Seed uz `SEED_DATA`.** Objavljen sadržaj korpica za tekuću i narednu sedmicu (`SeedSadrzajKorpicaAsync`)
+i 5 objavljenih utisaka kad ih nema (`SeedUtisciAsync`).
+
+**Slike u bazi.** Tabela `Slike` (bytea, jedinstven ključ), `GET /slike/{**kljuc}` (keš 7 dana + ETag),
+`POST /admin/slike` (JPG/PNG/WEBP do 5 MB, uvijek novi ključ), Next rewrite `/slike/*` → API,
+`images.unoptimized`. Početne slike su u `backend/src/EPiljara.Infrastructure/Persistence/SeedSlike/`
+(products, categories, producers, korpice, izrezi); `SlikeUvoz` ih na startu upisuje samo ako ih nema.
+Migracija `SlikeUBazi` je prepisala stare `/products/...` putanje u `/slike/...`. U admin formama
+(proizvod, kategorija, domaćin, recept) je „Učitaj sliku". Izvori i licence: `docs/slike-izvori.md`
+(Wikimedia Commons; farmitove fotografije se **ne** koriste — autorsko pravo).
+
+**Izrezi (slike bez pozadine) i fotografije korpica.** `Product.IzrezUrl` + polje u formi proizvoda; 73 izreza
+(pozadina skinuta skriptom, CC BY-SA ostaje BY-SA), povezuju se po slugu na startu (`PoveziIzrezeAsync`).
+Korpice povrća i voća imaju svoje fotografije (`/slike/korpice/{tip}-{velicina}.jpg`). Bez slike su još:
+čičoka, crna rotkva, rukola, pak čoj, zelena i žuta šilja, kineski kupus; 10 novih kultura privremeno koristi
+sliku srodne kulture (vidi `slike-izvori.md`).
+
+**Stranica korpica i korpice kao farmit.**
+- `/korpice/{vrsta}/{velicina}`: „Ove sedmice…" i „Od dodatnih kultura…" sa domaćinom i selom, utisci,
+  ostali paketi, česta pitanja, ljepljiva traka sa cijenom i dugmetom.
+- `/korpice/{vrsta}`: ljepljiva traka sa tri korpice; „Rekli su o E piljari" kao Swiper na farmitu (traka
+  klizi, aktivna raste, petlja, 3 s, samo cijele fotografije); „Šta dobijaš" pločice 162×162 sa izrezom.
+- Kartice planova: „4 dostave do tvojih vrata", ukupna cijena plana („85.00 KM /4 korpice") i sitno cijena po
+  korpici · plaćanje pri svakoj dostavi. **3 mjeseca = 12 dostava** (`PretplateOpcije.ObavezaTriMjeseca`).
+
+**Sezonski kalendar.** Mjeseci povrća preslikani sa farmitovog kalendara (činjenični podaci); 32 nove kulture
+u `DbSeeder.SezonskaPonuda` (**cijene su okvirne — provjeriti**), migracije `SezonaPovrcaKalendar` i
+`SezonaPovrcaIspravka`. Grašak, kiseli kupus, kopriva i sremuš ne idu u korpice. Admin stranica
+**`/admin/korpice/kalendar`** (kultura × 12 mjeseci, „U korpici", broj kultura po mjesecu, crveno ispod 9).
+Voće nije dirano (farmit nema mjesečnu listu za voće).
+
+**Korpice u sinku.** `KorpiceOpcije.MinimalanBrojArtikala` = **8 za sve veličine** (farmit „8+ kultura");
+generator i „Šta dobijaš" dijele vrijednost korpice na isti broj, pa veća korpica nosi veće količine istih
+kultura (≈ 1 : 1,4 : 1,8), a prikazana okvirna količina odgovara pakovanju. Kupac koji sam mijenja korpicu
+mora zadržati 8 kultura.
+
+**Jezik: Srpski / English umjesto ćirilice.** Prekidač sa SVG zastavicama (meni, mobilni meni, footer), kolačić
+`jezik`. Prevod ide nad DOM-om poslije hidratacije (`lib/jezik/dom.ts`, kreće u `requestIdleCallback` da ne
+sudari sa Suspense hidratacijom); rječnici `lib/jezik/rjecnik.ts` i `rjecnik-stranice.ts`, obrasci za tekst sa
+brojevima u `prevod.ts`. Nazivi proizvoda i kategorija iz baze: `Product.NazivEn`/`OpisEn`,
+`Category.NazivEn`, `GET /prevodi`, početni prevodi `PrevodiKataloga.cs` (samo u prazna polja), polja u
+admin formama. Admin panel ostaje na srpskom. Ćirilica je skinuta sa sajta; kod za ćirilicu u mejlovima ostaje.
+
+**Špajz kao farmit.** `Product.USpajzu` — pojedinačno se prodaju korpice, jaja, ajvar, džem, med i mliječno;
+povrće, voće i **meso** su van Špajza (ostaju za korpice), narudžba ih odbija (`product_unavailable`), a
+stranica proizvoda kaže „Ova namirnica stiže u korpicama". Zimnica je podijeljena na kategorije **Ajvar** i
+**Džem** (migracija `SpajzKaoFarmit`). Kvačica „Prodaje se pojedinačno u Špajzu" u formi proizvoda.
+Recepti u korpu dodaju samo artikle Špajza.
+
+**Sitnice.** Traka roka ispod menija se više ne skuplja (`shrink-0`); dugmad hero karusela na početnoj vode
+kud treba (neaktivni slajdovi `pointer-events-none`); Recepti i Analize skinuti iz glavnog menija (stranice
+postoje).
 
 ## Otvoreni nalazi, nošeni dalje
 
@@ -673,6 +745,14 @@ Nisu obrisani namjerno: to je jedino mjesto gdje piše šta je odlučeno umjesto
 - `npm run build` dijeli `.next` sa dev serverom. Build sa upaljenim dev serverom ostavlja
   stanje u kojem svaka ruta vraća 500. Ugasiti server, obrisati `.next`, pa build.
 - Seed lozinke: `admin@epiljara.ba`/`admin123`, `marko@example.com`/`marko123`, `vozac@epiljara.ba`/`vozac123`.
+- **Od 28.10.:** na `:3000` je korisnikov `next start` (produkcijski build) — ne vidi izmjene ni nove fajlove dok
+  se ne uradi `npm run build` i restart. Za ručne provjere je korišten par **API `:5081`** (build u scratch folder:
+  `dotnet build src/EPiljara.API -o <scratch>`, jer API na `:5080` drži `bin/Debug` zaključan) i **Next dev
+  `:3001`** sa `NEXT_PUBLIC_API_URL=http://localhost:5081` i `CORS_ORIGINS=http://localhost:3001`.
+- Svaka izmjena `next.config.ts` (i privremeni `distDir` za build provjeru) restartuje dev server i on gubi
+  rewrite `/slike` → poslije build provjere ručno restartovati dev server.
+- Claude Code gasi pozadinske servere kad ponestane memorije (vidi F3); ugašeni dev se diže ponovo samo na zahtjev.
+- Migracije: `dotnet dotnet-ef migrations add <Ime> -p src/EPiljara.Infrastructure -s src/EPiljara.Infrastructure -o Persistence/Migrations`.
 
 ## Podaci koje sam ostavio u dev bazi
 
@@ -720,3 +800,8 @@ aktivni; isključiti na `/admin/promo-kodovi` ako smetaju). API i Next dev serve
 
 Iz P7 (2026-10-15): narudžba `EP-2610-0059` (Marko, ćirilica) je test i **otkazana**; zahtjev gosta
 `nikola@example.com` (ćirilica) ističe sam za 15 minuta. Markov nalog i kolačić u Chromeu su vraćeni na latinicu.
+
+Iz 28.–30.10.: na dev bazu su primijenjene sve nove migracije (slike, izrezi, kalendar, prevodi, Špajz);
+u `Slike` stoje početne slike i **jedna probna** `products/dunja-dabbe80f.jpg` (test uploada, ništa ne pokazuje
+na nju); upisano je 5 demo utisaka i objavljen sadržaj korpica za sedmice 44–45. Kolačić `jezik` u Chromeu je
+mijenjan tokom provjere engleskog.
