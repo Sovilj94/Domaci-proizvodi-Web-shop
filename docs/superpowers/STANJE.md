@@ -741,6 +741,19 @@ po artiklu Korpice / Špajz / Ukupno / Na stanju / Fali, i traka „otvoreno do 
 konačne“ (`Rok`, `Zakljucena`). Lista sad sabira i Špajz (red same korpice se ne broji). Fali = korpice − stanje,
 jer je Špajz već skinut sa stanja pri narudžbi. Backend testova 607 (+4).
 
+### Nabavka — dashboard za zaključenu sedmicu (2026-10-30) — grana `nabavka`
+
+Nova stranica **`/admin/nabavka`** (meni Prodaja → Nabavka, odmah ispod Narudžbi). Bez `?datum=` otvara
+**zadnju zaključenu sedmicu** (`SedmicaHelper.ZaNabavku` = sedmica prije one koja se prodaje): korpice
+zaključane, sve naručeno. Gore su pločice Ukupno nabavno / Artikala / Proizvođača / Narudžbi, ispod kartica
+po proizvođaču sa telefonom (`tel:`), nabavnim zbirom i količinama (korpice + Špajz), crveno kad stanje ne
+pokriva. Može da se štampa; strelicama se ide i na otvorenu sedmicu (žuta traka „još nije konačno“).
+`GET /admin/korpice/pakerska-lista` bez parametara vraća tu sedmicu; DTO nosi i `Godina`, `Sedmica`,
+`Isporuka`, `Telefon`. Na Pregledu je zadatak „Sedmica N je zaključena — nabavi robu (X KM)“ od roka do dana
+isporuke, uz brojku u meniju. Grupisanje po proizvođaču je u `lib/admin/nabavka.ts` (dijele ga i
+Narudžbe/Korpice). Backend testova 609 (+2), frontend 116. Zadatak na Pregledu nije viđen uživo (dev baza
+nema narudžbi za sedmicu 44).
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
