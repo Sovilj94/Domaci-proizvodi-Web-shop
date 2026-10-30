@@ -194,6 +194,11 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> PakerskaLista([FromQuery] int godina, [FromQuery] int sedmica) =>
         Envelope(await Mediator.Send(new GetPakerskaListaQuery(godina, sedmica)));
 
+    /// <summary>Korpice na čekanju po sedmici i koliko ih stanje dozvoljava da se potvrdi.</summary>
+    [HttpGet("admin/korpice/potvrdjivanje")]
+    public async Task<IActionResult> Potvrdjivanje() =>
+        Envelope(await Mediator.Send(new GetPotvrdjivanjeQuery()));
+
     /// <summary>
     /// Koliko je korpica obećano za narednu sedmicu, prije nego što ijedna narudžba nastane —
     /// pitanje koje nabavka do P3 nije mogla postaviti.

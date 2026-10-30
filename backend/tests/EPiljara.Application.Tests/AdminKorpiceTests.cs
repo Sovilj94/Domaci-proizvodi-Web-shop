@@ -274,7 +274,7 @@ public class AdminKorpiceTests
         var p = Postavi(t);
         Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
 
-        var lista = await new GetPakerskaListaHandler(t.Db)
+        var lista = await new GetPakerskaListaHandler(t.Db, Options.Create(TestOpcije.Korpice()))
             .Handle(new GetPakerskaListaQuery(2026, 41), default);
 
         Assert.Equal(0, lista.BrojNarudzbi);

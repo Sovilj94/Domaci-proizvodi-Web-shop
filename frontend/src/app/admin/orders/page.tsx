@@ -12,6 +12,8 @@ import { useToast } from "@/components/ui/toast";
 import { OrderCard } from "@/components/admin/order-card";
 import { NarudzbeTabla } from "@/components/admin/narudzbe-tabla";
 import { StanjeZaliha } from "@/components/admin/stanje-zaliha";
+import { ZaPotvrdu } from "@/components/admin/za-potvrdu";
+import { RobaZaSedmicu } from "@/components/admin/roba-za-sedmicu";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { Input } from "@/components/ui/field";
 import { ApiRequestError } from "@/lib/api/client";
@@ -200,7 +202,20 @@ function AdminOrders() {
         </Link>
       </div>
 
+      <ZaPotvrdu />
+
       <StanjeZaliha />
+
+      <details className="group rounded-card border border-line bg-surface">
+        <summary className="cursor-pointer list-none px-5 py-3 font-display text-lg font-bold text-ink">
+          Roba za sedmicu {izbor.sedmica}. — koliko treba nabaviti
+          <span className="ml-2 text-sm font-normal text-muted group-open:hidden">(otvori)</span>
+        </summary>
+        <div className="space-y-3 border-t border-line px-5 py-4">
+          <IzborSedmice s={izbor} />
+          <RobaZaSedmicu godina={izbor.godina} sedmica={izbor.sedmica} />
+        </div>
+      </details>
 
       {prikaz === "lista" && (
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">

@@ -269,7 +269,7 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
 
 public record GetPakerskaListaQuery(int Godina, int Sedmica) : IRequest<PakerskaListaDto>;
 
-public class GetPakerskaListaHandler(IAppDbContext db)
+public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
     : IRequestHandler<GetPakerskaListaQuery, PakerskaListaDto>
 {
     public async Task<PakerskaListaDto> Handle(GetPakerskaListaQuery q, CancellationToken ct)
@@ -289,31 +289,59 @@ public class GetPakerskaListaHandler(IAppDbContext db)
                         && s.OrderItem.Order.Status != OrderStatus.Cancelled)
             .ToListAsync(ct);
 
-        var brojNarudzbi = redovi
-            .Select(s => s.OrderItem!.OrderId)
-            .Distinct()
-            .Count();
+        // Artikli iz Špajza iste sedmice: redovi bez sadržaja korpice. Red same korpice se
+        // izbacuje ispod (po vrsti proizvoda) — nabavlja se njen sadržaj, koji je gore.
+        var spajz = await db.OrderItems
+            .Where(i => i.Order!.Godina == q.Godina
+                        && i.Order.Sedmica == q.Sedmica
+                        && i.Order.Status != OrderStatus.Cancelled
+                        && !i.KorpicaStavke.Any())
+            .Select(i => new { i.OrderId, i.ProductId, i.ProductName, i.Unit, i.Quantity })
+            .ToListAsync(ct);
 
         // Artikal se dohvata posebno, jer StavkaKorpiceNarudzbe namjerno nema navigaciju na
         // Product — snapshot naziva živi na samom redu, a proizvođač i selo se čitaju iz
         // trenutnog kataloga jer su podatak o nabavci, ne o prodaji.
-        var idjevi = redovi.Select(s => s.ProductId).Distinct().ToList();
+        var idjevi = redovi.Select(s => s.ProductId).Concat(spajz.Select(s => s.ProductId)).Distinct().ToList();
         var artikli = await db.Products
             .IgnoreQueryFilters()
             .Include(p => p.Producer)
             .Where(p => idjevi.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
+        spajz = spajz
+            .Where(s => !artikli.TryGetValue(s.ProductId, out var p) || p.Vrsta != VrstaProizvoda.Korpica)
+            .ToList();
 
-        var stavke = redovi
-            .GroupBy(s => s.ProductId)
-            .Select(g =>
+        var brojNarudzbi = redovi.Select(s => s.OrderItem!.OrderId)
+            .Concat(spajz.Select(s => s.OrderId))
+            .Distinct()
+            .Count();
+
+        var uKorpicama = redovi.GroupBy(s => s.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Kolicina * x.OrderItem!.Quantity));
+        var uSpajzu = spajz.GroupBy(s => s.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+        var snapshot = redovi.Select(r => (r.ProductId, r.ProductName, r.Unit))
+            .Concat(spajz.Select(s => (s.ProductId, s.ProductName, s.Unit)))
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var stavke = uKorpicama.Keys.Union(uSpajzu.Keys)
+            .Select(id =>
             {
-                artikli.TryGetValue(g.Key, out var p);
-                var prvi = g.First();
+                artikli.TryGetValue(id, out var p);
+                var prvi = snapshot[id];
+                var korpice = uKorpicama.GetValueOrDefault(id);
+                // Stock je već umanjen za Špajz (skida se pri narudžbi), a za sadržaj korpica
+                // nije (vidi Zalihe) — pa nabaviti treba samo ono što korpice traže preko stanja.
+                var naStanju = p is null ? 0m : Math.Max(0m, p.Stock);
                 return new StavkaPakerskeDto
                 {
                     Artikal = p?.Name ?? prvi.ProductName,
-                    Kolicina = g.Sum(x => x.Kolicina * x.OrderItem!.Quantity),
+                    Kolicina = korpice + uSpajzu.GetValueOrDefault(id),
+                    UKorpicama = korpice,
+                    USpajzu = uSpajzu.GetValueOrDefault(id),
+                    NaStanju = naStanju,
+                    Fali = Math.Max(0m, korpice - naStanju),
                     Jedinica = (p?.Unit ?? prvi.Unit).ToApi(),
                     Proizvodjac = p?.Producer?.Name ?? string.Empty,
                     Selo = p?.Producer?.Village ?? string.Empty,
@@ -324,9 +352,14 @@ public class GetPakerskaListaHandler(IAppDbContext db)
             .OrderBy(r => r.Proizvodjac).ThenBy(r => r.Artikal)
             .ToList();
 
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
+        var rok = SedmicaHelper.DatumIsporuke(q.Godina, q.Sedmica, dan, vrijemeOd).AddHours(-cutoff);
+
         return new PakerskaListaDto
         {
             BrojNarudzbi = brojNarudzbi,
+            Rok = rok,
+            Zakljucena = DateTime.UtcNow > rok,
             Stavke = stavke,
             NabavnaVrijednost = Math.Round(
                 stavke.Where(s => s.NabavnaCijena is > 0).Sum(s => s.Kolicina * s.NabavnaCijena!.Value), 2),

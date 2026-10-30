@@ -235,7 +235,14 @@ export interface SadrzajPregled {
 
 export interface StavkaPakerske {
   artikal: string;
+  /** Ukupno potrebno: sadržaj korpica + Špajz. */
   kolicina: number;
+  uKorpicama: number;
+  uSpajzu: number;
+  /** Trenutno stanje, već umanjeno za prodato iz Špajza. */
+  naStanju: number;
+  /** Koliko korpice traže preko stanja — to treba nabaviti. */
+  fali: number;
   jedinica: string;
   proizvodjac: string;
   selo: string;
@@ -247,10 +254,29 @@ export interface StavkaPakerske {
 
 export interface PakerskaLista {
   brojNarudzbi: number;
+  /** Rok naručivanja te sedmice (ISO, UTC). */
+  rok: string;
+  /** Rok je prošao — količine su konačne. */
+  zakljucena: boolean;
   /** Trošak nabavke liste po trenutnim nabavnim cijenama (artikli bez nabavne se ne broje). */
   nabavnaVrijednost: number;
   bezNabavneCijene: number;
   stavke: StavkaPakerske[];
+}
+
+/** Korpice na čekanju za jednu sedmicu i koliko ih stanje dozvoljava da se potvrdi. */
+export interface PotvrdjivanjeSedmice {
+  godina: number;
+  sedmica: number;
+  korpice: {
+    korpicaId: string;
+    naziv: string;
+    naCekanju: number;
+    /** Koliko ih stanje pokriva kad se potvrđuju redom kojim su stigle. */
+    mozeSePotvrditi: number;
+    /** Artikal kojeg je prvog nestalo, kad ne mogu sve. */
+    nedostaje?: string | null;
+  }[];
 }
 
 export interface GenerisiSadrzajRequest {
