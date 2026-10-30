@@ -147,6 +147,8 @@ export default function CheckoutPage() {
   const [placed, setPlaced] = useState<Order | null>(null);
   const [sentTo, setSentTo] = useState<{ email: string; expiresAt: string } | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  // Adresa van grada dostave (birač prikazuje upozorenje) — dok važi, korak 1 ne ide dalje.
+  const [vanPodrucja, setVanPodrucja] = useState(false);
 
   // Prefill from the logged-in customer's profile. `user.name` is one string on the
   // backend, so it's split on the first space — the rest (middle/last names) all goes
@@ -264,7 +266,7 @@ export default function CheckoutPage() {
 
   const gost = !user;
   const step1Valid =
-    !!form.ulica && (adresaVecPotpuna || !!form.broj) && !!form.zoneId && !!form.slotId;
+    !!form.ulica && (adresaVecPotpuna || !!form.broj) && !!form.zoneId && !!form.slotId && !vanPodrucja;
   const step2Valid =
     !!form.ime && !!form.prezime && !!form.phone && (!gost || !!form.email);
   const canOrder = step1Valid && step2Valid && !belowMin && items.length > 0;
@@ -407,6 +409,8 @@ export default function CheckoutPage() {
                   onLocalities={applyZoneHint}
                   onCoordinates={setCoords}
                   querySuffix={form.broj}
+                  onBroj={set("broj")}
+                  onVanPodrucja={setVanPodrucja}
                 />
               </Field>
 

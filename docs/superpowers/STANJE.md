@@ -702,6 +702,32 @@ Recepti u korpu dodaju samo artikle Špajza.
 kud treba (neaktivni slajdovi `pointer-events-none`); Recepti i Analize skinuti iz glavnog menija (stranice
 postoje).
 
+### Mapa za adresu dostave po uzoru na farmit (2026-10-30) — grana `mapa-dostave`
+
+Farmit checkout (Google Maps): polje sa prijedlozima → mirna mapa sa šargarepom → „Izmeni lokaciju na mapi"
+(pin stoji u centru, mapa se pomjera) → „Potvrdi lokaciju", plus „Koristi moju trenutnu lokaciju" i „Ne možeš
+da pronađeš adresu?". Kod nas isto, na OSM + Leaflet, bez ključa (`address-picker.tsx`).
+
+- **Prijedlozi dok se kuca:** `GET /geocode/suggest` → Photon (javni Nominatim zabranjuje autocomplete).
+  Samo BiH, Banja Luka prva, ista ulica iz više OSM komada jednom; „Ulica 10" bez kuće u OSM-u dobije
+  ulicu sa upisanim brojem. Per-IP limit 60/min.
+- **Checkout:** izbor puni „Ulica" i „Kućni broj" posebno (`onBroj`); potvrđena tačka čita ulicu i zonu.
+- Tekst koji niko nije izabrao sa liste se geokodira pri izlasku iz polja, kao ranije; admin ekrani
+  (nova narudžba, lokacija stanice, magacin) i adresar/pretplata koriste isti birač.
+- Testovi: backend 596 (+6 prijedlozi), frontend 114 (+5 `adresa-prijedlog`); `tsc`, lint, `next build` čisti;
+  ručno u pregledaču na :3001 + API :5081.
+
+**Samo Banja Luka (isti dan).** Grad dostave je u bazi, `Podesavanja.GradDostave` (migracija `GradDostave`
+postavlja „Banja Luka"; admin ga mijenja u „Poslovna pravila → Dostava"). Svaki pogodak geokodera nosi
+`uPodrucjuDostave` (grad ili opština, i sela na teritoriji grada prolaze). Prijedlozi iz Banje Luke idu prvi,
+ostali su označeni „Ne dostavljamo"; izbor takve adrese (ili tačke na mapi / GPS) daje crveno upozorenje
+„Ne dostavljamo na ovu adresu" i blokira „Nastavi" u checkoutu, čuvanje u adresaru i pretplati. Backend
+testovi 603 (+7 područje dostave). **Nije provjereno na serveru** pri `CreateOrder` — vidi ZA-URADITI C4.
+
+**Zašto je lokalno pisalo „nema te adrese":** API koji je radio na :5080 vraćao je `{}` i za pretragu i za
+reverse, a ista verzija koda pokrenuta svježe na :5081 geokodira normalno (Render takođe). Restart API-ja
+na :5080 to rješava; nije greška u kodu (vidi ZA-URADITI C3).
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

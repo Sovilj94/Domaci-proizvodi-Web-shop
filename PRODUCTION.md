@@ -135,7 +135,7 @@ more; handlers still read them through `IOptions<KorpiceOpcije | PretplateOpcije
 filled per request from that row (`IzvorPodesavanja`). **The API refuses to start without the row** — a new
 database gets it from a dump (see `DEPLOY.md` → „Podaci"). Korpica rules there: content-value coefficient,
 minimal margin, suggested substitutions, minimum items per size, and the cutoff/day/time used **only** when
-no `DeliverySlot` exists (otherwise the slot with the lowest `DayOfWeek` is the sole source of truth).
+no `DeliverySlot` exists (otherwise the slot with the lowest `DayOfWeek` is the sole source of truth). Delivery is limited to `GradDostave` (the city as the geocoder names it — see CLAUDE.md → Geocoding).
 
 `ZakljucavanjeSadrzajaService` (a `BackgroundService`, now in `Infrastructure/BackgroundJobs/`)
 runs every **15 minutes** and closes (`Zakljucan`) every published (`Objavljen`) weekly content

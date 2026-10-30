@@ -69,6 +69,8 @@ function Forma({
   // Birač javlja tačku (ili `null` kad tekst adrese krene da se mijenja). Pola tačke
   // backend odbija — `AddressRules` traži i širinu i dužinu ili nijednu — pa se obje
   // postavljaju i gase zajedno, u jednom setState.
+  // Adresa van grada dostave: birač prikazuje upozorenje, a čuvanje čeka drugu adresu.
+  const [vanPodrucja, setVanPodrucja] = useState(false);
   const postaviTacku = useCallback((coords: { lat: number; lon: number } | null) => {
     setForm((f) => ({ ...f, latitude: coords?.lat, longitude: coords?.lon }));
   }, []);
@@ -147,6 +149,7 @@ function Forma({
               value={form.fullAddress}
               onChange={(value) => setForm((f) => ({ ...f, fullAddress: value }))}
               onCoordinates={postaviTacku}
+              onVanPodrucja={setVanPodrucja}
               onLocalities={predloziZonu}
               initialCoordinates={
                 adresa?.latitude != null && adresa?.longitude != null
@@ -181,7 +184,7 @@ function Forma({
           <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
             Otkaži
           </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending}>
+          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja}>
             {mutation.isPending ? "Spremam…" : "Spremi"}
           </Button>
         </div>

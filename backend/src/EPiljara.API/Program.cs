@@ -74,6 +74,8 @@ builder.Services.AddScoped<IOptions<EPiljara.Application.Features.Poeni.PoeniOpc
     Options.Create(PodesavanjaMapa.Poeni(sp.GetRequiredService<IzvorPodesavanja>().Red)));
 builder.Services.AddScoped<IOptions<EPiljara.Application.Features.Catalog.ProdavnicaOpcije>>(sp =>
     Options.Create(PodesavanjaMapa.Prodavnica(sp.GetRequiredService<IzvorPodesavanja>().Red)));
+builder.Services.AddScoped<IOptions<EPiljara.Application.Features.Geocoding.DostavaOpcije>>(sp =>
+    Options.Create(PodesavanjaMapa.Dostava(sp.GetRequiredService<IzvorPodesavanja>().Red)));
 
 // ----- JWT authentication -----
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -141,6 +143,13 @@ builder.Services.AddRateLimiter(options =>
         o.PermitLimit = 30;
         o.Window = TimeSpan.FromMinutes(1);
     });
+    // /geocode/suggest: prijedlozi dok se kuca (debounce ~300 ms), pa jedna adresa bude
+    // desetak poziva. Particija po IP-u, kao "auth": zajednički prozor bi posjetioci trošili
+    // jedni drugima.
+    options.AddPolicy("geocode-suggest", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // ----- Swagger (with JWT) -----

@@ -8,7 +8,34 @@ public record GeocodeHit(
     double Lat,
     double Lon,
     string DisplayName,
-    IReadOnlyList<string> Localities);
+    IReadOnlyList<string> Localities)
+{
+    /// <summary>Ulica bez kućnog broja, kad je servis zna — za kratak prikaz i polje „Ulica".</summary>
+    public string? Ulica { get; init; }
+
+    /// <summary>Kućni broj, kad pogodak pada na zgradu a ne samo na ulicu.</summary>
+    public string? Broj { get; init; }
+
+    /// <summary>Grad ili naselje, za drugi red prijedloga.</summary>
+    public string? Grad { get; init; }
+
+    /// <summary>
+    /// Opština / grad kao teritorija („Grad Banja Luka") — selo ima svoj <see cref="Grad"/>, a
+    /// pripada opštini grada dostave. Služi samo provjeri područja dostave.
+    /// </summary>
+    public string? Opstina { get; init; }
+}
+
+/// <summary>
+/// Prijedlozi adresa dok kupac kuca (autocomplete). Odvojeno od <see cref="IGeocodingService"/>
+/// jer javni Nominatim pravilima korišćenja zabranjuje pretragu „dok se kuca" — prijedloge
+/// daje servis koji je za to napravljen (Photon), a geokodiranje ostaje gdje je bilo.
+/// </summary>
+public interface IAddressSuggester
+{
+    /// <summary>Do nekoliko prijedloga, najbliži području dostave prvi; prazno kad nema ništa.</summary>
+    Task<IReadOnlyList<GeocodeHit>> SuggestAsync(string query, CancellationToken cancellationToken = default);
+}
 
 /// <summary>
 /// Pretvara adresu u koordinate i obrnuto. Implementacija mora poštovati ograničenja

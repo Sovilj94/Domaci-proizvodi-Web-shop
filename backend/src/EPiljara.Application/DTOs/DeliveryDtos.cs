@@ -30,6 +30,18 @@ public record GeocodeHitDto
     public double Longitude { get; init; }
     public string DisplayName { get; init; } = string.Empty;
     public IReadOnlyList<string> Localities { get; init; } = [];
+    public string? Street { get; init; }
+    public string? HouseNumber { get; init; }
+    public string? City { get; init; }
+
+    /// <summary>
+    /// Da li adresa pada u grad dostave (<c>Podesavanja.GradDostave</c>). <c>null</c> kad
+    /// geokoder ne zna ni grad ni opštinu — tada se ne odlučuje.
+    /// </summary>
+    public bool? UPodrucjuDostave { get; init; }
+
+    /// <summary>Grad dostave, za poruku „dostavljamo samo na području grada …".</summary>
+    public string? GradDostave { get; init; }
 
     public static GeocodeHitDto? Od(EPiljara.Application.Common.Interfaces.GeocodeHit? hit) =>
         hit is null
@@ -40,5 +52,8 @@ public record GeocodeHitDto
                 Longitude = hit.Lon,
                 DisplayName = hit.DisplayName,
                 Localities = hit.Localities,
+                Street = hit.Ulica,
+                HouseNumber = hit.Broj,
+                City = hit.Grad,
             };
 }

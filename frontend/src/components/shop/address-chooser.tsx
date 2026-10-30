@@ -18,6 +18,8 @@ export function AddressChooser({
   onLocalities,
   onCoordinates,
   querySuffix,
+  onBroj,
+  onVanPodrucja,
   id,
 }: {
   value: string;
@@ -28,6 +30,10 @@ export function AddressChooser({
   onCoordinates?: (coords: { lat: number; lon: number } | null) => void;
   /** Passed straight through to `AddressPicker` — see its own doc comment. */
   querySuffix?: string;
+  /** Kućni broj iz izabranog prijedloga — vidi `AddressPicker`. */
+  onBroj?: (broj: string) => void;
+  /** Adresa van grada dostave — vidi `AddressPicker`. */
+  onVanPodrucja?: (van: boolean) => void;
   /** `id` polja ulice na mapi, da ga labela (`Field htmlFor`) imenuje. */
   id?: string;
 }) {
@@ -43,6 +49,8 @@ export function AddressChooser({
           onLocalities={onLocalities}
           onCoordinates={onCoordinates}
           querySuffix={querySuffix}
+          onBroj={onBroj}
+          onVanPodrucja={onVanPodrucja}
           id={id}
         />
         {savedAddresses.length > 0 && (

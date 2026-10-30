@@ -83,6 +83,8 @@ function Forma({
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
 
+  // Adresa van grada dostave: birač prikazuje upozorenje, a čuvanje čeka drugu adresu.
+  const [vanPodrucja, setVanPodrucja] = useState(false);
   const postaviTacku = useCallback((coords: { lat: number; lon: number } | null) => {
     setForm((f) => ({ ...f, latitude: coords?.lat, longitude: coords?.lon }));
   }, []);
@@ -184,6 +186,7 @@ function Forma({
               value={form.deliveryAddress}
               onChange={(value) => setForm((f) => ({ ...f, deliveryAddress: value }))}
               onCoordinates={postaviTacku}
+              onVanPodrucja={setVanPodrucja}
               onLocalities={predloziZonu}
               initialCoordinates={
                 pretplata?.latitude != null && pretplata?.longitude != null
@@ -241,7 +244,7 @@ function Forma({
           <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
             Otkaži
           </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending}>
+          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja}>
             {mutation.isPending ? "Spremam…" : "Spremi"}
           </Button>
         </div>

@@ -851,6 +851,11 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<int>("DanIsporukeRezerva")
                         .HasColumnType("integer");
 
+                    b.Property<string>("GradDostave")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<decimal>("KoeficijentVrijednosti")
                         .HasPrecision(6, 3)
                         .HasColumnType("numeric(6,3)");

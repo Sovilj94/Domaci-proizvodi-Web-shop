@@ -52,4 +52,12 @@ public class Podesavanja : Entity
     // ----- Prodavnica -----
     /// <summary>Od ove zalihe naniže artikal je „pri kraju" („Još samo X na stanju").</summary>
     public decimal PragPriKraju { get; set; }
+
+    // ----- Dostava -----
+    /// <summary>
+    /// Grad (ili opština) u kojem dostavljamo, kako ga piše geokoder — „Banja Luka". Adresa čiji
+    /// grad ili opština ne odgovara dobija upozorenje „ne dostavljamo na ovu adresu" i ne može
+    /// u narudžbu. Prazno = bez ograničenja.
+    /// </summary>
+    public string GradDostave { get; set; } = string.Empty;
 }
