@@ -32,13 +32,13 @@ Dependency rule: `API → Infrastructure → Application → Domain`.
 # 1. Database (Postgres 16 on :5432)
 docker compose up -d postgres
 
-# 2. API (applies migrations + seeds demo data on startup in Development)
+# 2. API (applies migrations on startup in Development; data comes from a DB dump, never from code)
 dotnet run --project src/EPiljara.API      # http://localhost:5080  (Swagger at /swagger)
 ```
 
 Or run everything in Docker: `docker compose up -d` (API on :5080).
 
-### Demo accounts
+### Demo accounts (rows in the local DB dump, not created by code)
 
 | Role   | Email             | Password |
 |--------|-------------------|----------|
@@ -90,4 +90,4 @@ Point the Next.js app at this API:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5080
 ```
 
-Remove that line to fall back to the frontend's built-in mock API.
+There is no built-in mock: without it the frontend still calls `http://localhost:5080`.

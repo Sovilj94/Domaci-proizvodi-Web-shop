@@ -47,7 +47,6 @@ Redoslijed je bitan jer API mora znati URL frontenda (CORS), a frontend URL API-
    | `CORS_ORIGINS` | za sada prazno; Vercel URL ide u koraku 4 |
    | `App__BaseUrl` | za sada prazno; Vercel URL ide u koraku 4 |
    | `RUN_MIGRATIONS` | `true` |
-   | `SEED_DATA` | `true` ako hoćeš demo proizvode, demo naloge i objavljen sadržaj korpica (preporučeno za test) |
    | `ADMIN_EMAIL` | tvoj email za admin panel |
    | `ADMIN_PASSWORD` | tvoja lozinka, min. 8 znakova (nije u repou; promjena + restart = nova lozinka) |
    | `ADMIN_NAME` | opciono, ime koje se prikazuje |
@@ -60,7 +59,23 @@ Redoslijed je bitan jer API mora znati URL frontenda (CORS), a frontend URL API-
    connection string nije dobar.
 
 `RUN_MIGRATIONS` može ostati `true`, jer je servis jedna instanca, a migracije koje su već
-primijenjene se preskaču. Seed upisuje podatke samo u praznu bazu.
+primijenjene se preskaču.
+
+### Podaci
+
+U kodu nema nijednog podatka: API pri startu samo primijeni migracije i napravi admina iz
+`ADMIN_EMAIL`. Nova baza je zato **prazna**. Podatke donosi dump postojeće baze (proizvodi, slike,
+korpice, sadržaj, nalozi), a sve poslije toga se unosi kroz admin.
+
+Prenos lokalne baze u Neon (prazan Neon projekat, prije prvog starta API-ja):
+
+```powershell
+docker exec epiljara-postgres sh -c "pg_dump -U epiljara -d epiljara -Fc --no-owner --no-acl -f /var/tmp/epiljara.dump"
+docker cp epiljara-postgres:/var/tmp/epiljara.dump .\epiljara.dump
+docker run --rm -v ${PWD}:/d postgres:16 pg_restore --no-owner --no-acl -d "<Neon URI>" /d/epiljara.dump
+```
+
+Dump nosi i `__EFMigrationsHistory`, pa API poslije samo dopuni migracije koje su novije od dumpa.
 
 ## 3. Vercel — frontend
 
@@ -74,9 +89,9 @@ primijenjene se preskaču. Seed upisuje podatke samo u praznu bazu.
    | `NEXT_PUBLIC_API_URL` | `https://epiljara-api.onrender.com` (bez `/` na kraju) |
    | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | opciono, isti kao `Auth__Google__ClientId` na backendu |
 
-   > Bez `NEXT_PUBLIC_API_URL` sajt se **normalno otvori, ali radi nad ugrađenim mock podacima**,
-   > ne nad pravim API-jem. Ako vidiš „lažne" podatke, ovo provjeri prvo. Vrijednost se ugrađuje
-   > u build, pa poslije svake izmjene treba **Redeploy**.
+   > Bez `NEXT_PUBLIC_API_URL` frontend gađa `http://localhost:5080` i nijedan podatak se ne
+   > učita — ugrađenih podataka nema. Vrijednost se ugrađuje u build, pa poslije svake izmjene
+   > treba **Redeploy**.
 4. **Deploy**. Zapiši dobijeni domen, npr. `https://epiljara.vercel.app`.
 5. Provjeri **Settings → Git → Production Branch** = `main` (podrazumijevano jeste). Tada svaki
    push na `main` sam ide na produkcijski Vercel domen, a ostale grane dobiju samo preview.
@@ -105,9 +120,10 @@ i njega dodaš u `CORS_ORIGINS`. Za testere dijeli samo produkcijski Vercel dome
 > pauze traje do ~1 minute** — stranica tada izgleda kao da „visi" ili prikaže grešku. Sačekaj
 > i osvježi stranicu, pa sve dalje radi normalno. Baza se poslije pauze budi par sekundi.
 
-Demo nalozi (uz `SEED_DATA=true`): `admin@epiljara.ba` / `admin123`, `marko@example.com` /
-`marko123`, `vozac@epiljara.ba` / `vozac123`. Lozinke su javne (u repou su), pa ovo okruženje ne
-koristi za stvarne podatke. Tvoj admin iz `ADMIN_EMAIL` je odvojen od njih i ima samo tvoju lozinku.
+Demo nalozi postoje samo ako je baza prenesena iz lokalnog dumpa (vidi „Podaci"):
+`admin@epiljara.ba` / `admin123`, `marko@example.com` / `marko123`, `vozac@epiljara.ba` / `vozac123`.
+Lozinke su javne (zapisane su u dokumentaciji), pa ovo okruženje ne koristi za stvarne podatke. Tvoj
+admin iz `ADMIN_EMAIL` je odvojen od njih i ima samo tvoju lozinku.
 
 ---
 
@@ -135,9 +151,9 @@ koristi za stvarne podatke. Tvoj admin iz `ADMIN_EMAIL` je odvojen od njih i ima
   **Geokodiranje** ide preko javnog Nominatima (1 zahtjev/s).
 - **Slike** proizvoda, kategorija, korpica i domaćina su **u bazi** (tabela `Slike`). API ih servira
   na `/slike/...`, a Vercel ih prosljeđuje API-ju (rewrite u `next.config.ts`). Admin novu sliku
-  učita dugmetom „Učitaj sliku" u formi i ona odmah važi, bez deploya. Početne slike API upiše sam
-  pri prvom startu. Zato `NEXT_PUBLIC_API_URL` na Vercelu mora biti postavljen, jer bez njega slika
-  nema. Disk na Renderu se briše pri restartu, ali slike nisu na disku, pa se ništa ne gubi.
+  učita dugmetom „Učitaj sliku" u formi i ona odmah važi, bez deploya. Slike stižu samo sa dumpom
+  baze ili kroz admin — u repou ih nema. `NEXT_PUBLIC_API_URL` na Vercelu mora biti postavljen, jer
+  bez njega slika nema. Disk na Renderu se briše pri restartu, ali slike nisu na disku, pa se ništa ne gubi.
 - **Prijava preko Google-a** radi tek kad se Vercel domen doda u *Authorized JavaScript origins*
   u Google Cloud konzoli. Do tada koristi email i lozinku.
 - **Limiti**: Render free daje 750 sati mjesečno. Neon Free ima ograničen compute i 0,5 GB

@@ -175,48 +175,11 @@ await using (var scope = app.Services.CreateAsyncScope())
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (runMigrations)
             await db.Database.MigrateAsync();
-        // Slike žive u bazi; početne (SeedSlike/) se upišu samo one kojih tamo još nema.
-        // Zaseban try: baza bez ove migracije (RUN_MIGRATIONS isključen) ne smije oboriti seed ispod.
-        try
-        {
-            var slike = await SlikeUvoz.UveziAsync(db);
-            if (slike > 0)
-                app.Logger.LogInformation("Upisano {Broj} početnih slika u bazu", slike);
-        }
-        catch (Exception ex)
-        {
-            app.Logger.LogError(ex, "Uvoz početnih slika nije uspio");
-            db.ChangeTracker.Clear();
-        }
-        // Demo data (incl. accounts with known passwords) seeds in Development, or when
-        // explicitly opted in with Seed:Demo=true or SEED_DATA=true (e.g. a staging/test deploy).
-        // It stays OFF by default in production, so real deployments never get a default admin account.
-        var seedDemo = app.Environment.IsDevelopment()
-            || Ukljuceno(builder.Configuration["Seed:Demo"])
-            || Ukljuceno(builder.Configuration["SEED_DATA"]);
-        if (seedDemo)
-        {
-            await DbSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>());
-            var objavljeno = await DbSeeder.SeedSadrzajKorpicaAsync(db,
-                scope.ServiceProvider.GetRequiredService<IOptions<KorpiceOpcije>>().Value);
-            if (objavljeno > 0)
-                app.Logger.LogInformation("Demo: objavljeno {Broj} sedmičnih sadržaja korpica", objavljeno);
-            var utisci = await DbSeeder.SeedUtisciAsync(db);
-            if (utisci > 0)
-                app.Logger.LogInformation("Demo: upisano {Broj} utisaka kupaca", utisci);
-        }
-        // Pravi admin iz env-a (ne demo admin123) — radi i bez SEED_DATA.
+        // Podaci žive samo u bazi: ovdje se ništa ne upisuje iz koda. Novo okruženje se puni
+        // iz dumpa postojeće baze (vidi DEPLOY.md). Jedino pravi admin dolazi iz env-a.
         if (await AdminNalog.ObezbijediAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>(),
                 builder.Configuration["ADMIN_EMAIL"], builder.Configuration["ADMIN_PASSWORD"], builder.Configuration["ADMIN_NAME"]))
             app.Logger.LogInformation("Admin nalog {Email} je spreman", builder.Configuration["ADMIN_EMAIL"]!.Trim().ToLowerInvariant());
-        // Poslije seeda: proizvodi (i novi iz seeda) dobiju početne izreze za pločice korpica.
-        var izrezi = await SlikeUvoz.PoveziIzrezeAsync(db);
-        if (izrezi > 0)
-            app.Logger.LogInformation("Povezano {Broj} izreza proizvoda", izrezi);
-        // Engleski nazivi kataloga — samo u prazna polja, admin izmjene ostaju.
-        var prevodi = await PrevodiKataloga.PopuniAsync(db);
-        if (prevodi > 0)
-            app.Logger.LogInformation("Upisano {Broj} engleskih naziva kataloga", prevodi);
     }
     catch (Exception ex)
     {

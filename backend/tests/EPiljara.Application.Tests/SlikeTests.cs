@@ -11,38 +11,6 @@ public class SlikeTests
     private static readonly byte[] Jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3];
 
     [Fact]
-    public async Task Uvoz_upisuje_samo_slike_kojih_nema_i_ne_dira_postojece()
-    {
-        var folder = Directory.CreateTempSubdirectory("seedslike").FullName;
-        try
-        {
-            Directory.CreateDirectory(Path.Combine(folder, "products"));
-            await File.WriteAllBytesAsync(Path.Combine(folder, "products", "kajmak.jpg"), Jpeg);
-            await File.WriteAllBytesAsync(Path.Combine(folder, "products", "med.png"), [1, 2]);
-            await File.WriteAllTextAsync(Path.Combine(folder, "products", "README.md"), "nije slika");
-
-            using var t = new TestDb();
-            t.Db.Slike.Add(new Domain.Entities.Slika { Kljuc = "products/med.png", ContentType = "image/png", Podaci = [9], Velicina = 1 });
-            await t.Db.SaveChangesAsync();
-
-            var prvi = await SlikeUvoz.UveziAsync(t.Db, folder);
-            var drugi = await SlikeUvoz.UveziAsync(t.Db, folder);
-
-            prvi.Should().Be(1);
-            drugi.Should().Be(0);
-            var slike = await t.Db.Slike.OrderBy(s => s.Kljuc).ToListAsync();
-            slike.Select(s => s.Kljuc).Should().Equal("products/kajmak.jpg", "products/med.png");
-            slike[0].ContentType.Should().Be("image/jpeg");
-            slike[0].Podaci.Should().Equal(Jpeg);
-            slike[1].Podaci.Should().Equal([9]); // admin verzija ostaje
-        }
-        finally
-        {
-            Directory.Delete(folder, recursive: true);
-        }
-    }
-
-    [Fact]
     public async Task Slika_se_cita_po_kljucu_a_nepostojeca_je_404()
     {
         using var t = new TestDb();
@@ -71,33 +39,6 @@ public class SlikeTests
         prva.Url.Should().Be("/slike/" + prva.Kljuc);
         druga.Kljuc.Should().NotBe(prva.Kljuc);
         (await t.Db.Slike.CountAsync()).Should().Be(2);
-    }
-
-    [Fact]
-    public async Task Izrez_se_povezuje_po_slugu_samo_proizvodima_bez_izreza()
-    {
-        using var t = new TestDb();
-        await DbSeeder.SeedAsync(t.Db, new LazniHasher());
-        var krompir = await t.Db.Products.FirstAsync(p => p.Slug == "domaci-krompir");
-        var mrkva = await t.Db.Products.FirstAsync(p => p.Slug == "mrkva");
-        mrkva.IzrezUrl = "/slike/izrezi/moja-mrkva-1234.png"; // admin je već postavio svoj
-        t.Db.Slike.AddRange(
-            new Domain.Entities.Slika { Kljuc = "izrezi/domaci-krompir.png", ContentType = "image/png", Podaci = [1] },
-            new Domain.Entities.Slika { Kljuc = "izrezi/mrkva.png", ContentType = "image/png", Podaci = [1] });
-        await t.Db.SaveChangesAsync();
-
-        var povezano = await SlikeUvoz.PoveziIzrezeAsync(t.Db);
-
-        povezano.Should().Be(1);
-        (await t.Db.Products.FindAsync(krompir.Id))!.IzrezUrl.Should().Be("/slike/izrezi/domaci-krompir.png");
-        (await t.Db.Products.FindAsync(mrkva.Id))!.IzrezUrl.Should().Be("/slike/izrezi/moja-mrkva-1234.png");
-        (await SlikeUvoz.PoveziIzrezeAsync(t.Db)).Should().Be(0);
-    }
-
-    private sealed class LazniHasher : Common.Interfaces.IPasswordHasher
-    {
-        public string Hash(string password) => password;
-        public bool Verify(string password, string hash) => password == hash;
     }
 
     [Theory]

@@ -27,23 +27,4 @@ public class SpajzTests
         izuzetak.Which.Code.Should().Be("product_unavailable");
     }
 
-    [Fact]
-    public async Task Seed_drzi_povrce_i_voce_van_Spajza_a_med_i_dzem_u_njemu()
-    {
-        using var t = new TestDb();
-        await Infrastructure.Persistence.DbSeeder.SeedAsync(t.Db, new LazniHasher());
-
-        var katalog = await new GetProductsHandler(t.Db).Handle(new GetProductsQuery(null, null, null, null), default);
-
-        katalog.Should().NotContain(p => p.CategorySlug == "povrce" || p.CategorySlug == "voce" || p.CategorySlug == "meso");
-        katalog.Should().Contain(p => p.Slug == "livadski-med");
-        katalog.Should().Contain(p => p.Slug == "dzem-od-sljive" && p.CategorySlug == "dzem");
-        (await t.Db.Categories.AnyAsync(k => k.Slug == "zimnica")).Should().BeFalse();
-    }
-
-    private sealed class LazniHasher : Common.Interfaces.IPasswordHasher
-    {
-        public string Hash(string password) => password;
-        public bool Verify(string password, string hash) => password == hash;
-    }
 }

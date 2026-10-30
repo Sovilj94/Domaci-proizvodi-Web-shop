@@ -41,8 +41,6 @@ services:
       # --- Start ---
       - key: RUN_MIGRATIONS      # "true" za prvi deploy (može ostati true na jednoj instanci)
         sync: false
-      - key: SEED_DATA           # "true" = demo podaci i demo nalozi (samo test!)
-        sync: false
       # Pravi admin nalog (ne demo admin123). Pravi se/ažurira na svakom startu.
       - key: ADMIN_EMAIL
         sync: false

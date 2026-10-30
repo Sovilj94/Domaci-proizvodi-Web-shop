@@ -24,7 +24,7 @@ Secrets are read from environment variables (ASP.NET uses `__` for nested keys, 
 
 | Variable | Why |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Production API URL, e.g. `https://api.epiljara.ba` (older name `NEXT_PUBLIC_API_BASE_URL` still works). Empty = the built-in mock. Inlined at build time. See `frontend/.env.example`. |
+| `NEXT_PUBLIC_API_URL` | Production API URL, e.g. `https://api.epiljara.ba` (older name `NEXT_PUBLIC_API_BASE_URL` still works). Unset falls back to `http://localhost:5080` — there is no built-in mock. Inlined at build time. See `frontend/.env.example`. |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Only if Google login is enabled (same client id as the backend). |
 | `NEXT_PUBLIC_FACEBOOK_APP_ID` | Only if Facebook login is enabled. |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL, e.g. `https://epiljara.ba`. Canonical URLs, `sitemap.xml`, Open Graph. Falls back to the Vercel production domain, then `http://localhost:3000`. |
@@ -44,25 +44,21 @@ the API is asleep or unreachable the page still renders, with a generic title; i
 `robots.txt`. Going live: set the three variables above, redeploy, then submit
 `https://<domain>/sitemap.xml` in Google Search Console.
 
-## Demo data for testing
+## Data
 
-The demo seed (products, zones, and accounts like `admin@epiljara.ba` / `admin123`) runs
-automatically in **Development**. To test on a deployed staging instance, opt in with
-`Seed__Demo=true` (or `SEED_DATA=true`). **Leave it unset in real production** — otherwise the default admin account
-is created. It seeds only into an empty database.
+No data lives in code: the API only applies migrations and ensures the admin from `ADMIN_EMAIL`. A fresh
+database is empty. A staging instance gets its data by restoring a dump of an existing database (see
+`DEPLOY.md` → „Podaci"); real production starts empty and is filled through the admin panel.
 
 ## First admin account (real production)
 
-With `Seed__Demo` unset, a fresh production database has **no accounts**. The simplest way is to set
+A fresh production database has **no accounts**. The simplest way is to set
 `ADMIN_EMAIL`, `ADMIN_PASSWORD` (min. 8 characters) and optionally `ADMIN_NAME` on the API. On every
 start the API makes sure that account exists, is an Admin, has a confirmed email and uses that password
 (an existing customer with that email is promoted). Changing `ADMIN_PASSWORD` and restarting resets the
 password. The password lives only in the host's env (`sync: false` in `render.yaml`), never in the repo.
 
-With the demo seed on, the API also generates **and publishes** each sold korpica's weekly content
-for the current and the next week on every start (same generator and rules as the admin's
-"Generiši" → "Objavi"; existing content and admin drafts are left alone). Real production does
-this by hand in the admin panel.
+Weekly korpica content is generated and published by hand in the admin panel ("Generiši" → "Objavi").
 
 Alternatively, register a normal customer through the app, then promote them once in the DB:
 
@@ -127,22 +123,11 @@ else in the order flow changes.
 
 ## Korpice (curated weekly produce boxes)
 
-**The korpica data comes from a migration, not from `DbSeeder`.** The `Korpice` migration
-(20261007075847) added the columns and three tables — schema only, left empty by design. The
-`KorpicaPodaci` migration (20261008071037) that follows it inserts the actual data: the
-`KorpicaKategorije` category links, the 15 korpica `Product` rows (5 types × 3 sizes), and a
-backfill (`MozeUKorpicu = true` for existing ordinary products). Without it, on any database
-that was never seeded by `DbSeeder` (real production: it bails on any existing `Category` and
-only runs in Development or under `Seed:Demo=true`), `GET /korpice` returns `[]`, every tab
-shows "nije u ponudi", and "Generiši" can never produce anything — nothing errors, the feature
-is just silently empty. Same shape as `Magacin` (see that section above): data a real
-deployment needs lives in a migration, not the demo seeder. The migration is idempotent
-(guards every insert, safe to run on a database `DbSeeder` already populated) and resolves the
-korpica rows' placeholder category/producer to whichever one already exists first on that
-database, not a hardcoded id — but it still needs **at least one `Category` and one
-`Producer`** to exist before it runs; on a database with neither, the korpica product rows are
-skipped (the `KorpicaKategorije` links for categories that do exist still insert) until the
-owner adds their first product.
+**Korpice are rows in the database like everything else.** The historical `KorpicaPodaci` migration
+(20261008071037) inserted the first korpica rows and category links; it stays as applied history. New
+korpice, their categories and weekly content are entered through the admin panel. How many of a korpica
+can still be sold is never stored — the API computes it from the weekly content and the free stock of
+its articles (`Zalihe.cs`).
 
 Config section `Korpice` (`appsettings.json`, override via `Korpice__*` env vars):
 

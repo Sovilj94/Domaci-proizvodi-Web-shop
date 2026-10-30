@@ -61,12 +61,14 @@ commands. Without it the container restarts in a loop and every route silently f
 The `nominatim` service is **optional but recommended**: its first start imports the map and takes tens of
 minutes (`backend/nominatim/README.md`), and until you point `Nominatim:BaseUrl` at it the app geocodes
 against the public Nominatim instead. Neither is needed just to run the shop.
-The API **auto-applies migrations and seeds demo data on startup** in Development — no manual DB setup.
-The seeder is **idempotent** (it bails if any data exists), so to load changed seed data you must wipe first:
-`docker exec epiljara-postgres psql -U epiljara -d epiljara -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`
-then `dotnet dotnet-ef database update …` and restart the API (kill any running `EPiljara.API` first, or the
-rebuild fails with a locked-DLL error). Re-seeding gives products **new IDs** — clear the browser cart or it
-breaks with `product_unavailable`.
+**No data lives in code — not in the backend, not in the frontend.** The owner's rule (2026-10-30): every
+value the app shows or works with is read from or written to the database and linked to its rows. There is
+no `DbSeeder`, no seed images folder, no frontend mock, and no code that fills English names or links
+images on startup. On startup the API only applies migrations (Development, or `RUN_MIGRATIONS=true`) and
+ensures the admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD`. A fresh database is therefore **empty**; a new
+environment is filled by restoring a dump of an existing one (`DEPLOY.md` → „Podaci"), and everything after
+that is entered through the admin. Do not add seed data, sample objects, constants that pose as data, or
+"default" texts in code — put a table and an admin screen behind them instead.
 
 **EF Core migrations** (dotnet-ef is pinned in `.config/dotnet-tools.json`):
 ```bash
@@ -98,7 +100,8 @@ build (`/login`, `/register` i `/admin/dostava` su zato izvučene u internu komp
 `<Suspense fallback={<LoadingBlock />}>`) — a oba prethodna alata su prolazila čisto. Zeleni `tsc` +
 `lint` nisu dokaz da se frontend može isporučiti.
 
-Demo accounts: `admin@epiljara.ba` / `admin123` · `marko@example.com` / `marko123` · `vozac@epiljara.ba` / `vozac123`.
+Demo accounts (rows in the local/test database, from its dump — not created by code): `admin@epiljara.ba` /
+`admin123` · `marko@example.com` / `marko123` · `vozac@epiljara.ba` / `vozac123`.
 
 **SEO** (`frontend/src/lib/seo/`, details in `PRODUCTION.md` → SEO): a new public page gets its
 metadata from `stranica({ naslov, opis, putanja })` — never a bare `{ title }`, or it has no canonical
@@ -123,28 +126,14 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `frontend/src/types/domain.ts`. A type or a check written as `=== null` for such a field never fires.
 - **Single frontend API surface.** Screens never call `fetch` directly — they call
   `frontend/src/lib/api/endpoints.ts`, the one typed, resource-oriented module. `client.ts` derives
-  `API_BASE` as `NEXT_PUBLIC_API_URL || NEXT_PUBLIC_API_BASE_URL || "/api"` (the first is the deploy name
-  used on Vercel, see `DEPLOY.md`; the second is the older local name, still honoured): **unset/empty** → the app's own built-in mock (route
-  handlers under `frontend/src/app/api/**` backed by `frontend/src/server/mock/`, data in `store.ts`);
-  **set** (e.g. `http://localhost:5080`) → the real backend. `frontend/.env.local` is git-ignored and
-  **does not exist on a fresh clone**, so `npm run dev` talks to the mock until you create it with
-  `NEXT_PUBLIC_API_BASE_URL=http://localhost:5080`. If data looks "fake" or a backend change has no effect,
-  check this first. `:5080` **matches** what `dotnet run` serves — the older `:5081` mismatch this file
-  used to warn about is gone; do not "fix" it back. To demo purely against the mock (no backend/DB), run
-  `NEXT_PUBLIC_API_BASE_URL= npm run dev`.
-- **Two implementations of the same contract.** The real ASP.NET API and the Next.js mock both serve the
-  same paths/shapes. When you change an endpoint's contract, keep the mock in sync (or accept that the
-  mock is the deletable dev-only path). `frontend/src/types/domain.ts` mirrors the backend DTOs 1:1;
-  payloads that are not domain entities (`CreateOrderRequest`, `RegisterRequest`, …) live beside it in
-  `frontend/src/lib/api/contracts.ts` — put a new request/response shape there, not in `domain.ts`.
-  The mock is **already incomplete**: it has no `admin/categories`, `admin/producers`,
-  `admin/orders/geocode-missing`, `admin/orders/{id}/coordinates`, the dispatch routes
-  (`admin/orders/{id}/driver`, `admin/orders/assign-bulk`), none of the guest-checkout routes
-  (`orders/guest-request`, `orders/confirm`, `orders/track/{token}`), `account/*` or any `driver/*` route;
-  `admin/drivers` exists as **GET only**, so the Vozači screen reads but cannot write against it. Dostava,
-  Vozači, Kategorije, Proizvođači and the whole guest-checkout flow therefore only work against the real
-  backend. The gap widens with every feature — treat the mock as a catalog/login demo, not as a second
-  runtime you can develop a delivery feature on.
+  `API_BASE` as `NEXT_PUBLIC_API_URL || NEXT_PUBLIC_API_BASE_URL || "http://localhost:5080"` (the first is
+  the deploy name used on Vercel, see `DEPLOY.md`; the second is the older local name, still honoured).
+  **The real backend is the only implementation** — the Next.js mock (`app/api/**`, `server/mock/`) was
+  deleted with the no-data-in-code rule; never bring it back. The fallback is the `dotnet run` address, so a
+  missing variable fails visibly instead of showing fake data. `frontend/src/types/domain.ts` mirrors the
+  backend DTOs 1:1; payloads that are not domain entities (`CreateOrderRequest`, `RegisterRequest`, …) live
+  beside it in `frontend/src/lib/api/contracts.ts` — put a new request/response shape there, not in
+  `domain.ts`.
 - **Validation error keys are camelCased full property paths** (`Customer.Name` → `customer.name`; a
   nested `Input.Name` → `input.name`). Frontend forms read `err.fieldErrors["input.name"]` etc. to show
   inline errors — match this casing exactly.
@@ -222,13 +211,13 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   Before the deadline that is this week; after it, the next. Orders from before P2b were backfilled from
   `CreatedAt`, which is **approximate** for them and exact for everything since; none of them carries korpica
   content, so the approximation hangs nothing.
-- **Three places construct an `Order`, and anything that must hold for every order has to be added to all
-  of them.** `CreateOrder.cs` (a logged-in or guest checkout through the normal flow),
-  `GuestOrderRequests.cs` (a guest request confirmed later, from its own 15-minute token) and
-  `DbSeeder.cs` (demo data). P2b was written against the first alone, which left guests' korpice with no
-  week and no content snapshot — invisible to every packing list, which is the exact bug P2b exists to fix.
-  The shared part now lives in `Features/Korpice/SnapshotKorpice.cs` and both real sites call it; the
-  seeder never orders a korpica, so it stays out. **Before adding an order-level invariant, run
+- **Two places construct an `Order`, and anything that must hold for every order has to be added to both.**
+  `CreateOrder.cs` (a logged-in or guest checkout through the normal flow, and subscriptions) and
+  `GuestOrderRequests.cs` (a guest request confirmed later, from its own 15-minute token). P2b was written
+  against the first alone, which left guests' korpice with no week and no content snapshot — invisible to
+  every packing list, which is the exact bug P2b exists to fix. The shared parts live in
+  `Features/Korpice/SnapshotKorpice.cs` and `Zalihe.cs`, and both sites call them. **Before adding an
+  order-level invariant, run
   `grep -rn "new Order {" backend/src --include=*.cs` and decide about each hit explicitly.**
 - **A korpica has no stock of its own — `Zalihe.cs` is the only place that knows what is left.** Its
   `Product.Stock` is ignored and no longer decremented. "How many can still be sold" is computed per sale
@@ -321,9 +310,8 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 - **Day names live in `lib/sedmica.ts`** — accusative after "u", genitive after "do", indexed by
   `Date.getDay()`. `rokTekst` prints minutes when the deadline is not on the hour; "u 16h" for a 16:30
   deadline was a lie the old banner told.
-- **Testimonials (`Utisak`) are entered by an admin at `/admin/utisci`, and none are seeded — not even in
-  the demo seed.** A made-up testimonial shown as real on a `Seed:Demo=true` deploy is worse than no
-  section; `Utisci` renders nothing (not even the section frame) until one is published. `GET /utisci`
+- **Testimonials (`Utisak`) are entered by an admin at `/admin/utisci`, never by code.** A made-up
+  testimonial shown as real is worse than no section; `Utisci` renders nothing (not even the section frame) until one is published. `GET /utisci`
   returns only `Objavljen`, ordered by `Redoslijed` then `Kreiran` (`PoRedu`, shared with the admin list).
 - **`ProducerDto.Artikli`** is filled only by `GetProducersHandler` (one query, available ordinary products,
   four per producer by name); every other `ToDto()` caller gets `[]`.
@@ -333,13 +321,12 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
 
 ## Sadržaj (P5)
 
-- **Lab analyses (`Analiza`) are never seeded, not even in the demo seed.** A made-up lab result is a lie
+- **Lab analyses (`Analiza`) are entered only by an admin.** A made-up lab result is a lie
   about food. A non-compliant result (`NijeUskladjeno`) is still published when `Objavljena`; whether to
   publish is the admin's call, never a filter in the query. A producer with analyses cannot be deleted
   (`producer_in_use`, 409; FK is `Restrict`).
-- **Recipes (`Recept` + `ReceptSastojak`) are seeded only in the demo seed** (`DbSeeder.SeedReceptiAsync`,
-  its own idempotent guard so it also runs on an already-seeded DB). A recipe's `Slug` is made once from the
-  title and **never changes** on edit, so old links keep working.
+- **Recipes (`Recept` + `ReceptSastojak`) are entered through the admin.** A recipe's `Slug` is made once
+  from the title and **never changes** on edit, so old links keep working.
 - **An ingredient offers a product only if it is an ordinary, non-deleted `Product`**
   (`ReceptPravila.SmijeUPrikaz`) — a korpica in a recipe would bypass `/korpice` and its deadline. "Dodaj
   sastojke u korpu" adds only available linked products, one unit each.
@@ -519,7 +506,7 @@ client as the envelope's error code, so one thrown with only a message reaches c
   entity.** That is why it travels the existing cart, checkout, `OrderItem`, zones, slots and routing
   untouched. A korpica must never be an item inside another korpica —
   `Product.ProvjeriInvarijantuKorpice()` encodes the rule (korpica needs `TipKorpice` + `Velicina` and
-  `MozeUKorpicu == false`; the seeder calls it, nothing else does yet) and `IzmijeniNacrtHandler` enforces
+  `MozeUKorpicu == false`; nothing calls it yet) and `IzmijeniNacrtHandler` enforces
   it at write time, rejecting a korpica among a draft's own items with `DomainException("korpica_u_korpici")`.
 - **`SedmicniSadrzaj.Status` is a state machine** (`Nacrt → Objavljen → Zakljucan`), like `Order.Status`.
   It only moves forward, only through `Predji(...)` (`SedmicniSadrzaj.Prelazi`) — never assign `Status`
@@ -574,15 +561,9 @@ client as the envelope's error code, so one thrown with only a message reaches c
   in-place mutation of the array and silently skips the `UPDATE`. Because the column is text, season
   filtering for korpica generation happens **in memory** after loading the pool
   (`GenerisiSedmicniSadrzajHandler`) — do not try to push `Mjeseci.Contains(...)` into the SQL `WHERE`.
-- **Korpica DATA lives in a migration, not in `DbSeeder`**, same shape as `Magacin` above: the
-  `KorpicaPodaci` migration (not `DbSeeder`) inserts the `KorpicaKategorije` category links, the 15
-  korpica `Product` rows, and a `MozeUKorpicu = true` backfill for existing ordinary products — the
-  `Korpice` migration before it only added columns/tables, schema with no data. `DbSeeder` bails on any
-  existing `Category` and only runs in Development or under `Seed:Demo=true`, so real production would
-  otherwise come up with the schema but zero korpica rows: `GET /korpice` returns `[]` and "Generiši"
-  can never produce anything, silently. The migration is idempotent (guards every insert so it is safe
-  to run on a database `DbSeeder` already populated) and resolves the korpica rows' placeholder
-  category/producer dynamically (first one that exists), not to a hardcoded id.
+- **Some historical migrations insert rows** (`MagacinUBazi`, `KorpicaPodaci`, `SezonaPovrcaKalendar`).
+  They are already applied everywhere and stay as history — never edit an applied migration. A new
+  migration must not insert business data: data is entered through the admin or comes with a database dump.
 - **`Product` soft-delete (`!IsDeleted` global query filter) silently drops rows out of a required
   `Include`, not just the navigation.** `StavkaSadrzaja.ProductId` is non-nullable, so EF treats
   `StavkaSadrzaja → Product` as a required relationship and compiles `Include(Stavke).ThenInclude(Product)`
@@ -750,10 +731,8 @@ under a `User-Agent` naming us — and its usage policy limits it to development
 - **`Magacin` lives in the database, not in configuration** — a one-row `Magacin` table (entity
   `Domain/Entities/Magacin.cs`), so the location changes without a rebuild: admins edit it at
   `/admin/settings` through `GET`/`PUT /admin/warehouse`. `CK_Magacin_JedanRed` allows only
-  `Magacin.JediniId`, so "one piljara, one warehouse" is enforced by the DB. The row is inserted by the
-  **`MagacinUBazi` migration, not `DbSeeder`** — the seeder bails on any existing category and only runs in
-  Development or under `Seed:Demo=true`, so real production would otherwise come up with no warehouse.
-  `Program.cs` re-checks `GeoBounds` after migrating and **refuses to start** on a missing row or a point
+  `Magacin.JediniId`, so "one piljara, one warehouse" is enforced by the DB. The row was inserted by the
+  (historical) `MagacinUBazi` migration. `Program.cs` re-checks `GeoBounds` after migrating and **refuses to start** on a missing row or a point
   outside Bosnia and Herzegovina (the old `ValidateOnStart` guard, moved); it still cannot catch a *wrong*
   point inside the country. An unreachable database is still only logged, as before.
 
@@ -876,9 +855,9 @@ using OSM tiles.
   `GET /slike/{**kljuc}` (`SlikeController`, cached 7 days + ETag). `ImageUrl`/`PhotoUrl`/`SlikaUrl`
   hold `/slike/<kljuc>`; the frontend requests it on its own origin and `next.config.ts` rewrites
   `/slike/*` to the API. Admin forms upload through `SlikaPolje` → `POST /admin/slike`, which always
-  creates a NEW key (so caches never serve a stale photo). Starter photos sit in
-  `backend/src/EPiljara.Infrastructure/Persistence/SeedSlike/` and `SlikeUvoz` inserts only missing keys
-  on every start (credits: `docs/slike-izvori.md`). Do not put catalog photos back into `frontend/public`.
+  creates a NEW key (so caches never serve a stale photo). Photos exist **only** in the database — the old
+  `SeedSlike/` folder and its startup import were removed (credits: `docs/slike-izvori.md`). Do not put
+  catalog photos back into the repo or `frontend/public`.
   `SmartImage` falls back to a leaf placeholder on a failed load; `images.unoptimized` is on. Any
   *remote* image host must be whitelisted in `next.config.ts` `images.remotePatterns`.
 
