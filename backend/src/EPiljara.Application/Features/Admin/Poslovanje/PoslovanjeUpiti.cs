@@ -39,6 +39,11 @@ public class GetPoslovanjeHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
             Mjesec = mjesec,
             Prihod = racun.Prihod(isporucene),
             Prethodni = racun.Prihod(prosleIsporucene),
+            Kupci = racun.Kupci(
+                isporucene, prosleIsporucene,
+                await PoslovanjePodaci.PrviMjeseciAsync(db, dan, ct),
+                PoslovanjeKalendar.Indeks(godina, mjesec),
+                await PoslovanjePodaci.PreporuceniAsync(db, ct)),
         };
     }
 }

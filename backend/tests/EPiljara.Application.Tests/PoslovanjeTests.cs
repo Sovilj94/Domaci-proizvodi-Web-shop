@@ -221,6 +221,62 @@ public class PoslovanjePrihodTests
     }
 }
 
+public class PoslovanjeKupciTests
+{
+    [Fact]
+    public async Task Novi_povratni_i_zadrzavanje()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        var marko = await p.KupacAsync("Marko");
+        var jovan = await p.KupacAsync("Jovan");
+        await p.NarudzbaAsync(38, OrderStatus.Delivered, krompirKg: 1, kupacId: marko.Id);   // septembar
+        await p.NarudzbaAsync(39, OrderStatus.Delivered, krompirKg: 1, kupacId: jovan.Id);   // septembar
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 2, kupacId: marko.Id);
+        await p.NarudzbaAsync(42, OrderStatus.Delivered, krompirKg: 3, kupacId: marko.Id);
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, jaja: 10, kupac: "Ana", email: " Ana@Mail.com ");
+
+        var k = (await p.MjesecAsync(10)).Kupci;
+
+        Assert.Equal(2, k.Aktivni);               // Marko, Ana
+        Assert.Equal(2, k.AktivniPrethodni);      // Marko, Jovan
+        Assert.Equal(1, k.Novi);                  // Ana
+        Assert.Equal(1, k.Povratni);              // Marko
+        Assert.Equal(0.5m, k.Zadrzavanje);        // od Marka i Jovana vratio se Marko
+        Assert.Equal(1, k.Gosti);
+        Assert.Equal(1, k.Registrovani);
+        Assert.Equal(1.5m, k.NarudzbiPoKupcu);    // 3 narudžbe / 2 kupca
+        Assert.Equal(7.5m, k.PotrosnjaPoKupcu);   // (4 + 6 + 5) / 2
+        Assert.Equal("Marko Marković", k.TopKupci[0].Ime);
+        Assert.Equal(2, k.TopKupci[0].Narudzbi);
+    }
+
+    [Fact]
+    public async Task Isti_gost_po_emailu_se_ne_broji_dvaput_a_gosti_bez_kontakta_se_ne_spajaju()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, jaja: 2, kupac: "Ana", email: "ana@mail.com");
+        await p.NarudzbaAsync(42, OrderStatus.Delivered, jaja: 2, kupac: "Ana", email: "ANA@mail.com ");
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, jaja: 2, kupac: "Gost 1");
+        await p.NarudzbaAsync(42, OrderStatus.Delivered, jaja: 2, kupac: "Gost 2");
+
+        var k = (await p.MjesecAsync(10)).Kupci;
+
+        Assert.Equal(3, k.Aktivni);
+        Assert.Equal(3, k.Gosti);
+    }
+
+    [Fact]
+    public async Task Novi_preko_preporuke()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        var marko = await p.KupacAsync("Marko");
+        var jovan = await p.KupacAsync("Jovan", preporucio: marko.Id);
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 1, kupacId: jovan.Id);
+
+        Assert.Equal(1, (await p.MjesecAsync(10)).Kupci.NoviPrekoPreporuke);
+    }
+}
+
 public class PoslovanjeKalendarTests
 {
     [Fact]

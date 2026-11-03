@@ -1,5 +1,6 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Domain.Entities;
+using EPiljara.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace EPiljara.Application.Features.Admin.Poslovanje;
@@ -23,6 +24,25 @@ public static class PoslovanjePodaci
             .ToListAsync(ct);
         return narudzbe.Where(o => skup.Contains((o.Godina, o.Sedmica))).ToList();
     }
+
+    /// <summary>Za svakog kupca: indeks mjeseca (PoslovanjeKalendar.Indeks) njegove prve isporučene narudžbe.</summary>
+    public static async Task<Dictionary<string, int>> PrviMjeseciAsync(IAppDbContext db, DayOfWeek dan, CancellationToken ct)
+    {
+        var redovi = await db.Orders.AsNoTracking()
+            .Where(o => o.Status == OrderStatus.Delivered)
+            .Select(o => new { o.Id, o.CustomerId, o.CustomerEmail, o.CustomerPhone, o.Godina, o.Sedmica })
+            .ToListAsync(ct);
+        return redovi
+            .GroupBy(r => PoslovanjeRacun.KljucKupca(r.CustomerId, r.CustomerEmail, r.CustomerPhone, r.Id))
+            .ToDictionary(g => g.Key, g => g.Min(r =>
+            {
+                var (gd, m) = PoslovanjeKalendar.MjesecIsporuke(r.Godina, r.Sedmica, dan);
+                return PoslovanjeKalendar.Indeks(gd, m);
+            }));
+    }
+
+    public static async Task<HashSet<Guid>> PreporuceniAsync(IAppDbContext db, CancellationToken ct) =>
+        (await db.Users.AsNoTracking().Where(u => u.PreporucioId != null).Select(u => u.Id).ToListAsync(ct)).ToHashSet();
 
     /// <summary>Cijeli katalog, i obrisani artikli — stare narudžbe ih i dalje nose.</summary>
     public static Task<Dictionary<Guid, Product>> KatalogAsync(IAppDbContext db, CancellationToken ct) =>

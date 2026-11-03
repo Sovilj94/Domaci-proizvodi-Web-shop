@@ -59,6 +59,53 @@ public sealed class PoslovanjeRacun(IReadOnlyDictionary<Guid, Product> katalog)
     internal static decimal? Udio(decimal dio, decimal cijelo, int decimala = 4) =>
         cijelo == 0 ? null : Math.Round(dio / cijelo, decimala);
 
+    /// <summary>Registrovan kupac po nalogu; gost po emailu, pa telefonu, pa (bez kontakta) po narudžbi.</summary>
+    public static string KljucKupca(Guid? customerId, string? email, string? telefon, Guid orderId)
+    {
+        if (customerId is Guid id) return id.ToString();
+        var e = email?.Trim().ToLowerInvariant();
+        if (!string.IsNullOrEmpty(e)) return "g:" + e;
+        var t = new string((telefon ?? string.Empty).Where(char.IsDigit).ToArray());
+        return t.Length > 0 ? "g:" + t : "g:" + orderId;
+    }
+
+    private static string Kljuc(Order o) => KljucKupca(o.CustomerId, o.CustomerEmail, o.CustomerPhone, o.Id);
+
+    public KupciDto Kupci(
+        IReadOnlyCollection<Order> isporucene, IReadOnlyCollection<Order> prosleIsporucene,
+        IReadOnlyDictionary<string, int> prviMjesec, int indeksMjeseca, IReadOnlySet<Guid> preporuceni)
+    {
+        var poKupcu = isporucene.GroupBy(Kljuc).ToList();
+        var aktivni = poKupcu.Select(g => g.Key).ToHashSet();
+        var prosli = prosleIsporucene.Select(Kljuc).ToHashSet();
+        var novi = aktivni.Where(k => prviMjesec.TryGetValue(k, out var m) && m == indeksMjeseca).ToHashSet();
+        var neto = isporucene.Sum(Neto);
+        return new KupciDto
+        {
+            Aktivni = aktivni.Count,
+            AktivniPrethodni = prosli.Count,
+            Novi = novi.Count,
+            Povratni = aktivni.Count - novi.Count,
+            Zadrzavanje = Udio(prosli.Count(aktivni.Contains), prosli.Count),
+            PotrosnjaPoKupcu = aktivni.Count == 0 ? 0m : Math.Round(neto / aktivni.Count, 2),
+            NarudzbiPoKupcu = aktivni.Count == 0 ? 0m : Math.Round((decimal)isporucene.Count / aktivni.Count, 2),
+            Gosti = aktivni.Count(k => k.StartsWith("g:")),
+            Registrovani = aktivni.Count(k => !k.StartsWith("g:")),
+            NoviPrekoPreporuke = novi.Count(k => Guid.TryParse(k, out var id) && preporuceni.Contains(id)),
+            TopKupci = poKupcu
+                .Select(g => new KupacAnalitikeDto
+                {
+                    Ime = g.OrderByDescending(o => o.CreatedAt).First().CustomerName,
+                    Gost = g.Key.StartsWith("g:"),
+                    Narudzbi = g.Count(),
+                    Neto = g.Sum(Neto),
+                })
+                .OrderByDescending(k => k.Neto).ThenBy(k => k.Ime)
+                .Take(10)
+                .ToList(),
+        };
+    }
+
     public PrihodDto Prihod(IReadOnlyCollection<Order> isporucene)
     {
         var linije = isporucene.SelectMany(Linije).ToList();
