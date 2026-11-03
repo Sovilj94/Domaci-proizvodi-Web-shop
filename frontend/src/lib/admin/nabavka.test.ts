@@ -58,3 +58,11 @@ test("grupe po vrsti robe: redom servera, Špajz na kraju, artikli po nazivu", (
     ],
   );
 });
+
+test("bez grupe sa servera (stariji API) sve ide u jednu grupu „Ostalo\"", () => {
+  const grupe = grupeNabavke(spisakRobe([s("Luk", "A", 1), s("Jaja", "B", 2, null, "kom")]));
+  assert.deepEqual(
+    grupe.map((g) => [g.naziv, g.redovi.length]),
+    [["Ostalo", 2]],
+  );
+});

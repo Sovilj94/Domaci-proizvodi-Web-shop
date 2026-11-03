@@ -38,9 +38,10 @@ export function spisakRobe(stavke: StavkaPakerske[]): RedNabavke[] {
       kolicina: 0,
       artikalObrisan: false,
       trosak: null,
-      kategorija: s.kategorija,
-      grupa: s.grupa,
-      redGrupe: s.redGrupe,
+      kategorija: s.kategorija ?? "",
+      // Stariji API ne šalje grupu — tada sve ide u „Ostalo", da ključevi i naslovi ne budu prazni.
+      grupa: s.grupa || "Ostalo",
+      redGrupe: s.redGrupe ?? Number.MAX_SAFE_INTEGER,
     };
     r.kolicina = zaokruzi(r.kolicina + s.kolicina);
     r.artikalObrisan ||= s.artikalObrisan;
