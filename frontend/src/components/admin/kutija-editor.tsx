@@ -6,9 +6,12 @@ import { ArrowLeftRight, Minus, Plus, Search, X } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import {
   type KutijaRed,
+  granicaKutije,
   kolicinaZaDodavanje,
   korak,
+  najvecaKolicina,
   naKorak,
+  slobodnoZaDodavanje,
   zamijeni,
   zbir,
 } from "@/lib/admin/kutija";
@@ -22,8 +25,10 @@ const TON = { nema: "text-muted", losa: "text-red-700", tijesna: "text-honey-700
 /**
  * Kutija koju admin uređuje — isti alat za sedmični sadržaj korpice i za korpicu jednog
  * kupca. Količina se mijenja na + / − (ili upisom), artikal se mijenja drugim iste
- * vrijednosti (⇄), a dodaje se klikom na pločicu sezonske ponude — u količini koja popuni
- * ono što fali do cilja. Gore stalno stoji vrijednost naspram cilja i marža.
+ * vrijednosti (⇄), a dodaje se klikom na pločicu sezonske ponude. Kutija ne smije preći cilj
+ * (ili vrijednost sa kojom je otvorena, ako je već bila preko): dodaje se samo ono što se
+ * oslobodi vađenjem ili smanjivanjem drugog — server isto provjerava (GranicaKutije.cs).
+ * Gore stalno stoji vrijednost naspram cilja, koliko je slobodno i marža.
  */
 export function KutijaEditor({
   redovi,
@@ -56,20 +61,32 @@ export function KutijaEditor({
     .filter((p) => !uKutiji.has(p.id))
     .sort((a, b) => Number(kategorijeKutije.has(b.categoryId)) - Number(kategorijeKutije.has(a.categoryId)));
   const pct = cilj > 0 ? Math.round((z.vrijednost / cilj) * 100) : 0;
-  const tonVrijednosti = cilj <= 0 ? "text-ink" : pct < 95 ? "text-honey-700" : pct > 105 ? "text-red-700" : "text-brand-700";
+  const tonVrijednosti = cilj <= 0 ? "text-ink" : pct < 95 ? "text-honey-700" : pct > 100 ? "text-red-700" : "text-brand-700";
+
+  // Roditelj crta editor tek kad su redovi učitani, pa je ovo vrijednost sa kojom je kutija otvorena.
+  const [pocetna] = useState(() => zbir(redovi, cijenaKorpice).vrijednost);
+  const granica = granicaKutije(cilj, pocetna);
+  const slobodnoKM = slobodnoZaDodavanje(granica, z.vrijednost);
+  const zaDodavanje = (p: Product) => kolicinaZaDodavanje(slobodnoKM, p.price, p.unit);
 
   function promijeni(productId: string, kolicina: number) {
-    onChange(redovi.map((r) => (r.productId === productId ? { ...r, kolicina: Math.max(0, kolicina) } : r)));
+    onChange(
+      redovi.map((r) =>
+        r.productId === productId ? { ...r, kolicina: Math.max(0, Math.min(kolicina, najvecaKolicina(r, slobodnoKM))) } : r,
+      ),
+    );
   }
 
   function dodaj(p: Product) {
+    const kolicina = zaDodavanje(p);
+    if (kolicina <= 0) return;
     onChange([
       ...redovi,
       {
         productId: p.id,
         naziv: p.name,
         jedinica: p.unit,
-        kolicina: kolicinaZaDodavanje(cilj, z.vrijednost, p.price, p.unit),
+        kolicina,
         cijena: p.price,
         nabavna: p.nabavnaCijena ?? null,
         imageUrl: p.imageUrl,
@@ -97,6 +114,13 @@ export function KutijaEditor({
               style={{ width: `${Math.min(100, pct)}%` }}
             />
           </div>
+        )}
+        {granica !== null && !samoPregled && (
+          <p className={cn("mt-1.5 text-xs", slobodnoKM > 0 ? "text-muted" : "font-medium text-honey-700")}>
+            {slobodnoKM > 0
+              ? `Za dodavanje je slobodno ${formatPrice(slobodnoKM)} — za više prvo izvadi ili smanji neki artikal.`
+              : "Korpica je puna — da dodaš nešto, prvo izvadi ili smanji neki artikal."}
+          </p>
         )}
         <div className="mt-2 flex items-baseline justify-between gap-3 text-sm">
           <span className="text-muted">Marža (cijena {formatPrice(cijenaKorpice)})</span>
@@ -138,7 +162,7 @@ export function KutijaEditor({
                   </span>
                 ) : (
                   <>
-                    <Stepper red={r} onPromijeni={(k) => promijeni(r.productId, k)} />
+                    <Stepper red={r} najvise={najvecaKolicina(r, slobodnoKM)} onPromijeni={(k) => promijeni(r.productId, k)} />
                     <button
                       type="button"
                       onClick={() => setZamjenaZa(otvoren ? null : r.productId)}
@@ -165,11 +189,14 @@ export function KutijaEditor({
                   <Plocice
                     ponuda={slobodno}
                     opis={(p) => {
-                      const n = zamijeni(r, p);
-                      return `${n.kolicina.toLocaleString("sr-Latn-BA")} ${n.jedinica}`;
+                      const n = zamijeni(r, p, slobodnoKM);
+                      return n ? `${n.kolicina.toLocaleString("sr-Latn-BA")} ${n.jedinica}` : "ne stane";
                     }}
+                    onemoguceno={(p) => zamijeni(r, p, slobodnoKM) === null}
                     onIzaberi={(p) => {
-                      onChange(redovi.map((x) => (x.productId === r.productId ? zamijeni(r, p) : x)));
+                      const n = zamijeni(r, p, slobodnoKM);
+                      if (!n) return;
+                      onChange(redovi.map((x) => (x.productId === r.productId ? n : x)));
                       setZamjenaZa(null);
                     }}
                   />
@@ -182,11 +209,20 @@ export function KutijaEditor({
 
       {!samoPregled && (
         <div>
-          <p className="mb-1.5 text-sm font-semibold">Dodaj iz sezonske ponude</p>
+          <p className="mb-1.5 text-sm font-semibold">
+            Dodaj iz sezonske ponude
+            {granica !== null && (
+              <span className="ml-1.5 font-normal text-muted">· do {formatPrice(slobodnoKM)}</span>
+            )}
+          </p>
           <Plocice
             ponuda={slobodno}
             pretraga
-            opis={(p) => `+${kolicinaZaDodavanje(cilj, z.vrijednost, p.price, p.unit).toLocaleString("sr-Latn-BA")} ${p.unit}`}
+            opis={(p) => {
+              const k = zaDodavanje(p);
+              return k > 0 ? `+${k.toLocaleString("sr-Latn-BA")} ${p.unit}` : "prvo izvadi nešto";
+            }}
+            onemoguceno={(p) => zaDodavanje(p) <= 0}
             onIzaberi={dodaj}
           />
         </div>
@@ -195,8 +231,9 @@ export function KutijaEditor({
   );
 }
 
-function Stepper({ red, onPromijeni }: { red: KutijaRed; onPromijeni: (k: number) => void }) {
+function Stepper({ red, najvise, onPromijeni }: { red: KutijaRed; najvise: number; onPromijeni: (k: number) => void }) {
   const k = korak(red.jedinica);
+  const puno = red.kolicina + k > najvise + 1e-9;
   return (
     <div className="flex shrink-0 items-center rounded-full bg-sand">
       <button
@@ -225,8 +262,10 @@ function Stepper({ red, onPromijeni }: { red: KutijaRed; onPromijeni: (k: number
       <button
         type="button"
         aria-label={`Više ${red.naziv}`}
+        title={puno ? "Korpica je puna — prvo izvadi ili smanji neki drugi artikal" : undefined}
+        disabled={puno}
         onClick={() => onPromijeni(naKorak(red.kolicina + k, red.jedinica))}
-        className="grid h-8 w-8 place-items-center rounded-full transition hover:bg-white"
+        className="grid h-8 w-8 place-items-center rounded-full transition hover:bg-white disabled:opacity-30"
       >
         <Plus className="h-3.5 w-3.5" />
       </button>
@@ -239,12 +278,15 @@ export function Plocice({
   ponuda,
   opis,
   onIzaberi,
+  onemoguceno,
   pretraga = false,
   najvise = 18,
 }: {
   ponuda: Product[];
   opis?: (p: Product) => string;
   onIzaberi: (p: Product) => void;
+  /** Pločica se vidi, ali se ne može izabrati (npr. ne stane u korpicu). */
+  onemoguceno?: (p: Product) => boolean;
   pretraga?: boolean;
   najvise?: number;
 }) {
@@ -279,7 +321,8 @@ export function Plocice({
               key={p.id}
               type="button"
               onClick={() => onIzaberi(p)}
-              className="flex items-center gap-2 rounded-lg border border-line bg-white p-1.5 text-left transition hover:border-brand-500 hover:shadow-sm"
+              disabled={onemoguceno?.(p)}
+              className="flex items-center gap-2 rounded-lg border border-line bg-white p-1.5 text-left transition hover:border-brand-500 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-line disabled:hover:shadow-none"
             >
               <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md" style={{ backgroundColor: p.boja ?? "var(--color-sand)" }}>
                 <SmartImage src={p.imageUrl} alt={p.name} sizes="32px" />
