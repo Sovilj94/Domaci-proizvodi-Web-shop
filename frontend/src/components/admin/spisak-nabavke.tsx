@@ -4,45 +4,61 @@ import { useState } from "react";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import type { RedNabavke } from "@/lib/admin/nabavka";
+import { grupeNabavke, type RedNabavke } from "@/lib/admin/nabavka";
 import type { PakerskaLista } from "@/lib/api/contracts";
 import { formatPrice } from "@/lib/utils";
 
 const broj = (x: number) => Number(x.toFixed(2)).toLocaleString("sr-Latn");
+const artikalaRijec = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? "artikal" : "artikala");
 
-/** Tabela robe za nabavku — jedan red po artiklu, bez gazdinstava. */
+/**
+ * Tabela robe za nabavku po vrsti robe (Povrće, Voće, … Špajz) — jedan red po artiklu, bez
+ * gazdinstava. U Špajzu stoji i kategorija, jer je to grupa različite robe.
+ */
 export function SpisakNabavke({ redovi }: { redovi: RedNabavke[] }) {
   return (
-    <div className="overflow-x-auto rounded-card bg-white shadow-card print:shadow-none">
-      <table className="w-full min-w-[32rem] text-sm">
-        <thead className="text-left text-xs text-muted">
-          <tr className="border-b border-line">
-            <th className="p-3 font-medium">Artikal</th>
-            <th className="p-3 text-right font-medium">Nabaviti</th>
-            <th className="p-3 text-right font-medium print:hidden">Nabavno</th>
-          </tr>
-        </thead>
-        <tbody className="tabular-nums">
-          {redovi.map((r) => (
-            <tr key={`${r.artikal}|${r.jedinica}`} className="break-inside-avoid border-b border-line last:border-0">
-              <td className="p-3">
-                <p className="font-medium text-ink">
-                  {r.artikal}
-                  {r.artikalObrisan && (
-                    <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                      Obrisan artikal — provjeriti
-                    </span>
-                  )}
-                </p>
-              </td>
-              <td className="p-3 text-right font-display text-lg font-bold text-ink">
-                {broj(r.kolicina)} <span className="text-sm font-semibold text-muted">{r.jedinica}</span>
-              </td>
-              <td className="p-3 text-right text-muted print:hidden">{r.trosak ? formatPrice(r.trosak) : "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      {grupeNabavke(redovi).map((g) => (
+        <section key={g.naziv} className="overflow-x-auto rounded-card bg-white shadow-card print:shadow-none">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line bg-brand-50 px-3 py-2">
+            <h2 className="font-display text-lg font-bold text-ink">{g.naziv}</h2>
+            <p className="text-sm text-muted">
+              {g.redovi.length} {artikalaRijec(g.redovi.length)}
+              <span className="print:hidden">{g.trosak ? ` · ${formatPrice(g.trosak)}` : ""}</span>
+            </p>
+          </div>
+          <table className="w-full min-w-[32rem] text-sm">
+            <thead className="text-left text-xs text-muted">
+              <tr className="border-b border-line">
+                <th className="p-3 font-medium">Artikal</th>
+                <th className="p-3 text-right font-medium">Nabaviti</th>
+                <th className="p-3 text-right font-medium print:hidden">Nabavno</th>
+              </tr>
+            </thead>
+            <tbody className="tabular-nums">
+              {g.redovi.map((r) => (
+                <tr key={`${r.artikal}|${r.jedinica}`} className="break-inside-avoid border-b border-line last:border-0">
+                  <td className="p-3">
+                    <p className="font-medium text-ink">
+                      {r.artikal}
+                      {r.artikalObrisan && (
+                        <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                          Obrisan artikal — provjeriti
+                        </span>
+                      )}
+                    </p>
+                    {r.kategorija && r.kategorija !== g.naziv && <p className="text-xs text-muted">{r.kategorija}</p>}
+                  </td>
+                  <td className="p-3 text-right font-display text-lg font-bold text-ink">
+                    {broj(r.kolicina)} <span className="text-sm font-semibold text-muted">{r.jedinica}</span>
+                  </td>
+                  <td className="p-3 text-right text-muted print:hidden">{r.trosak ? formatPrice(r.trosak) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ))}
     </div>
   );
 }

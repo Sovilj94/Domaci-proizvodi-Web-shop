@@ -1,6 +1,6 @@
 import type { Alignment, TableCell, TDocumentDefinitions } from "pdfmake/interfaces";
 import type { PakerskaLista } from "@/lib/api/contracts";
-import type { RedNabavke } from "./nabavka";
+import { grupeNabavke, type RedNabavke } from "./nabavka";
 
 const broj = (x: number) => Number(x.toFixed(2)).toLocaleString("sr-Latn");
 const datum = (iso: string, opcije: Intl.DateTimeFormatOptions) =>
@@ -27,37 +27,48 @@ export function dokumentNabavke(d: PakerskaLista, redovi: RedNabavke[]): TDocume
         text: `Isporuka: ${datum(d.isporuka, { weekday: "long", day: "numeric", month: "numeric", year: "numeric" })}`,
         color: "#555555",
       },
-      { text: napomena, fontSize: 9, color: d.zakljucena ? "#555555" : "#a15c00", margin: [0, 2, 0, 14] },
-      {
-        table: {
-          headerRows: 1,
-          widths: [22, "*", 70, 34, 60],
-          body: [
-            [
-              zaglavlje("#"),
-              zaglavlje("Artikal"),
-              zaglavlje("Količina", "right"),
-              zaglavlje(""),
-              zaglavlje("Preuzeto", "center"),
+      { text: napomena, fontSize: 9, color: d.zakljucena ? "#555555" : "#a15c00", margin: [0, 2, 0, 6] },
+      // Svaka vrsta robe (Povrće, Voće, … Špajz) je svoja tabela sa naslovom.
+      ...grupeNabavke(redovi).flatMap((g) => [
+        {
+          text: `${g.naziv} (${g.redovi.length})`,
+          fontSize: 13,
+          bold: true,
+          color: "#4b7a3a",
+          margin: [0, 10, 0, 4] as [number, number, number, number],
+          headlineLevel: 1,
+        },
+        {
+          table: {
+            headerRows: 1,
+            dontBreakRows: true,
+            widths: [22, "*", 70, 34, 60],
+            body: [
+              [zaglavlje("#"), zaglavlje("Artikal"), zaglavlje("Količina", "right"), zaglavlje(""), zaglavlje("Preuzeto", "center")],
+              ...g.redovi.map((r, i) => [
+                { text: `${i + 1}.`, color: "#888888" },
+                {
+                  text: [
+                    r.artikalObrisan ? `${r.artikal} (provjeriti)` : r.artikal,
+                    ...(r.kategorija && r.kategorija !== g.naziv ? [{ text: `  ${r.kategorija}`, fontSize: 8, color: "#888888" }] : []),
+                  ],
+                },
+                { text: broj(r.kolicina), alignment: "right" as const, bold: true },
+                { text: r.jedinica, color: "#555555" },
+                // Kućica za štikliranje — nacrtana, jer Roboto nema znak ☐.
+                { canvas: [{ type: "rect" as const, x: 23, y: 1, w: 11, h: 11, lineWidth: 0.8, lineColor: "#777777" }] },
+              ]),
             ],
-            ...redovi.map((r, i) => [
-              { text: `${i + 1}.`, color: "#888888" },
-              { text: r.artikalObrisan ? `${r.artikal} (provjeriti)` : r.artikal },
-              { text: broj(r.kolicina), alignment: "right" as const, bold: true },
-              { text: r.jedinica, color: "#555555" },
-              // Kućica za štikliranje — nacrtana, jer Roboto nema znak ☐.
-              { canvas: [{ type: "rect" as const, x: 23, y: 1, w: 11, h: 11, lineWidth: 0.8, lineColor: "#777777" }] },
-            ]),
-          ],
+          },
+          layout: {
+            hLineWidth: (i: number) => (i === 0 ? 0 : i === 1 ? 1 : 0.5),
+            vLineWidth: () => 0,
+            hLineColor: (i: number) => (i === 1 ? "#333333" : "#dddddd"),
+            paddingTop: () => 5,
+            paddingBottom: () => 5,
+          },
         },
-        layout: {
-          hLineWidth: (i: number) => (i === 0 ? 0 : i === 1 ? 1 : 0.5),
-          vLineWidth: () => 0,
-          hLineColor: (i: number) => (i === 1 ? "#333333" : "#dddddd"),
-          paddingTop: () => 5,
-          paddingBottom: () => 5,
-        },
-      },
+      ]),
       { text: `Ukupno artikala: ${redovi.length}`, fontSize: 9, color: "#555555", margin: [0, 10, 0, 0] },
     ],
     footer: (strana: number, ukupno: number) => ({

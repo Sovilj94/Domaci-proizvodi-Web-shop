@@ -85,6 +85,33 @@ public class PotvrdjivanjeTests
         Assert.Equal(1m, krompir.Fali);
         Assert.DoesNotContain(lista.Stavke, s => s.Artikal == "Mala korpica povrća");
     }
+
+    /// <summary>
+    /// Grupa za nabavku je svojstvo artikla, ne narudžbe: kategorija koja puni neku korpicu
+    /// (po KorpicaKategorija) je svoja grupa, a sve ostalo ide u Špajz. Sir je u scenariju
+    /// „Mliječni", koji ne puni nijednu korpicu — pa je Špajz, i to posljednja grupa.
+    /// </summary>
+    [Fact]
+    public async Task Pakerska_lista_daje_svakom_artiklu_grupu_po_kategoriji()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        await t.PosaljiKorpicuAsync(kolicina: 1m);
+        await t.PosaljiObicanArtikalAsync();
+        await t.PosaljiArtikalAsync(t.SirId);
+        t.Db.ChangeTracker.Clear();
+
+        var lista = await t.PakerskaListaAsync();
+
+        var krompir = lista.Stavke.Single(s => s.Artikal == "Krompir");
+        Assert.Equal("Povrće", krompir.Grupa);
+        Assert.Equal("Povrće", krompir.Kategorija);
+        Assert.Equal(3m, krompir.Kolicina); // korpica + Špajz ostaju jedan red
+
+        var sir = lista.Stavke.Single(s => s.Artikal == "Sir");
+        Assert.Equal("Špajz", sir.Grupa);
+        Assert.Equal("Mliječni", sir.Kategorija);
+        Assert.True(krompir.RedGrupe < sir.RedGrupe);
+    }
 }
 
 public class NabavkaSedmiceTests

@@ -246,6 +246,11 @@ export interface StavkaPakerske {
   /** Koliko korpice traže preko stanja — to treba nabaviti. */
   fali: number;
   jedinica: string;
+  kategorija: string;
+  /** Grupa nabavke: kategorija koja puni neku korpicu, inače „Špajz". */
+  grupa: string;
+  /** Redoslijed grupe (po tipu korpice); Špajz posljednji. */
+  redGrupe: number;
   proizvodjac: string;
   selo: string;
   telefon?: string | null;
