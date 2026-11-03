@@ -471,7 +471,7 @@ export interface PrihodPoslovanja {
   neto: number;
   nabavno: number;
   zarada: number;
-  marza: number | null;
+  marza?: number | null;
   brojNarudzbi: number;
   prosjecnaNarudzba: number;
   udioKorpica: number;
@@ -480,8 +480,8 @@ export interface PrihodPoslovanja {
   bezNabavneCijene: number;
 }
 
-export interface KorpicaProdaje { naziv: string; tip: string; velicina: string; komada: number; prihod: number; nabavno: number; marza: number | null }
-export interface KategorijaProdaje { kategorija: string; prihod: number; nabavno: number; marza: number | null }
+export interface KorpicaProdaje { naziv: string; tip: string; velicina: string; komada: number; prihod: number; nabavno: number; marza?: number | null }
+export interface KategorijaProdaje { kategorija: string; prihod: number; nabavno: number; marza?: number | null }
 export interface ArtikalProdaje { naziv: string; jedinica: string; kolicina: number; prihod: number; zarada: number }
 export interface KupacAnalitike { ime: string; gost: boolean; narudzbi: number; neto: number }
 export interface PlanAnalitike { plan: string; aktivne: number }
@@ -505,7 +505,7 @@ export interface PoslovanjeMjeseca {
     aktivniPrethodni: number;
     novi: number;
     povratni: number;
-    zadrzavanje: number | null;
+    zadrzavanje?: number | null;
     potrosnjaPoKupcu: number;
     narudzbiPoKupcu: number;
     gosti: number;
@@ -517,8 +517,8 @@ export interface PoslovanjeMjeseca {
     aktivneNaKraju: number;
     nove: number;
     otkazane: number;
-    stopaOtkazivanja: number | null;
-    pauzirane: number | null;
+    stopaOtkazivanja?: number | null;
+    pauzirane?: number | null;
     poPlanu: PlanAnalitike[];
     udioPrihoda: number;
   };
@@ -526,11 +526,11 @@ export interface PoslovanjeMjeseca {
     poZoni: ZonaAnalitike[];
     isporucene: number;
     neuspjele: number;
-    uspjesnost: number | null;
+    uspjesnost?: number | null;
     otkazane: number;
     otkazaneVrijednost: number;
-    otkazaneUdio: number | null;
-    prosjecnaOcjena: number | null;
+    otkazaneUdio?: number | null;
+    prosjecnaOcjena?: number | null;
     brojOcjena: number;
   };
   gazdinstva: GazdinstvoAnalitike[];
@@ -540,7 +540,7 @@ export interface MjesecGodine {
   mjesec: number;
   neto: number;
   zarada: number;
-  marza: number | null;
+  marza?: number | null;
   narudzbi: number;
   aktivniKupci: number;
   aktivnePretplate: number;
