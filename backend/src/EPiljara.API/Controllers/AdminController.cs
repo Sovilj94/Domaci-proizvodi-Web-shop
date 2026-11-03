@@ -26,6 +26,10 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Poslovanje([FromQuery] int? godina, [FromQuery] int? mjesec) =>
         Envelope(await Mediator.Send(new GetPoslovanjeQuery(godina, mjesec)));
 
+    [HttpGet("admin/poslovanje/godina")]
+    public async Task<IActionResult> PoslovanjeGodina([FromQuery] int? godina) =>
+        Envelope(await Mediator.Send(new GetPoslovanjeGodinaQuery(godina)));
+
     /// <param name="unassigned">Kad je true, <paramref name="date"/> je dan DOSTAVE i vraćaju
     /// se samo narudžbe koje tog dana nisu ni na čijoj ruti.</param>
     [HttpGet("admin/zadaci")]

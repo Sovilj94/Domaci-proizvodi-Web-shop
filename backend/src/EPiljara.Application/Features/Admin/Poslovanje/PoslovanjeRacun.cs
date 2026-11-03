@@ -214,6 +214,34 @@ public sealed class PoslovanjeRacun(IReadOnlyDictionary<Guid, Product> katalog)
         };
     }
 
+    public static int AktivnePretplate(IEnumerable<Pretplata> sve, DateTime trenutakUtc) =>
+        sve.Count(p => p.CreatedAt < trenutakUtc && (p.OtkazanaU is null || p.OtkazanaU >= trenutakUtc));
+
+    public static PretplateAnalitikaDto Pretplate(
+        IReadOnlyCollection<Pretplata> sve, int godina, int mjesec, bool tekuci, IReadOnlyCollection<Order> isporucene)
+    {
+        var pocetak = PoslovanjeKalendar.PocetakUtc(godina, mjesec);
+        var (sg, sm) = mjesec == 12 ? (godina + 1, 1) : (godina, mjesec + 1);
+        var kraj = PoslovanjeKalendar.PocetakUtc(sg, sm);
+        var naPocetku = AktivnePretplate(sve, pocetak);
+        var otkazane = sve.Count(p => p.OtkazanaU >= pocetak && p.OtkazanaU < kraj);
+        var neto = isporucene.Sum(Neto);
+        return new PretplateAnalitikaDto
+        {
+            AktivneNaKraju = AktivnePretplate(sve, kraj),
+            Nove = sve.Count(p => p.CreatedAt >= pocetak && p.CreatedAt < kraj),
+            Otkazane = otkazane,
+            StopaOtkazivanja = Udio(otkazane, naPocetku),
+            Pauzirane = tekuci ? sve.Count(p => p.Status == StatusPretplate.Pauzirana) : null,
+            PoPlanu = sve.Where(p => p.CreatedAt < kraj && (p.OtkazanaU is null || p.OtkazanaU >= kraj))
+                .GroupBy(p => p.Plan)
+                .Select(g => new PlanAnalitikeDto { Plan = g.Key.ToString(), Aktivne = g.Count() })
+                .OrderBy(x => x.Plan)
+                .ToList(),
+            UdioPrihoda = Udio(isporucene.Where(o => o.PretplataId is not null).Sum(Neto), neto) ?? 0m,
+        };
+    }
+
     public PrihodDto Prihod(IReadOnlyCollection<Order> isporucene)
     {
         var linije = isporucene.SelectMany(Linije).ToList();

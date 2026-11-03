@@ -356,6 +356,75 @@ public class PoslovanjeProdajaTests
     }
 }
 
+public class PoslovanjePretplateTests
+{
+    private static async Task<Pretplata> PretplataAsync(PoslovanjePodaciTest p, User u, DateTime kreirana,
+        DateTime? otkazana = null, PlanPretplate plan = PlanPretplate.Mjesecna)
+    {
+        var x = new Pretplata
+        {
+            UserId = u.Id, ProductId = p.Korpica.Id, DeliveryZoneId = p.Centar.Id, DeliverySlotId = p.Slot.Id,
+            DeliveryAddress = "Testna 1", Plan = plan, CreatedAt = kreirana, OtkazanaU = otkazana,
+            Status = otkazana is null ? StatusPretplate.Aktivna : StatusPretplate.Otkazana,
+        };
+        p.T.Db.Pretplate.Add(x);
+        await p.T.Db.SaveChangesAsync();
+        return x;
+    }
+
+    /// <summary>
+    /// Oktobar 2025 (prošlost, pa nikad „tekući" mjesec — Pauzirane mora biti null).
+    /// Prva: od avgusta, aktivna. Druga: od septembra, otkazana 10.10. Treća: nova 5.10.
+    /// Sedmica 41/2025 = isporuka u četvrtak 9.10.2025.
+    /// </summary>
+    [Fact]
+    public async Task Aktivne_nove_otkazane_i_stopa()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        // Kupac smije imati samo jednu pretplatu na istu korpicu — svaka pretplata svoj kupac.
+        var u = await p.KupacAsync("Marko");
+        await PretplataAsync(p, u, new DateTime(2025, 8, 20, 10, 0, 0, DateTimeKind.Utc));
+        await PretplataAsync(p, await p.KupacAsync("Jovan"), new DateTime(2025, 9, 15, 10, 0, 0, DateTimeKind.Utc),
+            otkazana: new DateTime(2025, 10, 10, 10, 0, 0, DateTimeKind.Utc));
+        var treca = await PretplataAsync(p, await p.KupacAsync("Ana"), new DateTime(2025, 10, 5, 10, 0, 0, DateTimeKind.Utc), plan: PlanPretplate.Nedjeljna);
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, korpica: 1, kupacId: u.Id, pretplataId: treca.Id, godina: 2025);
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 5, kupacId: u.Id, godina: 2025);
+
+        var d = (await p.MjesecAsync(10, godina: 2025)).Pretplate;
+
+        Assert.Equal(2, d.AktivneNaKraju);        // prva i treća
+        Assert.Equal(1, d.Nove);
+        Assert.Equal(1, d.Otkazane);
+        Assert.Equal(0.5m, d.StopaOtkazivanja);   // 1 od 2 aktivne na početku oktobra
+        Assert.Null(d.Pauzirane);                 // samo za tekući mjesec
+        Assert.Equal(0.5m, d.UdioPrihoda);        // 10 od 20 KM
+        Assert.Contains(d.PoPlanu, x => x.Plan == "Nedjeljna" && x.Aktivne == 1);
+    }
+}
+
+public class PoslovanjeGodinaTests
+{
+    [Fact]
+    public async Task Dvanaest_mjeseci_i_sezona_po_kategoriji()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 3);           // oktobar
+        await p.NarudzbaAsync(39, OrderStatus.Delivered, jaja: 10);               // septembar
+        await p.NarudzbaAsync(42, OrderStatus.Cancelled, krompirKg: 50);          // ne broji se
+
+        var g = await new GetPoslovanjeGodinaHandler(p.T.Db, Options.Create(TestOpcije.Korpice()))
+            .Handle(new GetPoslovanjeGodinaQuery(2026), default);
+
+        Assert.Equal(12, g.Mjeseci.Count);
+        Assert.Equal(6m, g.Mjeseci[9].Neto);      // oktobar
+        Assert.Equal(5m, g.Mjeseci[8].Neto);      // septembar
+        Assert.Equal(0, g.Mjeseci[0].Narudzbi);
+        var povrce = g.Sezona.Single(s => s.Kategorija == "Povrće");
+        Assert.Equal(6m, povrce.Mjeseci[9]);
+        Assert.Equal(0m, povrce.Mjeseci[8]);
+    }
+}
+
 public class PoslovanjeKalendarTests
 {
     [Fact]
