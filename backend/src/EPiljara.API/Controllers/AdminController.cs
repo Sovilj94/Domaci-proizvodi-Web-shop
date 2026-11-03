@@ -181,6 +181,20 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> PostaviKalendar(Guid productId, [FromBody] PostaviKalendarRequest body) =>
         Envelope(await Mediator.Send(new PostaviKalendarCommand(productId, body.UKorpici, body.Mjeseci ?? [])));
 
+    /// <summary>Postavke korpica: po vrsti kategorije, cijene i ponuda veličina.</summary>
+    [HttpGet("admin/korpice/postavke")]
+    public async Task<IActionResult> PostavkeKorpica() =>
+        Envelope(await Mediator.Send(new GetPostavkeKorpicaQuery()));
+
+    [HttpPut("admin/korpice/postavke/{tip}")]
+    public async Task<IActionResult> SacuvajTipKorpice(string tip, [FromBody] SacuvajTipKorpiceRequest body) =>
+        Envelope(await Mediator.Send(new SacuvajTipKorpiceCommand(tip, body.KategorijeIds ?? [], body.Korpice ?? [])));
+
+    /// <summary>Artikli u korpicama: smije li u korpicu, prioritet i zadate količine — više odjednom.</summary>
+    [HttpPut("admin/korpice/postavke-artikli")]
+    public async Task<IActionResult> SacuvajArtikleKorpica([FromBody] SacuvajArtikleKorpicaRequest body) =>
+        Envelope(await Mediator.Send(new SacuvajArtikleKorpicaCommand(body.Artikli ?? [])));
+
     /// <summary>Korpica jednog kupca u narudžbi — admin je uređuje sa količinama (kupac je zvao).</summary>
     [HttpGet("admin/narudzbe/korpica/{orderItemId:guid}")]
     public async Task<IActionResult> KorpicaNarudzbe(Guid orderItemId) =>

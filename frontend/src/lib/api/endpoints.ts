@@ -35,6 +35,24 @@ import type {
 import { apiFetch } from "./client";
 
 /** Red sezonskog kalendara korpica (admin). Prazni `mjeseci` = cijele godine. */
+export interface PostavkeKorpica {
+  tipovi: {
+    tip: string;
+    korpice: { id: string; naziv: string; velicina: string; cijena: number; uProdaji: boolean; imageUrl?: string | null }[];
+    kategorijeIds: string[];
+  }[];
+  kategorije: { id: string; naziv: string }[];
+}
+
+export interface ArtikalKorpiceUnos {
+  id: string;
+  mozeUKorpicu: boolean;
+  prioritetUKorpici: number;
+  kolicinaMala: number | null;
+  kolicinaSrednja: number | null;
+  kolicinaVelika: number | null;
+}
+
 export interface KalendarStavka {
   productId: string;
   naziv: string;
@@ -209,6 +227,18 @@ export const adminKorpiceApi = {
 
   postaviKalendar: (productId: string, body: { uKorpici: boolean; mjeseci: number[] }) =>
     apiFetch<KalendarStavka>(`/admin/korpice/kalendar/${productId}`, { method: "PUT", body }).then((r) => r.data),
+
+  /** Postavke korpica: po vrsti veličine (cijena, u ponudi) i kategorije koje ulaze. */
+  postavke: () => apiFetch<PostavkeKorpica>("/admin/korpice/postavke").then((r) => r.data),
+
+  sacuvajVrstu: (
+    tip: string,
+    body: { kategorijeIds: string[]; korpice: { id: string; cijena: number; uProdaji: boolean }[] },
+  ) => apiFetch<PostavkeKorpica>(`/admin/korpice/postavke/${tip}`, { method: "PUT", body }).then((r) => r.data),
+
+  /** Artikli u korpicama — smije li u korpicu, prioritet i zadate količine, više odjednom. */
+  sacuvajArtikle: (artikli: ArtikalKorpiceUnos[]) =>
+    apiFetch<number>("/admin/korpice/postavke-artikli", { method: "PUT", body: { artikli } }).then((r) => r.data),
 
   pregled: (godina: number, sedmica: number) =>
     apiFetch<SadrzajPregled[]>("/admin/korpice/sadrzaj", {
