@@ -54,14 +54,11 @@ public class KolicineUKorpiciTests
         Assert.True(stavke.Sum(s => s.Kolicina * s.JedinicnaCijena) <= 25m * TestOpcije.Korpice().KoeficijentVrijednosti);
     }
 
-    [Theory]
-    // vrijednostStare, ostalo, cijena, zadato, očekivano — granice 6,65–7,00
-    [InlineData(3.0, 4.0, 1.0, 3.0, 3.0)]   // zadato staje tačno
-    [InlineData(3.0, 4.0, 1.0, 2.8, 2.8)]   // zadato drži kutiju u 95–100 %
-    [InlineData(3.0, 4.0, 1.0, 1.0, 3.0)]   // zadato bi oborilo ispod 95 % → po vrijednosti
-    [InlineData(3.0, 4.0, 1.0, 5.0, 3.0)]   // zadato bi probilo cilj → po vrijednosti
-    public void Kupceva_zamjena_uzima_zadatu_kolicinu_kad_staje(
-        double stara, double ostalo, double cijena, double zadato, double ocekivano) =>
-        Assert.Equal((decimal)ocekivano, ZamijeniArtikalUKorpiciHandler.Kolicina(
-            (decimal)stara, (decimal)ostalo, (decimal)cijena, 6.65m, 7m, Unit.Kg, (decimal)zadato));
+    [Fact]
+    public void Zamjena_je_po_cijeni_a_ne_po_zadatoj_kolicini()
+    {
+        // 2 kg krompira po 2 KM = 4 KM izlazi; ostatak kutije 3 KM, granice 6,65–7,00.
+        // Batat po 5 KM/kg: ulazi 0,8 kg = 4 KM, bez obzira na zadatu količinu batata.
+        Assert.Equal(0.8m, ZamijeniArtikalUKorpiciHandler.Kolicina(4m, 3m, 5m, 6.65m, 7m, Unit.Kg));
+    }
 }

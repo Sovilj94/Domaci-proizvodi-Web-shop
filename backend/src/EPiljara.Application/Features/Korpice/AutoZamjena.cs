@@ -1,6 +1,5 @@
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Domain.Entities;
-using EPiljara.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace EPiljara.Application.Features.Korpice;
@@ -72,8 +71,7 @@ public static class AutoZamjena
         decimal cijenaKorpice,
         IReadOnlyDictionary<Guid, decimal> nabavne,
         KorpiceOpcije o,
-        Func<Product, decimal>? slobodno = null,
-        VelicinaKorpice? velicina = null)
+        Func<Product, decimal>? slobodno = null)
     {
         var cijena = Cijena(sadrzaj, nov);
         if (cijena <= 0) return (null, Prepreka.NeStaje);
@@ -85,8 +83,7 @@ public static class AutoZamjena
             cijena,
             Math.Round(cilj * IzmijeniMojuKorpicuHandler.DonjaGranica, 2),
             Math.Round(cilj * IzmijeniMojuKorpicuHandler.GornjaGranica, 2),
-            nov.Unit,
-            nov.KolicinaUKorpici(velicina));
+            nov.Unit);
         if (kolicina is null) return (null, Prepreka.NeStaje);
         // Slobodno po jednoj korpici (vidi Zalihe); bez njega ostaje golo stanje.
         if (kolicina > (slobodno?.Invoke(nov) ?? nov.Stock)) return (null, Prepreka.NemaZalihe);
@@ -116,13 +113,12 @@ public static class AutoZamjena
         IReadOnlyDictionary<Guid, decimal> nabavne,
         ISet<Guid> iskljuci,
         KorpiceOpcije o,
-        Func<Product, decimal>? slobodno = null,
-        VelicinaKorpice? velicina = null)
+        Func<Product, decimal>? slobodno = null)
     {
         foreach (var p in kandidati)
         {
             if (p.Id == stara.ProductId || iskljuci.Contains(p.Id) || ostale.Any(s => s.ProductId == p.Id)) continue;
-            var (izbor, _) = Probaj(p, stara, ostale, sadrzaj, cijenaKorpice, nabavne, o, slobodno, velicina);
+            var (izbor, _) = Probaj(p, stara, ostale, sadrzaj, cijenaKorpice, nabavne, o, slobodno);
             if (izbor is not null) return izbor;
         }
         return null;
@@ -172,7 +168,7 @@ public static class AutoZamjena
         foreach (var stara in stavke.Where(s => izbjegnuti.Contains(s.ProductId)).ToList())
         {
             var ostale = stavke.Where(s => s != stara).ToList();
-            var izbor = Nadji(kandidati, stara, ostale, sadrzaj, cijenaKorpice, nabavne, izbjegnuti, o, slobodno, korpica.Velicina);
+            var izbor = Nadji(kandidati, stara, ostale, sadrzaj, cijenaKorpice, nabavne, izbjegnuti, o, slobodno);
             if (izbor is null) continue;
             stavke[stavke.IndexOf(stara)] = Red(orderItemId, izbor, sadrzaj);
         }

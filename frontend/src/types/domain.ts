@@ -403,8 +403,6 @@ export interface ZamjenaSadrzaja {
 
 /** `AdminSadrzajDto` — sadržaj plus cijene, nabavne cijene, marža i zamjene. Samo admin. */
 export interface AdminSadrzajKorpice extends SadrzajKorpice {
-  /** mala / srednja / velika — bira zadatu količinu artikla. */
-  velicina?: string | null;
   cijenaKorpice: number;
   vrijednost: number;
   nabavnaVrijednost: number;

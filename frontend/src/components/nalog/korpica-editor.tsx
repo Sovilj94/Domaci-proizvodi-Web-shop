@@ -13,6 +13,7 @@ import { ApiRequestError } from "@/lib/api/client";
 import type { MojaKorpicaDetalji } from "@/lib/api/contracts";
 import type { PonudaArtikla } from "@/types/domain";
 import { cn, formatDateTime, formatPrice, unitSuffix } from "@/lib/utils";
+import { kolicinaZaVrijednost } from "@/lib/admin/kutija";
 
 const IZBJEGNUTI_KLJUC = ["account", "izbjegnuti"] as const;
 
@@ -153,7 +154,7 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
                     )}
                   </p>
                   <p className="text-sm text-muted">
-                    {s.kolicina.toLocaleString("sr-Latn-BA")} {s.jedinica}
+                    {s.kolicina.toLocaleString("sr-Latn-BA")} {s.jedinica} · {formatPrice(s.kolicina * s.jedinicnaCijena)}
                   </p>
                 </div>
                 {!rokIstekao && (
@@ -178,6 +179,9 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
               {otvoren && (
                 <BiracZamjene
                   naziv={s.naziv}
+                  kolicina={s.kolicina}
+                  jedinica={s.jedinica}
+                  vrijednost={s.kolicina * s.jedinicnaCijena}
                   ponuda={ponudaZaZamjenu}
                   zauzeto={zauzeto}
                   onIzaberi={(ubaci, zapamti) =>
@@ -238,11 +242,18 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
  */
 function BiracZamjene({
   naziv,
+  kolicina,
+  jedinica,
+  vrijednost,
   ponuda,
   zauzeto,
   onIzaberi,
 }: {
   naziv: string;
+  kolicina: number;
+  jedinica: string;
+  /** Koliko KM vrijedi ono što izlazi — toliko vrijedi i ono što ulazi. */
+  vrijednost: number;
   ponuda: PonudaArtikla[];
   zauzeto: boolean;
   onIzaberi: (productId: string | null, zapamti: boolean) => void;
@@ -256,6 +267,10 @@ function BiracZamjene({
 
   return (
     <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+      <p className="text-sm text-muted">
+        Izlazi {naziv} {kolicina.toLocaleString("sr-Latn-BA")} {jedinica} = <b className="text-ink">{formatPrice(vrijednost)}</b> — umjesto
+        dobijaš isto toliko u cijeni drugog artikla.
+      </p>
       <button
         type="button"
         onClick={() => onIzaberi(null, zapamti)}
@@ -281,6 +296,7 @@ function BiracZamjene({
             <span className="min-w-0 flex-1">
               <span className="block truncate text-ink">{p.naziv}</span>
               <span className="block text-xs text-muted">
+                ≈ {kolicinaZaVrijednost(vrijednost, p.cijena, p.jedinica).toLocaleString("sr-Latn-BA")} {p.jedinica} ·{" "}
                 {formatPrice(p.cijena)}
                 {unitSuffix(p.jedinica)}
                 {p.preporucenaZamjena && <span className="ml-1.5 font-semibold text-brand-700">preporučeno</span>}

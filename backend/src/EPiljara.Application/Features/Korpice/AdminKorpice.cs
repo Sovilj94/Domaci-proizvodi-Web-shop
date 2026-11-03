@@ -118,7 +118,6 @@ public static class AdminSadrzajMapiranje
         return new AdminSadrzajDto(s.ToDto())
         {
             CijenaKorpice = cijena,
-            Velicina = s.Korpica?.Velicina?.ToString().ToLowerInvariant(),
             Vrijednost = t.Vrijednost,
             NabavnaVrijednost = t.Nabavno,
             Marza = t.Marza,

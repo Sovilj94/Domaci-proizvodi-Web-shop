@@ -61,7 +61,7 @@ public class ZamijeniArtikalUKorpiciHandler(
                 .Select(x => x.ProductId)
                 .ToListAsync(ct)).ToHashSet();
             izbjegnuti.Add(stara.ProductId);
-            izbor = AutoZamjena.Nadji(kandidati, stara, ostale, sadrzaj, red.UnitPrice, nabavne, izbjegnuti, o, Slobodno, korpica.Velicina)
+            izbor = AutoZamjena.Nadji(kandidati, stara, ostale, sadrzaj, red.UnitPrice, nabavne, izbjegnuti, o, Slobodno)
                 ?? throw new DomainException(
                     $"Za {stara.ProductName} ove sedmice nema zamjene koja staje u korpicu.", "nema_zamjene");
         }
@@ -81,7 +81,7 @@ public class ZamijeniArtikalUKorpiciHandler(
             if (ostale.Any(s => s.ProductId == nov.Id))
                 throw new DomainException($"{nov.Name} je već u korpici.", "artikal_vec_u_korpici");
 
-            var (probano, prepreka) = AutoZamjena.Probaj(nov, stara, ostale, sadrzaj, red.UnitPrice, nabavne, o, Slobodno, korpica.Velicina);
+            var (probano, prepreka) = AutoZamjena.Probaj(nov, stara, ostale, sadrzaj, red.UnitPrice, nabavne, o, Slobodno);
             izbor = probano ?? throw prepreka switch
             {
                 AutoZamjena.Prepreka.NemaZalihe => new DomainException(
@@ -107,17 +107,15 @@ public class ZamijeniArtikalUKorpiciHandler(
     }
 
     /// <summary>
-    /// Količina novog artikla: zadata količina za tu veličinu korpice (<paramref name="zadato"/>)
-    /// kad zbir kutije s njom ostaje u [donja, gornja]; inače ona najbliža vrijednosti artikla
-    /// koji izlazi, u koraku jedinice, tako da zbir (zaokružen na 2 decimale, kao u PUT-u)
-    /// ostane u granicama. Null kad takva količina ne postoji.
+    /// Količina novog artikla po cijeni: ona najbliža vrijednosti artikla koji izlazi (2 kg
+    /// krompira od 4 KM → batat po 5 KM/kg = 0,8 kg), u koraku jedinice, tako da zbir kutije
+    /// (zaokružen na 2 decimale, kao u PUT-u) ostane u [donja, gornja]. Zadate količine iz
+    /// postavki su za osnovni sadržaj, ne za zamjene. Null kad takva količina ne postoji.
     /// </summary>
     public static decimal? Kolicina(
         decimal vrijednostStare, decimal ostalo, decimal cijena,
-        decimal donja, decimal gornja, EPiljara.Domain.Enums.Unit jedinica, decimal? zadato = null)
+        decimal donja, decimal gornja, EPiljara.Domain.Enums.Unit jedinica)
     {
-        if (zadato is decimal z && Math.Round(ostalo + z * cijena, 2) is var sa && sa >= donja && sa <= gornja)
-            return z;
 
         var korak = GenerisiSedmicniSadrzajHandler.KoracZaokruzivanja(jedinica);
         bool UOpsegu(decimal k)
