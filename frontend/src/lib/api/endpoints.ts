@@ -116,6 +116,8 @@ import type {
   PartnerPrijavaInput,
   PartnerStatusInput,
   ReceptInput,
+  PoslovanjeGodine,
+  PoslovanjeMjeseca,
 } from "./contracts";
 
 /**
@@ -461,6 +463,10 @@ export const adminApi = {
     apiFetch<DashboardStats>("/admin/dashboard", { query: { date } }).then(
       (r) => r.data,
     ),
+  poslovanje: (godina?: number, mjesec?: number) =>
+    apiFetch<PoslovanjeMjeseca>("/admin/poslovanje", { query: godina && mjesec ? { godina, mjesec } : {} }).then((r) => r.data),
+  poslovanjeGodina: (godina?: number) =>
+    apiFetch<PoslovanjeGodine>("/admin/poslovanje/godina", { query: godina ? { godina } : {} }).then((r) => r.data),
 
   /**
    * `unassigned` mijenja značenje `date`: tada je to dan DOSTAVE i vraćaju se samo narudžbe

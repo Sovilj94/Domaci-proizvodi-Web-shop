@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
+  ChartColumn,
   ChefHat,
   ChevronDown,
   ClipboardList,
@@ -56,6 +57,7 @@ export interface NavItem {
 }
 
 const PREGLED: NavItem = { href: "/admin/dashboard", label: "Pregled", icon: LayoutDashboard };
+const POSLOVANJE: NavItem = { href: "/admin/poslovanje", label: "Poslovanje", icon: ChartColumn };
 
 /** Meni po cjelinama — redoslijed prati sedmični posao: prodaja → ponuda → dostava → kupci → sajt. */
 const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
@@ -110,7 +112,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
   },
 ];
 
-export const ITEMS: NavItem[] = [PREGLED, ...GRUPE.flatMap((g) => g.stavke)];
+export const ITEMS: NavItem[] = [PREGLED, POSLOVANJE, ...GRUPE.flatMap((g) => g.stavke)];
 
 function useActive() {
   const pathname = usePathname();
@@ -367,6 +369,7 @@ export function AdminSidebar() {
           )}
         >
           <StavkaMenija item={PREGLED} aktivna={isActive(PREGLED.href)} counts={counts} sklopljen={sklopljen} />
+          <StavkaMenija item={POSLOVANJE} aktivna={isActive(POSLOVANJE.href)} counts={counts} sklopljen={sklopljen} />
           {GRUPE.map((g) => {
             const sadrziAktivnu = g.stavke.some((i) => isActive(i.href));
             // Sklopljen meni pokazuje sve ikone — grupe se tada ne zatvaraju.

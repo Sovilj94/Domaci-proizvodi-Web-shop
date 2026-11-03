@@ -460,3 +460,95 @@ export interface PromoKodInput {
   samoNoviKupci: boolean;
   aktivan: boolean;
 }
+
+/* ---------- Poslovanje (admin analitika) ---------- */
+
+export interface PrihodPoslovanja {
+  prometRobe: number;
+  dostava: number;
+  promoPopust: number;
+  poeniPopust: number;
+  neto: number;
+  nabavno: number;
+  zarada: number;
+  marza: number | null;
+  brojNarudzbi: number;
+  prosjecnaNarudzba: number;
+  udioKorpica: number;
+  udioSpajza: number;
+  procjena: boolean;
+  bezNabavneCijene: number;
+}
+
+export interface KorpicaProdaje { naziv: string; tip: string; velicina: string; komada: number; prihod: number; nabavno: number; marza: number | null }
+export interface KategorijaProdaje { kategorija: string; prihod: number; nabavno: number; marza: number | null }
+export interface ArtikalProdaje { naziv: string; jedinica: string; kolicina: number; prihod: number; zarada: number }
+export interface KupacAnalitike { ime: string; gost: boolean; narudzbi: number; neto: number }
+export interface PlanAnalitike { plan: string; aktivne: number }
+export interface ZonaAnalitike { zona: string; narudzbi: number; neto: number }
+export interface ArtikalGazdinstva { naziv: string; jedinica: string; kolicina: number; nabavno: number }
+export interface GazdinstvoAnalitike { naziv: string; selo: string; nabavno: number; artikli: ArtikalGazdinstva[] }
+
+export interface PoslovanjeMjeseca {
+  godina: number;
+  mjesec: number;
+  prihod: PrihodPoslovanja;
+  prethodni: PrihodPoslovanja;
+  prodaja: {
+    korpice: KorpicaProdaje[];
+    spajz: KategorijaProdaje[];
+    topArtikli: ArtikalProdaje[];
+    najslabijiArtikli: ArtikalProdaje[];
+  };
+  kupci: {
+    aktivni: number;
+    aktivniPrethodni: number;
+    novi: number;
+    povratni: number;
+    zadrzavanje: number | null;
+    potrosnjaPoKupcu: number;
+    narudzbiPoKupcu: number;
+    gosti: number;
+    registrovani: number;
+    noviPrekoPreporuke: number;
+    topKupci: KupacAnalitike[];
+  };
+  pretplate: {
+    aktivneNaKraju: number;
+    nove: number;
+    otkazane: number;
+    stopaOtkazivanja: number | null;
+    pauzirane: number | null;
+    poPlanu: PlanAnalitike[];
+    udioPrihoda: number;
+  };
+  dostava: {
+    poZoni: ZonaAnalitike[];
+    isporucene: number;
+    neuspjele: number;
+    uspjesnost: number | null;
+    otkazane: number;
+    otkazaneVrijednost: number;
+    otkazaneUdio: number | null;
+    prosjecnaOcjena: number | null;
+    brojOcjena: number;
+  };
+  gazdinstva: GazdinstvoAnalitike[];
+}
+
+export interface MjesecGodine {
+  mjesec: number;
+  neto: number;
+  zarada: number;
+  marza: number | null;
+  narudzbi: number;
+  aktivniKupci: number;
+  aktivnePretplate: number;
+  procjena: boolean;
+}
+
+export interface PoslovanjeGodine {
+  godina: number;
+  mjeseci: MjesecGodine[];
+  sezona: { kategorija: string; mjeseci: number[] }[];
+}
