@@ -4,6 +4,7 @@ import type { Product } from "@/types/domain";
 import {
   type KutijaRed,
   granicaKutije,
+  kolicinaZaNovi,
   kolicinaZaDodavanje,
   kolicinaZaVrijednost,
   mjesecSedmice,
@@ -11,6 +12,7 @@ import {
   naKorak,
   sezonskaPonuda,
   slobodnoZaDodavanje,
+  zadataKolicina,
   zamijeni,
   zbir,
 } from "./kutija.ts";
@@ -90,4 +92,22 @@ test("sezonska ponuda: dostupno, za korpice, sa zalihom i u sezoni; mjesec sedmi
   assert.equal(mjesecSedmice(2026, 44), 10, "četvrtak 29.10.");
   assert.equal(mjesecSedmice(2026, 45), 11, "četvrtak 5.11.");
   assert.equal(mjesecSedmice(2027, 1), 1);
+});
+
+test("zadata količina za veličinu korpice ide cijela — ili nikako kad ne staje", () => {
+  const luk = proizvod({ id: "l", name: "Luk", price: 2, unit: "kg", kolicinaMala: 1, kolicinaSrednja: 1.5, kolicinaVelika: 0 });
+  assert.equal(zadataKolicina(luk, "mala"), 1);
+  assert.equal(zadataKolicina(luk, "velika"), null, "0 znači nije zadato");
+  assert.equal(zadataKolicina(luk, null), null);
+  assert.equal(kolicinaZaNovi(luk, "srednja", 5), 1.5);
+  assert.equal(kolicinaZaNovi(luk, "srednja", 2.5), 0, "1,5 kg = 3 KM ne staje u 2,50");
+  assert.equal(kolicinaZaNovi(luk, "velika", 3), 1.5, "bez zadate — ono što stane");
+});
+
+test("zamjena stavlja zadatu količinu novog artikla, ne vrijednost starog", () => {
+  const luk = proizvod({ id: "l", name: "Luk", price: 2, unit: "kg", kolicinaMala: 1 });
+  // Krompir 3 kg × 2 KM = 6 KM van; luk ide 1 kg (2 KM), ne 3 kg.
+  assert.equal(zamijeni(red({ kolicina: 3, cijena: 2 }), luk, 0, "mala")!.kolicina, 1);
+  // Zadata količina skuplja od reda + slobodnog ne staje.
+  assert.equal(zamijeni(red({ kolicina: 0.5, cijena: 2 }), luk, 0.5, "mala"), null);
 });

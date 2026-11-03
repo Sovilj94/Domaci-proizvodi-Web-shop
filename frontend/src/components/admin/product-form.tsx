@@ -51,9 +51,20 @@ const EMPTY = {
   mozeUKorpicu: false,
   uSpajzu: true,
   prioritetUKorpici: "0",
+  kolicinaMala: "",
+  kolicinaSrednja: "",
+  kolicinaVelika: "",
   mjeseci: [] as number[],
   boja: "",
 };
+
+const VELICINE = [
+  ["kolicinaMala", "Mala"],
+  ["kolicinaSrednja", "Srednja"],
+  ["kolicinaVelika", "Velika"],
+] as const;
+
+const broj = (s: string) => (s.trim() ? Number(s.replace(",", ".")) : null);
 
 /** Kratki nazivi mjeseci za 12 checkbox-a — indeks 0 je januar. */
 const MJESECI_NAZIVI = [
@@ -100,6 +111,9 @@ export function ProductForm({
             mozeUKorpicu: product.mozeUKorpicu ?? false,
             uSpajzu: product.uSpajzu ?? true,
             prioritetUKorpici: String(product.prioritetUKorpici ?? 0),
+            kolicinaMala: product.kolicinaMala != null ? String(product.kolicinaMala) : "",
+            kolicinaSrednja: product.kolicinaSrednja != null ? String(product.kolicinaSrednja) : "",
+            kolicinaVelika: product.kolicinaVelika != null ? String(product.kolicinaVelika) : "",
             mjeseci: product.mjeseci ?? [],
             boja: product.zadanaBoja ?? "",
           }
@@ -146,6 +160,7 @@ export function ProductForm({
       mozeUKorpicu: form.mozeUKorpicu,
       uSpajzu: form.uSpajzu,
       prioritetUKorpici: Number(form.prioritetUKorpici || 0),
+      kolicine: { mala: broj(form.kolicinaMala), srednja: broj(form.kolicinaSrednja), velika: broj(form.kolicinaVelika) },
       mjeseci: form.mjeseci,
       boja: form.boja.trim(),
     });
@@ -360,6 +375,29 @@ export function ProductForm({
             </Field>
             <p className="mt-1 text-xs text-muted">
               0 = osnovni artikal (ide skoro uvijek), veći broj = dopuna.
+            </p>
+          </div>
+
+          <div className="mt-3">
+            <p className="mb-1.5 text-sm font-medium">Količina u korpici ({form.unit})</p>
+            <div className="grid grid-cols-3 gap-2">
+              {VELICINE.map(([polje, naziv]) => (
+                <Field key={polje} label={naziv} error={errors["input.kolicine"]?.[0] ?? errors.kolicine?.[0]}>
+                  <Input
+                    type="number"
+                    min="0"
+                    step={form.unit === "kom" ? "1" : "0.1"}
+                    inputMode="decimal"
+                    placeholder="—"
+                    value={form[polje]}
+                    onChange={(e) => setForm({ ...form, [polje]: e.target.value })}
+                  />
+                </Field>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              Koliko ide u malu, srednju i veliku korpicu. Generator i zamjene stavljaju tačno ovu količinu;
+              prazno = računa se iz vrijednosti korpice.
             </p>
           </div>
 

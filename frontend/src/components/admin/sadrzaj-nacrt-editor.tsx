@@ -135,6 +135,7 @@ export function SadrzajNacrtEditor({
               cilj={ciljPrikaz}
               cijenaKorpice={sadrzaj!.cijenaKorpice}
               minimalnaMarza={sadrzaj!.minimalnaMarza}
+              velicina={sadrzaj!.velicina}
               ponuda={ponuda}
               samoPregled={samoPregled}
             />

@@ -1177,6 +1177,18 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("IzrezUrl")
                         .HasColumnType("text");
 
+                    b.Property<decimal?>("KolicinaMala")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<decimal?>("KolicinaSrednja")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<decimal?>("KolicinaVelika")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
                     b.Property<string>("Mjeseci")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

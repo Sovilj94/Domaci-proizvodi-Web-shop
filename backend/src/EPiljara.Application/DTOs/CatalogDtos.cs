@@ -82,6 +82,11 @@ public record AdminProductDto : ProductDto
 
     public decimal? NabavnaCijena { get; init; }
 
+    /// <summary>Zadate količine po veličini korpice (null = računa se iz vrijednosti).</summary>
+    public decimal? KolicinaMala { get; init; }
+    public decimal? KolicinaSrednja { get; init; }
+    public decimal? KolicinaVelika { get; init; }
+
     /// <summary>Udio marže u prodajnoj cijeni, 0–1 (0.35 = 35%). Null bez nabavne cijene.</summary>
     public decimal? Marza { get; init; }
 }

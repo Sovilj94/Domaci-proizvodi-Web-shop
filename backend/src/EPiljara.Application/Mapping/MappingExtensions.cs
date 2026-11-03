@@ -70,6 +70,9 @@ public static class MappingExtensions
     public static AdminProductDto ToAdminDto(this Product p) => new(p.ToDto())
     {
         NabavnaCijena = p.NabavnaCijena,
+        KolicinaMala = p.KolicinaMala,
+        KolicinaSrednja = p.KolicinaSrednja,
+        KolicinaVelika = p.KolicinaVelika,
         Marza = Marza(p.Price, p.NabavnaCijena),
     };
 

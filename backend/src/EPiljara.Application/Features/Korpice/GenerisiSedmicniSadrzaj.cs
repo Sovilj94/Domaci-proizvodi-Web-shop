@@ -147,8 +147,30 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                     ? Math.Min(poStavci, preostalo)
                     : preostalo;
 
-                var kolicina = Zaokruzi(budzet / artikal.Price, artikal.Unit);
                 var nab = artikal.NabavnaCijena is > 0 ? artikal.NabavnaCijena.Value : (decimal?)null;
+
+                // Zadata količina za ovu veličinu korpice ide cijela ili nikako — ne smije
+                // preći cilj, zalihu ni nabavni budžet.
+                if (artikal.KolicinaUKorpici(korpica.Velicina) is decimal zadato)
+                {
+                    if (zadato * artikal.Price > preostalo + 0.005m
+                        || zadato > artikal.Stock
+                        || (nab is not null && nabavno + zadato * nab.Value > nabavniBudzet))
+                        continue;
+
+                    sadrzaj.Stavke.Add(new StavkaSadrzaja
+                    {
+                        ProductId = artikal.Id,
+                        Kolicina = zadato,
+                        JedinicnaCijena = artikal.Price,
+                    });
+                    vrijednost += zadato * artikal.Price;
+                    if (nab is null) bezNabavne.Add(artikal.Name);
+                    else nabavno += zadato * nab.Value;
+                    continue;
+                }
+
+                var kolicina = Zaokruzi(budzet / artikal.Price, artikal.Unit);
                 if (nab is not null)
                 {
                     var poNabavci = Zaokruzi(Math.Max(nabavniBudzet - nabavno, 0) / nab.Value, artikal.Unit);
@@ -194,6 +216,8 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
             {
                 if (vrijednost >= cilj * 0.95m) break;
                 var artikal = bazen.First(p => p.Id == stavka.ProductId);
+                // Zadata količina je pakovanje — ne povećava se da bi se popunio cilj.
+                if (artikal.KolicinaUKorpici(korpica.Velicina) is not null) continue;
                 var dodatak = Zaokruzi((cilj - vrijednost) / artikal.Price, artikal.Unit);
                 dodatak = Math.Min(dodatak, Zaokruzi(artikal.Stock - stavka.Kolicina, artikal.Unit));
                 var nab = artikal.NabavnaCijena is > 0 ? artikal.NabavnaCijena.Value : (decimal?)null;

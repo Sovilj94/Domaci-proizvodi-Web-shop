@@ -95,6 +95,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // ispravno stanje za sve postojeće redove (nijedan još nije korpica).
             e.Property(x => x.Boja).HasMaxLength(7);
             e.Property(x => x.NabavnaCijena).HasPrecision(10, 2);
+            e.Property(x => x.KolicinaMala).HasPrecision(10, 3);
+            e.Property(x => x.KolicinaSrednja).HasPrecision(10, 3);
+            e.Property(x => x.KolicinaVelika).HasPrecision(10, 3);
             e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(16)
                 .HasDefaultValue(VrstaProizvoda.Obican);
             e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);
