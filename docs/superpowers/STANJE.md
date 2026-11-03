@@ -798,6 +798,22 @@ Backend testova 625 (+6), frontend 121. Uživo provjeren samo `/korpice/sezona`;
 Meni sad osvjetljava samo najtačniju stavku (na podstranici korpica ne svijetli i „Korpice“). Backend testova 629
 (+4), frontend 124 (+3). Uživo provjereno: stranica, čuvanje količine artikla u bazu.
 
+### Nabavka po vrsti robe i samo potvrđene narudžbe (2026-11-03)
+- Nabavka grupisana po kategoriji koja puni korpicu (Povrće, Voće, Mliječni…), ostalo je „Špajz“ — spojeno u main.
+- Nabavka broji samo potvrđene narudžbe, na čekanju se javljaju posebno — grana `nabavka-potvrdjene` (nespojena).
+
+### Poslovanje — analitika po mjesecima (2026-11-03) — grana `poslovanje` (na `nabavka-potvrdjene`, nespojena)
+Spec `specs/2026-11-03-poslovanje-analitika-design.md`, plan `plans/2026-11-03-poslovanje-analitika.md`.
+- **Snimak nabavne cijene**: `OrderItem.NabavnaCijena`, `StavkaKorpiceNarudzbe.NabavnaCijena` (migracija
+  `NabavnaCijenaNaNarudzbi`); upisuje ih `AppDbContext.SaveChangesAsync` za svaki novi red. Starije narudžbe nemaju
+  snimak → zarada je „procjena“ po današnjim nabavnim.
+- **`/admin/poslovanje`** (meni ispod „Pregled“): mjesec po datumu isporuke, prihod samo od isporučenih. Kartice sa
+  ▲/▼, odjeljci Prihod i zarada, Šta se prodaje, Kupci, Pretplate, Dostava, Gazdinstva; štampa i PDF.
+- **`/admin/poslovanje/godina`**: SVG grafikon neto/zarada, 12 mjeseci, sezona po kategoriji.
+- API: `GET /admin/poslovanje?godina=&mjesec=`, `GET /admin/poslovanje/godina?godina=`.
+- Odloženo (drugi krug): promo kodovi i poeni u analitici, signali iz korpica (izbacivani/izbjegavani artikli).
+Backend testova 651, frontend 129.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
