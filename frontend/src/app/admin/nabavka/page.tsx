@@ -3,24 +3,25 @@
 import { Suspense, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Banknote, ClipboardList, Phone, Printer, ShoppingBag, Tractor } from "lucide-react";
+import { Banknote, ClipboardList, Printer, ShoppingBag } from "lucide-react";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { StatCard } from "@/components/admin/stat-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { poProizvodjacu } from "@/lib/admin/nabavka";
+import { spisakRobe } from "@/lib/admin/nabavka";
+import { PdfNabavkeDugme, SpisakNabavke } from "@/components/admin/spisak-nabavke";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { cn, formatDateTime, formatPrice } from "@/lib/utils";
 
-const broj = (x: number) => Number(x.toFixed(2)).toLocaleString("sr-Latn");
 const datumIsporuke = (iso: string) =>
   new Date(iso).toLocaleDateString("sr-Latn", { weekday: "long", day: "numeric", month: "numeric", timeZone: "Europe/Sarajevo" });
 
 /**
  * Nabavka sedmice: kad prođe rok, korpice su zaključane i sve je naručeno — ovdje stoji koliko
- * robe treba kupiti, po proizvođaču. Bez ?datum= otvara sedmicu kojoj je rok upravo prošao
- * (server zna rok); strelicama se ide na ostale, pa i na otvorenu sedmicu kao predračun.
+ * robe treba kupiti, jedan red po artiklu (gazdinstva se ovdje ne vide), uz PDF za nabavljača ili
+ * dobavljača. Bez ?datum= otvara sedmicu kojoj je rok upravo prošao (server zna rok); strelicama
+ * se ide na ostale, pa i na otvorenu sedmicu kao predračun.
  */
 export default function AdminNabavkaPage() {
   return (
@@ -52,7 +53,7 @@ function Nabavka() {
   }, [izabrana, q.data, params, pathname, router]);
 
   const d = q.data;
-  const grupe = d ? poProizvodjacu(d.stavke) : [];
+  const redovi = d ? spisakRobe(d.stavke) : [];
 
   return (
     <div className="space-y-6">
@@ -60,15 +61,18 @@ function Nabavka() {
         <div>
           <h1 className="font-display text-2xl font-bold">Nabavka{d ? ` za sedmicu ${d.sedmica}.` : ""}</h1>
           <p className="text-muted">
-            {d ? `Isporuka: ${datumIsporuke(d.isporuka)} — sve što treba kupiti, po proizvođaču.` : "Koliko robe treba kupiti za sedmicu."}
+            {d ? `Isporuka: ${datumIsporuke(d.isporuka)} — sve što treba kupiti.` : "Koliko robe treba kupiti za sedmicu."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 print:hidden">
           <IzborSedmice s={izbor} />
           {d && d.stavke.length > 0 && (
-            <Button variant="secondary" size="sm" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" /> Štampaj
-            </Button>
+            <>
+              <Button variant="secondary" size="sm" onClick={() => window.print()}>
+                <Printer className="h-4 w-4" /> Štampaj
+              </Button>
+              <PdfNabavkeDugme lista={d} redovi={redovi} />
+            </>
           )}
         </div>
       </div>
@@ -101,7 +105,8 @@ function Nabavka() {
             />
           ) : (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-3 print:hidden">
+                <StatCard label="Artikala" value={redovi.length} icon={<ClipboardList className="h-4 w-4" />} accent="brand" />
                 <StatCard
                   label="Ukupno nabavno"
                   value={formatPrice(d.nabavnaVrijednost)}
@@ -109,8 +114,6 @@ function Nabavka() {
                   icon={<Banknote className="h-4 w-4" />}
                   accent="honey"
                 />
-                <StatCard label="Artikala" value={d.stavke.length} icon={<ClipboardList className="h-4 w-4" />} accent="brand" />
-                <StatCard label="Proizvođača" value={grupe.length} icon={<Tractor className="h-4 w-4" />} accent="purple" />
                 <StatCard
                   label="Narudžbi"
                   value={d.brojNarudzbi}
@@ -119,53 +122,7 @@ function Nabavka() {
                 />
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-1">
-                {grupe.map((g) => (
-                  <section key={`${g.proizvodjac}|${g.selo}`} className="break-inside-avoid rounded-card bg-white p-5 shadow-card">
-                    <header className="mb-3 flex items-start justify-between gap-3 border-b border-line pb-3">
-                      <div className="min-w-0">
-                        <h2 className="font-display text-lg font-semibold">{g.proizvodjac || "Bez proizvođača"}</h2>
-                        <p className="text-sm text-muted">
-                          {g.selo}
-                          {g.telefon && (
-                            <a href={`tel:${g.telefon}`} className="ml-2 inline-flex items-center gap-1 font-medium text-brand-700 hover:underline">
-                              <Phone className="h-3.5 w-3.5" /> {g.telefon}
-                            </a>
-                          )}
-                        </p>
-                      </div>
-                      <p className="shrink-0 font-display text-lg font-bold">{g.trosak > 0 ? formatPrice(g.trosak) : "—"}</p>
-                    </header>
-                    <ul className="divide-y divide-line">
-                      {g.stavke.map((r) => (
-                        <li key={r.artikal} className="flex items-center justify-between gap-3 py-2">
-                          <div className="min-w-0">
-                            <p className="font-medium">
-                              {r.artikal}
-                              {r.artikalObrisan && (
-                                <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                                  Obrisan artikal — provjeriti
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-xs text-muted">
-                              {[r.uKorpicama > 0 && `korpice ${broj(r.uKorpicama)}`, r.uSpajzu > 0 && `Špajz ${broj(r.uSpajzu)}`]
-                                .filter(Boolean)
-                                .join(" · ")}
-                              {r.fali > 0 && (
-                                <span className="text-red-700"> · na stanju samo {broj(r.naStanju)}, fali {broj(r.fali)}</span>
-                              )}
-                            </p>
-                          </div>
-                          <p className="shrink-0 text-right font-display text-xl font-bold tabular-nums">
-                            {broj(r.kolicina)} <span className="text-sm font-semibold text-muted">{r.jedinica}</span>
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ))}
-              </div>
+              <SpisakNabavke redovi={redovi} />
             </>
           )}
         </>

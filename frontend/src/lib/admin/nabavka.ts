@@ -1,33 +1,36 @@
 import type { StavkaPakerske } from "@/lib/api/contracts";
 
-export interface GrupaNabavke {
-  proizvodjac: string;
-  selo: string;
-  telefon?: string | null;
-  stavke: StavkaPakerske[];
-  /** Nabavna vrijednost grupe (artikli bez nabavne cijene se ne broje). */
-  trosak: number;
+/** Jedan red spiska za nabavku: koliko čega treba, bez obzira od koga se kupuje. */
+export interface RedNabavke {
+  artikal: string;
+  jedinica: string;
+  kolicina: number;
+  artikalObrisan: boolean;
+  /** Nabavna vrijednost reda; null kad nijedan dio nema nabavnu cijenu. */
+  trosak: number | null;
 }
 
-const poNazivu = (a: string, b: string) => a.localeCompare(b, "sr-Latn");
+const zaokruzi = (x: number, decimala = 3) => Math.round(x * 10 ** decimala) / 10 ** decimala;
 
 /**
- * Nabavka ide po proizvođaču: koga zvati, šta i za koliko. Grupe po nazivu, artikal bez
- * proizvođača na kraju; artikli u grupi po nazivu.
+ * Spisak robe za nabavku: isti artikal (naziv + jedinica) u jednom redu, ma od kog
+ * proizvođača dolazio — nabavljača zanima šta i koliko, ne gazdinstvo. Redovi po nazivu.
  */
-export function poProizvodjacu(stavke: StavkaPakerske[]): GrupaNabavke[] {
-  const grupe = new Map<string, GrupaNabavke>();
+export function spisakRobe(stavke: StavkaPakerske[]): RedNabavke[] {
+  const redovi = new Map<string, RedNabavke>();
   for (const s of stavke) {
-    const kljuc = `${s.proizvodjac}|${s.selo}`;
-    const g = grupe.get(kljuc) ?? { proizvodjac: s.proizvodjac, selo: s.selo, telefon: s.telefon, stavke: [], trosak: 0 };
-    g.stavke.push(s);
-    if (s.nabavnaCijena && s.nabavnaCijena > 0) g.trosak += s.kolicina * s.nabavnaCijena;
-    grupe.set(kljuc, g);
+    const kljuc = `${s.artikal.toLocaleLowerCase("sr-Latn")}|${s.jedinica}`;
+    const r = redovi.get(kljuc) ?? {
+      artikal: s.artikal,
+      jedinica: s.jedinica,
+      kolicina: 0,
+      artikalObrisan: false,
+      trosak: null,
+    };
+    r.kolicina = zaokruzi(r.kolicina + s.kolicina);
+    r.artikalObrisan ||= s.artikalObrisan;
+    if (s.nabavnaCijena && s.nabavnaCijena > 0) r.trosak = zaokruzi((r.trosak ?? 0) + s.kolicina * s.nabavnaCijena, 2);
+    redovi.set(kljuc, r);
   }
-  return [...grupe.values()]
-    .map((g) => ({ ...g, trosak: Math.round(g.trosak * 100) / 100, stavke: [...g.stavke].sort((a, b) => poNazivu(a.artikal, b.artikal)) }))
-    .sort((a, b) => {
-      if (!a.proizvodjac !== !b.proizvodjac) return a.proizvodjac ? -1 : 1;
-      return poNazivu(a.proizvodjac, b.proizvodjac);
-    });
+  return [...redovi.values()].sort((a, b) => a.artikal.localeCompare(b.artikal, "sr-Latn"));
 }
