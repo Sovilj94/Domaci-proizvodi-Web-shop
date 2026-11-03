@@ -749,6 +749,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
 
+                    b.Property<decimal?>("NabavnaCijena")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid");
 
@@ -1569,6 +1573,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Kolicina")
                         .HasPrecision(10, 3)
                         .HasColumnType("numeric(10,3)");
+
+                    b.Property<decimal?>("NabavnaCijena")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
 
                     b.Property<Guid>("OrderItemId")
                         .HasColumnType("uuid");

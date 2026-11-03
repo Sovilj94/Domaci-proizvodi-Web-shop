@@ -57,6 +57,37 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Magacin> Magacin => Set<Magacin>();
     public DbSet<PromoKod> PromoKodovi => Set<PromoKod>();
 
+    /// <summary>
+    /// Svaki novi red narudžbe (OrderItem, StavkaKorpiceNarudzbe) bez nabavne cijene dobija
+    /// trenutnu nabavnu cijenu artikla. Jedno mjesto umjesto pet putanja koje prave redove —
+    /// nova putanja ga ne može zaobići. Postavljena vrijednost se ne dira.
+    /// Override bool varijante: SaveChangesAsync(CancellationToken) iz IAppDbContext poziva nju.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        await SnimiNabavneCijeneAsync(cancellationToken);
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private async Task SnimiNabavneCijeneAsync(CancellationToken ct)
+    {
+        var redovi = ChangeTracker.Entries<OrderItem>()
+            .Where(e => e.State == EntityState.Added && e.Entity.NabavnaCijena is null)
+            .Select(e => (Id: e.Entity.ProductId, Postavi: (Action<decimal?>)(c => e.Entity.NabavnaCijena = c)))
+            .Concat(ChangeTracker.Entries<StavkaKorpiceNarudzbe>()
+                .Where(e => e.State == EntityState.Added && e.Entity.NabavnaCijena is null)
+                .Select(e => (Id: e.Entity.ProductId, Postavi: (Action<decimal?>)(c => e.Entity.NabavnaCijena = c))))
+            .ToList();
+        if (redovi.Count == 0) return;
+
+        var idjevi = redovi.Select(r => r.Id).Distinct().ToList();
+        var nabavne = await Products.IgnoreQueryFilters().AsNoTracking()
+            .Where(p => idjevi.Contains(p.Id) && p.NabavnaCijena != null)
+            .ToDictionaryAsync(p => p.Id, p => p.NabavnaCijena, ct);
+        foreach (var (id, postavi) in redovi)
+            if (nabavne.TryGetValue(id, out var c)) postavi(c);
+    }
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
@@ -177,6 +208,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Unit).HasConversion<string>().HasMaxLength(8);
             e.Property(x => x.Kolicina).HasPrecision(10, 3);
             e.Property(x => x.JedinicnaCijena).HasPrecision(12, 2);
+            e.Property(x => x.NabavnaCijena).HasPrecision(10, 2);
             e.HasOne(x => x.OrderItem).WithMany(i => i.KorpicaStavke)
                 .HasForeignKey(x => x.OrderItemId).OnDelete(DeleteBehavior.Cascade);
             // Restrict, ne Cascade: brisanje artikla ne smije obrisati red iz nečije
@@ -478,6 +510,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.ProductName).HasMaxLength(200).IsRequired();
             e.Property(x => x.Unit).HasConversion<string>().HasMaxLength(8);
             e.Ignore(x => x.LineTotal);
+            e.Property(x => x.NabavnaCijena).HasPrecision(10, 2);
         });
 
         b.Entity<DeliveryRoute>(e =>

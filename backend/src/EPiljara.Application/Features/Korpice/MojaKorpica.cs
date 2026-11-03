@@ -410,6 +410,7 @@ public class IzmijeniMojuKorpicuHandler(
                     Unit = stara.Unit,
                     Kolicina = sablonskeKolicine.GetValueOrDefault(pid, stara.Kolicina),
                     JedinicnaCijena = stara.JedinicnaCijena,
+                    NabavnaCijena = stara.NabavnaCijena,
                     DodaoKupac = stara.DodaoKupac,
                 });
                 continue;

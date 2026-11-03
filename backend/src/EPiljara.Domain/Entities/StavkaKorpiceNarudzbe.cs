@@ -28,6 +28,13 @@ public class StavkaKorpiceNarudzbe : Entity
     public decimal JedinicnaCijena { get; set; }
 
     /// <summary>
+    /// Nabavna cijena po jedinici u trenutku narudžbe — snimak, da zarada za prošle mjesece ne
+    /// zavisi od današnjih cijena. Null: narudžba starija od snimanja, ili artikal bez nabavne.
+    /// Upisuje je AppDbContext pri upisu reda. Nikad ne ide u kupčev DTO.
+    /// </summary>
+    public decimal? NabavnaCijena { get; set; }
+
+    /// <summary>
     /// True kad je kupac sam dodao artikal, false kad je stigao iz šablona. Pakerima je to
     /// razlika između „ovo ide u svaku kutiju" i „ovo je nečiji izbor".
     /// </summary>

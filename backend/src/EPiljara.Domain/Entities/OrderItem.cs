@@ -17,6 +17,13 @@ public class OrderItem : Entity
     public Unit Unit { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+
+    /// <summary>
+    /// Nabavna cijena po jedinici u trenutku narudžbe — snimak, da zarada za prošle mjesece ne
+    /// zavisi od današnjih cijena. Null: narudžba starija od snimanja, ili artikal bez nabavne.
+    /// Upisuje je AppDbContext pri upisu reda. Nikad ne ide u kupčev DTO.
+    /// </summary>
+    public decimal? NabavnaCijena { get; set; }
     public string? ImageUrl { get; set; }
 
     public decimal LineTotal => Math.Round(UnitPrice * Quantity, 2);

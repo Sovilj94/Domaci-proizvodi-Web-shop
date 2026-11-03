@@ -157,6 +157,7 @@ public class IzmijeniKorpicuNarudzbeHandler(IAppDbContext db)
                 Unit = jedinica,
                 Kolicina = u.Kolicina,
                 JedinicnaCijena = cijena,
+                NabavnaCijena = stara?.NabavnaCijena,
                 DodaoKupac = sadrzaj is null || sadrzaj.Stavke.All(s => s.ProductId != u.ProductId),
             });
         }
