@@ -65,12 +65,11 @@ Ova pravila važe za svaki broj na stranici.
 
 - `OrderItem.NabavnaCijena` (`decimal?`) i `StavkaKorpiceNarudzbe.NabavnaCijena` (`decimal?`), jedna
   EF migracija. Postojeći redovi ostaju `null`.
-- Popunjava se iz `Product.NabavnaCijena` na mjestima gdje stavka nastaje:
-  - `CreateOrder.cs` (kupac, admin ručna narudžba, pretplata — svi idu kroz ovaj handler);
-  - `GuestOrderRequests.cs` (potvrda gostujuće narudžbe);
-  - `SnapshotKorpice.cs` (sadržaj korpice u narudžbi);
-  - `MojaKorpica.cs` i `AdminKorpicaNarudzbe.cs` (izmjena i zamjena sadržaja: nova stavka dobija
-    trenutnu nabavnu cijenu).
+- Popunjava se iz `Product.NabavnaCijena` na jednom mjestu: `AppDbContext.SaveChangesAsync` upisuje
+  je u svaki novi red (`OrderItem`, `StavkaKorpiceNarudzbe`) koji je još nema. Tako je dobijaju sve
+  putanje — kupac, gost, pretplata, admin ručna narudžba, izmjena i zamjena u korpici — i svaka
+  buduća. Red koji kupac ili admin samo zadrži pri izmjeni korpice nosi svoj stari snimak
+  (`MojaKorpica.cs`, `AdminKorpicaNarudzbe.cs`).
 - Nabavna cijena se nikad ne šalje kupcu; ostaje u admin DTO-ima.
 
 ## Backend
