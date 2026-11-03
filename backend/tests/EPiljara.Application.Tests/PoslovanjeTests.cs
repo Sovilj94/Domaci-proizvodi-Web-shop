@@ -277,6 +277,85 @@ public class PoslovanjeKupciTests
     }
 }
 
+public class PoslovanjeProdajaTests
+{
+    [Fact]
+    public async Task Korpice_spajz_po_kategoriji_i_top_artikli()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 3, korpica: 2, jaja: 10);
+
+        var d = (await p.MjesecAsync(10)).Prodaja;
+
+        var k = Assert.Single(d.Korpice);
+        Assert.Equal("Mala korpica povrća", k.Naziv);
+        Assert.Equal("povrce", k.Tip);
+        Assert.Equal("Mala", k.Velicina);
+        Assert.Equal(2m, k.Komada);
+        Assert.Equal(20m, k.Prihod);
+        Assert.Equal(4m, k.Nabavno);              // 2 kutije × 2 kg × 1 KM
+        Assert.Equal(0.8m, k.Marza);
+        Assert.Equal(["Jaja", "Povrće"], d.Spajz.Select(s => s.Kategorija).OrderBy(x => x).ToArray());
+        var krompir = d.TopArtikli.Single(a => a.Naziv == "Krompir");
+        Assert.Equal(7m, krompir.Kolicina);       // 3 Špajz + 4 iz korpica
+        Assert.Equal(14m, krompir.Prihod);
+        Assert.Equal(7m, krompir.Zarada);
+    }
+
+    [Fact]
+    public async Task Gazdinstva_sabiraju_nabavno_po_proizvodjacu()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 3, korpica: 1, jaja: 10);
+
+        var g = (await p.MjesecAsync(10)).Gazdinstva;
+
+        Assert.Equal(["Marko", "Ana"], g.Select(x => x.Naziv).ToArray()); // po nabavnom, opadajuće
+        Assert.Equal(5m, g[0].Nabavno);           // 3 + 2 kg krompira
+        Assert.Equal(5m, Assert.Single(g[0].Artikli).Kolicina);
+        Assert.Equal(3m, g[1].Nabavno);
+    }
+
+    [Fact]
+    public async Task Obrisan_artikal_se_i_dalje_broji_kod_svog_gazdinstva()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 2);
+        var k = await p.T.Db.Products.IgnoreQueryFilters().FirstAsync(x => x.Id == p.Krompir.Id);
+        k.IsDeleted = true;
+        await p.T.Db.SaveChangesAsync();
+        p.T.Db.ChangeTracker.Clear();
+
+        var d = await p.MjesecAsync(10);
+
+        Assert.Equal("Krompir", Assert.Single(d.Prodaja.TopArtikli).Naziv);
+        Assert.Equal("Marko", Assert.Single(d.Gazdinstva).Naziv);
+        Assert.Equal(2m, d.Gazdinstva[0].Nabavno);
+    }
+
+    [Fact]
+    public async Task Dostava_po_zoni_uspjesnost_i_otkazane()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 2);
+        await p.NarudzbaAsync(41, OrderStatus.Delivered, krompirKg: 1, zona: p.Laus);
+        await p.NarudzbaAsync(42, OrderStatus.Delivered, krompirKg: 1, zona: p.Laus);
+        await p.NarudzbaAsync(42, OrderStatus.FailedDelivery, krompirKg: 1);
+        await p.NarudzbaAsync(43, OrderStatus.Cancelled, krompirKg: 5);
+
+        var d = (await p.MjesecAsync(10)).Dostava;
+
+        Assert.Equal(3, d.Isporucene);
+        Assert.Equal(1, d.Neuspjele);
+        Assert.Equal(0.75m, d.Uspjesnost);
+        Assert.Equal(1, d.Otkazane);
+        Assert.Equal(10m, d.OtkazaneVrijednost);
+        Assert.Equal(0.2m, d.OtkazaneUdio);       // 1 od 5 narudžbi
+        Assert.Equal("Lauš", d.PoZoni[0].Zona);   // 2 narudžbe, 4 KM
+        Assert.Equal(2, d.PoZoni[0].Narudzbi);
+    }
+}
+
 public class PoslovanjeKalendarTests
 {
     [Fact]

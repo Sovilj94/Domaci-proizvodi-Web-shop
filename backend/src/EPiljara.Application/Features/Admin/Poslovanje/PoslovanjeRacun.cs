@@ -1,4 +1,5 @@
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Korpice;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
 
@@ -103,6 +104,113 @@ public sealed class PoslovanjeRacun(IReadOnlyDictionary<Guid, Product> katalog)
                 .OrderByDescending(k => k.Neto).ThenBy(k => k.Ime)
                 .Take(10)
                 .ToList(),
+        };
+    }
+
+    public ProdajaDto Prodaja(IReadOnlyCollection<Order> isporucene)
+    {
+        var korpice = isporucene
+            .SelectMany(o => o.Items.Where(i => JeKorpica(i, katalog)))
+            .GroupBy(i => i.ProductId)
+            .Select(g =>
+            {
+                katalog.TryGetValue(g.Key, out var p);
+                var prihod = g.Sum(i => i.Quantity * i.UnitPrice);
+                var nabavno = g.SelectMany(i => i.KorpicaStavke.Select(s =>
+                    (Nabavna(s.NabavnaCijena, s.ProductId).Cijena ?? 0m) * s.Kolicina * i.Quantity)).Sum();
+                return new KorpicaProdajeDto
+                {
+                    Naziv = p?.Name ?? g.First().ProductName,
+                    Tip = p?.TipKorpice is { } t ? SedmicaHelper.Slug(t) : string.Empty,
+                    Velicina = p?.Velicina?.ToString() ?? string.Empty,
+                    Komada = g.Sum(i => i.Quantity),
+                    Prihod = prihod,
+                    Nabavno = Math.Round(nabavno, 2),
+                    Marza = Udio(prihod - nabavno, prihod),
+                };
+            })
+            .OrderByDescending(k => k.Prihod)
+            .ToList();
+
+        var spajz = isporucene.SelectMany(Linije)
+            .Where(l => !l.IzKorpice)
+            .GroupBy(l => KategorijaArtikla(l.ProductId))
+            .Select(g =>
+            {
+                var prihod = g.Sum(l => l.Prihod);
+                var nabavno = g.Sum(l => l.Nabavno ?? 0m);
+                return new KategorijaProdajeDto
+                {
+                    Kategorija = g.Key, Prihod = prihod, Nabavno = Math.Round(nabavno, 2), Marza = Udio(prihod - nabavno, prihod),
+                };
+            })
+            .OrderByDescending(k => k.Prihod)
+            .ToList();
+
+        var artikli = isporucene.SelectMany(Linije)
+            .GroupBy(l => l.ProductId)
+            .Select(g => new ArtikalProdajeDto
+            {
+                Naziv = katalog.TryGetValue(g.Key, out var p) ? p.Name : g.First().Naziv,
+                Jedinica = g.First().Jedinica,
+                Kolicina = g.Sum(l => l.Kolicina),
+                Prihod = Math.Round(g.Sum(l => l.Prihod), 2),
+                Zarada = Math.Round(g.Sum(l => l.Prihod - (l.Nabavno ?? 0m)), 2),
+            })
+            .ToList();
+        var top = artikli.OrderByDescending(a => a.Prihod).ThenBy(a => a.Naziv).Take(10).ToList();
+        var najslabiji = artikli.Except(top).OrderBy(a => a.Prihod).ThenBy(a => a.Naziv).Take(10).ToList();
+
+        return new ProdajaDto { Korpice = korpice, Spajz = spajz, TopArtikli = top, NajslabijiArtikli = najslabiji };
+    }
+
+    internal string KategorijaArtikla(Guid productId) =>
+        katalog.TryGetValue(productId, out var p) && p.Category is { } c ? c.Name : "Bez kategorije";
+
+    public IReadOnlyList<GazdinstvoDto> Gazdinstva(IReadOnlyCollection<Order> isporucene) =>
+        isporucene.SelectMany(Linije)
+            .GroupBy(l => katalog.TryGetValue(l.ProductId, out var p) && p.Producer is { } pr
+                ? (pr.Name, pr.Village) : ("Nepoznat proizvođač", string.Empty))
+            .Select(g => new GazdinstvoDto
+            {
+                Naziv = g.Key.Item1,
+                Selo = g.Key.Item2,
+                Nabavno = Math.Round(g.Sum(l => l.Nabavno ?? 0m), 2),
+                Artikli = g.GroupBy(l => (l.ProductId, l.Jedinica))
+                    .Select(a => new ArtikalGazdinstvaDto
+                    {
+                        Naziv = katalog.TryGetValue(a.Key.ProductId, out var p) ? p.Name : a.First().Naziv,
+                        Jedinica = a.Key.Jedinica,
+                        Kolicina = a.Sum(l => l.Kolicina),
+                        Nabavno = Math.Round(a.Sum(l => l.Nabavno ?? 0m), 2),
+                    })
+                    .OrderByDescending(a => a.Nabavno).ThenBy(a => a.Naziv)
+                    .ToList(),
+            })
+            .OrderByDescending(g => g.Nabavno).ThenBy(g => g.Naziv)
+            .ToList();
+
+    public DostavaAnalitikaDto Dostava(IReadOnlyCollection<Order> sveUMjesecu)
+    {
+        var isporucene = Isporucene(sveUMjesecu).ToList();
+        var neuspjele = sveUMjesecu.Count(o => o.Status == OrderStatus.FailedDelivery);
+        var otkazane = sveUMjesecu.Where(o => o.Status == OrderStatus.Cancelled).ToList();
+        var ocjene = isporucene.Where(o => o.Ocjena is not null).Select(o => o.Ocjena!.Ocjena).ToList();
+        return new DostavaAnalitikaDto
+        {
+            PoZoni = isporucene
+                .GroupBy(o => o.DeliveryZone?.Name ?? "Bez zone")
+                .Select(g => new ZonaAnalitikeDto { Zona = g.Key, Narudzbi = g.Count(), Neto = g.Sum(Neto) })
+                .OrderByDescending(z => z.Narudzbi).ThenByDescending(z => z.Neto).ThenBy(z => z.Zona)
+                .ToList(),
+            Isporucene = isporucene.Count,
+            Neuspjele = neuspjele,
+            Uspjesnost = Udio(isporucene.Count, isporucene.Count + neuspjele),
+            Otkazane = otkazane.Count,
+            OtkazaneVrijednost = otkazane.Sum(o => o.TotalAmount),
+            OtkazaneUdio = Udio(otkazane.Count, sveUMjesecu.Count),
+            ProsjecnaOcjena = ocjene.Count == 0 ? null : Math.Round((decimal)ocjene.Average(), 2),
+            BrojOcjena = ocjene.Count,
         };
     }
 
