@@ -193,10 +193,11 @@ U klasu `AppDbContext` dodaj:
     /// trenutnu nabavnu cijenu artikla. Jedno mjesto umjesto pet putanja koje prave redove —
     /// nova putanja ga ne može zaobići. Postavljena vrijednost se ne dira.
     /// </summary>
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    // Override bool varijante: SaveChangesAsync(CancellationToken) iz IAppDbContext poziva nju.
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         await SnimiNabavneCijeneAsync(cancellationToken);
-        return await base.SaveChangesAsync(cancellationToken);
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     private async Task SnimiNabavneCijeneAsync(CancellationToken ct)
@@ -2037,6 +2038,7 @@ import { MJESECI, procenat, susjedniMjesec } from "@/lib/admin/poslovanje";
 import { formatPrice } from "@/lib/utils";
 
 const broj = (x: number) => Number(x.toFixed(2)).toLocaleString("sr-Latn");
+const PLANOVI: Record<string, string> = { Nedjeljna: "Nedjeljna", Mjesecna: "Mjesečna", TriMjeseca: "3 mjeseca" };
 
 /**
  * Analitika poslovanja za mjesec (po datumu isporuke). Bez ?godina=&mjesec= otvara tekući mjesec
@@ -2229,7 +2231,7 @@ function Poslovanje() {
               kljuc={(r) => r.plan}
               redovi={d.pretplate.poPlanu}
               kolone={[
-                { naslov: "Plan", vrijednost: (r) => ({ Nedjeljna: "Nedjeljna", Mjesecna: "Mjesečna", TriMjeseca: "3 mjeseca" })[r.plan] ?? r.plan },
+                { naslov: "Plan", vrijednost: (r) => PLANOVI[r.plan] ?? r.plan },
                 { naslov: "Aktivne", vrijednost: (r) => r.aktivne, desno: true },
               ]}
             />
