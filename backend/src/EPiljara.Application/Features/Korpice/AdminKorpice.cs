@@ -281,6 +281,8 @@ public record GetPakerskaListaQuery(int? Godina = null, int? Sedmica = null) : I
 public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
     : IRequestHandler<GetPakerskaListaQuery, PakerskaListaDto>
 {
+    public const string GrupaSpajz = "Špajz";
+
     public async Task<PakerskaListaDto> Handle(GetPakerskaListaQuery q, CancellationToken ct)
     {
         var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
@@ -324,8 +326,14 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
         var artikli = await db.Products
             .IgnoreQueryFilters()
             .Include(p => p.Producer)
+            .Include(p => p.Category)
             .Where(p => idjevi.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
+        // Kategorija koja puni neku korpicu je svoja grupa nabavke; redoslijed je po prvom
+        // tipu korpice koji puni (Povrće, Voće, Mliječna…). Sve ostalo je Špajz, na kraju.
+        var redKategorije = (await db.KorpicaKategorije.ToListAsync(ct))
+            .GroupBy(k => k.CategoryId)
+            .ToDictionary(g => g.Key, g => g.Min(k => (int)k.TipKorpice));
         spajz = spajz
             .Where(s => !artikli.TryGetValue(s.ProductId, out var p) || p.Vrsta != VrstaProizvoda.Korpica)
             .ToList();
@@ -352,9 +360,14 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
                 // Stock je već umanjen za Špajz (skida se pri narudžbi), a za sadržaj korpica
                 // nije (vidi Zalihe) — pa nabaviti treba samo ono što korpice traže preko stanja.
                 var naStanju = p is null ? 0m : Math.Max(0m, p.Stock);
+                var kategorija = p?.Category?.Name ?? string.Empty;
+                var uKorpici = p is not null && redKategorije.ContainsKey(p.CategoryId);
                 return new StavkaPakerskeDto
                 {
                     Artikal = p?.Name ?? prvi.ProductName,
+                    Kategorija = kategorija,
+                    Grupa = uKorpici ? kategorija : GrupaSpajz,
+                    RedGrupe = uKorpici ? redKategorije[p!.CategoryId] : int.MaxValue,
                     Kolicina = korpice + uSpajzu.GetValueOrDefault(id),
                     UKorpicama = korpice,
                     USpajzu = uSpajzu.GetValueOrDefault(id),

@@ -251,6 +251,9 @@ internal sealed class Scenario : IDisposable
     public Task<OrderDto> PosaljiObicanArtikalAsync() =>
         Handler().Handle(Komanda(KrompirId, 1m), default);
 
+    public Task<OrderDto> PosaljiArtikalAsync(Guid productId, decimal kolicina = 1m) =>
+        Handler().Handle(Komanda(productId, kolicina), default);
+
     private CreateOrderHandler Handler() => new(
         Db, new FakeCurrentUser(_prijavljen ? KupacId : null), new FakeEmail(), new FakeViber(),
         Options.Create(Opcije), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));

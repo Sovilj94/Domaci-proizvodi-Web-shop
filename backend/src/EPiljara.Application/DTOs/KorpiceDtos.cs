@@ -190,6 +190,13 @@ public record StavkaPakerskeDto
     /// <summary>Koliko sadržaj korpica traži preko stanja — to treba nabaviti.</summary>
     public decimal Fali { get; init; }
     public string Jedinica { get; init; } = "kom";
+    /// <summary>Kategorija artikla iz kataloga.</summary>
+    public string Kategorija { get; init; } = string.Empty;
+    /// <summary>Grupa za nabavku: kategorija ako puni neku korpicu (KorpicaKategorija),
+    /// inače „Špajz". Svojstvo artikla, ne narudžbe — svaki artikal je u tačno jednoj.</summary>
+    public string Grupa { get; init; } = string.Empty;
+    /// <summary>Redoslijed grupe: najmanji tip korpice koji kategorija puni; Špajz posljednji.</summary>
+    public int RedGrupe { get; init; }
     public string Proizvodjac { get; init; } = string.Empty;
     public string Selo { get; init; } = string.Empty;
     /// <summary>Telefon proizvođača, da se iz nabavke odmah zove.</summary>

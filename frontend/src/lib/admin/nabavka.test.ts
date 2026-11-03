@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { StavkaPakerske } from "@/lib/api/contracts";
-import { spisakRobe } from "./nabavka.ts";
+import { grupeNabavke, spisakRobe } from "./nabavka.ts";
 
 const s = (artikal: string, proizvodjac: string, kolicina: number, nabavnaCijena: number | null = null, jedinica = "kg") =>
   ({
@@ -35,4 +35,26 @@ test("ista roba u drugoj jedinici ostaje poseban red", () => {
     ["kg", 2],
     ["kom", 30],
   ]);
+});
+
+test("grupe po vrsti robe: redom servera, Špajz na kraju, artikli po nazivu", () => {
+  const g = (artikal: string, grupa: string, redGrupe: number, kolicina = 1, cijena: number | null = null) =>
+    ({ ...s(artikal, "A", kolicina, cijena), kategorija: grupa === "Špajz" ? "Ajvar" : grupa, grupa, redGrupe }) as StavkaPakerske;
+  const grupe = grupeNabavke(
+    spisakRobe([
+      g("Ajvar", "Špajz", 2147483647, 3, 8),
+      g("Jabuka", "Voće", 1, 5, 1),
+      g("Paprika", "Povrće", 0, 2, 2),
+      g("Krompir", "Povrće", 0, 4),
+      g("Džem", "Špajz", 2147483647, 1, 4),
+    ]),
+  );
+  assert.deepEqual(
+    grupe.map((x) => [x.naziv, x.redovi.map((r) => r.artikal), x.trosak]),
+    [
+      ["Povrće", ["Krompir", "Paprika"], 4],
+      ["Voće", ["Jabuka"], 5],
+      ["Špajz", ["Ajvar", "Džem"], 28],
+    ],
+  );
 });
