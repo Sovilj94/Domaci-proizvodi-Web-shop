@@ -1,5 +1,6 @@
 using EPiljara.Application.Features.Novosti;
 using EPiljara.Application.Features.Admin;
+using EPiljara.Application.Features.Admin.Poslovanje;
 using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Recepti;
@@ -20,6 +21,10 @@ public class AdminController : ApiControllerBase
     [HttpGet("admin/dashboard")]
     public async Task<IActionResult> Dashboard([FromQuery] DateTime? date) =>
         Envelope(await Mediator.Send(new GetDashboardQuery(date)));
+
+    [HttpGet("admin/poslovanje")]
+    public async Task<IActionResult> Poslovanje([FromQuery] int? godina, [FromQuery] int? mjesec) =>
+        Envelope(await Mediator.Send(new GetPoslovanjeQuery(godina, mjesec)));
 
     /// <param name="unassigned">Kad je true, <paramref name="date"/> je dan DOSTAVE i vraćaju
     /// se samo narudžbe koje tog dana nisu ni na čijoj ruti.</param>
