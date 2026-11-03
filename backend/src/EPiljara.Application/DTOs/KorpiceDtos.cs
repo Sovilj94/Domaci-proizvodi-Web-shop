@@ -89,8 +89,6 @@ public record AdminSadrzajDto : SadrzajDto
     public AdminSadrzajDto(SadrzajDto osnova) : base(osnova) { }
 
     public decimal CijenaKorpice { get; init; }
-    /// <summary>mala / srednja / velika — bira zadatu količinu artikla (Product.KolicinaUKorpici).</summary>
-    public string? Velicina { get; init; }
     public decimal Vrijednost { get; init; }
     /// <summary>Σ(količina × trenutna nabavna cijena) za stavke kojima je nabavna unesena.</summary>
     public decimal NabavnaVrijednost { get; init; }
@@ -294,8 +292,6 @@ public record AdminKorpicaNarudzbeDto
     /// <summary>Koliko kutija ide u ovoj stavci narudžbe (količine ispod su po kutiji).</summary>
     public decimal BrojKutija { get; init; }
     public decimal CijenaKorpice { get; init; }
-    /// <summary>mala / srednja / velika — bira zadatu količinu artikla (Product.KolicinaUKorpici).</summary>
-    public string? Velicina { get; init; }
     /// <summary>Cilj vrijednosti iz objavljenog sadržaja; 0 kad sadržaja nema.</summary>
     public decimal Cilj { get; init; }
     public decimal Vrijednost { get; init; }

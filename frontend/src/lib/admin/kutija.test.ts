@@ -4,7 +4,6 @@ import type { Product } from "@/types/domain";
 import {
   type KutijaRed,
   granicaKutije,
-  kolicinaZaNovi,
   kolicinaZaDodavanje,
   kolicinaZaVrijednost,
   mjesecSedmice,
@@ -12,7 +11,6 @@ import {
   naKorak,
   sezonskaPonuda,
   slobodnoZaDodavanje,
-  zadataKolicina,
   zamijeni,
   zbir,
 } from "./kutija.ts";
@@ -94,23 +92,9 @@ test("sezonska ponuda: dostupno, za korpice, sa zalihom i u sezoni; mjesec sedmi
   assert.equal(mjesecSedmice(2027, 1), 1);
 });
 
-test("zadata količina za veličinu korpice ide cijela — ili nikako kad ne staje", () => {
-  const luk = proizvod({ id: "l", name: "Luk", price: 2, unit: "kg", kolicinaMala: 1, kolicinaSrednja: 1.5, kolicinaVelika: 0 });
-  assert.equal(zadataKolicina(luk, "mala"), 1);
-  assert.equal(zadataKolicina(luk, "velika"), null, "0 znači nije zadato");
-  assert.equal(zadataKolicina(luk, null), null);
-  assert.equal(kolicinaZaNovi(luk, "srednja", 5), 1.5);
-  assert.equal(kolicinaZaNovi(luk, "srednja", 2.5), 0, "1,5 kg = 3 KM ne staje u 2,50");
-  assert.equal(kolicinaZaNovi(luk, "velika", 3), 1.5, "bez zadate — ono što stane");
-});
-
-test("zamjena stavlja zadatu količinu novog artikla, ne vrijednost starog", () => {
-  const luk = proizvod({ id: "l", name: "Luk", price: 2, unit: "kg", kolicinaMala: 1 });
-  // Krompir 3 kg × 2 KM = 6 KM van; luk ide 1 kg (2 KM), ne 3 kg.
-  assert.equal(zamijeni(red({ kolicina: 3, cijena: 2 }), luk, 0, "mala")!.kolicina, 1);
-  // Zadata (1 kg = 2 KM) ne staje u red od 1 KM + 0,50 slobodno → ide koliko vrijedi red: 0,5 kg.
-  assert.equal(zamijeni(red({ kolicina: 0.5, cijena: 2 }), luk, 0.5, "mala")!.kolicina, 0.5);
-  // Puna korpica: zadata 4,5 kg crnog luka (6,75 KM) ne staje umjesto brokule od 6 KM → 4 kg.
-  const crniLuk = proizvod({ id: "c", name: "Crni luk", price: 1.5, unit: "kg", kolicinaVelika: 4.5 });
-  assert.equal(zamijeni(red({ kolicina: 1.2, cijena: 5 }), crniLuk, 0, "velika")!.kolicina, 4);
+test("zamjena po cijeni: 2 kg krompira (4 KM) → batat od 5 KM/kg = 0,8 kg, i kad batat ima zadatu količinu", () => {
+  const batat = proizvod({ id: "b", name: "Batat", price: 5, unit: "kg", kolicinaMala: 0.7 });
+  const n = zamijeni(red({ naziv: "Krompir", kolicina: 2, cijena: 2 }), batat, 0)!;
+  assert.equal(n.kolicina, 0.8);
+  assert.equal(n.kolicina * n.cijena, 4);
 });

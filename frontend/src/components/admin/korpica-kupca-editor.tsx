@@ -108,7 +108,6 @@ export function KorpicaKupcaEditor({ orderItemId, onClose }: { orderItemId: stri
               ponuda={ponuda}
               samoPregled={samoPregled}
               izbjegnuti={izbjegnuti}
-              velicina={data!.velicina}
             />
           </div>
         )}

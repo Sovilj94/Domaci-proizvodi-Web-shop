@@ -79,23 +79,6 @@ export function slobodnoZaDodavanje(granica: number | null, vrijednost: number):
   return granica === null ? Infinity : Math.max(0, Math.round((granica - vrijednost) * 100) / 100);
 }
 
-/** Zadata količina artikla za veličinu korpice (mala / srednja / velika), ili null. */
-export function zadataKolicina(p: Product, velicina?: string | null): number | null {
-  const k =
-    velicina === "mala" ? p.kolicinaMala : velicina === "srednja" ? p.kolicinaSrednja : velicina === "velika" ? p.kolicinaVelika : null;
-  return k != null && k > 0 ? k : null;
-}
-
-/**
- * Koliko artikla ide kad se dodaje: zadata količina za tu veličinu korpice — cijela, ili 0 kad
- * ne staje u slobodno; bez zadate, ono što stane u slobodno (vidi `kolicinaZaDodavanje`).
- */
-export function kolicinaZaNovi(p: Product, velicina: string | null | undefined, slobodno: number): number {
-  const z = zadataKolicina(p, velicina);
-  if (z === null) return kolicinaZaDodavanje(slobodno, p.price, p.unit);
-  return !Number.isFinite(slobodno) || z * p.price <= slobodno + 0.005 ? z : 0;
-}
-
 /** Najveća količina reda da kutija ne pređe granicu — nikad manja od one koja već stoji. */
 export function najvecaKolicina(red: KutijaRed, slobodno: number): number {
   if (!Number.isFinite(slobodno) || red.cijena <= 0) return Infinity;
@@ -103,16 +86,16 @@ export function najvecaKolicina(red: KutijaRed, slobodno: number): number {
 }
 
 /**
- * Zamjena reda drugim artiklom. Ide zadata količina za veličinu korpice kad staje u vrijednost
- * reda + slobodno (`slobodno` = KM slobodno u kutiji). Kad ne staje — ili nije zadata — ide
- * količina iste vrijednosti kao red koji izlazi (kao kupčeva zamjena na serveru), zaokružena
- * naniže kad bi naviše probila granicu. `null` samo kad ne stane ni jedan korak.
+ * Zamjena reda drugim artiklom — po vrijednosti: koliko KM izađe, toliko KM novog artikla uđe
+ * (2 kg krompira × 2 KM = 4 KM → batat po 5 KM/kg = 0,8 kg), kao kupčeva zamjena na serveru.
+ * Zadate količine iz postavki su za osnovni sadržaj korpice, ne za zamjene. Količina se
+ * zaokruži naniže kad bi naviše probila granicu (`slobodno` = KM slobodno u kutiji); `null`
+ * kad ne stane ni jedan korak.
  */
-export function zamijeni(red: KutijaRed, nov: Product, slobodno = Infinity, velicina?: string | null): KutijaRed | null {
+export function zamijeni(red: KutijaRed, nov: Product, slobodno = Infinity): KutijaRed | null {
   const vrijednostReda = red.kolicina * red.cijena;
   const staje = (k: number) => !Number.isFinite(slobodno) || k * nov.price <= vrijednostReda + slobodno + 0.005;
-  const zadato = zadataKolicina(nov, velicina);
-  let kolicina = zadato !== null && staje(zadato) ? zadato : kolicinaZaVrijednost(vrijednostReda, nov.price, nov.unit);
+  let kolicina = kolicinaZaVrijednost(vrijednostReda, nov.price, nov.unit);
   if (nov.price > 0 && !staje(kolicina)) {
     kolicina = naKorakDolje((vrijednostReda + slobodno + 0.005) / nov.price, nov.unit);
     if (kolicina <= 0) return null;

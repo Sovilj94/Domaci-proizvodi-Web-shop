@@ -347,8 +347,6 @@ export interface AdminKorpicaNarudzbe {
   sedmica: number;
   brojKutija: number;
   cijenaKorpice: number;
-  /** mala / srednja / velika — bira zadatu količinu artikla. */
-  velicina?: string | null;
   cilj: number;
   vrijednost: number;
   nabavnaVrijednost: number;

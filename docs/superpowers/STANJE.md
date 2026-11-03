@@ -773,13 +773,13 @@ artikla ide u malu / srednju / veliku korpicu. Upisuje se u formi proizvoda (blo
 korpici“; za komade samo cijeli brojevi). Gdje je zadato:
 - **generator** stavlja tačno tu količinu (cijelu ili nikako — ne smije preći cilj, zalihu ni nabavni budžet), a
   drugi prolaz „dopuni do cilja“ je ne povećava;
-- **admin editor kutije** (korpica kupca i nacrt) pri dodavanju i zamjeni (⇄) stavlja zadatu količinu; kad ne staje
-  u slobodno, pločica je ugašena sa „N kg · treba X KM“ (pravilo granice od istog dana važi);
-- **kupčeva zamjena** uzima zadatu količinu kad kutija s njom ostaje u 95–100 % cilja, inače kao do sada po
-  vrijednosti (da zamjena kupcu ne propadne);
 - **„Šta dobijaš u korpici“** prikazuje zadatu količinu.
-Bez zadate količine sve radi po starom (vrijednost / 8 kultura). Admin DTO-i sadržaja i korpice kupca nose
-`Velicina`. Dev baza: popunjeno za 104 od 109 artikala za korpice iz dosadašnje okvirne količine, zaokruženo
+- **Zamjene NE koriste zadatu količinu** (odluka korisnika, isti dan): zamjena je po cijeni — koliko KM izađe,
+  toliko KM novog artikla uđe (2 kg krompira od 4 KM → batat po 5 KM/kg = 0,8 kg). Važi za kupčevu zamjenu
+  na sajtu i za ⇄ u admin editoru; dodavanje poslije vađenja puni oslobođeni iznos. Prva verzija (zadata
+  količina i u zamjenama) je vraćena. Obje strane sada pokazuju i količinu i cijenu: „Izlazi Brokula 1,2 kg =
+  6,00 KM“, pločice „Batat 1,2 kg = 6,00 KM“, kod kupca „≈ 0,8 kg · 5,00 KM/kg“.
+Bez zadate količine generator radi po starom (vrijednost / 8 kultura). Dev baza: popunjeno za 104 od 109 artikala za korpice iz dosadašnje okvirne količine, zaokruženo
 (kg na 0,5 iznad 1 kg, ispod na 0,1; komadi cijeli) — **na Neonu (test deploy) je prazno dok se ne upiše**.
 Backend testova 625 (+6), frontend 121. Uživo provjeren samo `/korpice/sezona`; pregledač se zamrznuo
 (malo memorije), pa admin editor sa zadatim količinama nije viđen uživo — pokriven testovima.
