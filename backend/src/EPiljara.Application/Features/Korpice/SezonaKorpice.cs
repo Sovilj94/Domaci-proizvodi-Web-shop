@@ -103,9 +103,12 @@ public class GetSezonaKorpiceHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
                     ImageUrl = p.ImageUrl,
                     IzrezUrl = p.IzrezUrl,
                     Boja = BojaProizvoda.Za(p.Boja, p.Name),
-                    Kolicine = poStavci.ToDictionary(v => v.Key, v => Math.Max(
-                        GenerisiSedmicniSadrzajHandler.Zaokruzi(v.Value / p.Price, p.Unit),
-                        GenerisiSedmicniSadrzajHandler.KoracZaokruzivanja(p.Unit))),
+                    // Zadata količina za tu veličinu ima prednost — to je ono što stvarno ide u kutiju.
+                    Kolicine = poStavci.ToDictionary(v => v.Key, v =>
+                        p.KolicinaUKorpici(Enum.Parse<VelicinaKorpice>(v.Key, ignoreCase: true))
+                        ?? Math.Max(
+                            GenerisiSedmicniSadrzajHandler.Zaokruzi(v.Value / p.Price, p.Unit),
+                            GenerisiSedmicniSadrzajHandler.KoracZaokruzivanja(p.Unit))),
                 }).ToList(),
             }).ToList(),
         };

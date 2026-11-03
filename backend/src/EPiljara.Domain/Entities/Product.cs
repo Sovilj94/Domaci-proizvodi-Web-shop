@@ -36,6 +36,24 @@ public class Product : Entity
     public int PrioritetUKorpici { get; set; }
 
     /// <summary>
+    /// Koliko ovog artikla ide u malu / srednju / veliku korpicu (u jedinici artikla). Admin ih
+    /// zadaje; generator, admin editor i zamjena ih koriste umjesto računa iz vrijednosti.
+    /// Null = nije zadato, količina se računa iz vrijednosti kao ranije.
+    /// </summary>
+    public decimal? KolicinaMala { get; set; }
+    public decimal? KolicinaSrednja { get; set; }
+    public decimal? KolicinaVelika { get; set; }
+
+    /// <summary>Zadata količina za veličinu korpice, ili null.</summary>
+    public decimal? KolicinaUKorpici(VelicinaKorpice? velicina) => velicina switch
+    {
+        VelicinaKorpice.Mala => KolicinaMala,
+        VelicinaKorpice.Srednja => KolicinaSrednja,
+        VelicinaKorpice.Velika => KolicinaVelika,
+        _ => null,
+    } is > 0 and var k ? k : null;
+
+    /// <summary>
     /// Mjeseci (1–12) u kojima je artikal dostupan. <b>Prazan niz znači cijele godine</b> —
     /// mliječno i suhomesnato nemaju sezonu. U bazi stoji kao CSV string, jer SQLite
     /// (testovi) nema tip niza; vidi AppDbContext.

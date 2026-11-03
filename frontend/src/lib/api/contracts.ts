@@ -101,6 +101,8 @@ export interface ProductInput {
   nabavnaCijena?: number;
   /** true = obriši unesenu nabavnu cijenu. */
   ukloniNabavnuCijenu?: boolean;
+  /** Zadate količine po veličini korpice; poslato = zamijeni sve tri (null = nije zadato), izostanak = ne mijenjaj. */
+  kolicine?: { mala: number | null; srednja: number | null; velika: number | null };
   /** Slika bez pozadine za pločice korpica (`/slike/izrezi/...`). */
   izrezUrl?: string;
   /** Naziv i opis na engleskom (jezik sajta English); prazno = srpski. */
@@ -345,6 +347,8 @@ export interface AdminKorpicaNarudzbe {
   sedmica: number;
   brojKutija: number;
   cijenaKorpice: number;
+  /** mala / srednja / velika — bira zadatu količinu artikla. */
+  velicina?: string | null;
   cilj: number;
   vrijednost: number;
   nabavnaVrijednost: number;

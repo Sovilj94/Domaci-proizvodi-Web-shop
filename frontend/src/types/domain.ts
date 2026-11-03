@@ -88,6 +88,10 @@ export interface Product {
   mjeseci?: number[];
   /** Samo sa admin API-ja: nabavna cijena po jedinici; odsutna = nije unesena. */
   nabavnaCijena?: number | null;
+  /** Samo sa admin API-ja: zadata količina u maloj / srednjoj / velikoj korpici (null = računa se iz vrijednosti). */
+  kolicinaMala?: number | null;
+  kolicinaSrednja?: number | null;
+  kolicinaVelika?: number | null;
   /** Samo sa admin API-ja: marža (0–1) prema prodajnoj cijeni. */
   marza?: number | null;
 }
@@ -399,6 +403,8 @@ export interface ZamjenaSadrzaja {
 
 /** `AdminSadrzajDto` — sadržaj plus cijene, nabavne cijene, marža i zamjene. Samo admin. */
 export interface AdminSadrzajKorpice extends SadrzajKorpice {
+  /** mala / srednja / velika — bira zadatu količinu artikla. */
+  velicina?: string | null;
   cijenaKorpice: number;
   vrijednost: number;
   nabavnaVrijednost: number;

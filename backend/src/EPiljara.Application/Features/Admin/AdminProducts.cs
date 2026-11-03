@@ -41,7 +41,14 @@ public record ProductInput(
     string? IzrezUrl = null,
     string? NazivEn = null,
     string? OpisEn = null,
-    bool? USpajzu = null);
+    bool? USpajzu = null,
+    KolicineUKorpici? Kolicine = null);
+
+/// <summary>
+/// Zadate količine po veličini korpice. Kad se pošalje, zamjenjuje sve tri (null = nije zadato);
+/// kad se izostavi, ostaju kakve jesu.
+/// </summary>
+public record KolicineUKorpici(decimal? Mala, decimal? Srednja, decimal? Velika);
 
 public class ProductInputValidator : AbstractValidator<ProductInput>
 {
@@ -63,6 +70,11 @@ public class ProductInputValidator : AbstractValidator<ProductInput>
             .WithMessage("Nabavna cijena mora biti veća od 0.");
         RuleFor(x => x.Boja).Must(b => BojaProizvoda.JeValidna(BojaUlaz.Normalizuj(b)))
             .WithMessage("Boja mora biti u obliku #RRGGBB.");
+        RuleFor(x => x.Kolicine).Must(k => k is null || new[] { k.Mala, k.Srednja, k.Velika }.All(v => v is null or > 0))
+            .WithMessage("Količina u korpici mora biti veća od 0 (ili prazna).");
+        RuleFor(x => x.Kolicine).Must(k => k is null || new[] { k.Mala, k.Srednja, k.Velika }.All(v => v is null || v == Math.Floor(v.Value)))
+            .When(x => string.Equals(x.Unit, "kom", StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Artikal na komad ide u korpicu u cijelim komadima.");
     }
 }
 
@@ -134,6 +146,9 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
             Mjeseci = input.Mjeseci?.ToArray() ?? [],
             Boja = BojaUlaz.Normalizuj(input.Boja),
             NabavnaCijena = input.UkloniNabavnuCijenu == true ? null : input.NabavnaCijena,
+            KolicinaMala = input.Kolicine?.Mala,
+            KolicinaSrednja = input.Kolicine?.Srednja,
+            KolicinaVelika = input.Kolicine?.Velika,
         };
         product.ProvjeriInvarijantuKorpice();
 
@@ -202,6 +217,8 @@ public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProd
         // Isti obrazac: izostala nabavna cijena = ne mijenjaj; brisanje se traži izričito.
         if (input.UkloniNabavnuCijenu == true) product.NabavnaCijena = null;
         else if (input.NabavnaCijena is not null) product.NabavnaCijena = input.NabavnaCijena;
+        if (input.Kolicine is { } k)
+            (product.KolicinaMala, product.KolicinaSrednja, product.KolicinaVelika) = (k.Mala, k.Srednja, k.Velika);
         product.UpdatedAt = DateTime.UtcNow;
         product.ProvjeriInvarijantuKorpice();
 

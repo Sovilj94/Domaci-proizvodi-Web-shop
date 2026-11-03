@@ -54,6 +54,7 @@ public static class AdminKorpicaNarudzbePravila
             Sedmica = order.Sedmica,
             BrojKutija = red.Quantity,
             CijenaKorpice = red.UnitPrice,
+            Velicina = korpica.Velicina?.ToString().ToLowerInvariant(),
             Cilj = sadrzaj?.CiljnaVrijednost ?? 0,
             Vrijednost = vrijednost,
             NabavnaVrijednost = nabavno,

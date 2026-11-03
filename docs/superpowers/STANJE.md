@@ -766,6 +766,24 @@ zamjenu koje ne staju su ugašene, a količine se zaokružuju naniže (prije je 
 probijalo cilj). Kupčev editor je već bio „artikal za artikal iste vrijednosti“ (95–100 %) — nije mijenjan.
 Backend testova 619 (+10), frontend 119.
 
+### Zadate količine u korpici (2026-11-03) — grana `kolicine-u-korpici`
+
+`Product.KolicinaMala/Srednja/Velika` (migracija `KolicineUKorpici`, `numeric(10,3)`, null = nije zadato): koliko
+artikla ide u malu / srednju / veliku korpicu. Upisuje se u formi proizvoda (blok „Korpice“ → „Količina u
+korpici“; za komade samo cijeli brojevi). Gdje je zadato:
+- **generator** stavlja tačno tu količinu (cijelu ili nikako — ne smije preći cilj, zalihu ni nabavni budžet), a
+  drugi prolaz „dopuni do cilja“ je ne povećava;
+- **admin editor kutije** (korpica kupca i nacrt) pri dodavanju i zamjeni (⇄) stavlja zadatu količinu; kad ne staje
+  u slobodno, pločica je ugašena sa „N kg · treba X KM“ (pravilo granice od istog dana važi);
+- **kupčeva zamjena** uzima zadatu količinu kad kutija s njom ostaje u 95–100 % cilja, inače kao do sada po
+  vrijednosti (da zamjena kupcu ne propadne);
+- **„Šta dobijaš u korpici“** prikazuje zadatu količinu.
+Bez zadate količine sve radi po starom (vrijednost / 8 kultura). Admin DTO-i sadržaja i korpice kupca nose
+`Velicina`. Dev baza: popunjeno za 104 od 109 artikala za korpice iz dosadašnje okvirne količine, zaokruženo
+(kg na 0,5 iznad 1 kg, ispod na 0,1; komadi cijeli) — **na Neonu (test deploy) je prazno dok se ne upiše**.
+Backend testova 625 (+6), frontend 121. Uživo provjeren samo `/korpice/sezona`; pregledač se zamrznuo
+(malo memorije), pa admin editor sa zadatim količinama nije viđen uživo — pokriven testovima.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
