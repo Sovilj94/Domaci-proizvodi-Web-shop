@@ -108,6 +108,9 @@ test("zamjena stavlja zadatu količinu novog artikla, ne vrijednost starog", () 
   const luk = proizvod({ id: "l", name: "Luk", price: 2, unit: "kg", kolicinaMala: 1 });
   // Krompir 3 kg × 2 KM = 6 KM van; luk ide 1 kg (2 KM), ne 3 kg.
   assert.equal(zamijeni(red({ kolicina: 3, cijena: 2 }), luk, 0, "mala")!.kolicina, 1);
-  // Zadata količina skuplja od reda + slobodnog ne staje.
-  assert.equal(zamijeni(red({ kolicina: 0.5, cijena: 2 }), luk, 0.5, "mala"), null);
+  // Zadata (1 kg = 2 KM) ne staje u red od 1 KM + 0,50 slobodno → ide koliko vrijedi red: 0,5 kg.
+  assert.equal(zamijeni(red({ kolicina: 0.5, cijena: 2 }), luk, 0.5, "mala")!.kolicina, 0.5);
+  // Puna korpica: zadata 4,5 kg crnog luka (6,75 KM) ne staje umjesto brokule od 6 KM → 4 kg.
+  const crniLuk = proizvod({ id: "c", name: "Crni luk", price: 1.5, unit: "kg", kolicinaVelika: 4.5 });
+  assert.equal(zamijeni(red({ kolicina: 1.2, cijena: 5 }), crniLuk, 0, "velika")!.kolicina, 4);
 });

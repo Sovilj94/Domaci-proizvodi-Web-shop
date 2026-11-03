@@ -25,8 +25,9 @@ const TON = { nema: "text-muted", losa: "text-red-700", tijesna: "text-honey-700
 
 /**
  * Kutija koju admin uređuje — isti alat za sedmični sadržaj korpice i za korpicu jednog
- * kupca. Količina se mijenja na + / − (ili upisom), artikal se mijenja drugim iste
- * vrijednosti (⇄), a dodaje se klikom na pločicu sezonske ponude. Kutija ne smije preći cilj
+ * kupca. Količina se mijenja na + / − (ili upisom), artikal se mijenja drugim (⇄ — zadata
+ * količina, ili koliko stane u vrijednost onoga što izlazi), a dodaje se klikom na pločicu
+ * sezonske ponude. Kutija ne smije preći cilj
  * (ili vrijednost sa kojom je otvorena, ako je već bila preko): dodaje se samo ono što se
  * oslobodi vađenjem ili smanjivanjem drugog — server isto provjerava (GranicaKutije.cs).
  * Gore stalno stoji vrijednost naspram cilja, koliko je slobodno i marža.
@@ -189,7 +190,9 @@ export function KutijaEditor({
               </div>
               {otvoren && (
                 <div className="mt-2 border-t border-line pt-2">
-                  <p className="mb-1.5 text-xs text-muted">Umjesto {r.naziv} — ista vrijednost ({formatPrice(r.kolicina * r.cijena)}):</p>
+                  <p className="mb-1.5 text-xs text-muted">
+                    Umjesto {r.naziv} ({formatPrice(r.kolicina * r.cijena)}) — zadata količina, ili koliko stane u tu vrijednost:
+                  </p>
                   <Plocice
                     ponuda={slobodno}
                     opis={(p) => {
