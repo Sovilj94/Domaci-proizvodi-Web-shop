@@ -302,12 +302,18 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
         // globalni query filter (jedini u šemi je Product-ov !IsDeleted, AppDbContext.cs:91),
         // pa ga ovaj Include lanac (OrderItem → Order) ne dira. Zaštita za soft-obrisan
         // artikal je ispod, na upitu nad Products (vidi komentar tamo).
+        //
+        // Nabavlja se samo za POTVRĐENE narudžbe: na čekanju se ne broje dok ih admin ne
+        // potvrdi (tada roba i nabavna vrijednost ulaze), samo se javlja koliko ih čeka.
         var redovi = await db.StavkeKorpiceNarudzbe
             .Include(s => s.OrderItem).ThenInclude(i => i!.Order)
             .Where(s => s.OrderItem!.Order!.Godina == godina
                         && s.OrderItem.Order.Sedmica == sedmica
-                        && s.OrderItem.Order.Status != OrderStatus.Cancelled)
+                        && s.OrderItem.Order.Status != OrderStatus.Cancelled
+                        && s.OrderItem.Order.Status != OrderStatus.Pending)
             .ToListAsync(ct);
+        var naCekanju = await db.Orders.CountAsync(
+            o => o.Godina == godina && o.Sedmica == sedmica && o.Status == OrderStatus.Pending, ct);
 
         // Artikli iz Špajza iste sedmice: redovi bez sadržaja korpice. Red same korpice se
         // izbacuje ispod (po vrsti proizvoda) — nabavlja se njen sadržaj, koji je gore.
@@ -315,6 +321,7 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
             .Where(i => i.Order!.Godina == godina
                         && i.Order.Sedmica == sedmica
                         && i.Order.Status != OrderStatus.Cancelled
+                        && i.Order.Status != OrderStatus.Pending
                         && !i.KorpicaStavke.Any())
             .Select(i => new { i.OrderId, i.ProductId, i.ProductName, i.Unit, i.Quantity })
             .ToListAsync(ct);
@@ -391,6 +398,7 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
             Godina = godina,
             Sedmica = sedmica,
             BrojNarudzbi = brojNarudzbi,
+            NaCekanju = naCekanju,
             Rok = rok,
             Isporuka = isporuka,
             Zakljucena = DateTime.UtcNow > rok,

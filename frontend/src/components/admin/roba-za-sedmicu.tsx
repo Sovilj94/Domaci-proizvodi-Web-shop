@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { spisakRobe } from "@/lib/admin/nabavka";
-import { PdfNabavkeDugme, SpisakNabavke } from "@/components/admin/spisak-nabavke";
+import { NaCekanjuNapomena, PdfNabavkeDugme, SpisakNabavke } from "@/components/admin/spisak-nabavke";
 import { narudzbeRijec } from "@/lib/orders";
 import { cn, formatDateTime, formatPrice } from "@/lib/utils";
 
@@ -40,6 +40,7 @@ export function RobaZaSedmicu({ godina, sedmica }: { godina: number; sedmica: nu
 
   return (
     <div className="space-y-3">
+      <NaCekanjuNapomena broj={d.naCekanju} />
       <p className={cn("rounded-lg px-3 py-2 text-sm", d.zakljucena ? "bg-brand-50 text-brand-800" : "bg-honey-100 text-honey-700")}>
         {d.zakljucena
           ? `Sedmica je zaključena (rok ${formatDateTime(d.rok)}) — količine su konačne.`

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -9,6 +10,20 @@ import type { PakerskaLista } from "@/lib/api/contracts";
 import { formatPrice } from "@/lib/utils";
 
 const broj = (x: number) => Number(x.toFixed(2)).toLocaleString("sr-Latn");
+
+/** Nabavka broji samo potvrđene narudžbe — ovo javlja koliko ih još čeka potvrdu. */
+export function NaCekanjuNapomena({ broj: n }: { broj: number }) {
+  if (!n) return null;
+  return (
+    <p className="rounded-card bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800 print:hidden">
+      {n} {n === 1 ? "narudžba čeka" : "narudžbi čeka"} potvrdu i {n === 1 ? "nije" : "nisu"} u spisku.{" "}
+      <Link href="/admin/orders" className="underline underline-offset-2">
+        Potvrdi narudžbe
+      </Link>{" "}
+      — količine i nabavna vrijednost se tada ažuriraju.
+    </p>
+  );
+}
 const artikalaRijec = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? "artikal" : "artikala");
 
 /**

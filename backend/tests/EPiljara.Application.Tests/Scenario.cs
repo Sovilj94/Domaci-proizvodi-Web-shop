@@ -265,8 +265,23 @@ internal sealed class Scenario : IDisposable
 
     // ---------- Task 6 ----------
 
-    public Task<PakerskaListaDto> PakerskaListaAsync() =>
-        new GetPakerskaListaHandler(Db, Options.Create(Opcije)).Handle(new GetPakerskaListaQuery(Godina, Sedmica), default);
+    /// <summary>
+    /// Nabavka broji samo potvrđene narudžbe, a scenario ih pravi na čekanju — pa ih ovdje
+    /// podrazumijevano prvo potvrdi, kao admin pred nabavku. <paramref name="potvrdiNaCekanju"/>
+    /// = false ostavlja statuse kakvi jesu.
+    /// </summary>
+    public async Task<PakerskaListaDto> PakerskaListaAsync(bool potvrdiNaCekanju = true)
+    {
+        if (potvrdiNaCekanju)
+        {
+            foreach (var o in await Db.Orders.Where(o => o.Status == OrderStatus.Pending).ToListAsync())
+                o.Status = OrderStatus.Confirmed;
+            await Db.SaveChangesAsync();
+            Db.ChangeTracker.Clear();
+        }
+        return await new GetPakerskaListaHandler(Db, Options.Create(Opcije))
+            .Handle(new GetPakerskaListaQuery(Godina, Sedmica), default);
+    }
 
     // ---------- Task 7 ----------
 

@@ -165,7 +165,10 @@ public record PakerskaListaDto
 {
     public int Godina { get; init; }
     public int Sedmica { get; init; }
+    /// <summary>Potvrđene narudžbe u listi — samo za njih se nabavlja.</summary>
     public int BrojNarudzbi { get; init; }
+    /// <summary>Narudžbe te sedmice koje čekaju potvrdu — nisu u listi dok se ne potvrde.</summary>
+    public int NaCekanju { get; init; }
     /// <summary>Rok naručivanja te sedmice (UTC); poslije njega kupci korpice više ne mijenjaju.</summary>
     public DateTime Rok { get; init; }
     /// <summary>Prvi dan isporuke te sedmice (UTC) — do tada roba mora biti nabavljena.</summary>

@@ -100,6 +100,8 @@ function AdminOrders() {
     qc.invalidateQueries({ queryKey: ["admin", "orders"] });
     qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     qc.invalidateQueries({ queryKey: ["admin", "zadaci"] });
+    // Nabavka broji samo potvrđene narudžbe — potvrda/otkaz mijenja količine i cijenu.
+    qc.invalidateQueries({ queryKey: ["admin", "korpice", "pakerska"] });
   }
 
   const vise = useMutation({

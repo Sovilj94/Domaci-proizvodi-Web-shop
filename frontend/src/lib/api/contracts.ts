@@ -263,7 +263,10 @@ export interface StavkaPakerske {
 export interface PakerskaLista {
   godina: number;
   sedmica: number;
+  /** Potvrđene narudžbe u listi — samo za njih se nabavlja. */
   brojNarudzbi: number;
+  /** Narudžbe koje čekaju potvrdu — nisu u listi dok se ne potvrde. */
+  naCekanju: number;
   /** Rok naručivanja te sedmice (ISO, UTC). */
   rok: string;
   /** Prvi dan isporuke te sedmice (ISO, UTC) — do tada roba mora biti nabavljena. */
