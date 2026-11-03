@@ -784,6 +784,20 @@ Bez zadate količine sve radi po starom (vrijednost / 8 kultura). Admin DTO-i sa
 Backend testova 625 (+6), frontend 121. Uživo provjeren samo `/korpice/sezona`; pregledač se zamrznuo
 (malo memorije), pa admin editor sa zadatim količinama nije viđen uživo — pokriven testovima.
 
+### Postavke korpica — jedna sekcija za sve (2026-11-03) — grana `postavke-korpica`
+
+**`/admin/korpice/postavke`** (meni Ponuda → Postavke korpica):
+- **Pravila za sve korpice** — vrijednost sadržaja (% cijene), najmanja marža, broj predloženih zamjena, najmanje
+  kultura po veličini. Čuva kroz postojeći `PUT /admin/podesavanja` (isti red kao „Poslovna pravila“).
+- **Po vrsti** (Povrće / Voće / Mliječna / Suhomesnata / Domaćinska): cijena i „u ponudi“ svake veličine, uz
+  izračun (sadržaj vrijedi, po kulturi, nabavno najviše), i **kategorije koje ulaze u korpicu** — `KorpicaKategorije`
+  do sada nije imala ekran. `GET /admin/korpice/postavke`, `PUT /admin/korpice/postavke/{tip}`.
+- **Artikli i količine** — artikli iz izabranih kategorija: u korpici da/ne, prioritet, količina za malu/srednju/
+  veliku sa vrijednošću i upozorenjem (malo < 0,5 kulture, previše > 1,6), sezona po mjesecima (mijenja se u
+  kalendaru), „Predloži prazne“, čuvanje više artikala odjednom (`PUT /admin/korpice/postavke-artikli`).
+Meni sad osvjetljava samo najtačniju stavku (na podstranici korpica ne svijetli i „Korpice“). Backend testova 629
+(+4), frontend 124 (+3). Uživo provjereno: stranica, čuvanje količine artikla u bazu.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

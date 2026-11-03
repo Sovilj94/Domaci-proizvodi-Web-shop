@@ -9,3 +9,7 @@ public record PostaviKalendarRequest(bool UKorpici, IReadOnlyList<int>? Mjeseci)
 
 public record IzmijeniNacrtRequest(IReadOnlyList<StavkaUnos> Stavke, IReadOnlyList<Guid>? Zamjene);
 public record IzmijeniKorpicuNarudzbeRequest(IReadOnlyList<StavkaUnos> Stavke);
+
+public record SacuvajTipKorpiceRequest(IReadOnlyList<Guid>? KategorijeIds, IReadOnlyList<KorpicaUnos>? Korpice);
+
+public record SacuvajArtikleKorpicaRequest(IReadOnlyList<ArtikalKorpiceUnos>? Artikli);

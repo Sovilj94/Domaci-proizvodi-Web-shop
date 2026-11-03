@@ -24,6 +24,7 @@ import {
   Repeat,
   ShoppingBag,
   ShoppingBasket,
+  SlidersHorizontal,
   Star,
   Sprout,
   Store,
@@ -69,6 +70,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
     naziv: "Ponuda",
     stavke: [
       { href: "/admin/korpice", label: "Korpice", icon: ShoppingBasket, badge: "korpice" },
+      { href: "/admin/korpice/postavke", label: "Postavke korpica", icon: SlidersHorizontal },
       { href: "/admin/korpice/kalendar", label: "Sezonski kalendar", icon: CalendarDays },
       { href: "/admin/products", label: "Proizvodi", icon: Package, badge: "proizvodi" },
       { href: "/admin/categories", label: "Kategorije", icon: Tags },
@@ -110,7 +112,10 @@ export const ITEMS: NavItem[] = [PREGLED, ...GRUPE.flatMap((g) => g.stavke)];
 
 function useActive() {
   const pathname = usePathname();
-  return (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const pogadja = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  // Svijetli samo najtačnija stavka: na /admin/korpice/postavke to su „Postavke korpica“, ne i „Korpice“.
+  const sve = GRUPE.flatMap((g) => g.stavke.map((s) => s.href));
+  return (href: string) => pogadja(href) && !sve.some((h) => h !== href && h.startsWith(href + "/") && pogadja(h));
 }
 
 /**
