@@ -51,21 +51,57 @@ export function zbir(redovi: KutijaRed[], cijenaKorpice: number): Zbir {
 }
 
 /**
- * Količina za artikal koji admin dodaje: popuni ono što fali do cilja (ali bar jedan korak);
- * kad je kutija već puna, jedan korak.
+ * Koliko artikla stane u `slobodno` KM, zaokruženo naniže (0 kad ne stane ni jedan korak —
+ * prvo treba nešto izvaditi). Bez granice (cilj nepoznat): jedan korak.
  */
-export function kolicinaZaDodavanje(cilj: number, trenutno: number, cijena: number, jedinica: string): number {
-  const fali = cilj - trenutno;
-  return fali > 0 ? kolicinaZaVrijednost(fali, cijena, jedinica) : korak(jedinica);
+export function kolicinaZaDodavanje(slobodno: number, cijena: number, jedinica: string): number {
+  if (!Number.isFinite(slobodno) || cijena <= 0) return korak(jedinica);
+  return naKorakDolje((slobodno + 0.005) / cijena, jedinica);
 }
 
-/** Zamjena reda drugim artiklom iste vrijednosti — kao kupčeva zamjena na serveru. */
-export function zamijeni(red: KutijaRed, nov: Product): KutijaRed {
+/** Količina zaokružena NANIŽE na korak jedinice — da se granica nikad ne probije zaokruživanjem. */
+export function naKorakDolje(kolicina: number, jedinica: string): number {
+  const k = korak(jedinica);
+  return Math.round(Math.floor(kolicina / k + 1e-9) * k * 10) / 10;
+}
+
+/**
+ * Najviše koliko kutija smije da vrijedi: cilj, ili zatečena vrijednost ako je već bila preko
+ * (tada smije samo da se smanjuje). `null` kad cilj nije poznat — tada nema granice.
+ * Isto pravilo kao server (GranicaKutije.cs).
+ */
+export function granicaKutije(cilj: number, pocetnaVrijednost: number): number | null {
+  return cilj > 0 ? Math.max(cilj, pocetnaVrijednost) : null;
+}
+
+/** Koliko KM se još smije dodati: ono što je oslobođeno vađenjem ili smanjivanjem. */
+export function slobodnoZaDodavanje(granica: number | null, vrijednost: number): number {
+  return granica === null ? Infinity : Math.max(0, Math.round((granica - vrijednost) * 100) / 100);
+}
+
+/** Najveća količina reda da kutija ne pređe granicu — nikad manja od one koja već stoji. */
+export function najvecaKolicina(red: KutijaRed, slobodno: number): number {
+  if (!Number.isFinite(slobodno) || red.cijena <= 0) return Infinity;
+  return Math.max(red.kolicina, naKorakDolje(red.kolicina + (slobodno + 0.005) / red.cijena, red.jedinica));
+}
+
+/**
+ * Zamjena reda drugim artiklom iste vrijednosti — kao kupčeva zamjena na serveru. Količina se
+ * zaokruži naniže kad bi naviše probila granicu (`slobodno` = KM slobodno u kutiji); `null`
+ * kad ni jedan korak novog artikla ne stane u vrijednost reda + slobodno.
+ */
+export function zamijeni(red: KutijaRed, nov: Product, slobodno = Infinity): KutijaRed | null {
+  const vrijednostReda = red.kolicina * red.cijena;
+  let kolicina = kolicinaZaVrijednost(vrijednostReda, nov.price, nov.unit);
+  if (Number.isFinite(slobodno) && nov.price > 0 && kolicina * nov.price > vrijednostReda + slobodno + 0.005) {
+    kolicina = naKorakDolje((vrijednostReda + slobodno + 0.005) / nov.price, nov.unit);
+    if (kolicina <= 0) return null;
+  }
   return {
     productId: nov.id,
     naziv: nov.name,
     jedinica: nov.unit,
-    kolicina: kolicinaZaVrijednost(red.kolicina * red.cijena, nov.price, nov.unit),
+    kolicina,
     cijena: nov.price,
     nabavna: nov.nabavnaCijena ?? null,
     imageUrl: nov.imageUrl,

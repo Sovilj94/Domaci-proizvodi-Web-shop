@@ -152,7 +152,7 @@ public class JednostavnaKorpicaTests
     }
 
     [Fact]
-    public async Task Admin_mijenja_kolicine_i_dodaje_artikal_bez_granica_budzeta()
+    public async Task Admin_mijenja_kolicine_i_dodaje_artikal_u_okviru_cilja()
     {
         var (s, tikvica) = await SaTikvicom();
         using var _ = s;
@@ -166,11 +166,11 @@ public class JednostavnaKorpicaTests
         Assert.True(prije.MozeSeMijenjati);
         Assert.Equal("Paprika", Assert.Single(prije.Izbjegnuti).Naziv);
 
-        // Kupac je zvao: bez paprike, duplo krompira, i tikvica.
+        // Kupac je zvao: bez paprike, umjesto nje tikvica — dodaje se samo ono što je paprika oslobodila.
         var r = await new IzmijeniKorpicuNarudzbeHandler(s.Db).Handle(new IzmijeniKorpicuNarudzbeCommand(id,
-            [new StavkaUnos(s.KrompirId, 4m), new StavkaUnos(tikvica.Id, 3m)]), default);
+            [new StavkaUnos(s.KrompirId, 2m), new StavkaUnos(tikvica.Id, 3m)]), default);
 
-        Assert.Equal(11m, r.Vrijednost);                    // 4×2 + 3×1 — admin smije preko cilja
+        Assert.Equal(7m, r.Vrijednost);                     // 2×2 + 3×1 — tačno cilj
         Assert.False(Assert.Single(r.Stavke, x => x.ProductId == s.KrompirId).Izmijenjeno);
         Assert.True(Assert.Single(r.Stavke, x => x.ProductId == tikvica.Id).Izmijenjeno);
         Assert.DoesNotContain(r.Stavke, x => x.ProductId == s.PaprikaId);

@@ -754,6 +754,18 @@ isporuke, uz brojku u meniju. Grupisanje po proizvođaču je u `lib/admin/nabavk
 Narudžbe/Korpice). Backend testova 609 (+2), frontend 116. Zadatak na Pregledu nije viđen uživo (dev baza
 nema narudžbi za sedmicu 44).
 
+### Granica kutije pri izmjeni korpice (2026-11-03) — grana `granica-kutije`
+
+Admin je u editoru kutije (korpica kupca u narudžbi i sedmični nacrt — isti `KutijaEditor`) mogao dodavati i
+povećavati bez granice; vrijednost preko cilja je samo pocrvenila. Sada **kutija ne smije preći cilj**: dodaje se
+samo ono što se oslobodi vađenjem ili smanjivanjem. Kutija koja je otvorena već preko cilja smije samo da se
+smanjuje. Server: `GranicaKutije.Provjeri` (`korpica_preko_cilja`) u `IzmijeniKorpicuNarudzbeHandler` (cilj =
+zamrznuta `CiljnaVrijednost` sadržaja) i `IzmijeniNacrtHandler` (cilj = cijena korpice × koeficijent). Editor:
+„Za dodavanje je slobodno X KM“ / „Korpica je puna…“, „+“ ugašen kad korak ne staje, pločice za dodavanje i
+zamjenu koje ne staju su ugašene, a količine se zaokružuju naniže (prije je dodavanje zaokruživalo naviše i
+probijalo cilj). Kupčev editor je već bio „artikal za artikal iste vrijednosti“ (95–100 %) — nije mijenjan.
+Backend testova 619 (+10), frontend 119.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i

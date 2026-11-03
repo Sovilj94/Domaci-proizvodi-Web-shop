@@ -207,6 +207,14 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
             throw new DomainException(
                 "Količina za artikal na komade mora biti cio broj.", "kolicina_mora_biti_cio_broj");
 
+        // Cilj nacrta je isti koji generator puni i koji ekran pokazuje (CiljGenerisanja).
+        var cijenaKorpice = await db.Products.IgnoreQueryFilters()
+            .Where(p => p.Id == sadrzaj.KorpicaId).Select(p => p.Price).FirstOrDefaultAsync(ct);
+        GranicaKutije.Provjeri(
+            sadrzaj.Stavke.Sum(s => s.Kolicina * s.JedinicnaCijena),
+            c.Stavke.Sum(s => s.Kolicina * artikli.First(a => a.Id == s.ProductId).Price),
+            cijenaKorpice * opcije.Value.KoeficijentVrijednosti);
+
         // Clear() je dovoljno za brisanje: StavkaSadrzaja → SedmicniSadrzaj je obavezna
         // veza (DeleteBehavior.Cascade), pa EF pri DetectChanges sam obriše osirotjele
         // stavke. Dodatni db.StavkeSadrzaja.RemoveRange(...) prije ovoga dupliciralo je

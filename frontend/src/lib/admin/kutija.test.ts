@@ -3,11 +3,14 @@ import assert from "node:assert/strict";
 import type { Product } from "@/types/domain";
 import {
   type KutijaRed,
+  granicaKutije,
   kolicinaZaDodavanje,
   kolicinaZaVrijednost,
   mjesecSedmice,
+  najvecaKolicina,
   naKorak,
   sezonskaPonuda,
+  slobodnoZaDodavanje,
   zamijeni,
   zbir,
 } from "./kutija.ts";
@@ -34,17 +37,43 @@ test("zbir: vrijednost, nabavno i marža samo iz redova sa nabavnom", () => {
   assert.equal(zbir([red({})], 0).marza, null);
 });
 
-test("dodavanje popuni ono što fali do cilja, a puna kutija dobije jedan korak", () => {
-  assert.equal(kolicinaZaDodavanje(28.75, 24.75, 2, "kg"), 2);
-  assert.equal(kolicinaZaDodavanje(28.75, 30, 2, "kg"), 0.1);
-  assert.equal(kolicinaZaDodavanje(28.75, 25, 1.5, "kom"), 3);
+test("granica je cilj, a kutija koja je već preko smije samo da se smanjuje", () => {
+  assert.equal(granicaKutije(28.75, 25), 28.75);
+  assert.equal(granicaKutije(28.75, 30), 30);
+  assert.equal(granicaKutije(0, 30), null);
+  assert.equal(slobodnoZaDodavanje(28.75, 24.75), 4);
+  assert.equal(slobodnoZaDodavanje(28.75, 30), 0);
+  assert.equal(slobodnoZaDodavanje(null, 30), Infinity);
+});
+
+test("dodavanje stane u ono što je slobodno, zaokruženo naniže; puna kutija ne prima ništa", () => {
+  assert.equal(kolicinaZaDodavanje(4, 2, "kg"), 2);
+  assert.equal(kolicinaZaDodavanje(3.75, 1.5, "kom"), 2); // 3 kom bi bilo 4,50 KM — preko
+  assert.equal(kolicinaZaDodavanje(0, 2, "kg"), 0);
+  assert.equal(kolicinaZaDodavanje(1, 1.5, "kom"), 0);
+  assert.equal(kolicinaZaDodavanje(Infinity, 2, "kg"), 0.1); // cilj nepoznat — jedan korak
+});
+
+test("količina reda ne raste preko slobodnog, a ono što već stoji ostaje", () => {
+  assert.equal(najvecaKolicina(red({ kolicina: 2, cijena: 2 }), 1), 2.5);
+  assert.equal(najvecaKolicina(red({ kolicina: 2, cijena: 2 }), 0), 2);
+  assert.equal(najvecaKolicina(red({ kolicina: 2, cijena: 2 }), Infinity), Infinity);
 });
 
 test("zamjena zadržava vrijednost reda", () => {
-  const novi = zamijeni(red({ kolicina: 2, cijena: 2 }), proizvod({ id: "t", name: "Tikvica", price: 1, nabavnaCijena: 0.6 }));
+  const novi = zamijeni(red({ kolicina: 2, cijena: 2 }), proizvod({ id: "t", name: "Tikvica", price: 1, nabavnaCijena: 0.6 }))!;
   assert.equal(novi.kolicina, 4);
   assert.equal(novi.nabavna, 0.6);
   assert.equal(novi.izmijenjeno, true);
+});
+
+test("zamjena ne probija granicu zaokruživanjem naviše", () => {
+  // Red od 2,50 KM; jaja po 1,5 KM: zaokruženo bi bilo 2 kom = 3 KM.
+  const jaja = proizvod({ id: "j", name: "Jaja", price: 1.5, unit: "kom" });
+  assert.equal(zamijeni(red({ kolicina: 1, cijena: 2.5 }), jaja, 0)!.kolicina, 1);
+  assert.equal(zamijeni(red({ kolicina: 1, cijena: 2.5 }), jaja, 0.5)!.kolicina, 2);
+  // Red od 1 KM, artikal od 5 KM na komad, ništa slobodno — ne stane.
+  assert.equal(zamijeni(red({ kolicina: 1, cijena: 1 }), proizvod({ id: "m", name: "Med", price: 5, unit: "kom" }), 0), null);
 });
 
 test("sezonska ponuda: dostupno, za korpice, sa zalihom i u sezoni; mjesec sedmice po četvrtku", () => {

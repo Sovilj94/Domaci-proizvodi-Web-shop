@@ -12,9 +12,10 @@ namespace EPiljara.Application.Features.Korpice;
 
 /// <summary>
 /// Admin uređuje korpicu jednog kupca (kupac je zvao: „bez luka, više jaja"). Za razliku od
-/// kupčevog editora, admin zadaje i količine i nije vezan granicama budžeta ni rokom — on je
-/// posljednja instanca; ekran mu pokazuje vrijednost naspram cilja i maržu. Dok narudžba nije
-/// krenula u dostavu (Na čekanju, Potvrđena, Pakovanje).
+/// kupčevog editora, admin zadaje i količine i nije vezan rokom — ali kutija ne smije preći
+/// cilj (<see cref="GranicaKutije"/>): dodaje se samo ono što se oslobodi vađenjem drugog.
+/// Ekran mu pokazuje vrijednost naspram cilja i maržu. Dok narudžba nije krenula u dostavu
+/// (Na čekanju, Potvrđena, Pakovanje).
 /// </summary>
 public static class AdminKorpicaNarudzbePravila
 {
@@ -159,6 +160,11 @@ public class IzmijeniKorpicuNarudzbeHandler(IAppDbContext db)
                 DodaoKupac = sadrzaj is null || sadrzaj.Stavke.All(s => s.ProductId != u.ProductId),
             });
         }
+
+        GranicaKutije.Provjeri(
+            red.KorpicaStavke.Sum(s => s.Kolicina * s.JedinicnaCijena),
+            nove.Sum(s => s.Kolicina * s.JedinicnaCijena),
+            sadrzaj?.CiljnaVrijednost ?? 0m);
 
         db.StavkeKorpiceNarudzbe.RemoveRange(red.KorpicaStavke);
         db.StavkeKorpiceNarudzbe.AddRange(nove);
