@@ -196,6 +196,25 @@ public class PoslovanjePrihodTests
         Assert.Equal(3m, d.Prihod.Nabavno); // samo jaja
     }
 
+    /// <summary>
+    /// Korpica bez redova sadržaja (npr. narudžba od prije P2b) nema trošak koji bi se mogao
+    /// izračunati — ne smije tiho dati 100% marže, nego se broji kao stavka bez nabavne cijene.
+    /// </summary>
+    [Fact]
+    public async Task Korpica_bez_sadrzaja_se_broji_kao_stavka_bez_nabavne()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        var o = await p.NarudzbaAsync(41, OrderStatus.Delivered, korpica: 1);
+        p.T.Db.StavkeKorpiceNarudzbe.RemoveRange(p.T.Db.StavkeKorpiceNarudzbe);
+        await p.T.Db.SaveChangesAsync();
+        p.T.Db.ChangeTracker.Clear();
+
+        var d = await p.MjesecAsync(10);
+
+        Assert.Equal(1, d.Prihod.BezNabavneCijene);
+        Assert.Null(Assert.Single(d.Prodaja.Korpice).Marza);
+    }
+
     [Fact]
     public async Task Prazan_mjesec_daje_nule_bez_greske()
     {
@@ -422,6 +441,20 @@ public class PoslovanjeGodinaTests
         var povrce = g.Sezona.Single(s => s.Kategorija == "Povrće");
         Assert.Equal(6m, povrce.Mjeseci[9]);
         Assert.Equal(0m, povrce.Mjeseci[8]);
+    }
+
+    /// <summary>Mjesec koji još nije počeo nema broj pretplata — inače bi pokazao današnji broj kao budući.</summary>
+    [Fact]
+    public async Task Buduci_mjeseci_nemaju_broj_pretplata()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        var handler = new GetPoslovanjeGodinaHandler(p.T.Db, Options.Create(TestOpcije.Korpice()));
+
+        var buduca = await handler.Handle(new GetPoslovanjeGodinaQuery(2099), default);
+        var prosla = await handler.Handle(new GetPoslovanjeGodinaQuery(2025), default);
+
+        Assert.All(buduca.Mjeseci, m => Assert.Null(m.AktivnePretplate));
+        Assert.All(prosla.Mjeseci, m => Assert.Equal(0, m.AktivnePretplate));
     }
 }
 

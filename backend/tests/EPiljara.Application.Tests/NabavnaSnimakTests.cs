@@ -68,6 +68,41 @@ public class NabavnaSnimakTests
     }
 
     [Fact]
+    public async Task Gostova_narudzba_snima_nabavnu()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        await PostaviNabavnuAsync(t, t.KrompirId, 1.20m);
+        var token = await t.ZahtjevGostaAsync(t.KorpicaId);
+        await t.PotvrdiGostaAsync(token);
+        t.Db.ChangeTracker.Clear();
+
+        var uKorpici = await t.Db.StavkeKorpiceNarudzbe.SingleAsync(s => s.ProductId == t.KrompirId);
+        Assert.Equal(1.20m, uKorpici.NabavnaCijena);
+    }
+
+    /// <summary>
+    /// Kupac mijenja korpicu poslije poskupljenja: red koji zadrži nosi svoj stari snimak, a tek
+    /// novi artikal dobija današnju nabavnu. Inače bi izmjena tiho prepisala trošak cijele kutije.
+    /// </summary>
+    [Fact]
+    public async Task Izmjena_korpice_cuva_stari_snimak_zadrzanog_reda()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        await PostaviNabavnuAsync(t, t.KrompirId, 1.20m);
+        await PostaviNabavnuAsync(t, t.SirId, 2.00m);
+        var o = await t.PosaljiKorpicuAsync(kolicina: 1m);
+        var id = await t.OrderItemIdAsync(o.Id);
+        await PostaviNabavnuAsync(t, t.KrompirId, 9m);
+
+        await t.IzmijeniAsync(id, [t.KrompirId, t.SirId]);
+        t.Db.ChangeTracker.Clear();
+
+        var redovi = await t.Db.StavkeKorpiceNarudzbe.Where(s => s.OrderItemId == id).ToListAsync();
+        Assert.Equal(1.20m, redovi.Single(s => s.ProductId == t.KrompirId).NabavnaCijena);
+        Assert.Equal(2.00m, redovi.Single(s => s.ProductId == t.SirId).NabavnaCijena);
+    }
+
+    [Fact]
     public async Task Artikal_bez_nabavne_ostavlja_snimak_prazan()
     {
         using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);

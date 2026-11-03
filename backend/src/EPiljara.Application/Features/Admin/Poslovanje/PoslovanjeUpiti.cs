@@ -63,7 +63,8 @@ public class GetPoslovanjeGodinaHandler(IAppDbContext db, IOptions<KorpiceOpcije
 {
     public async Task<PoslovanjeGodineDto> Handle(GetPoslovanjeGodinaQuery q, CancellationToken ct)
     {
-        var godina = q.Godina ?? TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, SedmicaHelper.Zona).Year;
+        var sada = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, SedmicaHelper.Zona);
+        var godina = q.Godina ?? sada.Year;
         var (dan, _, _) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
         var sedmicePoMjesecu = Enumerable.Range(1, 12)
             .ToDictionary(m => m, m => PoslovanjeKalendar.SedmiceMjeseca(godina, m, dan));
@@ -89,7 +90,9 @@ public class GetPoslovanjeGodinaHandler(IAppDbContext db, IOptions<KorpiceOpcije
                 AktivniKupci = isporucene
                     .Select(o => PoslovanjeRacun.KljucKupca(o.CustomerId, o.CustomerEmail, o.CustomerPhone, o.Id))
                     .Distinct().Count(),
-                AktivnePretplate = PoslovanjeRacun.AktivnePretplate(pretplate, PoslovanjeKalendar.PocetakUtc(sg, sm)),
+                AktivnePretplate = PoslovanjeKalendar.Indeks(godina, m) > PoslovanjeKalendar.Indeks(sada.Year, sada.Month)
+                    ? null
+                    : PoslovanjeRacun.AktivnePretplate(pretplate, PoslovanjeKalendar.PocetakUtc(sg, sm)),
                 Procjena = prihod.Procjena,
             });
             foreach (var l in isporucene.SelectMany(racun.Linije))

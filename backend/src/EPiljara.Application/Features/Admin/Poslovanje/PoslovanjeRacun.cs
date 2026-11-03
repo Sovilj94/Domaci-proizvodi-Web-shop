@@ -126,7 +126,7 @@ public sealed class PoslovanjeRacun(IReadOnlyDictionary<Guid, Product> katalog)
                     Komada = g.Sum(i => i.Quantity),
                     Prihod = prihod,
                     Nabavno = Math.Round(nabavno, 2),
-                    Marza = Udio(prihod - nabavno, prihod),
+                    Marza = g.Any(i => i.KorpicaStavke.Count == 0) ? null : Udio(prihod - nabavno, prihod),
                 };
             })
             .OrderByDescending(k => k.Prihod)
@@ -268,7 +268,9 @@ public sealed class PoslovanjeRacun(IReadOnlyDictionary<Guid, Product> katalog)
             UdioKorpica = Udio(korpice, ukupnoStavki) ?? 0m,
             UdioSpajza = ukupnoStavki == 0 ? 0m : 1m - (Udio(korpice, ukupnoStavki) ?? 0m),
             Procjena = linije.Any(l => l.Procjena),
-            BezNabavneCijene = linije.Count(l => l.NabavnaJedinicna is null),
+            // Korpica bez redova sadržaja nema izračunljiv trošak — broji se ovdje, da ne prođe tiho sa 100% marže.
+            BezNabavneCijene = linije.Count(l => l.NabavnaJedinicna is null)
+                + stavke.Count(i => JeKorpica(i, katalog) && i.KorpicaStavke.Count == 0),
         };
     }
 }

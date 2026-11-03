@@ -167,7 +167,8 @@ public record MjesecGodineDto
     public decimal? Marza { get; init; }
     public int Narudzbi { get; init; }
     public int AktivniKupci { get; init; }
-    public int AktivnePretplate { get; init; }
+    /// <summary>Aktivne na kraju mjeseca; null za mjesec koji još nije počeo.</summary>
+    public int? AktivnePretplate { get; init; }
     public bool Procjena { get; init; }
 }
 

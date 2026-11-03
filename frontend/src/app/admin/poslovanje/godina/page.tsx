@@ -115,7 +115,7 @@ function Godina() {
                 { naslov: "Marža", vrijednost: (r) => procenat(r.marza), desno: true },
                 { naslov: "Narudžbi", vrijednost: (r) => r.narudzbi, desno: true },
                 { naslov: "Kupaca", vrijednost: (r) => r.aktivniKupci, desno: true },
-                { naslov: "Pretplata", vrijednost: (r) => r.aktivnePretplate, desno: true },
+                { naslov: "Pretplata", vrijednost: (r) => r.aktivnePretplate ?? "—", desno: true },
               ]}
             />
             {d.mjeseci.some((m) => m.procjena) && (

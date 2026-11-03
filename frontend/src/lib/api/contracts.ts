@@ -543,7 +543,8 @@ export interface MjesecGodine {
   marza?: number | null;
   narudzbi: number;
   aktivniKupci: number;
-  aktivnePretplate: number;
+  /** Nema je za mjesec koji još nije počeo. */
+  aktivnePretplate?: number | null;
   procjena: boolean;
 }
 
