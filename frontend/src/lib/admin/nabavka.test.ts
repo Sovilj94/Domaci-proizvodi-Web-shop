@@ -1,23 +1,38 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { StavkaPakerske } from "@/lib/api/contracts";
-import { poProizvodjacu } from "./nabavka.ts";
+import { spisakRobe } from "./nabavka.ts";
 
-const s = (artikal: string, proizvodjac: string, kolicina: number, nabavnaCijena: number | null = null) =>
-  ({ artikal, proizvodjac, selo: proizvodjac ? "Selo" : "", kolicina, nabavnaCijena }) as StavkaPakerske;
+const s = (artikal: string, proizvodjac: string, kolicina: number, nabavnaCijena: number | null = null, jedinica = "kg") =>
+  ({
+    artikal,
+    proizvodjac,
+    selo: "Selo",
+    kolicina,
+    uKorpicama: kolicina,
+    uSpajzu: 0,
+    naStanju: 0,
+    fali: 0,
+    jedinica,
+    artikalObrisan: false,
+    nabavnaCijena,
+  }) as StavkaPakerske;
 
-test("grupiše po proizvođaču, sabira nabavno i preskače artikle bez nabavne cijene", () => {
-  const g = poProizvodjacu([s("Paprika", "Kovačević", 10, 2.2), s("Luk", "Kovačević", 2, 1.05), s("Med", "Jovanović", 1)]);
+test("jedan red po artiklu, bez obzira na proizvođača, po nazivu", () => {
+  const r = spisakRobe([s("Paprika", "Kovačević", 10, 2.2), s("Luk", "Marić", 2), s("Paprika", "Jovanović", 1.5, 2)]);
   assert.deepEqual(
-    g.map((x) => [x.proizvodjac, x.stavke.map((y) => y.artikal), x.trosak]),
+    r.map((x) => [x.artikal, x.kolicina, x.trosak]),
     [
-      ["Jovanović", ["Med"], 0],
-      ["Kovačević", ["Luk", "Paprika"], 24.1],
+      ["Luk", 2, null],
+      ["Paprika", 11.5, 25],
     ],
   );
 });
 
-test("artikli bez proizvođača idu na kraj", () => {
-  const g = poProizvodjacu([s("Jaja", "", 30), s("Sir", "Marić", 1)]);
-  assert.deepEqual(g.map((x) => x.proizvodjac), ["Marić", ""]);
+test("ista roba u drugoj jedinici ostaje poseban red", () => {
+  const r = spisakRobe([s("Jaja", "A", 30, null, "kom"), s("Jaja", "B", 2, null, "kg")]);
+  assert.deepEqual(r.map((x) => [x.jedinica, x.kolicina]).sort(), [
+    ["kg", 2],
+    ["kom", 30],
+  ]);
 });
