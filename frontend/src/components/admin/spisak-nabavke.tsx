@@ -20,7 +20,7 @@ export function NaCekanjuNapomena({ broj: n }: { broj: number }) {
       <Link href="/admin/orders" className="underline underline-offset-2">
         Potvrdi narudžbe
       </Link>{" "}
-      — količine i nabavna vrijednost se tada ažuriraju.
+      — količine i nabavna vrijednost se tada ažuriraju. Nepotvrđene do roka naručivanja sistem sam odbija.
     </p>
   );
 }
