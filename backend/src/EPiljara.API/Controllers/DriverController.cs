@@ -1,4 +1,5 @@
 using EPiljara.Application.Features.Driver;
+using EPiljara.Application.Features.Voznje;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,6 +28,16 @@ public class DriverController : ApiControllerBase
     [HttpGet("driver/routes/history")]
     public async Task<IActionResult> RouteHistory() =>
         Envelope(await Mediator.Send(new GetDriverRouteHistoryQuery()));
+
+    /// <summary>Dnevna tura (km sa povratkom u magacin), procjena goriva i moj unos sa pumpe.</summary>
+    [HttpGet("driver/voznja")]
+    public async Task<IActionResult> MojaVoznja([FromQuery] DateOnly? datum) =>
+        Envelope(await Mediator.Send(new GetMojaVoznjaQuery(datum)));
+
+    /// <summary>Unos ili ispravka plaćenog goriva za dan; iznos null briše unos.</summary>
+    [HttpPut("driver/voznja/gorivo")]
+    public async Task<IActionResult> MojeGorivo([FromBody] SacuvajMojeGorivoCommand body) =>
+        Envelope(await Mediator.Send(body));
 
     [HttpGet("driver/profile")]
     public async Task<IActionResult> Profile() =>

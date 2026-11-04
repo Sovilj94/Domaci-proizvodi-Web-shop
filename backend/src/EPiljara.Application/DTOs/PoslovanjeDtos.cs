@@ -41,8 +41,16 @@ public record GorivoDto
 {
     public double Km { get; init; }
     public int BrojRuta { get; init; }
-    /// <summary>Km × potrošnja × cijena važeća na dan rute; null kad ima ruta a nijedna nema cijenu goriva.</summary>
+    /// <summary>Vozač-dani (jedna dnevna tura sa povratkom u magacin).</summary>
+    public int BrojDana { get; init; }
+    /// <summary>Zbir po danima: plaćeno na pumpi gdje ga je vozač unio, inače km × potrošnja × cijena važeća
+    /// tog dana; null kad ima dana a nijedan nema ni unos ni cijenu goriva.</summary>
     public decimal? PoRutama { get; init; }
+    /// <summary>Čista procjena svih dana (i onih sa unosom) — za poređenje sa plaćenim.</summary>
+    public decimal Procijenjeno { get; init; }
+    /// <summary>Zbir iznosa sa pumpe koje su vozači unijeli.</summary>
+    public decimal PlacenoVozaci { get; init; }
+    public int DanaSaUnosom { get; init; }
     /// <summary>Unijeti računi vrsta označenih kao gorivo.</summary>
     public decimal PoRacunima { get; init; }
     /// <summary>"racuni" kad ih u mjesecu ima, inače "rute".</summary>

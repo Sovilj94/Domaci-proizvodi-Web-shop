@@ -12,7 +12,8 @@ public sealed record TroskoviPodaci(
     IReadOnlyList<Trosak> Troskovi,
     IReadOnlyList<PonavljajuciTrosak> Ponavljajuci,
     IReadOnlyList<DeliveryRoute> Rute,
-    IReadOnlyList<CijenaGoriva> CijeneGoriva)
+    IReadOnlyList<CijenaGoriva> CijeneGoriva,
+    IReadOnlyList<DnevnaVoznja>? Voznje = null)
 {
     public static readonly TroskoviPodaci Prazno = new([], [], [], []);
 }
@@ -41,21 +42,41 @@ public sealed partial class PoslovanjeRacun
         }
         ambalaza = Math.Round(ambalaza, 2);
 
-        // Gorivo po rutama: km cijele ture × potrošnja × cijena važeća na dan rute.
+        // Gorivo po vozaču i danu: jedna dnevna tura (magacin → sve stanice → magacin) × potrošnja ×
+        // cijena važeća tog dana. Iznos sa pumpe koji je vozač unio zamjenjuje procjenu za taj dan.
+        // Dan bez reda DnevnaVoznja (podaci od prije dnevnih procjena) sabira kilometražu svojih ruta.
         var rute = t.Rute.Where(r => r.Date.Year == godina && r.Date.Month == mjesec && Vozena(r)).ToList();
         var cijene = t.CijeneGoriva.OrderBy(c => c.VaziOd).ToList();
+        var voznje = (t.Voznje ?? []).ToDictionary(v => (v.DriverId, v.Datum));
         decimal poRutama = 0m;
+        decimal procijenjeno = 0m;
+        decimal placenoVozaci = 0m;
+        var danaSaUnosom = 0;
         var bezCijene = false;
-        var saCijenom = 0;
+        var saIznosom = 0;
         double km = 0;
-        foreach (var r in rute)
+        var dani = rute.GroupBy(r => (r.DriverId, r.Date)).ToList();
+        foreach (var dan in dani)
         {
-            var kmRute = (r.KilometrazaMetara ?? r.DuzinaMetara ?? 0) / 1000.0;
-            km += kmRute;
-            var c = cijene.LastOrDefault(x => x.VaziOd <= r.Date);
-            if (c is null) { bezCijene = true; continue; }
-            saCijenom++;
-            poRutama += (decimal)kmRute * c.PotrosnjaL100km / 100m * c.CijenaPoLitru;
+            voznje.TryGetValue(dan.Key, out var v);
+            var kmDana = (v?.ProcjenaMetara ?? dan.Sum(r => r.KilometrazaMetara ?? r.DuzinaMetara ?? 0)) / 1000.0;
+            km += kmDana;
+            var c = cijene.LastOrDefault(x => x.VaziOd <= dan.Key.Date);
+            decimal? procjenaDana = c is null ? null : (decimal)kmDana * c.PotrosnjaL100km / 100m * c.CijenaPoLitru;
+            if (procjenaDana is decimal p) procijenjeno += p;
+            if (v?.PlacenoGorivo is decimal placeno)
+            {
+                danaSaUnosom++;
+                placenoVozaci += placeno;
+                poRutama += placeno;
+                saIznosom++;
+            }
+            else if (procjenaDana is decimal pr)
+            {
+                poRutama += pr;
+                saIznosom++;
+            }
+            else bezCijene = true;
         }
 
         // Ručni: jednokratni u mjesecu + ponavljajući koji važe u mjesecu, po vrsti.
@@ -82,7 +103,7 @@ public sealed partial class PoslovanjeRacun
         var poRacunima = poVrsti.Where(v => v.JeGorivo).Sum(v => v.Iznos);
         var imaRacuna = t.Troskovi.Any(x => x.Datum.Year == godina && x.Datum.Month == mjesec && x.Vrsta!.JeGorivo)
                         || t.Ponavljajuci.Any(x => x.VaziU(godina, mjesec) && x.Vrsta!.JeGorivo);
-        decimal? rutama = rute.Count > 0 && saCijenom == 0 ? null : Math.Round(poRutama, 2);
+        decimal? rutama = dani.Count > 0 && saIznosom == 0 ? null : Math.Round(poRutama, 2);
         var gorivoUDobiti = imaRacuna ? poRacunima : rutama ?? 0m;
         var ostali = poVrsti.Where(v => !v.JeGorivo).Sum(v => v.Iznos);
         var ukupno = Math.Round(ambalaza + gorivoUDobiti + ostali, 2);
@@ -97,7 +118,11 @@ public sealed partial class PoslovanjeRacun
             {
                 Km = Math.Round(km, 1),
                 BrojRuta = rute.Count,
+                BrojDana = dani.Count,
                 PoRutama = rutama,
+                Procijenjeno = Math.Round(procijenjeno, 2),
+                PlacenoVozaci = Math.Round(placenoVozaci, 2),
+                DanaSaUnosom = danaSaUnosom,
                 PoRacunima = poRacunima,
                 Izvor = imaRacuna ? "racuni" : "rute",
                 UDobiti = gorivoUDobiti,

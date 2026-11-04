@@ -364,6 +364,71 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("DeliveryZones");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.DnevnaVoznja", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Datum")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("Litara")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<string>("Napomena")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<decimal?>("PlacenoGorivo")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<DateTime?>("PlacenoUneseno")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PlacenoUnio")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int>("ProcjenaBezKoordinata")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ProcjenaIzracunata")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProcjenaIzvor")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<double?>("ProcjenaMetara")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("ProcjenaPotpis")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<double?>("ProcjenaSekundi")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("ProcjenaStanica")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Datum");
+
+                    b.HasIndex("DriverId", "Datum")
+                        .IsUnique();
+
+                    b.ToTable("DnevneVoznje");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Driver", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2068,6 +2133,17 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("DeliveryZone");
+
+                    b.Navigation("Driver");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.DnevnaVoznja", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Driver");
                 });

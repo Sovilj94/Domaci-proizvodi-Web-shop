@@ -49,7 +49,8 @@ public static class PoslovanjePodaci
             await db.PonavljajuciTroskovi.AsNoTracking().Include(t => t.Vrsta).ToListAsync(ct),
             await db.DeliveryRoutes.AsNoTracking().Include(r => r.Stops).ThenInclude(s => s.Order)
                 .Where(r => r.Date >= od && r.Date < doIskljucivo).ToListAsync(ct),
-            await db.CijeneGoriva.AsNoTracking().ToListAsync(ct));
+            await db.CijeneGoriva.AsNoTracking().ToListAsync(ct),
+            await db.DnevneVoznje.AsNoTracking().Where(v => v.Datum >= od && v.Datum < doIskljucivo).ToListAsync(ct));
 
     public static async Task<HashSet<Guid>> PreporuceniAsync(IAppDbContext db, CancellationToken ct) =>
         (await db.Users.AsNoTracking().Where(u => u.PreporucioId != null).Select(u => u.Id).ToListAsync(ct)).ToHashSet();

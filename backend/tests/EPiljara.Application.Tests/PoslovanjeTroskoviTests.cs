@@ -76,6 +76,29 @@ public class PoslovanjeTroskoviTests
     }
 
     [Fact]
+    public async Task Dnevna_tura_i_placeno_gorivo_vozaca_zamjenjuju_procjenu_po_rutama()
+    {
+        var (p, _) = await OktobarAsync();
+        using var _p = p;
+        var db = p.T.Db;
+        var vozac = await db.Drivers.FirstAsync();
+        // 8.10.: dnevna tura 30 km (umjesto 20 po ruti), vozač platio 7,00 KM; 22.10. ostaje po ruti (10 km → 2,40).
+        db.DnevneVoznje.Add(new DnevnaVoznja { DriverId = vozac.Id, Datum = new DateOnly(2026, 10, 8), ProcjenaMetara = 30_000, PlacenoGorivo = 7m });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var g = (await p.MjesecAsync(10)).Troskovi.Gorivo;
+
+        Assert.Equal(40, g.Km);
+        Assert.Equal(2, g.BrojDana);
+        Assert.Equal(9.40m, g.PoRutama);
+        Assert.Equal(8.40m, g.Procijenjeno);
+        Assert.Equal(7m, g.PlacenoVozaci);
+        Assert.Equal(1, g.DanaSaUnosom);
+        Assert.Equal(9.40m, g.UDobiti);
+    }
+
+    [Fact]
     public async Task Dobit_je_neto_manje_nabavno_manje_troskovi()
     {
         var (p, _) = await OktobarAsync();

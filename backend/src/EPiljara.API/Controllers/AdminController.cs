@@ -3,6 +3,7 @@ using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Admin.Poslovanje;
 using EPiljara.Application.Features.Admin.Troskovi;
 using EPiljara.Application.Features.Fiskalizacija;
+using EPiljara.Application.Features.Voznje;
 using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Recepti;
@@ -55,6 +56,19 @@ public class AdminController : ApiControllerBase
     [HttpPut("admin/fiskalna-podesavanja")]
     public async Task<IActionResult> SacuvajFiskalnaPodesavanja([FromBody] SacuvajFiskalnaPodesavanjaCommand c) =>
         Envelope(await Mediator.Send(c));
+
+    /// <summary>Procjena dnevne ture i goriva po vozaču za dan (zastarjele se preračunaju).</summary>
+    [HttpGet("admin/voznje")]
+    public async Task<IActionResult> Voznje([FromQuery] DateOnly datum) =>
+        EnvelopeList(await Mediator.Send(new GetVoznjeDanaQuery(datum)));
+
+    [HttpGet("admin/voznje/mjesec")]
+    public async Task<IActionResult> VoznjeMjeseca([FromQuery] int godina, [FromQuery] int mjesec) =>
+        EnvelopeList(await Mediator.Send(new GetVoznjeMjesecaQuery(godina, mjesec)));
+
+    [HttpPut("admin/voznje/{id:guid}/gorivo")]
+    public async Task<IActionResult> GorivoVoznje(Guid id, [FromBody] GorivoUnos body) =>
+        Envelope(await Mediator.Send(new SacuvajGorivoVoznjeCommand(id, body.Iznos, body.Litara, body.Napomena)));
 
     [HttpGet("admin/troskovi")]
     public async Task<IActionResult> Troskovi([FromQuery] int godina, [FromQuery] int mjesec) =>
