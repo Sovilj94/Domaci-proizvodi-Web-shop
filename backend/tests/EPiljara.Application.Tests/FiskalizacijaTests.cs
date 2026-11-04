@@ -55,10 +55,10 @@ public class FiskalizacijaTests
     }
 
     private static Task IsporuciAsync(Osnova o, string status = "Delivered") =>
-        new UpdateOrderStatusHandler(o.T.Db, Options.Create(new PoeniOpcije())).Handle(new UpdateOrderStatusCommand(o.Narudzba.Id, status), default);
+        new UpdateOrderStatusHandler(o.T.Db, Options.Create(new PoeniOpcije()), new FakeEmail()).Handle(new UpdateOrderStatusCommand(o.Narudzba.Id, status), default);
 
     private static Task<int> ObradiAsync(Osnova o, DateTime sada) =>
-        new ObradiFiskalneRacuneHandler(o.T.Db, o.Dobavljac).Handle(new ObradiFiskalneRacuneCommand(sada), default);
+        new ObradiFiskalneRacuneHandler(o.T.Db, o.Dobavljac, new FakeEmail()).Handle(new ObradiFiskalneRacuneCommand(sada), default);
 
     private static async Task<FiskalniRacun> RacunAsync(Osnova o, VrstaFiskalnogRacuna vrsta = VrstaFiskalnogRacuna.Promet)
     {

@@ -56,7 +56,7 @@ public class OdbijanjeNepotvrdjenihTests
     }
 
     private static Task<int> OdbijAsync(Osnova o, DateTime sada) =>
-        new OdbijNepotvrdjeneHandler(o.T.Db, Options.Create(TestOpcije.Korpice()), Options.Create(new Features.Poeni.PoeniOpcije()))
+        new OdbijNepotvrdjeneHandler(o.T.Db, Options.Create(TestOpcije.Korpice()), Options.Create(new Features.Poeni.PoeniOpcije()), new FakeEmail())
             .Handle(new OdbijNepotvrdjeneCommand(sada), default);
 
     [Fact]

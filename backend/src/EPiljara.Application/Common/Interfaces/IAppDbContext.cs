@@ -66,6 +66,8 @@ public interface IAppDbContext
     DbSet<PonavljajuciTrosak> PonavljajuciTroskovi { get; }
     DbSet<CijenaGoriva> CijeneGoriva { get; }
     DbSet<DnevnaVoznja> DnevneVoznje { get; }
+    DbSet<EmailPoruka> EmailPoruke { get; }
+    DbSet<EmailKampanja> EmailKampanje { get; }
     DbSet<FiskalniRacun> FiskalniRacuni { get; }
 
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>

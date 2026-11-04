@@ -86,7 +86,7 @@ public static class FiskalizacijaPravila
 /// <summary>Šalje dobavljaču račune na čekanju i one čiji je ponovni pokušaj došao. Vraća broj izdatih.</summary>
 public record ObradiFiskalneRacuneCommand(DateTime? Sada = null) : IRequest<int>;
 
-public class ObradiFiskalneRacuneHandler(IAppDbContext db, IFiskalniDobavljac dobavljac)
+public class ObradiFiskalneRacuneHandler(IAppDbContext db, IFiskalniDobavljac dobavljac, IEmailService email)
     : IRequestHandler<ObradiFiskalneRacuneCommand, int>
 {
     private const int Paket = 20;
@@ -146,6 +146,13 @@ public class ObradiFiskalneRacuneHandler(IAppDbContext db, IFiskalniDobavljac do
             }
             // Svaki račun zasebno: ako padne upis drugog, prvi izdat ne smije ostati „na čekanju" (bio bi izdat dvaput).
             await db.SaveChangesAsync(ct);
+
+            // Trajna greška čeka čovjeka — javi radnicima jednom po pokušaju.
+            if (!odgovor.Uspjeh && odgovor.Trajna)
+            {
+                var kod = await db.Orders.Where(o => o.Id == r.OrderId).Select(o => o.Code).FirstOrDefaultAsync(ct) ?? "";
+                await Mejlovi.ObavjestenjaPravila.FiskalnaGreskaAsync(db, email, r, kod, ct);
+            }
         }
         return izdato;
     }

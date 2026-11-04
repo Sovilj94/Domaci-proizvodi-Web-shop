@@ -61,6 +61,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PonavljajuciTrosak> PonavljajuciTroskovi => Set<PonavljajuciTrosak>();
     public DbSet<CijenaGoriva> CijeneGoriva => Set<CijenaGoriva>();
     public DbSet<DnevnaVoznja> DnevneVoznje => Set<DnevnaVoznja>();
+    public DbSet<EmailPoruka> EmailPoruke => Set<EmailPoruka>();
+    public DbSet<EmailKampanja> EmailKampanje => Set<EmailKampanja>();
     public DbSet<FiskalniRacun> FiskalniRacuni => Set<FiskalniRacun>();
 
     /// <summary>
@@ -263,6 +265,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Pismo).HasConversion<string>().HasMaxLength(16).HasDefaultValue(Pismo.Latinica);
             e.HasIndex(x => x.Email).IsUnique();
             e.Property(x => x.PreporukaKod).HasMaxLength(8);
+            e.Property(x => x.ResetLozinkeHash).HasMaxLength(64);
             // Filter jer većina naloga nema kod; bez njega bi null kodovi branili jedan drugog.
             e.HasIndex(x => x.PreporukaKod).IsUnique().HasFilter("\"PreporukaKod\" IS NOT NULL");
             e.HasOne<User>().WithMany().HasForeignKey(x => x.PreporucioId)
@@ -436,6 +439,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.FiskalStopaPdv).HasPrecision(5, 2).HasDefaultValue(17m);
             e.Property(x => x.FiskalOznakaPdv).HasMaxLength(10).IsRequired().HasDefaultValue("E");
             e.Property(x => x.FiskalOznakaBezPdv).HasMaxLength(10).IsRequired().HasDefaultValue("A");
+            e.Property(x => x.ObavRadniciPrimaoci).HasMaxLength(1000).IsRequired().HasDefaultValue("");
+            e.Property(x => x.ObavVozacPlanSat).HasDefaultValue(17);
+        });
+
+        b.Entity<EmailPoruka>(e =>
+        {
+            e.Property(x => x.Primalac).HasMaxLength(256).IsRequired();
+            e.Property(x => x.PrimalacIme).HasMaxLength(160);
+            e.Property(x => x.Naslov).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Html).IsRequired();
+            e.Property(x => x.Vrsta).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Kljuc).HasMaxLength(400);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.ZadnjaGreska).HasMaxLength(1000);
+            e.Property(x => x.DobavljacId).HasMaxLength(200);
+            e.Property(x => x.Transport).HasMaxLength(20);
+            e.HasIndex(x => x.Kljuc).IsUnique().HasFilter("\"Kljuc\" IS NOT NULL");
+            e.HasIndex(x => new { x.Status, x.SljedeciPokusaj });
+            e.HasIndex(x => x.Kreirana);
+            e.HasIndex(x => x.KampanjaId);
+        });
+
+        b.Entity<EmailKampanja>(e =>
+        {
+            e.Property(x => x.Naslov).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Tekst).HasMaxLength(10000).IsRequired();
+            e.Property(x => x.Grupa).HasMaxLength(20).IsRequired();
+            e.Property(x => x.GrupaOpis).HasMaxLength(200).IsRequired();
         });
 
         b.Entity<BlokSadrzaja>(e =>

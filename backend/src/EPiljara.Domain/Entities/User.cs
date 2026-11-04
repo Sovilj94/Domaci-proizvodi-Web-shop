@@ -30,4 +30,11 @@ public class User : Entity
 
     /// <summary>Pismo za mejlove i pretplatne narudžbe; mijenja se `PUT /account/pismo`.</summary>
     public Pismo Pismo { get; set; } = Pismo.Latinica;
+
+    /// <summary>Kupac se odjavio sa ručnih obavještenja (link u mejlu). Mejlovi o njegovim narudžbama i dalje stižu.</summary>
+    public bool OdjavljenOdObavjestenja { get; set; }
+
+    /// <summary>SHA-256 tokena iz mejla „Zaboravljena lozinka" — sam token se nikad ne čuva.</summary>
+    public string? ResetLozinkeHash { get; set; }
+    public DateTime? ResetLozinkeIstice { get; set; }
 }

@@ -219,7 +219,7 @@ public class PoeniPravilaTests
     {
         var (t, _, order) = await PripremiAsync();
         using var _t = t;
-        await new UpdateOrderStatusHandler(t.Db, Options.Create(O))
+        await new UpdateOrderStatusHandler(t.Db, Options.Create(O), new FakeEmail())
             .Handle(new UpdateOrderStatusCommand(order.Id, "Delivered"), default);
         var s = await t.Db.PoeniStavke.SingleAsync();
         Assert.Equal((VrstaPoena.Isporuka, 30), (s.Vrsta, s.Iznos));

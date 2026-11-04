@@ -151,7 +151,7 @@ public class VoznjeTests
         var opt = new BrojaciOptimizer(50_000); // 50 km → 4 l → 10,00 KM
         var vozac = new FakeCurrentUser(o.Korisnik.Id, UserRole.Driver);
 
-        var v = await new SacuvajMojeGorivoHandler(o.T.Db, vozac, opt)
+        var v = await new SacuvajMojeGorivoHandler(o.T.Db, vozac, opt, new FakeEmail())
             .Handle(new SacuvajMojeGorivoCommand(Danas, 13m, 5.2m, "  Gužva na Kozari "), default);
 
         Assert.Equal(10.00m, v.ProcjenaGoriva);
@@ -163,7 +163,7 @@ public class VoznjeTests
         Assert.True(v.BitnoOdstupanje);
 
         o.T.Db.ChangeTracker.Clear();
-        var obrisano = await new SacuvajMojeGorivoHandler(o.T.Db, vozac, opt)
+        var obrisano = await new SacuvajMojeGorivoHandler(o.T.Db, vozac, opt, new FakeEmail())
             .Handle(new SacuvajMojeGorivoCommand(Danas, null, null, null), default);
         Assert.Null(obrisano.PlacenoGorivo);
         Assert.Null(obrisano.OdstupanjeProcenat);
@@ -176,7 +176,7 @@ public class VoznjeTests
         using var _ = o.T;
         var stari = Danas.AddDays(-(SacuvajMojeGorivoHandler.DanaUnazad + 1));
         Ruta(o, stari, "Centar", (44.77, 17.19, OrderStatus.Delivered));
-        var h = new SacuvajMojeGorivoHandler(o.T.Db, new FakeCurrentUser(o.Korisnik.Id, UserRole.Driver), new BrojaciOptimizer(1));
+        var h = new SacuvajMojeGorivoHandler(o.T.Db, new FakeCurrentUser(o.Korisnik.Id, UserRole.Driver), new BrojaciOptimizer(1), new FakeEmail());
 
         var nema = await Assert.ThrowsAsync<DomainException>(() => h.Handle(new SacuvajMojeGorivoCommand(Danas, 10m, null, null), default));
         Assert.Equal("nema_voznje", nema.Code);
@@ -193,7 +193,7 @@ public class VoznjeTests
         Ruta(o, Danas, "Centar", (44.77, 17.19, OrderStatus.Delivered));
         Ruta(o, sutra, "Borik", (44.78, 17.20, OrderStatus.Packing));
         var opt = new BrojaciOptimizer(10_000);
-        await new SacuvajMojeGorivoHandler(o.T.Db, new FakeCurrentUser(o.Korisnik.Id, UserRole.Driver), opt)
+        await new SacuvajMojeGorivoHandler(o.T.Db, new FakeCurrentUser(o.Korisnik.Id, UserRole.Driver), opt, new FakeEmail())
             .Handle(new SacuvajMojeGorivoCommand(Danas, 5m, null, null), default);
         await DanAsync(o, opt, sutra);
 

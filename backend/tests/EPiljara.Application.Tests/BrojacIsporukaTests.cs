@@ -108,7 +108,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync();
 
-        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts)
+        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts, new FakeEmail())
             .Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
 
         Assert.Equal(3, await s.BrojIsporukaAsync());
@@ -119,7 +119,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync();
 
-        await new UpdateStopStatusHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver), PoeniOpts)
+        await new UpdateStopStatusHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver), PoeniOpts, new FakeEmail())
             .Handle(new UpdateStopStatusCommand(s.Narudzba.Id, "Delivered"), default);
 
         Assert.Equal(3, await s.BrojIsporukaAsync());
@@ -130,7 +130,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync();
 
-        await new UpdateStopStatusHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver), PoeniOpts)
+        await new UpdateStopStatusHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver), PoeniOpts, new FakeEmail())
             .Handle(new UpdateStopStatusCommand(s.Narudzba.Id, "Delivered"), default);
 
         s.Ctx.ChangeTracker.Clear();
@@ -146,7 +146,7 @@ public class BrojacIsporukaTests
     public async Task Ponovno_oznacavanje_isporucenog_ne_broji_drugi_put()
     {
         using var s = await Scena.SpremiAsync();
-        var handler = new UpdateOrderStatusHandler(s.Ctx, PoeniOpts);
+        var handler = new UpdateOrderStatusHandler(s.Ctx, PoeniOpts, new FakeEmail());
 
         await handler.Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
         await handler.Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
@@ -159,7 +159,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync();
 
-        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts)
+        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts, new FakeEmail())
             .Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "FailedDelivery"), default);
 
         Assert.Equal(2, await s.BrojIsporukaAsync());
@@ -170,7 +170,7 @@ public class BrojacIsporukaTests
     {
         using var s = await Scena.SpremiAsync(pretplatna: false);
 
-        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts)
+        await new UpdateOrderStatusHandler(s.Ctx, PoeniOpts, new FakeEmail())
             .Handle(new UpdateOrderStatusCommand(s.Narudzba.Id, "Delivered"), default);
 
         Assert.Equal(2, await s.BrojIsporukaAsync());

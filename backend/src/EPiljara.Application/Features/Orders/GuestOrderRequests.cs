@@ -401,6 +401,7 @@ public class ConfirmGuestOrderHandler(
         {
             // Notification failures never block a confirmed order.
         }
+        await Mejlovi.ObavjestenjaPravila.NovaNarudzbaAsync(db, email, order, ct);
 
         return order.ToDto();
     }

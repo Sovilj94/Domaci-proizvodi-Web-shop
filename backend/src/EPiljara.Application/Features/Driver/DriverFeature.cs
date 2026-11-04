@@ -82,7 +82,7 @@ public class GetDriverRoutesHandler(IAppDbContext db, ICurrentUser current)
 
 public record UpdateStopStatusCommand(Guid OrderId, string Status) : IRequest<OrderDto>;
 
-public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOptions<PoeniOpcije> poeni)
+public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOptions<PoeniOpcije> poeni, IEmailService email)
     : IRequestHandler<UpdateStopStatusCommand, OrderDto>
 {
     private static readonly HashSet<OrderStatus> Allowed = [OrderStatus.Delivered, OrderStatus.FailedDelivery];
@@ -118,11 +118,13 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         // Ruta se može dodijeliti narudžbi koja je još Confirmed/Packing (vidi ASSIGNABLE
         // u admin panelu). Mašina stanja dozvoljava Delivered samo iz OutForDelivery, pa je
         // ovdje prevodimo kroz međukorake — svaki pojedinačni prelaz je dozvoljen.
+        var stari = order.Status;
         if (order.Status is OrderStatus.Confirmed) order.TransitionTo(OrderStatus.Packing);
         if (order.Status is OrderStatus.Packing) order.TransitionTo(OrderStatus.OutForDelivery);
         order.TransitionTo(status);
         order.ZatvorenaU = DateTime.UtcNow;
         await IstovremenaPromjena.SacuvajAsync(db, ct);
+        await Mejlovi.ObavjestenjaPravila.StatusNarudzbeAsync(db, email, order, stari, false, ct);
         return order.ToDto();
     }
 }

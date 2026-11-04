@@ -49,16 +49,15 @@ services:
       - key: ADMIN_NAME
         sync: false
 
-      # --- Email (opciono). Free Render blokira SMTP portove 25/465/587 — koristi 2525. ---
-      - key: Email__SmtpHost
+      # --- Email. Free Render blokira SMTP (25/465/587), pa mejl ide preko Brevo HTTP API-ja.
+      # Koraci (domen, SPF/DKIM, ključ) su u DEPLOY.md, „Mejlovi u produkciji". ---
+      - key: Email__Transport    # "brevo" u produkciji; "smtp" samo za lokalni Mailpit
+        value: brevo
+      - key: Email__Brevo__ApiKey
         sync: false
-      - key: Email__SmtpPort
+      - key: Email__From         # adresa na domenu potvrđenom u Brevu
         sync: false
-      - key: Email__UseSsl
-        sync: false
-      - key: Email__Username
-        sync: false
-      - key: Email__Password
-        sync: false
-      - key: Email__From
+      - key: Email__FromName
+        value: E piljara
+      - key: Email__ReplyTo      # adresa koju neko čita — odgovori kupaca
         sync: false

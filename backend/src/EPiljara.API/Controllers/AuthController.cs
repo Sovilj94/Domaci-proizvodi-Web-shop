@@ -35,6 +35,19 @@ public class AuthController : ApiControllerBase
         return Envelope(new { message = "Ako nalog postoji i nije potvrđen, poslali smo novi link." });
     }
 
+    /// <summary>Mejl sa linkom za novu lozinku. Odgovor je uvijek isti — ne otkriva da li nalog postoji.</summary>
+    [HttpPost("auth/zaboravljena-lozinka")]
+    public async Task<IActionResult> ZaboravljenaLozinka([FromBody] ZaboravljenaLozinkaCommand command)
+    {
+        await Mediator.Send(command);
+        return Envelope(new { message = "Ako nalog sa tom adresom postoji, poslali smo link za novu lozinku." });
+    }
+
+    /// <summary>Nova lozinka iz linka; uspjeh odmah prijavljuje.</summary>
+    [HttpPost("auth/nova-lozinka")]
+    public async Task<IActionResult> NovaLozinka([FromBody] NovaLozinkaCommand command) =>
+        Envelope(await Mediator.Send(command));
+
     [Authorize]
     [HttpGet("auth/me")]
     public async Task<IActionResult> Me() =>

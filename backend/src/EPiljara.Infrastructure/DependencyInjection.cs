@@ -2,6 +2,7 @@ using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Infrastructure.Persistence;
 using EPiljara.Infrastructure.Services;
+using EPiljara.Infrastructure.Services.Mejlovi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,7 +33,29 @@ public static class DependencyInjection
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IEmailService, SmtpEmailService>();
+        // Mejlovi: servis samo upisuje u red, a transport (bira konfiguracija) šalje iz pozadinskog posla.
+        // Nepoznat transport ili brevo bez ključa ruši pokretanje — tiho nijedan mejl je gore od pada.
+        services.AddScoped<IEmailService, RedEmailService>();
+        services.AddSingleton<IEmailSignal, EmailSignal>();
+        services.AddSingleton<IOdjavaPotpis, OdjavaPotpis>();
+        var transport = (config["Email:Transport"] ?? "smtp").Trim().ToLowerInvariant();
+        switch (transport)
+        {
+            case "smtp":
+                services.AddSingleton<IEmailTransport, SmtpEmailTransport>();
+                break;
+            case "brevo":
+                if (string.IsNullOrWhiteSpace(config["Email:Brevo:ApiKey"]))
+                    throw new InvalidOperationException("Email:Transport je „brevo\", a Email:Brevo:ApiKey nije postavljen.");
+                services.AddHttpClient<IEmailTransport, BrevoEmailTransport>(c =>
+                {
+                    c.BaseAddress = new Uri(config["Email:Brevo:BaseUrl"] is { Length: > 0 } u ? u : "https://api.brevo.com/");
+                    c.Timeout = TimeSpan.FromSeconds(20);
+                }).RemoveAllLoggers();
+                break;
+            default:
+                throw new InvalidOperationException($"Nepoznat Email:Transport „{transport}\". Podržano: smtp, brevo.");
+        }
         services.AddScoped<IViberService, LoggingViberService>();
         services.AddScoped<ISocialAuthVerifier, SocialAuthVerifier>();
 

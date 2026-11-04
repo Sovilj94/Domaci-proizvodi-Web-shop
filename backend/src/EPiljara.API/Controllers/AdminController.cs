@@ -4,6 +4,7 @@ using EPiljara.Application.Features.Admin.Poslovanje;
 using EPiljara.Application.Features.Admin.Troskovi;
 using EPiljara.Application.Features.Fiskalizacija;
 using EPiljara.Application.Features.Voznje;
+using EPiljara.Application.Features.Mejlovi;
 using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Recepti;
@@ -56,6 +57,41 @@ public class AdminController : ApiControllerBase
     [HttpPut("admin/fiskalna-podesavanja")]
     public async Task<IActionResult> SacuvajFiskalnaPodesavanja([FromBody] SacuvajFiskalnaPodesavanjaCommand c) =>
         Envelope(await Mediator.Send(c));
+
+    /* ---------- Mejlovi: red, obavještenja, ručno slanje ---------- */
+
+    [HttpGet("admin/mejlovi")]
+    public async Task<IActionResult> Mejlovi([FromQuery] string? status, [FromQuery] string? vrsta, [FromQuery] string? trazi) =>
+        Envelope(await Mediator.Send(new GetEmailoviQuery(status, vrsta, trazi)));
+
+    [HttpGet("admin/mejlovi/{id:guid}")]
+    public async Task<IActionResult> Mejl(Guid id) => Envelope(await Mediator.Send(new GetEmailQuery(id)));
+
+    [HttpPost("admin/mejlovi/{id:guid}/ponovi")]
+    public async Task<IActionResult> PonoviMejl(Guid id) => Envelope(await Mediator.Send(new PonoviEmailCommand(id)));
+
+    [HttpPost("admin/mejlovi/probni")]
+    public async Task<IActionResult> ProbniMejl([FromBody] PosaljiProbniEmailCommand c)
+    {
+        await Mediator.Send(c);
+        return Envelope(new { message = "Probni mejl je u redu za slanje." });
+    }
+
+    [HttpGet("admin/obavjestenja")]
+    public async Task<IActionResult> Obavjestenja() => Envelope(await Mediator.Send(new GetObavjestenjaPodesavanjaQuery()));
+
+    [HttpPut("admin/obavjestenja")]
+    public async Task<IActionResult> SacuvajObavjestenja([FromBody] SacuvajObavjestenjaPodesavanjaCommand c) =>
+        Envelope(await Mediator.Send(c));
+
+    [HttpPost("admin/mejlovi/kampanja/pregled")]
+    public async Task<IActionResult> PregledKampanje([FromBody] PregledKampanjeQuery q) => Envelope(await Mediator.Send(q));
+
+    [HttpPost("admin/mejlovi/kampanja")]
+    public async Task<IActionResult> PosaljiKampanju([FromBody] PosaljiKampanjuCommand c) => EnvelopeCreated(await Mediator.Send(c));
+
+    [HttpGet("admin/mejlovi/kampanje")]
+    public async Task<IActionResult> Kampanje() => EnvelopeList(await Mediator.Send(new GetKampanjeQuery()));
 
     /// <summary>Procjena dnevne ture i goriva po vozaču za dan (zastarjele se preračunaju).</summary>
     [HttpGet("admin/voznje")]

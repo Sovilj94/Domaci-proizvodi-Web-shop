@@ -21,8 +21,10 @@ public class ProcjenaVoznjiService(IServiceScopeFactory scopeFactory, ILogger<Pr
             try
             {
                 using var scope = scopeFactory.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<ISender>()
-                    .Send(new OsvjeziProcjeneVoznjiCommand(), stoppingToken);
+                var sender = scope.ServiceProvider.GetRequiredService<ISender>();
+                await sender.Send(new OsvjeziProcjeneVoznjiCommand(), stoppingToken);
+                // Plan za sutra vozačima — od podešenog sata, jednom po vozaču i danu.
+                await sender.Send(new EPiljara.Application.Features.Mejlovi.PosaljiPlanoveVozacaCommand(), stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

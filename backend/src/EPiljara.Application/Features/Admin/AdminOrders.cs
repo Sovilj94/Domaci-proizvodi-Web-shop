@@ -105,7 +105,7 @@ public class GetAdminOrdersHandler(IAppDbContext db)
 
 public record UpdateOrderStatusCommand(Guid Id, string Status) : IRequest<OrderDto>;
 
-public class UpdateOrderStatusHandler(IAppDbContext db, IOptions<PoeniOpcije> poeni)
+public class UpdateOrderStatusHandler(IAppDbContext db, IOptions<PoeniOpcije> poeni, IEmailService email)
     : IRequestHandler<UpdateOrderStatusCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(UpdateOrderStatusCommand cmd, CancellationToken ct)
@@ -129,8 +129,11 @@ public class UpdateOrderStatusHandler(IAppDbContext db, IOptions<PoeniOpcije> po
         // Fiskalni račun nastaje uz isporuku, u istom upisu (vidi Fiskalizacija).
         await Fiskalizacija.FiskalizacijaPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, ct);
 
+        var stari = order.Status;
         order.TransitionTo(status);
         await IstovremenaPromjena.SacuvajAsync(db, ct);
+        // Poslije upisa: mejl ide u red zasebno i ne može oboriti promjenu statusa.
+        await Mejlovi.ObavjestenjaPravila.StatusNarudzbeAsync(db, email, order, stari, false, ct);
         return order.ToDto();
     }
 }

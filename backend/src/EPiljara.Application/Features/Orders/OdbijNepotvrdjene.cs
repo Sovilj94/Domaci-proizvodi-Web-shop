@@ -20,7 +20,7 @@ namespace EPiljara.Application.Features.Orders;
 /// </summary>
 public record OdbijNepotvrdjeneCommand(DateTime? Sada = null) : IRequest<int>;
 
-public class OdbijNepotvrdjeneHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije, IOptions<PoeniOpcije> poeni)
+public class OdbijNepotvrdjeneHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije, IOptions<PoeniOpcije> poeni, IEmailService email)
     : IRequestHandler<OdbijNepotvrdjeneCommand, int>
 {
     public async Task<int> Handle(OdbijNepotvrdjeneCommand c, CancellationToken ct)
@@ -51,6 +51,11 @@ public class OdbijNepotvrdjeneHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Kupcu po narudžbi (ključ sprečava drugi mejl), radnicima jedan sažetak.
+        foreach (var n in istekle)
+            await Mejlovi.ObavjestenjaPravila.StatusNarudzbeAsync(db, email, n, OrderStatus.Pending, true, ct);
+        await Mejlovi.ObavjestenjaPravila.OdbijeneAsync(db, email, istekle, ct);
         return istekle.Count;
     }
 }

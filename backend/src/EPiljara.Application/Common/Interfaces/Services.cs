@@ -46,6 +46,55 @@ public interface IEmailService
 
     /// <summary>A2b: adminima — korpice sa aktivnim pretplatama kojima sadržaj ciljne sedmice nije objavljen, a rok se bliži.</summary>
     Task SendAlarmSadrzajaAsync(IReadOnlyList<User> admini, IReadOnlyList<(string Korpica, int Pretplata)> stavke, DateTime rok, CancellationToken cancellationToken = default);
+
+    /// <summary>Kupcu: narudžba je potvrđena, isporučena, nije uručena ili otkazana (automatski = nije potvrđena do roka).</summary>
+    Task SendStatusNarudzbeAsync(Order order, OrderStatus status, bool automatski = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Radnicima i vozačima: kratko obavještenje (naslov, redovi teksta, dugme sa putanjom u aplikaciji).
+    /// Ključ sprečava da isti događaj ode dvaput (npr. "plan:{vozac}:{datum}").
+    /// </summary>
+    Task SendObavjestenjeAsync(IReadOnlyList<string> primaoci, string vrsta, string naslov, IReadOnlyList<string> redovi,
+        string? dugme = null, string? putanja = null, string? kljuc = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Link za novu lozinku (token je jednokratan, važi 1 h).</summary>
+    Task SendResetLozinkeAsync(User user, string token, CancellationToken cancellationToken = default);
+
+    /// <summary>Ručno obavještenje grupi; primalac sa Odjava=true dobija link za odjavu.</summary>
+    Task SendKampanjaAsync(EmailKampanja kampanja, IReadOnlyList<PrimalacKampanje> primaoci, CancellationToken cancellationToken = default);
+
+    /// <summary>Probni mejl sa stranice Mejlovi — provjera da dobavljač radi.</summary>
+    Task SendProbniAsync(string primalac, CancellationToken cancellationToken = default);
+}
+
+public sealed record PrimalacKampanje(string Email, string? Ime, bool Odjava, Pismo Pismo = Pismo.Latinica);
+
+/* ---------- Slanje mejlova iz reda ---------- */
+
+public sealed record EmailZaSlanje(Guid Id, string Primalac, string? PrimalacIme, string Naslov, string Html);
+
+/// <summary>Trajna = dobavljač je odbio poruku (npr. neispravna adresa); ponovni pokušaj ne bi pomogao.</summary>
+public sealed record EmailRezultat(bool Uspjeh, string? DobavljacId = null, string? Greska = null, bool Trajna = false);
+
+/// <summary>Kako mejl stvarno odlazi: SMTP (dev Mailpit) ili HTTP API dobavljača (Brevo) — bira konfiguracija.</summary>
+public interface IEmailTransport
+{
+    string Naziv { get; }
+    Task<EmailRezultat> PosaljiAsync(EmailZaSlanje poruka, CancellationToken ct);
+}
+
+/// <summary>Budi posao slanja čim je mejl upisan u red, da kupac ne čeka sljedeći krug.</summary>
+public interface IEmailSignal
+{
+    void Probudi();
+    Task CekajAsync(TimeSpan najduze, CancellationToken ct);
+}
+
+/// <summary>Potpis adrese za link „Odjavi se" — bez tabele tokena, a link ne može da se izmisli za tuđu adresu.</summary>
+public interface IOdjavaPotpis
+{
+    string Potpisi(string email);
+    bool Provjeri(string email, string potpis);
 }
 
 /// <summary>Input for route optimization — one entry per delivery stop.</summary>

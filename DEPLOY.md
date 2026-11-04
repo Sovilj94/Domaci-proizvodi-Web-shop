@@ -134,16 +134,9 @@ admin iz `ADMIN_EMAIL` je odvojen od njih i ima samo tvoju lozinku.
   `NEXT_PUBLIC_SITE_URL=https://…` i `SEO_INDEX=true`, uradi Redeploy, pa prijavi
   `/sitemap.xml` u Google Search Console (vidi `PRODUCTION.md`, sekcija SEO).
 
-- **Email (SMTP).** Render free blokira odlazni SMTP na portovima 25, 465 i 587. Bez mejla:
-  - nova registracija ne može da potvrdi nalog, a prijava se odbija dok nalog nije potvrđen;
-  - gost-narudžba se nikad ne napravi, jer se kreira tek klikom na link iz mejla.
-
-  Rješenja bez izmjene koda:
-  - koristi demo naloge, ili ručno potvrdi nalog u Neon SQL editoru:
-    `UPDATE "Users" SET "EmailConfirmed" = true WHERE "Email" = '…';`
-  - ili uzmi SMTP provajdera koji nudi **port 2525** (Brevo, SendGrid, Mailgun…) i postavi
-    `Email__SmtpHost`, `Email__SmtpPort=2525`, `Email__UseSsl`, `Email__Username`,
-    `Email__Password` i `Email__From` (adresa koju je provajder verifikovao).
+- **Mejlovi.** Svaki mejl prvo ide u red u bazi (`/admin/mejlovi` pokazuje šta je poslato, šta čeka i
+  zašto nije prošlo), a šalje ga pozadinski posao. Render free blokira odlazni SMTP (25/465/587), pa u
+  produkciji mejl ide preko **Brevo HTTP API-ja** (port 443). Vidi „Mejlovi u produkciji" ispod.
 - **Pozadinski poslovi** (pretplatne narudžbe, zaključavanje sedmičnog sadržaja, čišćenje
   isteklih gost-zahtjeva) rade samo dok je servis budan, a dok spava ništa se ne izvršava.
   Ako testirate pretplate ili rokove, otvorite sajt prije roka.
@@ -168,3 +161,44 @@ docker run --rm -p 10000:10000 -e PORT=10000 -e ASPNETCORE_ENVIRONMENT=Productio
   -e Jwt__SigningKey=<min-32-znaka> epiljara-api
 curl http://localhost:10000/health   # {"status":"ok"}
 ```
+
+## Mejlovi u produkciji (Brevo)
+
+Kod je spreman; treba samo nalog kod dobavljača i DNS zapisi domena. Brevo je izabran jer šalje preko
+HTTPS-a (radi na Renderu), besplatno daje **300 mejlova dnevno**, a serveri su u EU.
+
+1. **Nalog:** <https://www.brevo.com> → registracija (besplatni plan).
+2. **Domen pošiljaoca** (bez ovoga mejlovi idu u spam ili ih Brevo odbija):
+   Brevo → *Senders, Domains & Dedicated IPs* → *Domains* → *Add a domain* (npr. `epiljara.ba`).
+   Brevo prikaže zapise koje treba dodati kod registrara domena:
+   - **TXT `brevo-code`** — potvrda vlasništva,
+   - **DKIM** (TXT ili CNAME, kako Brevo ponudi),
+   - **SPF**: ako domen već ima `v=spf1 …`, dopiši `include:spf.brevo.com`; inače `v=spf1 include:spf.brevo.com ~all`,
+   - **DMARC** (preporuka): TXT na `_dmarc` sa `v=DMARC1; p=none; rua=mailto:tvoja@adresa`.
+   Kad Brevo pokaže sve zelene kvačice, domen je potvrđen.
+3. **Pošiljalac:** *Senders* → *Add a sender* → npr. `narudzbe@epiljara.ba`, ime „E piljara".
+4. **API ključ:** *SMTP & API* → *API Keys* → *Generate a new API key*. Ključ se vidi samo jednom.
+5. **Render → epiljara-api → Environment:**
+
+   | Ključ | Vrijednost |
+   | --- | --- |
+   | `Email__Transport` | `brevo` |
+   | `Email__Brevo__ApiKey` | ključ iz koraka 4 |
+   | `Email__From` | adresa iz koraka 3 (mora biti na potvrđenom domenu) |
+   | `Email__FromName` | `E piljara` |
+   | `Email__ReplyTo` | adresa koju neko stvarno čita (odgovori kupaca stižu tu) |
+   | `App__BaseUrl` | javna adresa sajta — od nje su linkovi u mejlovima |
+
+   Sačuvaj → Render sam redeploya. Bez ključa uz `Email__Transport=brevo` API namjerno ne starta.
+6. **Provjera:** `/admin/mejlovi` → „Pošalji probni mejl". Status „Poslato" znači da ga je Brevo primio;
+   provjeri i da nije u spamu. Greška (npr. `Brevo 401` — pogrešan ključ, ili nepotvrđen pošiljalac)
+   piše uz mejl; kad je popraviš, mejlovi iz reda odu sami, a oni sa „Greška" šalješ ponovo jednim klikom.
+7. **Kome idu obavještenja radnicima:** `/admin/mejlovi` → Podešavanja → „Primaoci" (prazno = svi admini).
+
+**Render free spava** poslije ~15 min bez posjeta: mejl napravljen u zahtjevu ode odmah (servis je tada
+budan), ali plan vozačima u 17 h i ponovni pokušaji idu tek kad se servis probudi. Rješenje bez troška:
+besplatan ping (npr. cron-job.org) na `https://epiljara-api.onrender.com/health` svakih 10 minuta — jedan
+servis budan cijeli mjesec staje u 750 besplatnih sati.
+
+**Lokalno** ostaje `Email__Transport=smtp` prema Mailpitu (`docker run -p 1025:1025 -p 8025:8025 axllent/mailpit`,
+pregled na <http://localhost:8025>).

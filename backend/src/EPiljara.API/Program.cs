@@ -53,6 +53,7 @@ builder.Services.AddHostedService<ZakljucavanjeSadrzajaService>();
 builder.Services.AddHostedService<PretplatneNarudzbeService>();
 builder.Services.AddHostedService<FiskalizacijaService>();
 builder.Services.AddHostedService<ProcjenaVoznjiService>();
+builder.Services.AddHostedService<SlanjeEmailovaService>();
 
 // ----- Controllers + JSON envelope -----
 builder.Services

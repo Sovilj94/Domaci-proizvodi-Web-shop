@@ -468,6 +468,129 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Drivers");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.EmailKampanja", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BrojPrimalaca")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Grupa")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("GrupaOpis")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("Kreirana")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Naslov")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("PoslaoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Tekst")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EmailKampanje");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.EmailPoruka", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DobavljacId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Html")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("KampanjaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Kljuc")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<DateTime>("Kreirana")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Naslov")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Pokusaja")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("Poslata")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Primalac")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PrimalacIme")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<DateTime?>("SljedeciPokusaj")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Transport")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Vrsta")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ZadnjaGreska")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KampanjaId");
+
+                    b.HasIndex("Kljuc")
+                        .IsUnique()
+                        .HasFilter("\"Kljuc\" IS NOT NULL");
+
+                    b.HasIndex("Kreirana");
+
+                    b.HasIndex("Status", "SljedeciPokusaj");
+
+                    b.ToTable("EmailPoruke");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.FiskalniRacun", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1086,6 +1209,45 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("NagradaPreporuka")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("ObavKupacIsporucena")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ObavKupacNeuspjela")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ObavKupacOtkazana")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ObavKupacPotvrdjena")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ObavRadniciPrimaoci")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasDefaultValue("");
+
+                    b.Property<bool>("ObavRadnikFiskalnaGreska")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ObavRadnikGorivo")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ObavRadnikNovaNarudzba")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ObavRadnikOdbijene")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ObavVozacPlan")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ObavVozacPlanSat")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(17);
 
                     b.Property<int>("ObavezaMjesecna")
                         .HasColumnType("integer");
@@ -1945,6 +2107,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<bool>("OdjavljenOdObavjestenja")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1965,6 +2130,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("PreporukaKod")
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)");
+
+                    b.Property<string>("ResetLozinkeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("ResetLozinkeIstice")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Role")
                         .IsRequired()

@@ -70,4 +70,20 @@ public class Podesavanja : Entity
     public string FiskalOznakaPdv { get; set; } = string.Empty;
     /// <summary>Poreska oznaka stavke kad firma nije u PDV-u.</summary>
     public string FiskalOznakaBezPdv { get; set; } = string.Empty;
+
+    // ----- Obavještenja mejlom (podrazumijevano sve uključeno; migracija upisuje true) -----
+    public bool ObavKupacPotvrdjena { get; set; } = true;
+    public bool ObavKupacIsporucena { get; set; } = true;
+    public bool ObavKupacNeuspjela { get; set; } = true;
+    /// <summary>Otkazana od strane admina i automatski odbijena (nije potvrđena do roka).</summary>
+    public bool ObavKupacOtkazana { get; set; } = true;
+    public bool ObavRadnikNovaNarudzba { get; set; } = true;
+    public bool ObavRadnikOdbijene { get; set; } = true;
+    public bool ObavRadnikFiskalnaGreska { get; set; } = true;
+    public bool ObavRadnikGorivo { get; set; } = true;
+    public bool ObavVozacPlan { get; set; } = true;
+    /// <summary>Sat (lokalno vrijeme) kad vozač dobija plan za sutra.</summary>
+    public int ObavVozacPlanSat { get; set; } = 17;
+    /// <summary>Adrese radnika za obavještenja, odvojene zarezom; prazno = svi admini.</summary>
+    public string ObavRadniciPrimaoci { get; set; } = string.Empty;
 }

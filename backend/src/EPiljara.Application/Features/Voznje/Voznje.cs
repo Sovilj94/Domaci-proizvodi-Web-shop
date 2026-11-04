@@ -219,7 +219,7 @@ public class SacuvajMojeGorivoValidator : AbstractValidator<SacuvajMojeGorivoCom
     public SacuvajMojeGorivoValidator() => GorivoPravila.Validiraj(this, x => x.Iznos, x => x.Litara, x => x.Napomena);
 }
 
-public class SacuvajMojeGorivoHandler(IAppDbContext db, ICurrentUser current, IRouteOptimizer optimizer)
+public class SacuvajMojeGorivoHandler(IAppDbContext db, ICurrentUser current, IRouteOptimizer optimizer, IEmailService email)
     : IRequestHandler<SacuvajMojeGorivoCommand, VoznjaDto>
 {
     /// <summary>Vozač može unijeti ili ispraviti gorivo za danas i ovoliko dana unazad; starije ispravlja admin.</summary>
@@ -241,7 +241,10 @@ public class SacuvajMojeGorivoHandler(IAppDbContext db, ICurrentUser current, IR
                 ?? throw new DomainException("Taj dan nemate dostava.", "nema_voznje");
         GorivoPravila.Upisi(v, c.Iznos, c.Litara, c.Napomena, "vozac");
         await db.SaveChangesAsync(ct);
-        return (await VoznjeMapa.UDtoAsync(db, [v], ct))[0];
+        var dto = (await VoznjeMapa.UDtoAsync(db, [v], ct))[0];
+        if (dto is { BitnoOdstupanje: true, ProcjenaGoriva: decimal procjena, PlacenoGorivo: decimal placeno, OdstupanjeProcenat: decimal odst })
+            await Mejlovi.ObavjestenjaPravila.OdstupanjeGorivaAsync(db, email, vozac.Name, c.Datum, procjena, placeno, odst, dto.Napomena, ct);
+        return dto;
     }
 }
 

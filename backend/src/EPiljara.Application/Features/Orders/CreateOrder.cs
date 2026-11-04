@@ -313,6 +313,7 @@ public class CreateOrderHandler(
         {
             // Notification failures never block order placement.
         }
+        await Mejlovi.ObavjestenjaPravila.NovaNarudzbaAsync(db, email, order, ct);
 
         return order.ToDto();
     }
