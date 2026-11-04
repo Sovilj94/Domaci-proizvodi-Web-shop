@@ -40,7 +40,9 @@ public class OsrmRouteOptimizer(
         // Ispod dvije tačke nema šta da se računa, i rezerva se namjerno NE zove:
         // po spec-u redoslijed tada ostaje onakav kakav ga je admin postavio.
         // Sortiranje po zonama je rezerva za neuspio poziv, ne za nedostatak podataka.
-        if (saKoordinatama.Count < 2)
+        // I jedna stanica ide kroz OSRM: redoslijed je trivijalan, ali kilometraža ture
+        // (magacin → stanica → magacin) treba za trošak goriva.
+        if (saKoordinatama.Count == 0)
             return new RouteOptimizationResult(
                 stops.Select(s => s.OrderId).ToList(), null, null, null);
 
