@@ -814,6 +814,30 @@ Spec `specs/2026-11-03-poslovanje-analitika-design.md`, plan `plans/2026-11-03-p
 - Odloženo (drugi krug): promo kodovi i poeni u analitici, signali iz korpica (izbacivani/izbjegavani artikli).
 Backend testova 651, frontend 129.
 
+### Odbijanje nepotvrđenih, troškovi i fiskalizacija (2026-11-04) — sve u `main`, pushovano
+- **Automatsko odbijanje**: narudžba na čekanju poslije roka naručivanja se otkazuje (poeni i Špajz vraćeni),
+  `OdbijNepotvrdjeneCommand`, svakih 15 min iz `ZakljucavanjeSadrzajaService`.
+- **Troškovi** (`/admin/poslovanje/troskovi`, spec `specs/2026-11-04-troskovi-design.md`): vrste, jednokratni,
+  ponavljajući, cijene goriva; ambalaža po artiklu/korpici (snimak na stavci); dobit u analitici i godišnjem grafikonu.
+- **Fiskalizacija** (`/admin/fiskalni-racuni`, spec `specs/2026-11-04-fiskalizacija-design.md`): račun nastaje pri
+  „Isporučeno", posao ga šalje svakih 30 s, refundacija, PDV podešavanja. Dobavljač je **probni** (bez fiskalne
+  vrijednosti) — pravi ESIR je nova klasa + `Fiskalizacija:Dobavljac`.
+- Test podaci: istorija 45/2023–36/2026, troškovi 3 godine, probni fiskalni računi. Dev baza prenesena na Neon.
+
+### Dnevna tura vozača i gorivo sa pumpe (2026-11-04) — grana `gorivo-voznje` (nespojena); vozač: grana `gorivo-voznje` u `EPiljaraVozac`
+- **`DnevnaVoznja`** (jedan red po vozaču i danu): procjena JEDNE ture magacin → sve stanice dana (sve zone) →
+  nazad u magacin. OSRM od magacina; bez OSRM-a (Render) vazdušna linija najbližim susjedom × 1,3. Keš po otisku
+  stanica i koordinata; `ProcjenaVoznjiService` svakih 15 min osvježava zastarjele (−3 … +14 dana).
+- **Unos goriva**: vozač u aplikaciji (tab Rute → „Unesi gorivo") za danas i 7 dana unazad; admin ispravlja na
+  Troškovima („Gorivo po danima", odstupanje ±20 % crveno). Prazan iznos briše unos.
+- **Dobit**: dan sa unosom ide po plaćenom, ostali po procjeni; dan bez reda `DnevnaVoznja` (stari podaci) sabira km
+  svojih ruta. Ručni računi vrste „Gorivo" i dalje zamjenjuju cijeli mjesec.
+- API: `GET /admin/voznje?datum=`, `GET /admin/voznje/mjesec`, `PUT /admin/voznje/{id}/gorivo`,
+  `GET /driver/voznja?datum=`, `PUT /driver/voznja/gorivo`. Dispečerski ekran: kartica „Dnevna tura" po vozaču.
+- Test podaci: oktobar 2026 dopunjen na **200 narudžbi** (`Desktop/epiljara-backupi/oktobar/Program.cs`), 20 dnevnih
+  vožnji preko OSRM-a, unosi sa pumpe kod 9 dana (jedno bitno odstupanje); oktobarski ručni računi za gorivo obrisani.
+Backend testova 695, frontend 132, vozač 161.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
