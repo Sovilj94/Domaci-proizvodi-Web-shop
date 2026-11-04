@@ -105,7 +105,10 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                         .Where(p => kategorije.Contains(p.CategoryId))
                         .ToListAsync(ct),
                     mjesec)
-                .OrderBy(p => p.PrioritetUKorpici)
+                // Glavne kulture mjeseca (bundeva u oktobru) idu prve — one su razlog korpice tog
+                // mjeseca; tek onda prioritet i marža.
+                .OrderByDescending(p => p.GlavnoU(mjesec))
+                .ThenBy(p => p.PrioritetUKorpici)
                 .ThenByDescending(RazredMarze)
                 .ThenBy(_ => Guid.NewGuid())
                 .ToList();
@@ -139,6 +142,8 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
             {
                 if (vrijednost >= cilj * 0.95m && sadrzaj.Stavke.Count >= minimum) break;
                 if (artikal.Price <= 0) continue;
+                // Opciona kultura (kopriva) se samo nudi kao zamjena, ne stavlja se u kutiju.
+                if (artikal.Opciono) continue;
 
                 var preostalo = cilj - vrijednost;
                 if (preostalo <= 0) break;
@@ -153,9 +158,12 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                 // preći cilj, zalihu ni nabavni budžet.
                 if (artikal.KolicinaUKorpici(korpica.Velicina) is decimal zadato)
                 {
-                    if (zadato * artikal.Price > preostalo + 0.005m
-                        || zadato > artikal.Stock
-                        || (nab is not null && nabavno + zadato * nab.Value > nabavniBudzet))
+                    if (nab is not null && nabavno + zadato * nab.Value > nabavniBudzet)
+                    {
+                        nabavnoOgranicilo = true;
+                        continue;
+                    }
+                    if (zadato * artikal.Price > preostalo + 0.005m || zadato > artikal.Stock)
                         continue;
 
                     sadrzaj.Stavke.Add(new StavkaSadrzaja
@@ -241,9 +249,21 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
             db.SedmicniSadrzaji.Add(sadrzaj);
 
             var upozorenja = new List<string>();
-            if (sadrzaj.Stavke.Count < minimum)
+            var glavneVan = bazen.Where(p => p.GlavnoU(mjesec) && sadrzaj.Stavke.All(s => s.ProductId != p.Id))
+                .Select(p => p.Name).ToList();
+            if (glavneVan.Count > 0)
+                upozorenja.Add($"Glavno u sezoni nije stalo u korpicu (budžet ili zaliha): {string.Join(", ", glavneVan)}.");
+            // Kriv je ili mali bazen (zima, malo zalihe) ili budžet marže — admin mora znati koji, jer su
+            // rješenja različita.
+            var podobnih = bazen.Count(p => !p.Opciono && p.Price > 0);
+            if (sadrzaj.Stavke.Count < minimum && podobnih >= minimum && nabavnoOgranicilo)
+                upozorenja.Add(
+                    $"Nabavni budžet ({nabavniBudzet:0.##} KM uz maržu {_o.MinimalnaMarza * 100:0.#} %) je dovoljan za samo " +
+                    $"{sadrzaj.Stavke.Count} od {minimum} artikala. Podigni cijenu korpice, smanji zadate količine za ovu " +
+                    "veličinu ili spusti maržu ili minimum artikala u postavkama.");
+            else if (sadrzaj.Stavke.Count < minimum)
                 upozorenja.Add($"U bazenu je premalo artikala: {sadrzaj.Stavke.Count} od {minimum}. Dopuni sadržaj ručno.");
-            if (nabavnoOgranicilo && vrijednost < cilj * 0.95m)
+            else if (nabavnoOgranicilo && vrijednost < cilj * 0.95m)
                 upozorenja.Add(
                     $"Nabavni budžet ({nabavniBudzet:0.##} KM za maržu {_o.MinimalnaMarza * 100:0.#}%) ograničio je sadržaj " +
                     $"na {vrijednost:0.##} KM od cilja {cilj:0.##} KM. Dodaj artikle sa boljom maržom ili podigni cijenu korpice.");
@@ -292,10 +312,12 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
         var uKutiji = sadrzaj.Stavke.Select(s => s.ProductId).ToHashSet();
         var izBazena = bazen.Select(p => p.Id).ToHashSet();
 
+        // Opcione kulture su prve među zamjenama — to je jedini način da stignu do kupca.
         IEnumerable<Product> Kandidati(IEnumerable<Product> izvor) => izvor
             .Where(p => !uKutiji.Contains(p.Id) && p.Price > 0)
             .Where(p => p.NabavnaCijena is not > 0 || p.NabavnaCijena.Value / p.Price <= najveciOdnos)
-            .OrderByDescending(RazredMarze)
+            .OrderByDescending(p => p.Opciono)
+            .ThenByDescending(RazredMarze)
             .ThenBy(_ => Guid.NewGuid());
 
         var izbor = Kandidati(bazen)

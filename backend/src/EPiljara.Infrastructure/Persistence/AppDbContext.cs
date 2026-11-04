@@ -163,6 +163,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
             // Mjeseci kao CSV: Postgres integer[] bi bio prirodniji, ali testovi rade na
             // SQLite koji nema tip niza. Jedan oblik koji radi na oba providera.
+            e.Property(x => x.MjeseciGlavni)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => string.IsNullOrWhiteSpace(v)
+                        ? Array.Empty<int>()
+                        : v.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray(),
+                    new ValueComparer<int[]>(
+                        (a, c) => a!.SequenceEqual(c!),
+                        v => v.Aggregate(0, (h, x) => HashCode.Combine(h, x)),
+                        v => v.ToArray()))
+                .HasMaxLength(60)
+                .HasDefaultValue(Array.Empty<int>());
             e.Property(x => x.Mjeseci)
                 .HasConversion(
                     v => string.Join(',', v),

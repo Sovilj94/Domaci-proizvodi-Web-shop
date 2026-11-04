@@ -60,6 +60,10 @@ export interface KalendarStavka {
   izrezUrl?: string;
   uKorpici: boolean;
   mjeseci: number[];
+  /** Mjeseci u kojima je kultura glavna — generator je stavlja u početni sadržaj prije ostalog. */
+  mjeseciGlavni: number[];
+  /** Samo kao zamjena koju kupac bira; nikad u početnom sadržaju. */
+  opciono: boolean;
   dostupan: boolean;
 }
 
@@ -243,7 +247,10 @@ export const adminKorpiceApi = {
   kalendar: (tip: "povrce" | "voce") =>
     apiFetch<KalendarStavka[]>("/admin/korpice/kalendar", { query: { tip } }).then((r) => r.data),
 
-  postaviKalendar: (productId: string, body: { uKorpici: boolean; mjeseci: number[] }) =>
+  postaviKalendar: (
+    productId: string,
+    body: { uKorpici: boolean; mjeseci: number[]; mjeseciGlavni: number[]; opciono: boolean },
+  ) =>
     apiFetch<KalendarStavka>(`/admin/korpice/kalendar/${productId}`, { method: "PUT", body }).then((r) => r.data),
 
   /** Postavke korpica: po vrsti veličine (cijena, u ponudi) i kategorije koje ulaze. */

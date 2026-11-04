@@ -115,6 +115,98 @@ public class GeneratorSadrzajaTests
         Assert.True(r.NabavnaVrijednost <= korpica.Price * 0.55m);
     }
 
+    /// <summary>Dodaje artikal u bazen korpice (ista kategorija kao Postavi).</summary>
+    private static Product Dodaj(TestDb t, string naziv, Action<Product> izmjena)
+    {
+        var uzor = t.Db.Products.First(p => p.Vrsta != VrstaProizvoda.Korpica);
+        var p = new Product
+        {
+            Name = naziv, Slug = naziv.ToLowerInvariant(), Price = 4m, Unit = Unit.Kg, CategoryId = uzor.CategoryId,
+            ProducerId = uzor.ProducerId, Stock = 100m, MozeUKorpicu = true, Mjeseci = [],
+        };
+        izmjena(p);
+        t.Db.Products.Add(p);
+        t.Db.SaveChanges();
+        return p;
+    }
+
+    /// <summary>Sedmica 41/2026 je u oktobru. Bundeva je glavna u oktobru — mora u kutiju, i to prva, bez obzira na nasumičnost.</summary>
+    [Fact]
+    public async Task Glavna_kultura_mjeseca_uvijek_ulazi_u_pocetni_sadrzaj()
+    {
+        for (var pokusaj = 0; pokusaj < 5; pokusaj++)
+        {
+            using var t = new TestDb();
+            Postavi(t, mjeseciArtikala: [], brojArtikala: 14);
+            var bundeva = Dodaj(t, "Bundeva", p => { p.Mjeseci = [9, 10, 11]; p.MjeseciGlavni = [10]; p.PrioritetUKorpici = 3; });
+            var tikva = Dodaj(t, "Tikva", p => { p.Mjeseci = [9, 10, 11]; p.MjeseciGlavni = [9]; p.PrioritetUKorpici = 3; });
+
+            var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+            var stavke = await t.Db.StavkeSadrzaja.Where(s => s.SedmicniSadrzajId == r.SadrzajId).Select(s => s.ProductId).ToListAsync();
+            Assert.Contains(bundeva.Id, stavke);
+            // Tikva je glavna u septembru, ne u oktobru — u oktobru je obična dopuna (prioritet 3), ne forsira se.
+            Assert.DoesNotContain(tikva.Id, stavke);
+        }
+    }
+
+    [Fact]
+    public async Task Opciona_kultura_nikad_nije_u_pocetnom_sadrzaju_ali_se_nudi_kao_zamjena()
+    {
+        using var t = new TestDb();
+        Postavi(t, mjeseciArtikala: [], brojArtikala: 9);
+        var kopriva = Dodaj(t, "Kopriva", p => { p.Opciono = true; p.PrioritetUKorpici = 0; p.NabavnaCijena = 1m; });
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        var s = await t.Db.SedmicniSadrzaji.Include(x => x.Stavke).Include(x => x.Zamjene).SingleAsync(x => x.Id == r.SadrzajId);
+        Assert.DoesNotContain(s.Stavke, x => x.ProductId == kopriva.Id);
+        Assert.Contains(s.Zamjene, x => x.ProductId == kopriva.Id);
+    }
+
+    [Fact]
+    public async Task Kalendar_cuva_glavne_mjesece_samo_unutar_sezone_a_opciono_ih_brise()
+    {
+        using var t = new TestDb();
+        Postavi(t, mjeseciArtikala: [], brojArtikala: 1);
+        var bundeva = Dodaj(t, "Bundeva", p => p.Mjeseci = [9, 10, 11]);
+        var h = new PostaviKalendarHandler(t.Db);
+
+        var dto = await h.Handle(new PostaviKalendarCommand(bundeva.Id, true, [9, 10, 11], [10, 11, 12]), default);
+        Assert.Equal([10, 11], dto.MjeseciGlavni);
+
+        dto = await h.Handle(new PostaviKalendarCommand(bundeva.Id, true, [9, 10, 11], null, Opciono: true), default);
+        Assert.True(dto.Opciono);
+        Assert.Empty(dto.MjeseciGlavni);
+    }
+
+    /// <summary>
+    /// Bazen je pun (10 artikala), ali zadata pakovanja su prevelika za nabavni budžet pri 45 % marže —
+    /// upozorenje mora reći da je kriv budžet, ne „premalo artikala u bazenu".
+    /// </summary>
+    [Fact]
+    public async Task Kad_budzet_ne_dozvoljava_minimum_upozorenje_kaze_da_je_kriv_budzet()
+    {
+        using var t = new TestDb();
+        Postavi(t, mjeseciArtikala: []);
+        foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica))
+        {
+            p.NabavnaCijena = 2.4m;
+            p.KolicinaMala = 1m; // 1 kg × 2,40 = 2,40 KM nabavno po artiklu; budžet 13,75 → 5 artikala
+        }
+        await t.Db.SaveChangesAsync();
+        var o = TestOpcije.Korpice();
+        o.MinimalnaMarza = 0.45m;
+
+        var r = Assert.Single(await new GenerisiSedmicniSadrzajHandler(t.Db, Options.Create(o))
+            .Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        Assert.Equal(5, r.BrojArtikala);
+        Assert.Contains("Nabavni budžet", r.Upozorenje);
+        Assert.Contains("5 od 8", r.Upozorenje);
+        Assert.DoesNotContain("premalo artikala", r.Upozorenje);
+    }
+
     [Fact]
     public async Task Preskace_artikle_van_sezone()
     {

@@ -1607,6 +1607,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(60)")
                         .HasDefaultValue("");
 
+                    b.Property<string>("MjeseciGlavni")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasDefaultValue("");
+
                     b.Property<bool>("MozeUKorpicu")
                         .HasColumnType("boolean");
 
@@ -1621,6 +1628,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("NazivEn")
                         .HasColumnType("text");
+
+                    b.Property<bool>("Opciono")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("OpisEn")
                         .HasColumnType("text");

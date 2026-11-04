@@ -35,7 +35,9 @@ public static class AutoZamjena
 
         return KorpicaPodobnost
             .USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec)
-            .OrderBy(p => p.PrioritetUKorpici)
+            // Opcionu kulturu kupac bira sam — automatska zamjena je uzima tek kad nema ništa drugo.
+            .OrderBy(p => p.Opciono)
+            .ThenBy(p => p.PrioritetUKorpici)
             .ThenBy(p => preporucene.IndexOf(p.Id) is var i and >= 0 ? i : int.MaxValue)
             .ThenByDescending(p => kategorije.Contains(p.CategoryId))
             .ThenBy(p => p.Name)

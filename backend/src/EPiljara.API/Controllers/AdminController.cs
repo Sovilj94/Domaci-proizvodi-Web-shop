@@ -312,7 +312,7 @@ public class AdminController : ApiControllerBase
 
     [HttpPut("admin/korpice/kalendar/{productId:guid}")]
     public async Task<IActionResult> PostaviKalendar(Guid productId, [FromBody] PostaviKalendarRequest body) =>
-        Envelope(await Mediator.Send(new PostaviKalendarCommand(productId, body.UKorpici, body.Mjeseci ?? [])));
+        Envelope(await Mediator.Send(new PostaviKalendarCommand(productId, body.UKorpici, body.Mjeseci ?? [], body.MjeseciGlavni, body.Opciono)));
 
     /// <summary>Postavke korpica: po vrsti kategorije, cijene i ponuda veličina.</summary>
     [HttpGet("admin/korpice/postavke")]
