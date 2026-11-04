@@ -25,6 +25,7 @@ import {
   PackageCheck,
   Quote,
   Receipt,
+  ReceiptText,
   Repeat,
   ShoppingBag,
   ShoppingBasket,
@@ -70,6 +71,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
       { href: "/admin/nabavka", label: "Nabavka", icon: ClipboardList, badge: "nabavka" },
       { href: "/admin/pakovanje", label: "Pakovanje", icon: PackageCheck },
       { href: "/admin/pretplate", label: "Pretplate", icon: Repeat },
+      { href: "/admin/fiskalni-racuni", label: "Fiskalni računi", icon: ReceiptText },
     ],
   },
   {

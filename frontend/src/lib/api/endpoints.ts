@@ -118,6 +118,9 @@ import type {
   ReceptInput,
   PoslovanjeGodine,
   PoslovanjeMjeseca,
+  FiskalnaPodesavanja,
+  FiskalniPregled,
+  FiskalniRacun,
   Trosak,
   TrosakInput,
   TroskoviMjeseca,
@@ -471,6 +474,17 @@ export const adminApi = {
     apiFetch<PoslovanjeMjeseca>("/admin/poslovanje", { query: godina && mjesec ? { godina, mjesec } : {} }).then((r) => r.data),
   poslovanjeGodina: (godina?: number) =>
     apiFetch<PoslovanjeGodine>("/admin/poslovanje/godina", { query: godina ? { godina } : {} }).then((r) => r.data),
+
+  fiskalniRacuni: (od?: string, doDana?: string) =>
+    apiFetch<FiskalniPregled>("/admin/fiskalni-racuni", { query: { ...(od ? { od } : {}), ...(doDana ? { do: doDana } : {}) } }).then((r) => r.data),
+  fiskalniRacun: (id: string) => apiFetch<FiskalniRacun>(`/admin/fiskalni-racuni/${id}`).then((r) => r.data),
+  ponoviFiskalniRacun: (id: string) =>
+    apiFetch<string>(`/admin/fiskalni-racuni/${id}/ponovi`, { method: "POST" }).then(() => id),
+  refundirajNarudzbu: (orderId: string) =>
+    apiFetch<string>(`/admin/orders/${orderId}/refundacija`, { method: "POST" }).then((r) => r.data),
+  fiskalnaPodesavanja: () => apiFetch<FiskalnaPodesavanja>("/admin/fiskalna-podesavanja").then((r) => r.data),
+  sacuvajFiskalnaPodesavanja: (body: { pdvObveznik: boolean; stopaPdv: number; oznakaPdv: string; oznakaBezPdv: string }) =>
+    apiFetch<FiskalnaPodesavanja>("/admin/fiskalna-podesavanja", { method: "PUT", body }).then((r) => r.data),
 
   troskovi: (godina: number, mjesec: number) =>
     apiFetch<TroskoviMjeseca>("/admin/troskovi", { query: { godina, mjesec } }).then((r) => r.data),

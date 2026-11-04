@@ -565,6 +565,59 @@ export interface TroskoviPoslovanja {
   varijabilniPoNarudzbi: number;
 }
 
+/* ---------- Fiskalizacija ---------- */
+
+export type StatusFiskalnog = "NaCekanju" | "Izdat" | "Greska";
+export interface FiskalniRacunRed {
+  id: string;
+  orderId: string;
+  kodNarudzbe: string;
+  kupac: string;
+  vrsta: "Promet" | "Refundacija";
+  status: StatusFiskalnog;
+  iznos: number;
+  kreiran: string;
+  izdat?: string | null;
+  broj?: string | null;
+  pokusaja: number;
+  zadnjaGreska?: string | null;
+  trajnaGreska: boolean;
+  sljedeciPokusaj?: string | null;
+  refundiran: boolean;
+}
+export interface FiskalnaStavka {
+  naziv: string; kolicina: number; jedinica: string; jedinicnaCijena: number; popust: number; ukupno: number; poreskaOznaka: string;
+}
+export interface FiskalniRacun extends FiskalniRacunRed {
+  nacinPlacanja: string;
+  dobavljac?: string | null;
+  brojac?: string | null;
+  qrSadrzaj?: string | null;
+  verifikacijaUrl?: string | null;
+  refundiraniBroj?: string | null;
+  stavke: FiskalnaStavka[];
+}
+export interface FiskalniPregled {
+  od: string;
+  do: string;
+  racuni: FiskalniRacunRed[];
+  izdato: number;
+  iznosPromet: number;
+  iznosRefundacija: number;
+  naCekanju: number;
+  greske: number;
+  dobavljac: string;
+  probni: boolean;
+}
+export interface FiskalnaPodesavanja {
+  pdvObveznik: boolean;
+  stopaPdv: number;
+  oznakaPdv: string;
+  oznakaBezPdv: string;
+  dobavljac: string;
+  probni: boolean;
+}
+
 /* ---------- Troškovi (admin unos) ---------- */
 
 export interface Trosak { id: string; datum: string; vrstaId: string; vrsta: string; jeGorivo: boolean; iznos: number; opis: string; racunUrl?: string | null }
