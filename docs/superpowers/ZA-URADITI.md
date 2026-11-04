@@ -38,7 +38,7 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 | D3 | JWT bez opoziva — nema prisilne odjave. | Po potrebi: lista opozvanih ili kratki token + refresh. | M |
 | D4 | Migracije se primjenjuju pri startu API-ja — za više instanci zasebni korak. | Kad bude više instanci. | S |
 | D5 | Lokacija magacina i ostatak checkliste u `PRODUCTION.md` (prvi admin je riješen: `ADMIN_EMAIL`/`ADMIN_PASSWORD`). | Proći checklistu pri pravom deployu. | S |
-| D7 | **Mejl na test deployu ne radi** — Render free blokira SMTP 25/465/587 (registracija, gost-narudžba). | SMTP provajder na portu 2525 (Brevo, SendGrid…) u `Email__*` (`DEPLOY.md`). | S |
+| D7 | **Mejlovi u produkciji nisu podešeni** — kod je spreman (red, Brevo HTTP API, grana `mejlovi`), fali Brevo nalog, DNS domena i varijable na Renderu. | Korak po korak, sa kvačicama: `docs/MEJLOVI-PRODUKCIJA.md`. Radi vlasnik (nalog, domen, ključ). | S |
 | D8 | SEO je isključen na test sajtu. | Na pravom domenu: `NEXT_PUBLIC_SITE_URL`, `SEO_INDEX=true`, Redeploy, sitemap u Search Console. | S |
 
 ## E. Kvalitet koda i testova

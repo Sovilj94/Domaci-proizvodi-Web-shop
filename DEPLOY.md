@@ -164,6 +164,8 @@ curl http://localhost:10000/health   # {"status":"ok"}
 
 ## Mejlovi u produkciji (Brevo)
 
+> Detaljna lista za čekiranje (domen, DNS, Brevo, Render, provjera, problemi): `docs/MEJLOVI-PRODUKCIJA.md`.
+
 Kod je spreman; treba samo nalog kod dobavljača i DNS zapisi domena. Brevo je izabran jer šalje preko
 HTTPS-a (radi na Renderu), besplatno daje **300 mejlova dnevno**, a serveri su u EU.
 
