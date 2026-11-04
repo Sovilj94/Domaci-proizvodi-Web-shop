@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ClipboardList,
   Search,
+  Send,
   FileText,
   Coins,
   FlaskConical,
@@ -102,6 +103,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
       { href: "/admin/promo-kodovi", label: "Promo kodovi", icon: TicketPercent },
       { href: "/admin/ocjene", label: "Ocjene", icon: Star },
       { href: "/admin/novosti", label: "Novosti", icon: Mail },
+      { href: "/admin/mejlovi", label: "Mejlovi", icon: Send },
     ],
   },
   {

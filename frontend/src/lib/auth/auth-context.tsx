@@ -28,6 +28,8 @@ interface AuthContextValue {
   register: (body: RegisterRequest) => Promise<RegisterResponse>;
   /** Confirm the emailed token; on success the user is logged in. */
   confirmEmail: (token: string) => Promise<AuthUser>;
+  /** Nova lozinka iz linka u mejlu — uspjeh odmah prijavljuje. */
+  novaLozinka: (token: string, lozinka: string) => Promise<AuthUser>;
   loginWithGoogle: (idToken: string, preporukaKod?: string) => Promise<AuthUser>;
   loginWithFacebook: (accessToken: string, preporukaKod?: string) => Promise<AuthUser>;
   logout: () => void;
@@ -75,6 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return result.user;
   }, []);
 
+  const novaLozinka = useCallback(async (token: string, lozinka: string) => {
+    const result = await authApi.novaLozinka(token, lozinka);
+    setToken(result.token);
+    setUser(result.user);
+    preuzmiPismoNaloga(result.user.pismo);
+    return result.user;
+  }, []);
+
   const loginWithGoogle = useCallback(async (idToken: string, preporukaKod?: string) => {
     const result = await authApi.google(idToken, preporukaKod);
     setToken(result.token);
@@ -110,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       confirmEmail,
+      novaLozinka,
       loginWithGoogle,
       loginWithFacebook,
       logout,
@@ -121,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       confirmEmail,
+      novaLozinka,
       loginWithGoogle,
       loginWithFacebook,
       logout,

@@ -38,7 +38,6 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [forgotNote, setForgotNote] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unconfirmed, setUnconfirmed] = useState(false);
   const [resent, setResent] = useState(false);
@@ -145,20 +144,14 @@ function LoginForm() {
                 />
                 Zapamti me
               </label>
-              <button
-                type="button"
-                onClick={() => setForgotNote(true)}
+              <Link
+                href={email ? `/zaboravljena-lozinka?email=${encodeURIComponent(email)}` : "/zaboravljena-lozinka"}
                 className="font-medium text-muted transition hover:text-ink"
               >
                 Zaboravljena lozinka?
-              </button>
+              </Link>
             </div>
 
-            {forgotNote && (
-              <p className="rounded-lg bg-sand px-3 py-2 text-xs text-muted">
-                Reset lozinke još nije dostupan — kontaktiraj podršku.
-              </p>
-            )}
             {error && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
                 {error}

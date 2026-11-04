@@ -126,6 +126,13 @@ import type {
   TroskoviMjeseca,
   Voznja,
   GorivoUnos,
+  EmailPregled,
+  EmailDetalj,
+  EmailRed,
+  ObavjestenjaPodesavanja,
+  KampanjaPregled,
+  Kampanja,
+  KampanjaInput,
   VrstaTroskaInput,
 } from "./contracts";
 
@@ -349,6 +356,24 @@ export const authApi = {
       body: { email },
       auth: false,
     }).then((r) => r.data),
+  zaboravljenaLozinka: (email: string) =>
+    apiFetch<{ message: string }>("/auth/zaboravljena-lozinka", {
+      method: "POST",
+      body: { email },
+      auth: false,
+    }).then((r) => r.data),
+  novaLozinka: (token: string, lozinka: string) =>
+    apiFetch<AuthResult>("/auth/nova-lozinka", {
+      method: "POST",
+      body: { token, lozinka },
+      auth: false,
+    }).then((r) => r.data),
+  odjavaSaObavjestenja: (email: string, potpis: string) =>
+    apiFetch<{ message: string }>("/email/odjava", {
+      method: "POST",
+      body: { email, potpis },
+      auth: false,
+    }).then((r) => r.data),
   login: (body: LoginRequest) =>
     apiFetch<AuthResult>("/auth/login", { method: "POST", body, auth: false }).then(
       (r) => r.data,
@@ -488,6 +513,20 @@ export const adminApi = {
   sacuvajFiskalnaPodesavanja: (body: { pdvObveznik: boolean; stopaPdv: number; oznakaPdv: string; oznakaBezPdv: string }) =>
     apiFetch<FiskalnaPodesavanja>("/admin/fiskalna-podesavanja", { method: "PUT", body }).then((r) => r.data),
 
+  mejlovi: (f: { status?: string; vrsta?: string; trazi?: string }) =>
+    apiFetch<EmailPregled>("/admin/mejlovi", { query: f }).then((r) => r.data),
+  mejl: (id: string) => apiFetch<EmailDetalj>(`/admin/mejlovi/${id}`).then((r) => r.data),
+  ponoviMejl: (id: string) => apiFetch<EmailRed>(`/admin/mejlovi/${id}/ponovi`, { method: "POST" }).then((r) => r.data),
+  probniMejl: (primalac?: string) =>
+    apiFetch<{ message: string }>("/admin/mejlovi/probni", { method: "POST", body: { primalac: primalac || null } }).then((r) => r.data),
+  obavjestenja: () => apiFetch<ObavjestenjaPodesavanja>("/admin/obavjestenja").then((r) => r.data),
+  sacuvajObavjestenja: (body: Omit<ObavjestenjaPodesavanja, "radniciEfektivno">) =>
+    apiFetch<ObavjestenjaPodesavanja>("/admin/obavjestenja", { method: "PUT", body }).then((r) => r.data),
+  pregledKampanje: (body: Pick<KampanjaInput, "grupa" | "godina" | "sedmica">) =>
+    apiFetch<KampanjaPregled>("/admin/mejlovi/kampanja/pregled", { method: "POST", body }).then((r) => r.data),
+  posaljiKampanju: (body: KampanjaInput) =>
+    apiFetch<Kampanja>("/admin/mejlovi/kampanja", { method: "POST", body }).then((r) => r.data),
+  kampanje: () => apiFetch<Kampanja[]>("/admin/mejlovi/kampanje").then((r) => r.data),
   voznjeDana: (datum: string) =>
     apiFetch<Voznja[]>("/admin/voznje", { query: { datum } }).then((r) => r.data),
   voznjeMjeseca: (godina: number, mjesec: number) =>

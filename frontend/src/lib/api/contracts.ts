@@ -571,6 +571,84 @@ export interface TroskoviPoslovanja {
   varijabilniPoNarudzbi: number;
 }
 
+/* ---------- Mejlovi: red, obavještenja, ručno slanje ---------- */
+
+export type StatusEmaila = "NaCekanju" | "Poslato" | "Greska";
+
+export interface EmailRed {
+  id: string;
+  primalac: string;
+  primalacIme?: string | null;
+  naslov: string;
+  vrsta: string;
+  status: StatusEmaila;
+  pokusaja: number;
+  zadnjaGreska?: string | null;
+  kreirana: string;
+  poslata?: string | null;
+  sljedeciPokusaj?: string | null;
+  transport?: string | null;
+}
+
+export interface EmailDetalj extends EmailRed {
+  html: string;
+  dobavljacId?: string | null;
+}
+
+export interface EmailPregled {
+  poruke: EmailRed[];
+  naCekanju: number;
+  greske: number;
+  poslatoDanas: number;
+  poslatoMjesec: number;
+  /** "smtp" (lokalni Mailpit ili SMTP server) ili "brevo". */
+  transport: string;
+  vrste: string[];
+}
+
+export interface ObavjestenjaPodesavanja {
+  kupacPotvrdjena: boolean;
+  kupacIsporucena: boolean;
+  kupacNeuspjela: boolean;
+  kupacOtkazana: boolean;
+  radnikNovaNarudzba: boolean;
+  radnikOdbijene: boolean;
+  radnikFiskalnaGreska: boolean;
+  radnikGorivo: boolean;
+  vozacPlan: boolean;
+  vozacPlanSat: number;
+  radniciPrimaoci: string;
+  /** Kome obavještenja radnicima stvarno idu (lista ili, kad je prazna, admini). */
+  radniciEfektivno: string[];
+}
+
+export type GrupaKampanje = "sedmica" | "pretplatnici" | "kupci" | "novosti" | "vozaci" | "radnici";
+
+export interface KampanjaPregled {
+  opis: string;
+  broj: number;
+  primjeri: string[];
+  saOdjavom: boolean;
+}
+
+export interface Kampanja {
+  id: string;
+  naslov: string;
+  grupaOpis: string;
+  brojPrimalaca: number;
+  kreirana: string;
+  poslato: number;
+  greske: number;
+}
+
+export interface KampanjaInput {
+  grupa: GrupaKampanje;
+  godina?: number | null;
+  sedmica?: number | null;
+  naslov: string;
+  tekst: string;
+}
+
 /* ---------- Dnevne vožnje (procjena ture i gorivo sa pumpe) ---------- */
 
 export interface Voznja {
