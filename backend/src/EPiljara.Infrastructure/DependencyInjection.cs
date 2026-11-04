@@ -36,6 +36,18 @@ public static class DependencyInjection
         services.AddScoped<IViberService, LoggingViberService>();
         services.AddScoped<ISocialAuthVerifier, SocialAuthVerifier>();
 
+        // Fiskalizacija: dobavljač se bira konfiguracijom. Nepoznat naziv ruši pokretanje — tiho
+        // padanje na probnog bi u produkciji značilo račune bez fiskalne vrijednosti.
+        var fiskalni = config["Fiskalizacija:Dobavljac"] ?? "probni";
+        switch (fiskalni.ToLowerInvariant())
+        {
+            case "probni":
+                services.AddSingleton<IFiskalniDobavljac, ProbniFiskalniDobavljac>();
+                break;
+            default:
+                throw new InvalidOperationException($"Nepoznat Fiskalizacija:Dobavljac „{fiskalni}\". Podržano: probni.");
+        }
+
         // Magacin se više ne konfiguriše — red u bazi je jedini izvor istine, a provjera
         // koja je nekad bila ValidateOnStart sada stoji u Program.cs (MagacinProvjera),
         // odmah poslije migracija, jer tek tada baza može biti pitana.

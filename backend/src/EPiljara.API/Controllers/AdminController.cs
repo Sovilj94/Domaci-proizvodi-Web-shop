@@ -2,6 +2,7 @@ using EPiljara.Application.Features.Novosti;
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Admin.Poslovanje;
 using EPiljara.Application.Features.Admin.Troskovi;
+using EPiljara.Application.Features.Fiskalizacija;
 using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Recepti;
@@ -30,6 +31,30 @@ public class AdminController : ApiControllerBase
     [HttpGet("admin/poslovanje/godina")]
     public async Task<IActionResult> PoslovanjeGodina([FromQuery] int? godina) =>
         Envelope(await Mediator.Send(new GetPoslovanjeGodinaQuery(godina)));
+
+    [HttpGet("admin/fiskalni-racuni")]
+    public async Task<IActionResult> FiskalniRacuni([FromQuery] DateOnly? od, [FromQuery(Name = "do")] DateOnly? doDana) =>
+        Envelope(await Mediator.Send(new GetFiskalniRacuniQuery(od, doDana)));
+
+    [HttpGet("admin/fiskalni-racuni/{id:guid}")]
+    public async Task<IActionResult> FiskalniRacun(Guid id) =>
+        Envelope(await Mediator.Send(new GetFiskalniRacunQuery(id)));
+
+    [HttpPost("admin/fiskalni-racuni/{id:guid}/ponovi")]
+    public async Task<IActionResult> PonoviFiskalniRacun(Guid id) =>
+        Envelope(await Mediator.Send(new PonoviFiskalniRacunCommand(id)));
+
+    [HttpPost("admin/orders/{orderId:guid}/refundacija")]
+    public async Task<IActionResult> RefundirajNarudzbu(Guid orderId) =>
+        EnvelopeCreated(await Mediator.Send(new RefundirajFiskalniRacunCommand(orderId)));
+
+    [HttpGet("admin/fiskalna-podesavanja")]
+    public async Task<IActionResult> FiskalnaPodesavanja() =>
+        Envelope(await Mediator.Send(new GetFiskalnaPodesavanjaQuery()));
+
+    [HttpPut("admin/fiskalna-podesavanja")]
+    public async Task<IActionResult> SacuvajFiskalnaPodesavanja([FromBody] SacuvajFiskalnaPodesavanjaCommand c) =>
+        Envelope(await Mediator.Send(c));
 
     [HttpGet("admin/troskovi")]
     public async Task<IActionResult> Troskovi([FromQuery] int godina, [FromQuery] int mjesec) =>

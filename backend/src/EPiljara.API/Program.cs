@@ -51,6 +51,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddHostedService<ExpiredGuestRequestsCleaner>();
 builder.Services.AddHostedService<ZakljucavanjeSadrzajaService>();
 builder.Services.AddHostedService<PretplatneNarudzbeService>();
+builder.Services.AddHostedService<FiskalizacijaService>();
 
 // ----- Controllers + JSON envelope -----
 builder.Services

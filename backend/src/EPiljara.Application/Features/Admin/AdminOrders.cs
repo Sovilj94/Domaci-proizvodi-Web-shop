@@ -126,6 +126,8 @@ public class UpdateOrderStatusHandler(IAppDbContext db, IOptions<PoeniOpcije> po
         await BrojacIsporuka.ZabiljeziAsync(db, order, status, ct);
         // Poeni se upisuju uz stari status, u isti SaveChanges kao i prelaz (kao i brojač).
         await PoeniPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, poeni.Value, ct);
+        // Fiskalni račun nastaje uz isporuku, u istom upisu (vidi Fiskalizacija).
+        await Fiskalizacija.FiskalizacijaPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, ct);
 
         order.TransitionTo(status);
         await IstovremenaPromjena.SacuvajAsync(db, ct);

@@ -113,6 +113,7 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         await BrojacIsporuka.ZabiljeziAsync(db, order, status, ct);
         // Poeni se upisuju uz stari status, u isti SaveChanges kao i prelaz (kao i brojač).
         await PoeniPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, poeni.Value, ct);
+        await Fiskalizacija.FiskalizacijaPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, ct);
 
         // Ruta se može dodijeliti narudžbi koja je još Confirmed/Packing (vidi ASSIGNABLE
         // u admin panelu). Mašina stanja dozvoljava Delivered samo iz OutForDelivery, pa je

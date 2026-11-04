@@ -60,4 +60,14 @@ public class Podesavanja : Entity
     /// u narudžbu. Prazno = bez ograničenja.
     /// </summary>
     public string GradDostave { get; set; } = string.Empty;
+
+    // ----- Fiskalizacija -----
+    /// <summary>Firma je u sistemu PDV-a: stavke dobijaju oznaku PDV-a, inače oznaku „nije u PDV-u".</summary>
+    public bool FiskalPdvObveznik { get; set; }
+    /// <summary>Stopa PDV-a u procentima (BiH: 17).</summary>
+    public decimal FiskalStopaPdv { get; set; }
+    /// <summary>Poreska oznaka stavke sa PDV-om, kako je propisuje dobavljač ESIR-a.</summary>
+    public string FiskalOznakaPdv { get; set; } = string.Empty;
+    /// <summary>Poreska oznaka stavke kad firma nije u PDV-u.</summary>
+    public string FiskalOznakaBezPdv { get; set; } = string.Empty;
 }

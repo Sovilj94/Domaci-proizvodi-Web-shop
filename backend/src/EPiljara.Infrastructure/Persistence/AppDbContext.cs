@@ -60,6 +60,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Trosak> Troskovi => Set<Trosak>();
     public DbSet<PonavljajuciTrosak> PonavljajuciTroskovi => Set<PonavljajuciTrosak>();
     public DbSet<CijenaGoriva> CijeneGoriva => Set<CijenaGoriva>();
+    public DbSet<FiskalniRacun> FiskalniRacuni => Set<FiskalniRacun>();
 
     /// <summary>
     /// Svaki novi red narudžbe (OrderItem, StavkaKorpiceNarudzbe) bez nabavne cijene dobija
@@ -431,6 +432,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.PragPriKraju).HasPrecision(10, 2);
             e.Property(x => x.VrijemeIsporukeRezerva).HasMaxLength(5).IsRequired();
             e.Property(x => x.GradDostave).HasMaxLength(100).IsRequired();
+            e.Property(x => x.FiskalStopaPdv).HasPrecision(5, 2).HasDefaultValue(17m);
+            e.Property(x => x.FiskalOznakaPdv).HasMaxLength(10).IsRequired().HasDefaultValue("E");
+            e.Property(x => x.FiskalOznakaBezPdv).HasMaxLength(10).IsRequired().HasDefaultValue("A");
         });
 
         b.Entity<BlokSadrzaja>(e =>
@@ -557,6 +561,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Opis).HasMaxLength(300);
             e.Property(x => x.Iznos).HasPrecision(12, 2);
             e.HasOne(x => x.Vrsta).WithMany().HasForeignKey(x => x.VrstaTroskaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<FiskalniRacun>(e =>
+        {
+            e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Iznos).HasPrecision(12, 2);
+            e.Property(x => x.NacinPlacanja).HasMaxLength(30);
+            e.Property(x => x.Dobavljac).HasMaxLength(60);
+            e.Property(x => x.Broj).HasMaxLength(100);
+            e.Property(x => x.Brojac).HasMaxLength(60);
+            e.Property(x => x.QrSadrzaj).HasMaxLength(2000);
+            e.Property(x => x.VerifikacijaUrl).HasMaxLength(1000);
+            e.Property(x => x.ZadnjaGreska).HasMaxLength(1000);
+            // Jedan prometni i najviše jedan refundacioni račun po narudžbi.
+            e.HasIndex(x => new { x.OrderId, x.Vrsta }).IsUnique();
+            e.HasIndex(x => x.Status);
+            e.HasOne(x => x.Order).WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<CijenaGoriva>(e =>

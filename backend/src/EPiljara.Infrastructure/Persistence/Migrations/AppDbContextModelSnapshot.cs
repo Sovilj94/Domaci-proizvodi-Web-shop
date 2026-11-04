@@ -403,6 +403,90 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("Drivers");
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.FiskalniRacun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Broj")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Brojac")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Dobavljac")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime?>("Izdat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Iznos")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime>("Kreiran")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NacinPlacanja")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Pokusaja")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("QrSadrzaj")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("RefundiraniRacunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SljedeciPokusaj")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StavkeJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("TrajnaGreska")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("VerifikacijaUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Vrsta")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ZadnjaGreska")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("OrderId", "Vrsta")
+                        .IsUnique();
+
+                    b.ToTable("FiskalniRacuni");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.GuestOrderRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -886,6 +970,29 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("DanIsporukeRezerva")
                         .HasColumnType("integer");
+
+                    b.Property<string>("FiskalOznakaBezPdv")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("A");
+
+                    b.Property<string>("FiskalOznakaPdv")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("E");
+
+                    b.Property<bool>("FiskalPdvObveznik")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("FiskalStopaPdv")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(17m);
 
                     b.Property<string>("GradDostave")
                         .IsRequired()
@@ -1973,6 +2080,17 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EPiljara.Domain.Entities.FiskalniRacun", b =>
+                {
+                    b.HasOne("EPiljara.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("EPiljara.Domain.Entities.GuestOrderRequest", b =>
