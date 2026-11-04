@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -25,6 +25,13 @@ export default function AdminPoslovanjeGodinaPage() {
       <Godina />
     </Suspense>
   );
+}
+
+/** Tekuća godina → tekući mjesec; prošla → decembar; buduća → januar. */
+function mjesecZaPovratak(godina: number) {
+  const sada = new Date();
+  if (godina === sada.getFullYear()) return sada.getMonth() + 1;
+  return godina < sada.getFullYear() ? 12 : 1;
 }
 
 function Godina() {
@@ -73,6 +80,11 @@ function Godina() {
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <Link href={d ? `/admin/poslovanje?godina=${d.godina}&mjesec=${mjesecZaPovratak(d.godina)}` : "/admin/poslovanje"}>
+            <Button variant="secondary" size="sm">
+              <CalendarDays className="h-4 w-4" /> Mjesec
+            </Button>
+          </Link>
           <Button variant="secondary" size="sm" onClick={() => window.print()} disabled={!d}>
             <Printer className="h-4 w-4" /> Štampaj
           </Button>
