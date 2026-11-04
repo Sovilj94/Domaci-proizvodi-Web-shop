@@ -96,6 +96,8 @@ export interface Product {
   kolicinaVelika?: number | null;
   /** Samo sa admin API-ja: marža (0–1) prema prodajnoj cijeni. */
   marza?: number | null;
+  /** Samo sa admin API-ja: cijena istog artikla u piljari, po jedinici (obračun cijene korpice). */
+  cijenaPiljara?: number | null;
 }
 
 export interface DeliveryZone {

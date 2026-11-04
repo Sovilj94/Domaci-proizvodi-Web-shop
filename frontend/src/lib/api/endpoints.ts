@@ -51,6 +51,49 @@ export interface ArtikalKorpiceUnos {
   kolicinaMala: number | null;
   kolicinaSrednja: number | null;
   kolicinaVelika: number | null;
+  /** Cijena istog artikla u piljari, po jedinici; null = nije unesena. */
+  cijenaPiljara: number | null;
+}
+
+export interface ObracunMjeseca {
+  mjesec: number;
+  artikala: number;
+  minimum: number;
+  glavnih: number;
+  nabavno: number;
+  nasaVrijednost: number;
+  piljaraVrijednost: number;
+  bezPiljare: number;
+  minCijena: number;
+  maxCijena: number;
+  moguce: boolean;
+  marzaSada?: number | null;
+  ustedaSada?: number | null;
+}
+
+export interface ObracunKorpice {
+  id: string;
+  naziv: string;
+  tip: string;
+  velicina: string;
+  cijena: number;
+  uProdaji: boolean;
+  ambalaza: number;
+  izabrani: ObracunMjeseca;
+  mjeseci: ObracunMjeseca[];
+  preporuka: number;
+  marzaPriPreporuci: number;
+  ustedaPriPreporuci: number;
+  preporukaGodina: number;
+}
+
+export interface ObracunCijena {
+  marza: number;
+  povoljnije: number;
+  mjesec: number;
+  korpice: ObracunKorpice[];
+  bezNabavne: number;
+  bezPiljare: number;
 }
 
 export interface KalendarStavka {
@@ -252,6 +295,12 @@ export const adminKorpiceApi = {
     body: { uKorpici: boolean; mjeseci: number[]; mjeseciGlavni: number[]; opciono: boolean },
   ) =>
     apiFetch<KalendarStavka>(`/admin/korpice/kalendar/${productId}`, { method: "PUT", body }).then((r) => r.data),
+
+  obracun: (marza: number, povoljnije: number, mjesec: number) =>
+    apiFetch<ObracunCijena>("/admin/korpice/obracun", { query: { marza, povoljnije, mjesec } }).then((r) => r.data),
+
+  postaviCijenu: (id: string, cijena: number) =>
+    apiFetch<number>(`/admin/korpice/${id}/cijena`, { method: "PUT", body: { cijena } }).then((r) => r.data),
 
   /** Postavke korpica: po vrsti veličine (cijena, u ponudi) i kategorije koje ulaze. */
   postavke: () => apiFetch<PostavkeKorpica>("/admin/korpice/postavke").then((r) => r.data),

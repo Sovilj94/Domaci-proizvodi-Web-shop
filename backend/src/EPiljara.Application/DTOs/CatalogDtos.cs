@@ -91,4 +91,7 @@ public record AdminProductDto : ProductDto
 
     /// <summary>Udio marže u prodajnoj cijeni, 0–1 (0.35 = 35%). Null bez nabavne cijene.</summary>
     public decimal? Marza { get; init; }
+
+    /// <summary>Cijena u piljari po jedinici (za obračun cijene korpice); null = nije unesena.</summary>
+    public decimal? CijenaPiljara { get; init; }
 }

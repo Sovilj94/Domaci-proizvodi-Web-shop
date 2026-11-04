@@ -75,6 +75,12 @@ public class Product : Entity
     public bool Opciono { get; set; }
 
     public bool GlavnoU(int mjesec) => !Opciono && MjeseciGlavni.Contains(mjesec);
+
+    /// <summary>
+    /// Cijena istog artikla u piljari / na pijaci (po jedinici artikla), koju admin povremeno provjeri.
+    /// Služi samo obračunu cijene korpice — da korpica bude povoljnija od kupovine istog u piljari. Nije javna.
+    /// </summary>
+    public decimal? CijenaPiljara { get; set; }
     public string Description { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     /// <summary>Slika bez pozadine (PNG) za obojene pločice korpica; bez nje pločica koristi ImageUrl.</summary>

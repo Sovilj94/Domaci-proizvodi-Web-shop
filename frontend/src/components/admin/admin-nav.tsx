@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Calculator,
   CalendarDays,
   ChartColumn,
   ChefHat,
@@ -80,6 +81,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
     stavke: [
       { href: "/admin/korpice", label: "Korpice", icon: ShoppingBasket, badge: "korpice" },
       { href: "/admin/korpice/postavke", label: "Postavke korpica", icon: SlidersHorizontal },
+      { href: "/admin/korpice/obracun", label: "Obračun cijena", icon: Calculator },
       { href: "/admin/korpice/kalendar", label: "Sezonski kalendar", icon: CalendarDays },
       { href: "/admin/products", label: "Proizvodi", icon: Package, badge: "proizvodi" },
       { href: "/admin/categories", label: "Kategorije", icon: Tags },

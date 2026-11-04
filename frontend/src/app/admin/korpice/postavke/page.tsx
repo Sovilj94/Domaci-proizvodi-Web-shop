@@ -410,6 +410,7 @@ function Artikli({
       kolicinaMala: p.kolicinaMala ?? null,
       kolicinaSrednja: p.kolicinaSrednja ?? null,
       kolicinaVelika: p.kolicinaVelika ?? null,
+      cijenaPiljara: p.cijenaPiljara ?? null,
     };
   const promijeni = (p: Product, izmjena: Partial<ArtikalKorpiceUnos>) =>
     setIzmjene((s) => ({ ...s, [p.id]: { ...red(p), ...izmjena } }));
@@ -499,6 +500,9 @@ function Artikli({
                 <th className="py-2 pr-3 font-medium">Artikal</th>
                 <th className="py-2 pr-3 font-medium">Sezona</th>
                 <th className="py-2 pr-3 font-medium" title="0 = osnovni artikal, veći broj = dopuna">Prioritet</th>
+                <th className="py-2 pr-3 font-medium" title="Koliko isti artikal košta u piljari, po jedinici — za obračun cijene korpice">
+                  Piljara
+                </th>
                 {velicine.map((v) => (
                   <th key={v} className="py-2 pr-3 font-medium">
                     {NAZIV_VELICINE[v]}
@@ -570,6 +574,31 @@ function Artikli({
                         onChange={(e) => promijeni(p, { prioritetUKorpici: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
                         className="w-16"
                       />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <span className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          inputMode="decimal"
+                          placeholder="—"
+                          aria-label={`Cijena u piljari — ${p.name}`}
+                          value={r.cijenaPiljara ?? ""}
+                          onChange={(e) => {
+                            const t = e.target.value.replace(",", ".");
+                            promijeni(p, { cijenaPiljara: t.trim() === "" || Number(t) <= 0 ? null : Number(t) });
+                          }}
+                          className="w-20"
+                        />
+                        <span className="text-xs text-muted">KM</span>
+                      </span>
+                      {r.cijenaPiljara != null && r.cijenaPiljara > 0 && (
+                        <span className={cn("block text-[11px] tabular-nums", p.price > r.cijenaPiljara ? "text-red-700" : "text-muted")}>
+                          mi {p.price <= r.cijenaPiljara ? "−" : "+"}
+                          {Math.abs(Math.round((1 - p.price / r.cijenaPiljara) * 100))} %
+                        </span>
+                      )}
                     </td>
                     {velicine.map((v) => {
                       const polje = POLJE_KOLICINE[v];

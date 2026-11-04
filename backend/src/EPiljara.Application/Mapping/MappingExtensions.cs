@@ -75,6 +75,7 @@ public static class MappingExtensions
         KolicinaSrednja = p.KolicinaSrednja,
         KolicinaVelika = p.KolicinaVelika,
         Marza = Marza(p.Price, p.NabavnaCijena),
+        CijenaPiljara = p.CijenaPiljara,
     };
 
     /// <summary>Udio marže u prodajnoj cijeni (0.35 = 35%), zaokružen na 4 decimale.</summary>
