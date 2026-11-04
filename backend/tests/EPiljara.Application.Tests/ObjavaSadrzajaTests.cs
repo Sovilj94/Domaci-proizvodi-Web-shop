@@ -39,6 +39,44 @@ public class ObjavaSadrzajaTests
         return (sadrzaj, artikal);
     }
 
+    /// <summary>Opcije sa minimumom od jednog artikla — ostali testovi objavljuju sadržaj od jedne stavke.</summary>
+    private static Microsoft.Extensions.Options.IOptions<KorpiceOpcije> Opcije(int minimum = 1, decimal marza = 0.25m)
+    {
+        var o = TestOpcije.Korpice();
+        o.MinimalanBrojArtikala = new() { [VelicinaKorpice.Mala] = minimum, [VelicinaKorpice.Srednja] = minimum, [VelicinaKorpice.Velika] = minimum };
+        o.MinimalnaMarza = marza;
+        return Microsoft.Extensions.Options.Options.Create(o);
+    }
+
+    [Fact]
+    public async Task Objava_odbija_sadrzaj_sa_manje_artikala_od_minimuma()
+    {
+        using var t = new TestDb();
+        var (sadrzaj, _) = Postavi(t);
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new ObjaviSadrzajHandler(t.Db, Opcije(minimum: 8)).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
+
+        Assert.Equal("sadrzaj_krsi_pravila", ex.Code);
+        Assert.Contains("1 artikal, a najmanje je 8", ex.Message);
+        Assert.Equal(StatusSadrzaja.Nacrt, (await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task Objava_odbija_sadrzaj_sa_marzom_ispod_minimalne()
+    {
+        using var t = new TestDb();
+        var (sadrzaj, artikal) = Postavi(t);
+        artikal.NabavnaCijena = 7m; // 2 kg × 7 = 14 KM nabavno za korpicu od 25 KM → marža 44 %
+        await t.Db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            new ObjaviSadrzajHandler(t.Db, Opcije(marza: 0.45m)).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
+
+        Assert.Equal("sadrzaj_krsi_pravila", ex.Code);
+        Assert.Contains("marža 44 %, a najmanje je 45 %", ex.Message);
+    }
+
     [Fact]
     public async Task Objava_zamrzava_ciljnu_vrijednost_kao_zbir_stavki()
     {
@@ -52,7 +90,7 @@ public class ObjavaSadrzajaTests
         // DbContext-u po zahtjevu u produkciji, isto kao što simuliramo ovdje.
         t.Db.ChangeTracker.Clear();
 
-        var dto = await new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(id), default);
+        var dto = await new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(id), default);
 
         var s = await t.Db.SedmicniSadrzaji.AsNoTracking().SingleAsync();
         Assert.Equal(StatusSadrzaja.Objavljen, s.Status);
@@ -74,7 +112,7 @@ public class ObjavaSadrzajaTests
         artikal.Price = 5m;                             // admin promijenio cijenu prije objave
         await t.Db.SaveChangesAsync();
 
-        await new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(id), default);
+        await new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(id), default);
 
         var stavka = await t.Db.StavkeSadrzaja.AsNoTracking().SingleAsync();
         Assert.Equal(5m, stavka.JedinicnaCijena);
@@ -91,7 +129,7 @@ public class ObjavaSadrzajaTests
         await t.Db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
+            new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
         Assert.Equal("sadrzaj_prazan", ex.Code);
     }
 
@@ -102,10 +140,10 @@ public class ObjavaSadrzajaTests
         Postavi(t);
         var id = await t.Db.SedmicniSadrzaji.Select(s => s.Id).SingleAsync();
 
-        await new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(id), default);
+        await new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(id), default);
 
         await Assert.ThrowsAsync<ConflictException>(() =>
-            new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(id), default));
+            new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(id), default));
     }
 
     [Fact]
@@ -113,7 +151,7 @@ public class ObjavaSadrzajaTests
     {
         using var t = new TestDb();
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(Guid.NewGuid()), default));
+            new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(Guid.NewGuid()), default));
     }
 
     /// <summary>
@@ -132,7 +170,7 @@ public class ObjavaSadrzajaTests
         t.Db.ChangeTracker.Clear();
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
+            new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
         Assert.Equal("sadrzaj_sadrzi_nedostupan_artikal", ex.Code);
     }
 
@@ -146,7 +184,7 @@ public class ObjavaSadrzajaTests
         t.Db.ChangeTracker.Clear();
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            new ObjaviSadrzajHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
+            new ObjaviSadrzajHandler(t.Db, Opcije()).Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default));
         Assert.Equal("sadrzaj_sadrzi_nedostupan_artikal", ex.Code);
     }
 }

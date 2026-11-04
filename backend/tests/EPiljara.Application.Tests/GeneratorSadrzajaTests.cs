@@ -93,6 +93,28 @@ public class GeneratorSadrzajaTests
         Assert.Equal(0m, sadrzaj.CiljnaVrijednost);   // zamrzava se tek pri objavi
     }
 
+    /// <summary>
+    /// Marža 45 %: nabavni budžet je 55 % cijene. Ranije je prvih nekoliko artikala pojelo cio budžet
+    /// (budžet po stavci se računao po prodajnom cilju), pa je korpica ostajala ispod minimuma artikala.
+    /// </summary>
+    [Fact]
+    public async Task Pri_visokoj_marzi_budzet_se_dijeli_tako_da_korpica_dobije_minimum_artikala()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: []);
+        foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica)) p.NabavnaCijena = 2.6m;
+        await t.Db.SaveChangesAsync();
+        var o = TestOpcije.Korpice();
+        o.MinimalnaMarza = 0.45m;
+
+        var r = Assert.Single(await new GenerisiSedmicniSadrzajHandler(t.Db, Options.Create(o))
+            .Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        Assert.True(r.BrojArtikala >= 8, $"očekivano >= 8 artikala, dobijeno {r.BrojArtikala} ({r.Upozorenje})");
+        Assert.True(r.Marza >= 0.45m, $"marža {r.Marza} ispod 45 %");
+        Assert.True(r.NabavnaVrijednost <= korpica.Price * 0.55m);
+    }
+
     [Fact]
     public async Task Preskace_artikle_van_sezone()
     {

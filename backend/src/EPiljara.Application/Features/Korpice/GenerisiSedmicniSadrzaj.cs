@@ -173,7 +173,14 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                 var kolicina = Zaokruzi(budzet / artikal.Price, artikal.Unit);
                 if (nab is not null)
                 {
-                    var poNabavci = Zaokruzi(Math.Max(nabavniBudzet - nabavno, 0) / nab.Value, artikal.Unit);
+                    // Dok minimum artikala nije popunjen, artikal smije uzeti samo svoj dio PREOSTALOG
+                    // nabavnog budžeta. Bez ovoga je pri visokoj marži (mali budžet) prvih nekoliko
+                    // artikala pojelo cio budžet, a korpica ostala ispod minimuma; višak se ionako
+                    // raspoređuje u drugom prolazu.
+                    var slobodno = Math.Max(nabavniBudzet - nabavno, 0);
+                    if (sadrzaj.Stavke.Count < minimum)
+                        slobodno /= minimum - sadrzaj.Stavke.Count;
+                    var poNabavci = Zaokruzi(slobodno / nab.Value, artikal.Unit);
                     if (poNabavci < kolicina)
                     {
                         kolicina = poNabavci;
