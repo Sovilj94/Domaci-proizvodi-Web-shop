@@ -571,6 +571,52 @@ export interface TroskoviPoslovanja {
   varijabilniPoNarudzbi: number;
 }
 
+/* ---------- Plan poslovanja ---------- */
+
+export interface PlanNarudzba {
+  korpice: number;
+  nabavnoKorpica: number;
+  kutijeKorpica: number;
+  spajz: number;
+  nabavnoSpajz: number;
+  ambalazaSpajz: number;
+  dostava: number;
+  popusti: number;
+  gorivo: number;
+  neto: number;
+  varijabilno: number;
+  doprinos: number;
+}
+
+export interface PlanScenarij {
+  narudzbi: number;
+  neto: number;
+  nabavno: number;
+  ambalaza: number;
+  gorivo: number;
+  varijabilno: number;
+  fiksni: number;
+  dobit: number;
+  marzaDobiti?: number | null;
+}
+
+export interface PlanPoslovanja {
+  narudzbi: number;
+  godina: number;
+  mjesec: number;
+  prosjek: PlanNarudzba;
+  plan: PlanScenarij;
+  scenariji: PlanScenarij[];
+  prag?: number | null;
+  fiksni: number;
+  fiksniStavke: { vrsta: string; iznos: number; ponavljajuci: boolean }[];
+  korpice: { naziv: string; naNarudzbu: number; cijena: number; nabavno: number; kutija: number; zarada: number }[];
+  osnova: { godina: number; mjesec: number; narudzbi: number; neto: number; dobit: number }[];
+  narudzbiOsnova: number;
+  kapacitetSedmicno: number;
+  narudzbiSedmicno: number;
+}
+
 /* ---------- Mejlovi: red, obavještenja, ručno slanje ---------- */
 
 export type StatusEmaila = "NaCekanju" | "Poslato" | "Greska";

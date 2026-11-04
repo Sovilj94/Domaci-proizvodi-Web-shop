@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarRange, ChevronLeft, ChevronRight, Printer, Receipt } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, Printer, Receipt, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -94,6 +94,11 @@ function Poslovanje() {
           <Link href={`/admin/poslovanje/troskovi${d ? `?godina=${d.godina}&mjesec=${d.mjesec}` : ""}`}>
             <Button variant="secondary" size="sm">
               <Receipt className="h-4 w-4" /> Troškovi
+            </Button>
+          </Link>
+          <Link href="/admin/poslovanje/plan">
+            <Button variant="secondary" size="sm">
+              <Target className="h-4 w-4" /> Plan
             </Button>
           </Link>
           <Button variant="secondary" size="sm" onClick={() => window.print()} disabled={!d}>

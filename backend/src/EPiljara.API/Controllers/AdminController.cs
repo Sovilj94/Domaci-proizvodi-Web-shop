@@ -30,6 +30,11 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Poslovanje([FromQuery] int? godina, [FromQuery] int? mjesec) =>
         Envelope(await Mediator.Send(new GetPoslovanjeQuery(godina, mjesec)));
 
+    /// <summary>Plan poslovanja: mjesec sa N narudžbi po današnjim cijenama, nabavnim i troškovima.</summary>
+    [HttpGet("admin/poslovanje/plan")]
+    public async Task<IActionResult> PlanPoslovanja([FromQuery] int narudzbi = 200, [FromQuery] int? godina = null, [FromQuery] int? mjesec = null, [FromQuery] decimal dodatno = 0m) =>
+        Envelope(await Mediator.Send(new GetPlanPoslovanjaQuery(narudzbi, godina, mjesec, dodatno)));
+
     [HttpGet("admin/poslovanje/godina")]
     public async Task<IActionResult> PoslovanjeGodina([FromQuery] int? godina) =>
         Envelope(await Mediator.Send(new GetPoslovanjeGodinaQuery(godina)));

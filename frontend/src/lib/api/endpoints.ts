@@ -174,6 +174,7 @@ import type {
   Voznja,
   GorivoUnos,
   EmailPregled,
+  PlanPoslovanja,
   EmailDetalj,
   EmailRed,
   ObavjestenjaPodesavanja,
@@ -555,6 +556,8 @@ export const adminApi = {
     ),
   poslovanje: (godina?: number, mjesec?: number) =>
     apiFetch<PoslovanjeMjeseca>("/admin/poslovanje", { query: godina && mjesec ? { godina, mjesec } : {} }).then((r) => r.data),
+  planPoslovanja: (narudzbi: number, godina: number, mjesec: number, dodatno: number) =>
+    apiFetch<PlanPoslovanja>("/admin/poslovanje/plan", { query: { narudzbi, godina, mjesec, dodatno } }).then((r) => r.data),
   poslovanjeGodina: (godina?: number) =>
     apiFetch<PoslovanjeGodine>("/admin/poslovanje/godina", { query: godina ? { godina } : {} }).then((r) => r.data),
 
