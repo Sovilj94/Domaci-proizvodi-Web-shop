@@ -24,6 +24,7 @@ import {
   PanelLeftOpen,
   PackageCheck,
   Quote,
+  Receipt,
   Repeat,
   ShoppingBag,
   ShoppingBasket,
@@ -58,6 +59,7 @@ export interface NavItem {
 
 const PREGLED: NavItem = { href: "/admin/dashboard", label: "Pregled", icon: LayoutDashboard };
 const POSLOVANJE: NavItem = { href: "/admin/poslovanje", label: "Poslovanje", icon: ChartColumn };
+const TROSKOVI: NavItem = { href: "/admin/poslovanje/troskovi", label: "Troškovi", icon: Receipt };
 
 /** Meni po cjelinama — redoslijed prati sedmični posao: prodaja → ponuda → dostava → kupci → sajt. */
 const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
@@ -112,13 +114,13 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
   },
 ];
 
-export const ITEMS: NavItem[] = [PREGLED, POSLOVANJE, ...GRUPE.flatMap((g) => g.stavke)];
+export const ITEMS: NavItem[] = [PREGLED, POSLOVANJE, TROSKOVI, ...GRUPE.flatMap((g) => g.stavke)];
 
 function useActive() {
   const pathname = usePathname();
   const pogadja = (href: string) => pathname === href || pathname.startsWith(href + "/");
   // Svijetli samo najtačnija stavka: na /admin/korpice/postavke to su „Postavke korpica“, ne i „Korpice“.
-  const sve = GRUPE.flatMap((g) => g.stavke.map((s) => s.href));
+  const sve = ITEMS.map((s) => s.href);
   return (href: string) => pogadja(href) && !sve.some((h) => h !== href && h.startsWith(href + "/") && pogadja(h));
 }
 
@@ -370,6 +372,7 @@ export function AdminSidebar() {
         >
           <StavkaMenija item={PREGLED} aktivna={isActive(PREGLED.href)} counts={counts} sklopljen={sklopljen} />
           <StavkaMenija item={POSLOVANJE} aktivna={isActive(POSLOVANJE.href)} counts={counts} sklopljen={sklopljen} />
+          <StavkaMenija item={TROSKOVI} aktivna={isActive(TROSKOVI.href)} counts={counts} sklopljen={sklopljen} />
           {GRUPE.map((g) => {
             const sadrziAktivnu = g.stavke.some((i) => isActive(i.href));
             // Sklopljen meni pokazuje sve ikone — grupe se tada ne zatvaraju.

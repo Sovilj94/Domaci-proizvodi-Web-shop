@@ -37,6 +37,7 @@ const EMPTY = {
   name: "",
   price: "",
   nabavnaCijena: "",
+  ambalazaCijena: "",
   unit: "kg" as Unit,
   stock: "",
   categoryId: "",
@@ -97,6 +98,7 @@ export function ProductForm({
             name: product.name,
             price: String(product.price),
             nabavnaCijena: product.nabavnaCijena != null ? String(product.nabavnaCijena) : "",
+            ambalazaCijena: product.ambalazaCijena != null ? String(product.ambalazaCijena) : "",
             unit: product.unit,
             stock: String(product.stock),
             categoryId: product.categoryId,
@@ -146,6 +148,8 @@ export function ProductForm({
       nabavnaCijena: form.nabavnaCijena.trim() ? Number(form.nabavnaCijena) : undefined,
       ukloniNabavnuCijenu:
         product?.nabavnaCijena != null && !form.nabavnaCijena.trim() ? true : undefined,
+      ambalazaCijena: form.ambalazaCijena.trim() ? Number(form.ambalazaCijena) : undefined,
+      ukloniAmbalazu: product?.ambalazaCijena != null && !form.ambalazaCijena.trim() ? true : undefined,
       unit: form.unit,
       stock: Number(form.stock || 0),
       categoryId: form.categoryId,
@@ -233,6 +237,23 @@ export function ProductForm({
           </Field>
           <MarzaOznaka prodajna={Number(form.price)} nabavna={form.nabavnaCijena.trim() ? Number(form.nabavnaCijena) : null} />
         </div>
+
+        <Field
+          label="Ambalaža po jedinici (KM)"
+          error={errors.ambalazaCijena?.[0] ?? errors["input.ambalazaCijena"]?.[0]}
+        >
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.ambalazaCijena}
+            onChange={(e) => setForm({ ...form, ambalazaCijena: e.target.value })}
+            placeholder="bez ambalaže"
+          />
+          <p className="mt-1 text-xs text-muted">
+            Kesa, tegla, flaša ili karton po jedinici prodaje — ulazi u troškove poslovanja uz svaku prodaju.
+          </p>
+        </Field>
 
         <Field label="Kategorija" required error={errors.categoryId?.[0]}>
           <Select

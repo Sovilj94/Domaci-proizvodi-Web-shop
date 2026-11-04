@@ -38,7 +38,7 @@ import { apiFetch } from "./client";
 export interface PostavkeKorpica {
   tipovi: {
     tip: string;
-    korpice: { id: string; naziv: string; velicina: string; cijena: number; uProdaji: boolean; imageUrl?: string | null }[];
+    korpice: { id: string; naziv: string; velicina: string; cijena: number; uProdaji: boolean; imageUrl?: string | null; ambalaza?: number | null }[];
     kategorijeIds: string[];
   }[];
   kategorije: { id: string; naziv: string }[];
@@ -64,7 +64,7 @@ export interface KalendarStavka {
 }
 
 /** Folder slike u bazi (`/slike/{folder}/…`) — prati backend `SlikePravila.Folderi`. */
-export type FolderSlike = "products" | "izrezi" | "categories" | "producers" | "korpice" | "recepti" | "izgled";
+export type FolderSlike = "products" | "izrezi" | "categories" | "producers" | "korpice" | "recepti" | "izgled" | "troskovi";
 import type {
   AdminKupac,
   AdminKupacDetalj,
@@ -118,6 +118,10 @@ import type {
   ReceptInput,
   PoslovanjeGodine,
   PoslovanjeMjeseca,
+  Trosak,
+  TrosakInput,
+  TroskoviMjeseca,
+  VrstaTroskaInput,
 } from "./contracts";
 
 /**
@@ -235,7 +239,7 @@ export const adminKorpiceApi = {
 
   sacuvajVrstu: (
     tip: string,
-    body: { kategorijeIds: string[]; korpice: { id: string; cijena: number; uProdaji: boolean }[] },
+    body: { kategorijeIds: string[]; korpice: { id: string; cijena: number; uProdaji: boolean; ambalaza?: number }[] },
   ) => apiFetch<PostavkeKorpica>(`/admin/korpice/postavke/${tip}`, { method: "PUT", body }).then((r) => r.data),
 
   /** Artikli u korpicama — smije li u korpicu, prioritet i zadate količine, više odjednom. */
@@ -467,6 +471,29 @@ export const adminApi = {
     apiFetch<PoslovanjeMjeseca>("/admin/poslovanje", { query: godina && mjesec ? { godina, mjesec } : {} }).then((r) => r.data),
   poslovanjeGodina: (godina?: number) =>
     apiFetch<PoslovanjeGodine>("/admin/poslovanje/godina", { query: godina ? { godina } : {} }).then((r) => r.data),
+
+  troskovi: (godina: number, mjesec: number) =>
+    apiFetch<TroskoviMjeseca>("/admin/troskovi", { query: { godina, mjesec } }).then((r) => r.data),
+  dodajTrosak: (body: TrosakInput) => apiFetch<Trosak>("/admin/troskovi", { method: "POST", body }).then((r) => r.data),
+  izmijeniTrosak: (id: string, body: TrosakInput) =>
+    apiFetch<Trosak>(`/admin/troskovi/${id}`, { method: "PUT", body }).then((r) => r.data),
+  obrisiTrosak: (id: string) => apiFetch<string>(`/admin/troskovi/${id}`, { method: "DELETE" }).then(() => id),
+  dodajVrstuTroska: (body: VrstaTroskaInput) =>
+    apiFetch<string>("/admin/troskovi/vrste", { method: "POST", body }).then((r) => r.data),
+  izmijeniVrstuTroska: (id: string, body: VrstaTroskaInput) =>
+    apiFetch<string>(`/admin/troskovi/vrste/${id}`, { method: "PUT", body }).then((r) => r.data),
+  obrisiVrstuTroska: (id: string) =>
+    apiFetch<string>(`/admin/troskovi/vrste/${id}`, { method: "DELETE" }).then(() => id),
+  dodajPonavljajuciTrosak: (body: { vrstaId: string; iznos: number; opis?: string; odGodina: number; odMjesec: number }) =>
+    apiFetch<string>("/admin/troskovi/ponavljajuci", { method: "POST", body }).then((r) => r.data),
+  zaustaviPonavljajuciTrosak: (id: string, godina: number, mjesec: number) =>
+    apiFetch<string>(`/admin/troskovi/ponavljajuci/${id}/zaustavi`, { method: "POST", body: { godina, mjesec } }).then(() => id),
+  obrisiPonavljajuciTrosak: (id: string) =>
+    apiFetch<string>(`/admin/troskovi/ponavljajuci/${id}`, { method: "DELETE" }).then(() => id),
+  dodajCijenuGoriva: (body: { vaziOd: string; cijenaPoLitru: number; potrosnjaL100km: number }) =>
+    apiFetch<string>("/admin/troskovi/gorivo", { method: "POST", body }).then((r) => r.data),
+  obrisiCijenuGoriva: (id: string) =>
+    apiFetch<string>(`/admin/troskovi/gorivo/${id}`, { method: "DELETE" }).then(() => id),
 
   /**
    * `unassigned` mijenja značenje `date`: tada je to dan DOSTAVE i vraćaju se samo narudžbe

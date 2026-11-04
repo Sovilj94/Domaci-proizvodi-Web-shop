@@ -101,6 +101,10 @@ export interface ProductInput {
   nabavnaCijena?: number;
   /** true = obriši unesenu nabavnu cijenu. */
   ukloniNabavnuCijenu?: boolean;
+  /** Ambalaža po jedinici prodaje (KM); izostanak = ne mijenjaj. */
+  ambalazaCijena?: number;
+  /** true = obriši unesenu ambalažu. */
+  ukloniAmbalazu?: boolean;
   /** Zadate količine po veličini korpice; poslato = zamijeni sve tri (null = nije zadato), izostanak = ne mijenjaj. */
   kolicine?: { mala: number | null; srednja: number | null; velika: number | null };
   /** Slika bez pozadine za pločice korpica (`/slike/izrezi/...`). */
@@ -534,7 +538,52 @@ export interface PoslovanjeMjeseca {
     brojOcjena: number;
   };
   gazdinstva: GazdinstvoAnalitike[];
+  troskovi: TroskoviPoslovanja;
+  prethodniTroskovi: TroskoviPoslovanja;
 }
+
+export interface VrstaTroskaMjeseca { vrsta: string; jeGorivo: boolean; jednokratni: number; ponavljajuci: number; iznos: number }
+
+export interface TroskoviPoslovanja {
+  ambalaza: number;
+  ambalazaProcjena: boolean;
+  gorivo: {
+    km: number;
+    brojRuta: number;
+    /** Nema je kad ima ruta, a nijedna nema unesenu cijenu goriva. */
+    poRutama?: number | null;
+    poRacunima: number;
+    izvor: "racuni" | "rute";
+    uDobiti: number;
+    bezCijene: boolean;
+  };
+  poVrsti: VrstaTroskaMjeseca[];
+  ostali: number;
+  ukupno: number;
+  dobit: number;
+  marzaDobiti?: number | null;
+  varijabilniPoNarudzbi: number;
+}
+
+/* ---------- Troškovi (admin unos) ---------- */
+
+export interface Trosak { id: string; datum: string; vrstaId: string; vrsta: string; jeGorivo: boolean; iznos: number; opis: string; racunUrl?: string | null }
+export interface PonavljajuciTrosak {
+  id: string; vrstaId: string; vrsta: string; iznos: number; opis: string;
+  odGodina: number; odMjesec: number; doGodina?: number | null; doMjesec?: number | null; vaziUMjesecu: boolean;
+}
+export interface VrstaTroska { id: string; naziv: string; jeGorivo: boolean; redoslijed: number; aktivna: boolean; uUpotrebi: boolean }
+export interface CijenaGoriva { id: string; vaziOd: string; cijenaPoLitru: number; potrosnjaL100km: number }
+export interface TroskoviMjeseca {
+  godina: number;
+  mjesec: number;
+  troskovi: Trosak[];
+  ponavljajuci: PonavljajuciTrosak[];
+  vrste: VrstaTroska[];
+  cijeneGoriva: CijenaGoriva[];
+}
+export interface TrosakInput { datum: string; vrstaId: string; iznos: number; opis?: string; racunUrl?: string | null }
+export interface VrstaTroskaInput { naziv: string; jeGorivo: boolean; redoslijed: number; aktivna: boolean }
 
 export interface MjesecGodine {
   mjesec: number;
@@ -546,6 +595,8 @@ export interface MjesecGodine {
   /** Nema je za mjesec koji još nije počeo. */
   aktivnePretplate?: number | null;
   procjena: boolean;
+  troskovi: number;
+  dobit: number;
 }
 
 export interface PoslovanjeGodine {

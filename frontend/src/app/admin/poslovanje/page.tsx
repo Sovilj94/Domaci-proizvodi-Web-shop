@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarRange, ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, Printer, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
@@ -12,6 +12,7 @@ import { KarticaPoslovanja } from "@/components/admin/poslovanje/kartica-poslova
 import { Odjeljak } from "@/components/admin/poslovanje/odjeljak";
 import { Tabela } from "@/components/admin/poslovanje/tabela";
 import { PdfPoslovanjaDugme } from "@/components/admin/poslovanje/pdf-dugme";
+import { TroskoviOdjeljak } from "@/components/admin/poslovanje/troskovi-odjeljak";
 import { adminApi } from "@/lib/api/endpoints";
 import type { ArtikalProdaje } from "@/lib/api/contracts";
 import { MJESECI, procenat, susjedniMjesec } from "@/lib/admin/poslovanje";
@@ -90,6 +91,11 @@ function Poslovanje() {
               <CalendarRange className="h-4 w-4" /> Godina
             </Button>
           </Link>
+          <Link href={`/admin/poslovanje/troskovi${d ? `?godina=${d.godina}&mjesec=${d.mjesec}` : ""}`}>
+            <Button variant="secondary" size="sm">
+              <Receipt className="h-4 w-4" /> Troškovi
+            </Button>
+          </Link>
           <Button variant="secondary" size="sm" onClick={() => window.print()} disabled={!d}>
             <Printer className="h-4 w-4" /> Štampaj
           </Button>
@@ -120,13 +126,19 @@ function Poslovanje() {
             </p>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             <KarticaPoslovanja label="Neto prihod" vrijednost={formatPrice(d.prihod.neto)} sada={d.prihod.neto} prije={d.prethodni.neto} />
             <KarticaPoslovanja
               label="Zarada"
               vrijednost={`${formatPrice(d.prihod.zarada)} · ${procenat(d.prihod.marza)}`}
               sada={d.prihod.zarada}
               prije={d.prethodni.zarada}
+            />
+            <KarticaPoslovanja
+              label="Dobit"
+              vrijednost={`${formatPrice(d.troskovi.dobit)} · ${procenat(d.troskovi.marzaDobiti)}`}
+              sada={d.troskovi.dobit}
+              prije={d.prethodniTroskovi.dobit}
             />
             <KarticaPoslovanja
               label="Narudžbe"
@@ -170,6 +182,8 @@ function Poslovanje() {
               ]}
             />
           </Odjeljak>
+
+          <TroskoviOdjeljak d={d} />
 
           <Odjeljak naslov="Šta se prodaje">
             <h3 className="font-semibold">Korpice</h3>

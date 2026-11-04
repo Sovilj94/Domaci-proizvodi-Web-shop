@@ -88,6 +88,8 @@ export interface Product {
   mjeseci?: number[];
   /** Samo sa admin API-ja: nabavna cijena po jedinici; odsutna = nije unesena. */
   nabavnaCijena?: number | null;
+  /** Samo sa admin API-ja: trošak ambalaže po jedinici prodaje; odsutna = nije unesena. */
+  ambalazaCijena?: number | null;
   /** Samo sa admin API-ja: zadata količina u maloj / srednjoj / velikoj korpici (null = računa se iz vrijednosti). */
   kolicinaMala?: number | null;
   kolicinaSrednja?: number | null;

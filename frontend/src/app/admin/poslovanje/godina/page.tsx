@@ -125,6 +125,12 @@ function Godina() {
                 { naslov: "Neto", vrijednost: (r) => formatPrice(r.neto), desno: true },
                 { naslov: "Zarada", vrijednost: (r) => formatPrice(r.zarada), desno: true },
                 { naslov: "Marža", vrijednost: (r) => procenat(r.marza), desno: true },
+                { naslov: "Troškovi", vrijednost: (r) => formatPrice(r.troskovi), desno: true },
+                {
+                  naslov: "Dobit",
+                  vrijednost: (r) => <span className={r.dobit < 0 ? "text-red-700" : undefined}>{formatPrice(r.dobit)}</span>,
+                  desno: true,
+                },
                 { naslov: "Narudžbi", vrijednost: (r) => r.narudzbi, desno: true },
                 { naslov: "Kupaca", vrijednost: (r) => r.aktivniKupci, desno: true },
                 { naslov: "Pretplata", vrijednost: (r) => r.aktivnePretplate ?? "—", desno: true },

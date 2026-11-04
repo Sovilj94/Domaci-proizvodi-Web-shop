@@ -1,3 +1,5 @@
+import type { TroskoviPoslovanja } from "@/lib/api/contracts";
+
 export const MJESECI = [
   "januar", "februar", "mart", "april", "maj", "jun",
   "jul", "avgust", "septembar", "oktobar", "novembar", "decembar",
@@ -32,4 +34,43 @@ export function zaokruziGore(x: number): number {
 export function skalaGrafikona(vrijednosti: number[]): { max: number; podjele: number[] } {
   const max = zaokruziGore(Math.max(0, ...vrijednosti));
   return { max, podjele: [0, 1, 2, 3, 4].map((i) => (max * i) / 4) };
+}
+
+export interface RedDobiti {
+  stavka: string;
+  /** Prihod pozitivan, trošak negativan, dobit sa svojim znakom. */
+  iznos: number;
+  vrsta: "prihod" | "trosak" | "dobit";
+}
+
+const km = (x: number) => x.toLocaleString("sr-Latn", { maximumFractionDigits: 1 });
+
+/**
+ * Račun dobiti red po red: neto − nabavna roba − ambalaža − gorivo − ostali troškovi po vrsti.
+ * Vrste označene kao gorivo nisu posebni redovi — već su u redu goriva (računi ili procjena po rutama).
+ */
+export function redoviDobiti(prihod: { neto: number; nabavno: number }, t: TroskoviPoslovanja): RedDobiti[] {
+  const g = t.gorivo;
+  const gorivo =
+    g.izvor === "racuni" ? "Gorivo — po računima" : `Gorivo — po rutama (${km(g.km)} km, ${g.brojRuta} ruta)`;
+  return [
+    { stavka: "Neto prihod", iznos: prihod.neto, vrsta: "prihod" },
+    { stavka: "Nabavna roba", iznos: -prihod.nabavno, vrsta: "trosak" },
+    { stavka: `Ambalaža (uz prodaju)${t.ambalazaProcjena ? " *" : ""}`, iznos: -t.ambalaza, vrsta: "trosak" },
+    { stavka: gorivo, iznos: -g.uDobiti, vrsta: "trosak" },
+    ...t.poVrsti
+      .filter((v) => !v.jeGorivo)
+      .map((v): RedDobiti => ({
+        stavka: v.ponavljajuci > 0 && v.jednokratni === 0 ? `${v.vrsta} (mjesečno)` : v.vrsta,
+        iznos: -v.iznos,
+        vrsta: "trosak",
+      })),
+    { stavka: "Dobit", iznos: t.dobit, vrsta: "dobit" },
+  ];
+}
+
+/** Vrh i dno ose za grafikon koji ima i gubitke: dno je zaokružen najveći minus (0 bez minusa). */
+export function skalaSaMinusom(vrijednosti: number[]): { max: number; min: number } {
+  const najmanja = Math.min(0, ...vrijednosti);
+  return { max: zaokruziGore(Math.max(0, ...vrijednosti)), min: najmanja < 0 ? zaokruziGore(-najmanja) : 0 };
 }

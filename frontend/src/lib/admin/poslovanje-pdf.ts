@@ -1,6 +1,6 @@
 import type { Content, TableCell, TDocumentDefinitions } from "pdfmake/interfaces";
 import type { PoslovanjeMjeseca } from "@/lib/api/contracts";
-import { MJESECI, procenat } from "./poslovanje";
+import { MJESECI, procenat, redoviDobiti } from "./poslovanje";
 
 const km = (x: number) => `${x.toLocaleString("sr-Latn", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM`;
 const br = (x: number) => Number(x.toFixed(2)).toLocaleString("sr-Latn");
@@ -68,6 +68,17 @@ export function dokumentPoslovanja(d: PoslovanjeMjeseca): TDocumentDefinitions {
           ],
           ["Narudžbi / prosječna", d2(`${p.brojNarudzbi} / ${km(p.prosjecnaNarudzba)}`)],
         ],
+        ["*", 160],
+      ),
+      ...tabela(
+        "Troškovi i dobit",
+        [z("Stavka"), z("Iznos", true)],
+        redoviDobiti(p, d.troskovi).map((r) => {
+          const tekst = r.iznos < 0 ? `− ${km(-r.iznos)}` : km(r.iznos);
+          return r.vrsta === "trosak"
+            ? [r.stavka, d2(tekst)]
+            : [{ text: r.stavka, bold: true }, { text: r.vrsta === "dobit" ? `${tekst} (${procenat(d.troskovi.marzaDobiti)})` : tekst, bold: true, alignment: "right" }];
+        }),
         ["*", 160],
       ),
       ...tabela(

@@ -211,18 +211,31 @@ function Vrsta({
   const qc = useQueryClient();
   const { show } = useToast();
   const [izabrane, setIzabrane] = useState(() => new Set(vrsta.kategorijeIds));
-  const [korpice, setKorpice] = useState(() => vrsta.korpice.map((k) => ({ ...k, cijenaTekst: String(k.cijena) })));
+  const [korpice, setKorpice] = useState(() =>
+    vrsta.korpice.map((k) => ({ ...k, cijenaTekst: String(k.cijena), ambalazaTekst: k.ambalaza != null ? String(k.ambalaza) : "" })),
+  );
 
   const izmijenjeno =
     izabrane.size !== vrsta.kategorijeIds.length ||
     vrsta.kategorijeIds.some((id) => !izabrane.has(id)) ||
-    korpice.some((k, i) => Number(k.cijenaTekst) !== vrsta.korpice[i].cijena || k.uProdaji !== vrsta.korpice[i].uProdaji);
+    korpice.some(
+      (k, i) =>
+        Number(k.cijenaTekst) !== vrsta.korpice[i].cijena ||
+        k.uProdaji !== vrsta.korpice[i].uProdaji ||
+        (k.ambalazaTekst.trim() ? Number(k.ambalazaTekst) : null) !== (vrsta.korpice[i].ambalaza ?? null),
+    );
 
   const sacuvaj = useMutation({
     mutationFn: () =>
       adminKorpiceApi.sacuvajVrstu(tip, {
         kategorijeIds: [...izabrane],
-        korpice: korpice.map((k) => ({ id: k.id, cijena: Number(k.cijenaTekst), uProdaji: k.uProdaji })),
+        // Prazna kutija = 0 = ukloni (backend: null ne mijenja, 0 briše).
+        korpice: korpice.map((k) => ({
+          id: k.id,
+          cijena: Number(k.cijenaTekst),
+          uProdaji: k.uProdaji,
+          ambalaza: k.ambalazaTekst.trim() ? Number(k.ambalazaTekst) : 0,
+        })),
       }),
     onSuccess: (novo) => {
       qc.setQueryData(POSTAVKE_KLJUC, novo);
@@ -252,11 +265,12 @@ function Vrsta({
           <p className="text-sm text-muted">Ova vrsta još nema korpica. Dodaj ih kao proizvod vrste „korpica“.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-sm">
+            <table className="w-full min-w-[46rem] text-sm">
               <thead className="text-left text-xs text-muted">
                 <tr className="border-b border-line">
                   <th className="py-2 pr-3 font-medium">Korpica</th>
                   <th className="py-2 pr-3 font-medium">Cijena (KM)</th>
+                  <th className="py-2 pr-3 font-medium">Kutija (KM)</th>
                   <th className="py-2 pr-3 font-medium">U ponudi</th>
                   <th className="py-2 pr-3 text-right font-medium">Sadržaj vrijedi</th>
                   <th className="py-2 pr-3 text-right font-medium">Kultura</th>
@@ -288,6 +302,19 @@ function Vrsta({
                           value={k.cijenaTekst}
                           onChange={(e) => setKorpice(korpice.map((x, j) => (j === i ? { ...x, cijenaTekst: e.target.value } : x)))}
                           className="w-24"
+                        />
+                      </td>
+                      <td className="py-2 pr-3">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.05"
+                          min="0"
+                          aria-label={`Cijena kutije — ${k.naziv}`}
+                          placeholder="—"
+                          value={k.ambalazaTekst}
+                          onChange={(e) => setKorpice(korpice.map((x, j) => (j === i ? { ...x, ambalazaTekst: e.target.value } : x)))}
+                          className="w-20"
                         />
                       </td>
                       <td className="py-2 pr-3">
