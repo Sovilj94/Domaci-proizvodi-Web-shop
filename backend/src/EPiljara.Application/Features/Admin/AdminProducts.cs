@@ -42,7 +42,9 @@ public record ProductInput(
     string? NazivEn = null,
     string? OpisEn = null,
     bool? USpajzu = null,
-    KolicineUKorpici? Kolicine = null);
+    KolicineUKorpici? Kolicine = null,
+    decimal? AmbalazaCijena = null,
+    bool? UkloniAmbalazu = null);
 
 /// <summary>
 /// Zadate količine po veličini korpice. Kad se pošalje, zamjenjuje sve tri (null = nije zadato);
@@ -65,6 +67,9 @@ public class ProductInputValidator : AbstractValidator<ProductInput>
         RuleForEach(x => x.Mjeseci).InclusiveBetween(1, 12)
             .When(x => x.Mjeseci is not null)
             .WithMessage("Mjesec mora biti između 1 i 12.");
+        RuleFor(x => x.AmbalazaCijena).GreaterThan(0)
+            .When(x => x.AmbalazaCijena is not null)
+            .WithMessage("Ambalaža mora biti veća od nule (ili je ukloni).");
         RuleFor(x => x.NabavnaCijena).GreaterThan(0)
             .When(x => x.NabavnaCijena is not null)
             .WithMessage("Nabavna cijena mora biti veća od 0.");
@@ -146,6 +151,7 @@ public class CreateProductHandler(IAppDbContext db) : IRequestHandler<CreateProd
             Mjeseci = input.Mjeseci?.ToArray() ?? [],
             Boja = BojaUlaz.Normalizuj(input.Boja),
             NabavnaCijena = input.UkloniNabavnuCijenu == true ? null : input.NabavnaCijena,
+            AmbalazaCijena = input.UkloniAmbalazu == true ? null : input.AmbalazaCijena,
             KolicinaMala = input.Kolicine?.Mala,
             KolicinaSrednja = input.Kolicine?.Srednja,
             KolicinaVelika = input.Kolicine?.Velika,
@@ -217,6 +223,8 @@ public class UpdateProductHandler(IAppDbContext db) : IRequestHandler<UpdateProd
         // Isti obrazac: izostala nabavna cijena = ne mijenjaj; brisanje se traži izričito.
         if (input.UkloniNabavnuCijenu == true) product.NabavnaCijena = null;
         else if (input.NabavnaCijena is not null) product.NabavnaCijena = input.NabavnaCijena;
+        if (input.UkloniAmbalazu == true) product.AmbalazaCijena = null;
+        else if (input.AmbalazaCijena is not null) product.AmbalazaCijena = input.AmbalazaCijena;
         if (input.Kolicine is { } k)
             (product.KolicinaMala, product.KolicinaSrednja, product.KolicinaVelika) = (k.Mala, k.Srednja, k.Velika);
         product.UpdatedAt = DateTime.UtcNow;

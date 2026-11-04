@@ -41,7 +41,7 @@ public class ReoptimizeRouteHandler(IAppDbContext db, ICurrentUser current, IRou
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Nemate rutu za danas.");
 
-        await Optimizacija.PrimijeniAsync(route, cmd.Latitude, cmd.Longitude, optimizer, ct);
+        await Optimizacija.PrimijeniAsync(route, cmd.Latitude, cmd.Longitude, optimizer, ct, odMagacina: false);
         await db.SaveChangesAsync(ct);
 
         return route.ToDto();

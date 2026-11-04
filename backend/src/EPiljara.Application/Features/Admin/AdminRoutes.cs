@@ -49,7 +49,7 @@ internal static class Optimizacija
 
     public static async Task PrimijeniAsync(
         DeliveryRoute route, double startLat, double startLon,
-        IRouteOptimizer optimizer, CancellationToken ct)
+        IRouteOptimizer optimizer, CancellationToken ct, bool odMagacina = true)
     {
         // Ako bar jedna stanica nema učitanu narudžbu, poziv je vjerovatno zaboravio
         // .ThenInclude(s => s.Order) na upitu koji je učitao rutu — OrderId je obavezan
@@ -68,7 +68,8 @@ internal static class Optimizacija
             .Where(s => !Zatvoreni.Contains(s.Order!.Status))
             .ToList();
 
-        if (otvorene.Count < 2) return;
+        // Jedna stanica nema šta da se redaju, ali od magacina i dalje treba kilometraža ture.
+        if (otvorene.Count == 0 || (otvorene.Count < 2 && !odMagacina)) return;
 
         var inputs = otvorene.Select(s => new RouteStopInput(
             s.OrderId,
@@ -103,6 +104,10 @@ internal static class Optimizacija
             stop.Sequence = pocetak++;
 
         route.DuzinaMetara = rezultat.DuzinaMetara;
+        // Kilometraža cijele ture (za gorivo): samo kad je obilazak od magacina i nijedna stanica
+        // još nije zatvorena — inače je rezultat samo ostatak puta.
+        if (odMagacina && otvorene.Count == route.Stops.Count && rezultat.DuzinaMetara.HasValue)
+            route.KilometrazaMetara = rezultat.DuzinaMetara;
         route.TrajanjeSekundi = rezultat.TrajanjeSekundi;
         route.Geometrija = rezultat.Geometrija;
 

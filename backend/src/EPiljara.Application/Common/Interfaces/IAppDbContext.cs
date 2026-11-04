@@ -61,6 +61,11 @@ public interface IAppDbContext
     /// <summary>Promo kodovi za popust na robu — vidi PromoKod entitet.</summary>
     DbSet<PromoKod> PromoKodovi { get; }
 
+    DbSet<VrstaTroska> VrsteTroskova { get; }
+    DbSet<Trosak> Troskovi { get; }
+    DbSet<PonavljajuciTrosak> PonavljajuciTroskovi { get; }
+    DbSet<CijenaGoriva> CijeneGoriva { get; }
+
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
     DatabaseFacade Database { get; }
 

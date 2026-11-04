@@ -32,6 +32,12 @@ public class DeliveryRoute : Entity
     /// Geometrija je GeoJSON niz koordinata kao tekst, spreman za crtanje na mapi.
     /// </summary>
     public double? DuzinaMetara { get; set; }
+    /// <summary>
+    /// Dužina cijele ture magacin → stanice → magacin, iz optimizacije od magacina. Vozačeva ponovna
+    /// optimizacija od trenutne pozicije mijenja DuzinaMetara (ostatak puta), a ovo ne — po ovome se
+    /// računa trošak goriva.
+    /// </summary>
+    public double? KilometrazaMetara { get; set; }
     public double? TrajanjeSekundi { get; set; }
     public string? Geometrija { get; set; }
 

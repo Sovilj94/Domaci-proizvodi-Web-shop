@@ -103,6 +103,25 @@ public class NabavnaSnimakTests
     }
 
     [Fact]
+    public async Task Nova_narudzba_snima_ambalazu_artikla_i_korpice()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        foreach (var (id, c) in new[] { (t.KrompirId, 0.10m), (t.KorpicaId, 1.20m) })
+        {
+            var p = await t.Db.Products.FirstAsync(x => x.Id == id);
+            p.AmbalazaCijena = c;
+        }
+        await t.Db.SaveChangesAsync();
+        t.Db.ChangeTracker.Clear();
+        await t.PosaljiKorpicuAsync(kolicina: 1m);
+        await t.PosaljiObicanArtikalAsync();
+        t.Db.ChangeTracker.Clear();
+
+        Assert.Equal(0.10m, (await t.Db.OrderItems.SingleAsync(i => i.ProductId == t.KrompirId)).AmbalazaCijena);
+        Assert.Equal(1.20m, (await t.Db.OrderItems.SingleAsync(i => i.ProductId == t.KorpicaId)).AmbalazaCijena);
+    }
+
+    [Fact]
     public async Task Artikal_bez_nabavne_ostavlja_snimak_prazan()
     {
         using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);

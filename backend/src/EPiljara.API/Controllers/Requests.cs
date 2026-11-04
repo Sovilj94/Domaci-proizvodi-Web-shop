@@ -38,3 +38,11 @@ public record SadrzajSajtaRequest(
     IReadOnlyList<EPiljara.Application.DTOs.PitanjeDto>? Pitanja);
 
 public record SacuvajBlokoveRequest(IReadOnlyList<EPiljara.Application.Features.Admin.BlokUnos>? Blokovi);
+
+/// <summary>Jednokratni trošak (admin/troskovi).</summary>
+public record TrosakInput(DateOnly Datum, Guid VrstaId, decimal Iznos, string? Opis, string? RacunUrl);
+
+public record VrstaTroskaInput(string Naziv, bool JeGorivo, int Redoslijed, bool Aktivna = true);
+
+/// <summary>Kalendarski mjesec, npr. „zaustavi od ovog mjeseca".</summary>
+public record MjesecInput(int Godina, int Mjesec);

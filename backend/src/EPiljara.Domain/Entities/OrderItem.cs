@@ -24,6 +24,8 @@ public class OrderItem : Entity
     /// Upisuje je AppDbContext pri upisu reda. Nikad ne ide u kupčev DTO.
     /// </summary>
     public decimal? NabavnaCijena { get; set; }
+    /// <summary>Snimak ambalaže po jedinici (Product.AmbalazaCijena) u trenutku narudžbe; upisuje ga AppDbContext.</summary>
+    public decimal? AmbalazaCijena { get; set; }
     public string? ImageUrl { get; set; }
 
     public decimal LineTotal => Math.Round(UnitPrice * Quantity, 2);

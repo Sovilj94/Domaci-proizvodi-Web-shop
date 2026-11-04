@@ -41,6 +41,16 @@ public static class PoslovanjePodaci
             }));
     }
 
+    /// <summary>Troškovi, ponavljajući, rute i cijene goriva za kalendarske dane [od, doIskljucivo).</summary>
+    public static async Task<TroskoviPodaci> TroskoviAsync(IAppDbContext db, DateOnly od, DateOnly doIskljucivo, CancellationToken ct) =>
+        new(
+            await db.Troskovi.AsNoTracking().Include(t => t.Vrsta)
+                .Where(t => t.Datum >= od && t.Datum < doIskljucivo).ToListAsync(ct),
+            await db.PonavljajuciTroskovi.AsNoTracking().Include(t => t.Vrsta).ToListAsync(ct),
+            await db.DeliveryRoutes.AsNoTracking().Include(r => r.Stops).ThenInclude(s => s.Order)
+                .Where(r => r.Date >= od && r.Date < doIskljucivo).ToListAsync(ct),
+            await db.CijeneGoriva.AsNoTracking().ToListAsync(ct));
+
     public static async Task<HashSet<Guid>> PreporuceniAsync(IAppDbContext db, CancellationToken ct) =>
         (await db.Users.AsNoTracking().Where(u => u.PreporucioId != null).Select(u => u.Id).ToListAsync(ct)).ToHashSet();
 

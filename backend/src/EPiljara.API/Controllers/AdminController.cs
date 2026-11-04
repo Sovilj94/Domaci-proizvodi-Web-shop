@@ -1,6 +1,7 @@
 using EPiljara.Application.Features.Novosti;
 using EPiljara.Application.Features.Admin;
 using EPiljara.Application.Features.Admin.Poslovanje;
+using EPiljara.Application.Features.Admin.Troskovi;
 using EPiljara.Application.Features.Analize;
 using EPiljara.Application.Features.Ocjene;
 using EPiljara.Application.Features.Recepti;
@@ -29,6 +30,54 @@ public class AdminController : ApiControllerBase
     [HttpGet("admin/poslovanje/godina")]
     public async Task<IActionResult> PoslovanjeGodina([FromQuery] int? godina) =>
         Envelope(await Mediator.Send(new GetPoslovanjeGodinaQuery(godina)));
+
+    [HttpGet("admin/troskovi")]
+    public async Task<IActionResult> Troskovi([FromQuery] int godina, [FromQuery] int mjesec) =>
+        Envelope(await Mediator.Send(new GetTroskoviQuery(godina, mjesec)));
+
+    [HttpPost("admin/troskovi")]
+    public async Task<IActionResult> DodajTrosak([FromBody] TrosakInput i) =>
+        EnvelopeCreated(await Mediator.Send(new SacuvajTrosakCommand(null, i.Datum, i.VrstaId, i.Iznos, i.Opis, i.RacunUrl)));
+
+    [HttpPut("admin/troskovi/{id:guid}")]
+    public async Task<IActionResult> IzmijeniTrosak(Guid id, [FromBody] TrosakInput i) =>
+        Envelope(await Mediator.Send(new SacuvajTrosakCommand(id, i.Datum, i.VrstaId, i.Iznos, i.Opis, i.RacunUrl)));
+
+    [HttpDelete("admin/troskovi/{id:guid}")]
+    public async Task<IActionResult> ObrisiTrosak(Guid id) =>
+        Envelope(await Mediator.Send(new ObrisiTrosakCommand(id)));
+
+    [HttpPost("admin/troskovi/vrste")]
+    public async Task<IActionResult> DodajVrstuTroska([FromBody] VrstaTroskaInput i) =>
+        EnvelopeCreated(await Mediator.Send(new SacuvajVrstuTroskaCommand(null, i.Naziv, i.JeGorivo, i.Redoslijed, i.Aktivna)));
+
+    [HttpPut("admin/troskovi/vrste/{id:guid}")]
+    public async Task<IActionResult> IzmijeniVrstuTroska(Guid id, [FromBody] VrstaTroskaInput i) =>
+        Envelope(await Mediator.Send(new SacuvajVrstuTroskaCommand(id, i.Naziv, i.JeGorivo, i.Redoslijed, i.Aktivna)));
+
+    [HttpDelete("admin/troskovi/vrste/{id:guid}")]
+    public async Task<IActionResult> ObrisiVrstuTroska(Guid id) =>
+        Envelope(await Mediator.Send(new ObrisiVrstuTroskaCommand(id)));
+
+    [HttpPost("admin/troskovi/ponavljajuci")]
+    public async Task<IActionResult> DodajPonavljajuciTrosak([FromBody] DodajPonavljajuciTrosakCommand c) =>
+        EnvelopeCreated(await Mediator.Send(c));
+
+    [HttpPost("admin/troskovi/ponavljajuci/{id:guid}/zaustavi")]
+    public async Task<IActionResult> ZaustaviPonavljajuciTrosak(Guid id, [FromBody] MjesecInput m) =>
+        Envelope(await Mediator.Send(new ZaustaviPonavljajuciTrosakCommand(id, m.Godina, m.Mjesec)));
+
+    [HttpDelete("admin/troskovi/ponavljajuci/{id:guid}")]
+    public async Task<IActionResult> ObrisiPonavljajuciTrosak(Guid id) =>
+        Envelope(await Mediator.Send(new ObrisiPonavljajuciTrosakCommand(id)));
+
+    [HttpPost("admin/troskovi/gorivo")]
+    public async Task<IActionResult> DodajCijenuGoriva([FromBody] DodajCijenuGorivaCommand c) =>
+        EnvelopeCreated(await Mediator.Send(c));
+
+    [HttpDelete("admin/troskovi/gorivo/{id:guid}")]
+    public async Task<IActionResult> ObrisiCijenuGoriva(Guid id) =>
+        Envelope(await Mediator.Send(new ObrisiCijenuGorivaCommand(id)));
 
     /// <param name="unassigned">Kad je true, <paramref name="date"/> je dan DOSTAVE i vraćaju
     /// se samo narudžbe koje tog dana nisu ni na čijoj ruti.</param>

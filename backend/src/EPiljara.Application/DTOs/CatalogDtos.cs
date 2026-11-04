@@ -81,6 +81,8 @@ public record AdminProductDto : ProductDto
     public AdminProductDto(ProductDto osnova) : base(osnova) { }
 
     public decimal? NabavnaCijena { get; init; }
+    /// <summary>Trošak ambalaže po jedinici prodaje; null = nije unesen.</summary>
+    public decimal? AmbalazaCijena { get; init; }
 
     /// <summary>Zadate količine po veličini korpice (null = računa se iz vrijednosti).</summary>
     public decimal? KolicinaMala { get; init; }

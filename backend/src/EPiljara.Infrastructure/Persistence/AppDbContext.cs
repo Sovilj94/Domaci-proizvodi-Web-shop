@@ -56,16 +56,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PartnerPrijava> PartnerPrijave => Set<PartnerPrijava>();
     public DbSet<Magacin> Magacin => Set<Magacin>();
     public DbSet<PromoKod> PromoKodovi => Set<PromoKod>();
+    public DbSet<VrstaTroska> VrsteTroskova => Set<VrstaTroska>();
+    public DbSet<Trosak> Troskovi => Set<Trosak>();
+    public DbSet<PonavljajuciTrosak> PonavljajuciTroskovi => Set<PonavljajuciTrosak>();
+    public DbSet<CijenaGoriva> CijeneGoriva => Set<CijenaGoriva>();
 
     /// <summary>
     /// Svaki novi red narudžbe (OrderItem, StavkaKorpiceNarudzbe) bez nabavne cijene dobija
-    /// trenutnu nabavnu cijenu artikla. Jedno mjesto umjesto pet putanja koje prave redove —
+    /// trenutnu nabavnu cijenu artikla (OrderItem i ambalažu). Jedno mjesto umjesto pet putanja koje prave redove —
     /// nova putanja ga ne može zaobići. Postavljena vrijednost se ne dira.
     /// Override bool varijante: SaveChangesAsync(CancellationToken) iz IAppDbContext poziva nju.
     /// </summary>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         await SnimiNabavneCijeneAsync(cancellationToken);
+        await SnimiAmbalazuAsync(cancellationToken);
         return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
@@ -86,6 +91,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             .ToDictionaryAsync(p => p.Id, p => p.NabavnaCijena, ct);
         foreach (var (id, postavi) in redovi)
             if (nabavne.TryGetValue(id, out var c)) postavi(c);
+    }
+
+    /// <summary>Isto za ambalažu: novi OrderItem bez snimka dobija Product.AmbalazaCijena.</summary>
+    private async Task SnimiAmbalazuAsync(CancellationToken ct)
+    {
+        var redovi = ChangeTracker.Entries<OrderItem>()
+            .Where(e => e.State == EntityState.Added && e.Entity.AmbalazaCijena is null)
+            .Select(e => e.Entity)
+            .ToList();
+        if (redovi.Count == 0) return;
+
+        var idjevi = redovi.Select(r => r.ProductId).Distinct().ToList();
+        var ambalaze = await Products.IgnoreQueryFilters().AsNoTracking()
+            .Where(p => idjevi.Contains(p.Id) && p.AmbalazaCijena != null)
+            .ToDictionaryAsync(p => p.Id, p => p.AmbalazaCijena, ct);
+        foreach (var r in redovi)
+            if (ambalaze.TryGetValue(r.ProductId, out var a)) r.AmbalazaCijena = a;
     }
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -126,6 +148,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // ispravno stanje za sve postojeće redove (nijedan još nije korpica).
             e.Property(x => x.Boja).HasMaxLength(7);
             e.Property(x => x.NabavnaCijena).HasPrecision(10, 2);
+            e.Property(x => x.AmbalazaCijena).HasPrecision(10, 2);
             e.Property(x => x.KolicinaMala).HasPrecision(10, 3);
             e.Property(x => x.KolicinaSrednja).HasPrecision(10, 3);
             e.Property(x => x.KolicinaVelika).HasPrecision(10, 3);
@@ -511,6 +534,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Unit).HasConversion<string>().HasMaxLength(8);
             e.Ignore(x => x.LineTotal);
             e.Property(x => x.NabavnaCijena).HasPrecision(10, 2);
+            e.Property(x => x.AmbalazaCijena).HasPrecision(10, 2);
+        });
+
+        b.Entity<VrstaTroska>(e =>
+        {
+            e.Property(x => x.Naziv).HasMaxLength(80).IsRequired();
+            e.HasIndex(x => x.Naziv).IsUnique();
+        });
+
+        b.Entity<Trosak>(e =>
+        {
+            e.Property(x => x.Opis).HasMaxLength(300);
+            e.Property(x => x.RacunUrl).HasMaxLength(500);
+            e.Property(x => x.Iznos).HasPrecision(12, 2);
+            e.HasIndex(x => x.Datum);
+            e.HasOne(x => x.Vrsta).WithMany().HasForeignKey(x => x.VrstaTroskaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<PonavljajuciTrosak>(e =>
+        {
+            e.Property(x => x.Opis).HasMaxLength(300);
+            e.Property(x => x.Iznos).HasPrecision(12, 2);
+            e.HasOne(x => x.Vrsta).WithMany().HasForeignKey(x => x.VrstaTroskaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<CijenaGoriva>(e =>
+        {
+            e.Property(x => x.CijenaPoLitru).HasPrecision(8, 3);
+            e.Property(x => x.PotrosnjaL100km).HasPrecision(6, 2);
+            e.HasIndex(x => x.VaziOd).IsUnique();
         });
 
         b.Entity<DeliveryRoute>(e =>

@@ -34,12 +34,18 @@ public class GetPoslovanjeHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
         var prosleIsporucene = PoslovanjeRacun.Isporucene(uProslom).ToList();
 
         var racun = new PoslovanjeRacun(await PoslovanjePodaci.KatalogAsync(db, ct));
+        var prihod = racun.Prihod(isporucene);
+        var prethodni = racun.Prihod(prosleIsporucene);
+        var troskovi = await PoslovanjePodaci.TroskoviAsync(
+            db, new DateOnly(pg, pm, 1), new DateOnly(godina, mjesec, 1).AddMonths(1), ct);
         return new PoslovanjeMjesecaDto
         {
             Godina = godina,
             Mjesec = mjesec,
-            Prihod = racun.Prihod(isporucene),
-            Prethodni = racun.Prihod(prosleIsporucene),
+            Prihod = prihod,
+            Prethodni = prethodni,
+            Troskovi = racun.Troskovi(godina, mjesec, isporucene, prihod, troskovi),
+            PrethodniTroskovi = racun.Troskovi(pg, pm, prosleIsporucene, prethodni, troskovi),
             Kupci = racun.Kupci(
                 isporucene, prosleIsporucene,
                 await PoslovanjePodaci.PrviMjeseciAsync(db, dan, ct),
@@ -71,6 +77,7 @@ public class GetPoslovanjeGodinaHandler(IAppDbContext db, IOptions<KorpiceOpcije
         var narudzbe = await PoslovanjePodaci.NarudzbeAsync(db, sedmicePoMjesecu.Values.SelectMany(s => s).ToList(), ct);
         var racun = new PoslovanjeRacun(await PoslovanjePodaci.KatalogAsync(db, ct));
         var pretplate = await db.Pretplate.AsNoTracking().ToListAsync(ct);
+        var troskovi = await PoslovanjePodaci.TroskoviAsync(db, new DateOnly(godina, 1, 1), new DateOnly(godina + 1, 1, 1), ct);
 
         var mjeseci = new List<MjesecGodineDto>();
         var sezona = new Dictionary<string, decimal[]>();
@@ -79,6 +86,7 @@ public class GetPoslovanjeGodinaHandler(IAppDbContext db, IOptions<KorpiceOpcije
             var sedmice = sedmicePoMjesecu[m];
             var isporucene = PoslovanjeRacun.Isporucene(narudzbe.Where(o => sedmice.Contains((o.Godina, o.Sedmica)))).ToList();
             var prihod = racun.Prihod(isporucene);
+            var t = racun.Troskovi(godina, m, isporucene, prihod, troskovi);
             var (sg, sm) = m == 12 ? (godina + 1, 1) : (godina, m + 1);
             mjeseci.Add(new MjesecGodineDto
             {
@@ -94,6 +102,8 @@ public class GetPoslovanjeGodinaHandler(IAppDbContext db, IOptions<KorpiceOpcije
                     ? null
                     : PoslovanjeRacun.AktivnePretplate(pretplate, PoslovanjeKalendar.PocetakUtc(sg, sm)),
                 Procjena = prihod.Procjena,
+                Troskovi = t.Ukupno,
+                Dobit = t.Dobit,
             });
             foreach (var l in isporucene.SelectMany(racun.Linije))
             {

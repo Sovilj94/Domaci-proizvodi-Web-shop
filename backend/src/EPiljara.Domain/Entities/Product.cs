@@ -15,6 +15,8 @@ public class Product : Entity
     /// izlazi na javni API (samo admin DTO-i).
     /// </summary>
     public decimal? NabavnaCijena { get; set; }
+    /// <summary>Trošak ambalaže po jedinici prodaje (kesa, tegla, flaša; za korpicu kutija). Null: nema ili nije unesen.</summary>
+    public decimal? AmbalazaCijena { get; set; }
     public Unit Unit { get; set; } = Unit.Kom;
     public decimal Stock { get; set; }
     public bool IsAvailable { get; set; } = true;

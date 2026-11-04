@@ -13,6 +13,52 @@ public record PoslovanjeMjesecaDto
     public PretplateAnalitikaDto Pretplate { get; init; } = new();
     public DostavaAnalitikaDto Dostava { get; init; } = new();
     public IReadOnlyList<GazdinstvoDto> Gazdinstva { get; init; } = [];
+    public TroskoviDto Troskovi { get; init; } = new();
+    /// <summary>Troškovi i dobit prošlog mjeseca — za ▲/▼ na kartici „Dobit".</summary>
+    public TroskoviDto PrethodniTroskovi { get; init; } = new();
+}
+
+/// <summary>Troškovi mjeseca i dobit (neto − nabavno − troškovi). Spec: 2026-11-04-troskovi-design.md.</summary>
+public record TroskoviDto
+{
+    /// <summary>Ambalaža isporučenih narudžbi (snimak po stavci × količina).</summary>
+    public decimal Ambalaza { get; init; }
+    /// <summary>Bar jedna stavka nema snimak ambalaže pa je računata po današnjoj.</summary>
+    public bool AmbalazaProcjena { get; init; }
+    public GorivoDto Gorivo { get; init; } = new();
+    public IReadOnlyList<VrstaTroskaMjesecaDto> PoVrsti { get; init; } = [];
+    /// <summary>Ručni troškovi mjeseca bez goriva (jednokratni + ponavljajući).</summary>
+    public decimal Ostali { get; init; }
+    public decimal Ukupno { get; init; }
+    public decimal Dobit { get; init; }
+    /// <summary>Dobit / neto prihod; null bez prihoda.</summary>
+    public decimal? MarzaDobiti { get; init; }
+    /// <summary>(Ambalaža + gorivo) po isporučenoj narudžbi.</summary>
+    public decimal VarijabilniPoNarudzbi { get; init; }
+}
+
+public record GorivoDto
+{
+    public double Km { get; init; }
+    public int BrojRuta { get; init; }
+    /// <summary>Km × potrošnja × cijena važeća na dan rute; null kad ima ruta a nijedna nema cijenu goriva.</summary>
+    public decimal? PoRutama { get; init; }
+    /// <summary>Unijeti računi vrsta označenih kao gorivo.</summary>
+    public decimal PoRacunima { get; init; }
+    /// <summary>"racuni" kad ih u mjesecu ima, inače "rute".</summary>
+    public string Izvor { get; init; } = "rute";
+    public decimal UDobiti { get; init; }
+    /// <summary>Ima ruta za koje nije unesena cijena goriva.</summary>
+    public bool BezCijene { get; init; }
+}
+
+public record VrstaTroskaMjesecaDto
+{
+    public string Vrsta { get; init; } = string.Empty;
+    public bool JeGorivo { get; init; }
+    public decimal Jednokratni { get; init; }
+    public decimal Ponavljajuci { get; init; }
+    public decimal Iznos { get; init; }
 }
 
 public record PrihodDto
@@ -170,6 +216,8 @@ public record MjesecGodineDto
     /// <summary>Aktivne na kraju mjeseca; null za mjesec koji još nije počeo.</summary>
     public int? AktivnePretplate { get; init; }
     public bool Procjena { get; init; }
+    public decimal Troskovi { get; init; }
+    public decimal Dobit { get; init; }
 }
 
 public record SezonaKategorijeDto

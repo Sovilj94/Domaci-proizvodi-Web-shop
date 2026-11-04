@@ -9,8 +9,10 @@ namespace EPiljara.Application.Features.Admin.Poslovanje;
 /// Sav račun analitike, nad narudžbama u memoriji — bez baze, da se pravila testiraju direktno.
 /// Pravila su u specifikaciji (docs/superpowers/specs/2026-11-03-poslovanje-analitika-design.md).
 /// </summary>
-public sealed class PoslovanjeRacun(IReadOnlyDictionary<Guid, Product> katalog)
+public sealed partial class PoslovanjeRacun(IReadOnlyDictionary<Guid, Product> katalog)
 {
+    private IReadOnlyDictionary<Guid, Product> Katalog => katalog;
+
     /// <summary>Jedan red robe: stavka Špajza ili red sadržaja korpice (pomnožen brojem kutija).</summary>
     internal sealed record Linija(
         Order Narudzba, Guid ProductId, string Naziv, string Jedinica, decimal Kolicina,
