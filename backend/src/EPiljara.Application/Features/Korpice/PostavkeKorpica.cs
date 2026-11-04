@@ -16,7 +16,8 @@ namespace EPiljara.Application.Features.Korpice;
  * Podesavanja i ekran ih čuva kroz postojeći PUT /admin/podesavanja.
  */
 
-public record KorpicaPostavkeDto(Guid Id, string Naziv, string Velicina, decimal Cijena, bool UProdaji, string? ImageUrl);
+/// <param name="Ambalaza">Cijena kutije (Product.AmbalazaCijena); null = nije unesena.</param>
+public record KorpicaPostavkeDto(Guid Id, string Naziv, string Velicina, decimal Cijena, bool UProdaji, string? ImageUrl, decimal? Ambalaza = null);
 
 public record TipPostavkeDto(string Tip, IReadOnlyList<KorpicaPostavkeDto> Korpice, IReadOnlyList<Guid> KategorijeIds);
 
@@ -51,7 +52,7 @@ public static class PostavkeKorpicaMapa
                     .OrderBy(k => k.Velicina)
                     .Select(k => new KorpicaPostavkeDto(
                         k.Id, k.Name, (k.Velicina ?? VelicinaKorpice.Mala).ToString().ToLowerInvariant(),
-                        k.Price, k.IsAvailable, k.ImageUrl))
+                        k.Price, k.IsAvailable, k.ImageUrl, k.AmbalazaCijena))
                     .ToList(),
                 veze.Where(v => v.TipKorpice == t).Select(v => v.CategoryId).ToList())).ToList(),
             kategorije);
@@ -70,7 +71,8 @@ public class GetPostavkeKorpicaHandler(IAppDbContext db) : IRequestHandler<GetPo
 
 /* ---------- jedna vrsta: kategorije, cijene, ponuda ---------- */
 
-public record KorpicaUnos(Guid Id, decimal Cijena, bool UProdaji);
+/// <param name="Ambalaza">Cijena kutije: null = ne mijenjaj, 0 ili manje = ukloni.</param>
+public record KorpicaUnos(Guid Id, decimal Cijena, bool UProdaji, decimal? Ambalaza = null);
 
 public record SacuvajTipKorpiceCommand(string Tip, IReadOnlyList<Guid> KategorijeIds, IReadOnlyList<KorpicaUnos> Korpice)
     : IRequest<PostavkeKorpicaDto>;
@@ -108,6 +110,7 @@ public class SacuvajTipKorpiceHandler(IAppDbContext db) : IRequestHandler<Sacuva
                 ?? throw new NotFoundException("Korpica nije pronađena u ovoj vrsti.");
             k.Price = unos.Cijena;
             k.IsAvailable = unos.UProdaji;
+            if (unos.Ambalaza is decimal a) k.AmbalazaCijena = a > 0 ? Math.Round(a, 2) : null;
             k.UpdatedAt = DateTime.UtcNow;
         }
 

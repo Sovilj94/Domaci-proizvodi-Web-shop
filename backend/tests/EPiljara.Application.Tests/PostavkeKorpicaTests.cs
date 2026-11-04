@@ -63,6 +63,22 @@ public class PostavkeKorpicaTests
     }
 
     [Fact]
+    public async Task Ambalaza_korpice_se_cuva_a_bez_vrijednosti_ostaje()
+    {
+        var o = await PostaviAsync();
+        var h = new SacuvajTipKorpiceHandler(o.T.Db);
+
+        var p = await h.Handle(new SacuvajTipKorpiceCommand("povrce", [], [new KorpicaUnos(o.Mala.Id, 25m, true, 1.20m)]), default);
+        Assert.Equal(1.20m, p.Tipovi.Single(x => x.Tip == "povrce").Korpice.Single(k => k.Id == o.Mala.Id).Ambalaza);
+
+        p = await h.Handle(new SacuvajTipKorpiceCommand("povrce", [], [new KorpicaUnos(o.Mala.Id, 25m, true)]), default);
+        Assert.Equal(1.20m, p.Tipovi.Single(x => x.Tip == "povrce").Korpice.Single(k => k.Id == o.Mala.Id).Ambalaza);
+
+        p = await h.Handle(new SacuvajTipKorpiceCommand("povrce", [], [new KorpicaUnos(o.Mala.Id, 25m, true, 0m)]), default);
+        Assert.Null(p.Tipovi.Single(x => x.Tip == "povrce").Korpice.Single(k => k.Id == o.Mala.Id).Ambalaza);
+    }
+
+    [Fact]
     public async Task Korpica_druge_vrste_se_ne_moze_mijenjati_kroz_ovu()
     {
         var o = await PostaviAsync();
