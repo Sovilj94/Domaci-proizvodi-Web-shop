@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, ChevronDown, Inbox, Plus, Search, Sparkles, Truck, X } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, Fuel, Inbox, Plus, Search, Sparkles, Truck, X } from "lucide-react";
 import { DispatchTabs, inicijali, type DispatchTab } from "@/components/admin/dispatch-tabs";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
@@ -13,9 +13,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { adminApi } from "@/lib/api/endpoints";
 import { narudzbeRijec } from "@/lib/orders";
-import type { Driver } from "@/lib/api/contracts";
+import type { Driver, Voznja } from "@/lib/api/contracts";
 import type { DeliveryRoute, Order, RouteStop } from "@/types/domain";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
 const NEDODIJELJENO = "nedodijeljeno";
 
@@ -54,9 +54,12 @@ function AdminDostavaContent() {
   const driversKey = ["admin", "drivers"] as const;
   const routesKey = ["admin", "routes", date] as const;
   const unassignedKey = ["admin", "orders", "unassigned", date] as const;
+  const voznjeKey = ["admin", "voznje", date] as const;
 
   const drivers = useQuery({ queryKey: driversKey, queryFn: () => adminApi.drivers() });
   const routes = useQuery({ queryKey: routesKey, queryFn: () => adminApi.routes(date) });
+  // Procjena dnevne ture po vozaču; server je preračuna kad se skup stanica promijeni.
+  const voznje = useQuery({ queryKey: voznjeKey, queryFn: () => adminApi.voznjeDana(date) });
   const nedodijeljene = useQuery({
     queryKey: unassignedKey,
     queryFn: () => adminApi.orders({ unassigned: true, date }),
@@ -114,6 +117,7 @@ function AdminDostavaContent() {
   function osvjezi() {
     qc.invalidateQueries({ queryKey: routesKey });
     qc.invalidateQueries({ queryKey: unassignedKey });
+    qc.invalidateQueries({ queryKey: voznjeKey });
   }
 
   /**
@@ -301,6 +305,12 @@ function AdminDostavaContent() {
       ) : (
         <>
           <VozacHeader vozac={aktivniVozac} zauzeto={zauzeto} slobodno={slobodno} />
+          {zauzeto > 0 && (
+            <VoznjaKartica
+              voznja={voznje.data?.find((v) => v.driverId === aktivniVozac.id)}
+              ucitava={voznje.isFetching}
+            />
+          )}
 
           {/* items-start: bez toga grid rasteže lijevu karticu na visinu bočne liste, pa
               prazno stanje završi centrirano stotinama piksela ispod pregiba. */}
@@ -339,6 +349,58 @@ function AdminDostavaContent() {
 }
 
 /* ---------- Header vozača ---------- */
+
+/** Procjena dnevne ture: km sa povratkom u magacin, gorivo, i šta je vozač platio na pumpi. */
+function VoznjaKartica({ voznja, ucitava }: { voznja?: Voznja; ucitava: boolean }) {
+  if (!voznja) {
+    return (
+      <p className="rounded-card border border-line bg-white px-5 py-3 text-sm text-muted shadow-card">
+        {ucitava ? "Računam dnevnu turu…" : "Procjena ture nije dostupna."}
+      </p>
+    );
+  }
+  const sati = voznja.trajanjeMin == null ? null : `${Math.floor(voznja.trajanjeMin / 60)} h ${voznja.trajanjeMin % 60} min`;
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-card border border-line bg-white px-5 py-3 text-sm shadow-card">
+      <span className="inline-flex items-center gap-2 font-semibold text-ink">
+        <Fuel className="h-4 w-4 text-brand-700" />
+        Dnevna tura
+      </span>
+      <span className="tabular-nums text-ink">
+        {voznja.km == null ? "—" : `${voznja.km.toLocaleString("sr-Latn")} km`}
+        {sati && <span className="text-muted"> · oko {sati} vožnje</span>}
+        <span className="text-muted"> · sa povratkom u magacin</span>
+      </span>
+      <span className="tabular-nums text-ink">
+        Gorivo ≈ {voznja.procjenaGoriva == null ? "—" : formatPrice(voznja.procjenaGoriva)}
+        {voznja.procjenaLitara != null && voznja.cijenaPoLitru != null && (
+          <span className="text-muted">
+            {" "}
+            ({voznja.procjenaLitara.toLocaleString("sr-Latn")} l × {formatPrice(voznja.cijenaPoLitru)})
+          </span>
+        )}
+      </span>
+      {voznja.placenoGorivo != null && (
+        <span className={cn("tabular-nums", voznja.bitnoOdstupanje ? "font-semibold text-red-700" : "text-ink")}>
+          Platio {formatPrice(voznja.placenoGorivo)}
+          {voznja.odstupanjeProcenat != null &&
+            ` (${voznja.odstupanjeProcenat > 0 ? "+" : ""}${voznja.odstupanjeProcenat.toLocaleString("sr-Latn")} %)`}
+        </span>
+      )}
+      {voznja.procjenaGoriva == null && voznja.km != null && (
+        <span className="text-xs text-honey-700">Unesi cijenu goriva u Troškovima.</span>
+      )}
+      {voznja.izvor === "vazdusno" && (
+        <span className="text-xs text-muted">Procjena vazdušnom linijom — mapa ruta trenutno nije dostupna.</span>
+      )}
+      {voznja.bezKoordinata > 0 && (
+        <span className="text-xs text-honey-700">
+          {voznja.bezKoordinata} {voznja.bezKoordinata === 1 ? "stanica nema" : "stanice nemaju"} lokaciju i nisu u procjeni.
+        </span>
+      )}
+    </div>
+  );
+}
 
 function VozacHeader({
   vozac,

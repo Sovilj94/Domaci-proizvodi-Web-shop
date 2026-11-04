@@ -124,6 +124,8 @@ import type {
   Trosak,
   TrosakInput,
   TroskoviMjeseca,
+  Voznja,
+  GorivoUnos,
   VrstaTroskaInput,
 } from "./contracts";
 
@@ -486,6 +488,12 @@ export const adminApi = {
   sacuvajFiskalnaPodesavanja: (body: { pdvObveznik: boolean; stopaPdv: number; oznakaPdv: string; oznakaBezPdv: string }) =>
     apiFetch<FiskalnaPodesavanja>("/admin/fiskalna-podesavanja", { method: "PUT", body }).then((r) => r.data),
 
+  voznjeDana: (datum: string) =>
+    apiFetch<Voznja[]>("/admin/voznje", { query: { datum } }).then((r) => r.data),
+  voznjeMjeseca: (godina: number, mjesec: number) =>
+    apiFetch<Voznja[]>("/admin/voznje/mjesec", { query: { godina, mjesec } }).then((r) => r.data),
+  gorivoVoznje: (id: string, body: GorivoUnos) =>
+    apiFetch<Voznja>(`/admin/voznje/${id}/gorivo`, { method: "PUT", body }).then((r) => r.data),
   troskovi: (godina: number, mjesec: number) =>
     apiFetch<TroskoviMjeseca>("/admin/troskovi", { query: { godina, mjesec } }).then((r) => r.data),
   dodajTrosak: (body: TrosakInput) => apiFetch<Trosak>("/admin/troskovi", { method: "POST", body }).then((r) => r.data),

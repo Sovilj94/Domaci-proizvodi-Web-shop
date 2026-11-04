@@ -47,12 +47,12 @@ const km = (x: number) => x.toLocaleString("sr-Latn", { maximumFractionDigits: 1
 
 /**
  * Račun dobiti red po red: neto − nabavna roba − ambalaža − gorivo − ostali troškovi po vrsti.
- * Vrste označene kao gorivo nisu posebni redovi — već su u redu goriva (računi ili procjena po rutama).
+ * Vrste označene kao gorivo nisu posebni redovi — već su u redu goriva (računi ili dnevne ture).
  */
 export function redoviDobiti(prihod: { neto: number; nabavno: number }, t: TroskoviPoslovanja): RedDobiti[] {
   const g = t.gorivo;
   const gorivo =
-    g.izvor === "racuni" ? "Gorivo — po računima" : `Gorivo — po rutama (${km(g.km)} km, ${g.brojRuta} ruta)`;
+    g.izvor === "racuni" ? "Gorivo — po računima" : `Gorivo — po dnevnim turama (${km(g.km)} km, ${g.brojDana} ${g.brojDana === 1 ? "vožnja" : g.brojDana >= 2 && g.brojDana <= 4 ? "vožnje" : "vožnji"})`;
   return [
     { stavka: "Neto prihod", iznos: prihod.neto, vrsta: "prihod" },
     { stavka: "Nabavna roba", iznos: -prihod.nabavno, vrsta: "trosak" },

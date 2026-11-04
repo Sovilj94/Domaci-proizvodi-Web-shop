@@ -550,8 +550,14 @@ export interface TroskoviPoslovanja {
   gorivo: {
     km: number;
     brojRuta: number;
-    /** Nema je kad ima ruta, a nijedna nema unesenu cijenu goriva. */
+    /** Vozač-dani: jedna dnevna tura sa povratkom u magacin. */
+    brojDana: number;
+    /** Po danima: plaćeno na pumpi gdje je uneseno, inače procjena. Nema je kad nijedan dan nema ni unos ni cijenu goriva. */
     poRutama?: number | null;
+    /** Čista procjena svih dana, za poređenje sa plaćenim. */
+    procijenjeno: number;
+    placenoVozaci: number;
+    danaSaUnosom: number;
     poRacunima: number;
     izvor: "racuni" | "rute";
     uDobiti: number;
@@ -563,6 +569,39 @@ export interface TroskoviPoslovanja {
   dobit: number;
   marzaDobiti?: number | null;
   varijabilniPoNarudzbi: number;
+}
+
+/* ---------- Dnevne vožnje (procjena ture i gorivo sa pumpe) ---------- */
+
+export interface Voznja {
+  id: string;
+  driverId: string;
+  vozac: string;
+  datum: string;
+  stanica: number;
+  bezKoordinata: number;
+  /** Dnevna tura magacin → sve stanice → magacin; nema je kad nijedna stanica nema koordinate. */
+  km?: number | null;
+  trajanjeMin?: number | null;
+  izvor?: "osrm" | "vazdusno" | null;
+  cijenaPoLitru?: number | null;
+  potrosnjaL100km?: number | null;
+  procjenaLitara?: number | null;
+  procjenaGoriva?: number | null;
+  placenoGorivo?: number | null;
+  litara?: number | null;
+  napomena?: string | null;
+  placenoUnio?: "vozac" | "admin" | null;
+  placenoUneseno?: string | null;
+  odstupanjeProcenat?: number | null;
+  bitnoOdstupanje: boolean;
+}
+
+export interface GorivoUnos {
+  /** null briše unos — dan se opet računa po procjeni. */
+  iznos: number | null;
+  litara: number | null;
+  napomena: string | null;
 }
 
 /* ---------- Fiskalizacija ---------- */

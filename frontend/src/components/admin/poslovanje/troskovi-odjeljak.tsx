@@ -8,7 +8,7 @@ import { cn, formatPrice } from "@/lib/utils";
 
 const iznos = (x: number) => (x < 0 ? `− ${formatPrice(-x)}` : formatPrice(x));
 
-/** Troškovi mjeseca i dobit: račun red po red, gorivo po rutama naspram računa, upozorenja. */
+/** Troškovi mjeseca i dobit: račun red po red, gorivo po dnevnim turama naspram računa, upozorenja. */
 export function TroskoviOdjeljak({ d }: { d: PoslovanjeMjeseca }) {
   const t = d.troskovi;
   const g = t.gorivo;
@@ -21,7 +21,7 @@ export function TroskoviOdjeljak({ d }: { d: PoslovanjeMjeseca }) {
     >
       {g.bezCijene && (
         <p className="rounded-card bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          Ima ruta za koje nije unesena cijena goriva — gorivo po rutama nije potpuno.{" "}
+          Ima dana za koje nije unesena cijena goriva — procjena goriva nije potpuna.{" "}
           <Link href={link} className="underline underline-offset-2">
             Unesi cijenu goriva
           </Link>
@@ -49,8 +49,10 @@ export function TroskoviOdjeljak({ d }: { d: PoslovanjeMjeseca }) {
           vrijednost={formatPrice(g.uDobiti)}
           hint={
             g.izvor === "racuni"
-              ? `po računima · procjena po rutama ${g.poRutama == null ? "—" : formatPrice(g.poRutama)}`
-              : `procjena po rutama · ${g.km.toLocaleString("sr-Latn")} km`
+              ? `po računima · po dnevnim turama ${g.poRutama == null ? "—" : formatPrice(g.poRutama)}`
+              : `${g.km.toLocaleString("sr-Latn")} km u ${g.brojDana} vožnji${
+                  g.danaSaUnosom > 0 ? ` · ${g.danaSaUnosom} sa pumpe (procjena ${formatPrice(g.procijenjeno)})` : " · procjena"
+                }`
           }
         />
         <KarticaPoslovanja

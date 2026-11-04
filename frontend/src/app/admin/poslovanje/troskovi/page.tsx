@@ -17,7 +17,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
-import type { CijenaGoriva, PonavljajuciTrosak, Trosak, TroskoviMjeseca, VrstaTroska } from "@/lib/api/contracts";
+import type { CijenaGoriva, PonavljajuciTrosak, Trosak, TroskoviMjeseca, Voznja, VrstaTroska } from "@/lib/api/contracts";
 import { MJESECI, susjedniMjesec } from "@/lib/admin/poslovanje";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -41,7 +41,7 @@ function poruka(err: unknown) {
 
 /**
  * Unos troškova poslovanja: jednokratni (računi) za mjesec, ponavljajući, cijene goriva i vrste.
- * Ambalaža i gorivo po rutama računaju se sami — ovdje se vide u sažetku.
+ * Ambalaža i gorivo po dnevnim turama računaju se sami — ovdje se vide u sažetku.
  */
 export default function TroskoviPage() {
   return (
@@ -79,7 +79,7 @@ function Troskovi() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Troškovi — {mjesecTekst(godina, mjesec)}</h1>
-          <p className="text-muted">Računi i redovni troškovi; ambalaža i gorivo po rutama računaju se sami.</p>
+          <p className="text-muted">Računi i redovni troškovi; ambalaža i gorivo po dnevnim turama računaju se sami.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => idi(-1)} aria-label="Prethodni mjesec">
@@ -118,11 +118,11 @@ function Troskovi() {
                 hint="iz cijene ambalaže na artiklima i korpicama"
               />
               <KarticaPoslovanja
-                label={t.gorivo.izvor === "racuni" ? "Gorivo — po računima" : "Gorivo — po rutama"}
+                label={t.gorivo.izvor === "racuni" ? "Gorivo — po računima" : "Gorivo — po dnevnim turama"}
                 vrijednost={formatPrice(t.gorivo.uDobiti)}
-                hint={`${t.gorivo.km.toLocaleString("sr-Latn")} km u ${t.gorivo.brojRuta} ruta · procjena ${
-                  t.gorivo.poRutama == null ? "—" : formatPrice(t.gorivo.poRutama)
-                }`}
+                hint={`${t.gorivo.km.toLocaleString("sr-Latn")} km u ${t.gorivo.brojDana} vožnji · procjena ${formatPrice(
+                  t.gorivo.procijenjeno,
+                )}${t.gorivo.danaSaUnosom > 0 ? ` · plaćeno na pumpi ${formatPrice(t.gorivo.placenoVozaci)} (${t.gorivo.danaSaUnosom} dana)` : ""}`}
               />
               <KarticaPoslovanja label="Dobit" vrijednost={formatPrice(t.dobit)} hint="neto − nabavno − troškovi" />
             </div>
@@ -135,6 +135,7 @@ function Troskovi() {
 
           <TroskoviMjesecaOdjeljak d={d} onUredi={(trosak) => setLadica({ trosak })} />
           <PonavljajuciOdjeljak d={d} />
+          <VoznjeOdjeljak godina={godina} mjesec={mjesec} />
           <GorivoOdjeljak d={d} />
           <VrsteOdjeljak d={d} />
 
@@ -148,6 +149,178 @@ function Troskovi() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Vožnje mjeseca: procjena dnevne ture (sa povratkom u magacin) i iznos sa pumpe koji je unio vozač.
+ * Admin ispravlja ili dopunjuje unos; dan sa unosom u dobiti ide po plaćenom, ostali po procjeni.
+ */
+function VoznjeOdjeljak({ godina, mjesec }: { godina: number; mjesec: number }) {
+  const qc = useQueryClient();
+  const { show } = useToast();
+  const q = useQuery({
+    queryKey: ["admin", "voznje", "mjesec", godina, mjesec],
+    queryFn: () => adminApi.voznjeMjeseca(godina, mjesec),
+  });
+  const [uredi, setUredi] = useState<Voznja | null>(null);
+  const [form, setForm] = useState({ iznos: "", litara: "", napomena: "" });
+
+  const sacuvaj = useMutation({
+    mutationFn: ({ id, obrisi }: { id: string; obrisi: boolean }) =>
+      adminApi.gorivoVoznje(
+        id,
+        obrisi
+          ? { iznos: null, litara: null, napomena: null }
+          : { iznos: broj(form.iznos), litara: broj(form.litara), napomena: form.napomena.trim() || null },
+      ),
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ["admin", "voznje"] });
+      qc.invalidateQueries({ queryKey: ["admin", "troskovi"] });
+      qc.invalidateQueries({ queryKey: ["admin", "poslovanje"] });
+      setUredi(null);
+      show(v.obrisi ? "Unos goriva obrisan — dan ide po procjeni" : "Gorivo sačuvano");
+    },
+    onError: (e) => show(poruka(e), "error"),
+  });
+
+  function otvori(v: Voznja) {
+    setUredi(v);
+    setForm({
+      iznos: v.placenoGorivo == null ? "" : String(v.placenoGorivo).replace(".", ","),
+      litara: v.litara == null ? "" : String(v.litara).replace(".", ","),
+      napomena: v.napomena ?? "",
+    });
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!uredi) return;
+    if (!broj(form.iznos)) return show("Unesi iznos sa pumpe (KM).", "error");
+    if (form.litara.trim() && !broj(form.litara)) return show("Litara mora biti broj.", "error");
+    sacuvaj.mutate({ id: uredi.id, obrisi: false });
+  }
+
+  const redovi = q.data ?? [];
+  const bitnih = redovi.filter((v) => v.bitnoOdstupanje).length;
+  return (
+    <Odjeljak
+      naslov="Gorivo po danima"
+      opis={`Jedna tura po vozaču i danu: magacin → sve stanice → nazad u magacin. Vozač u aplikaciji unosi koliko je platio na pumpi kad se razlikuje od procjene; taj dan u dobit ide po plaćenom.${
+        bitnih > 0 ? ` Bitnih odstupanja (±20 % i više): ${bitnih}.` : ""
+      }`}
+    >
+      {q.isLoading ? (
+        <LoadingBlock />
+      ) : (
+        <Tabela<Voznja>
+          kljuc={(r) => r.id}
+          redovi={redovi}
+          prazno="U ovom mjesecu nema vožnji."
+          kolone={[
+            { naslov: "Datum", vrijednost: (r) => datum(r.datum) },
+            { naslov: "Vozač", vrijednost: (r) => r.vozac },
+            { naslov: "Stanica", vrijednost: (r) => r.stanica, desno: true },
+            {
+              naslov: "Km",
+              vrijednost: (r) =>
+                r.km == null ? (
+                  <span className="text-muted">—</span>
+                ) : (
+                  <span title={r.izvor === "vazdusno" ? "Procjena vazdušnom linijom × 1,3 (OSRM nije bio dostupan)" : "Stvarni putevi (OSRM)"}>
+                    {r.km.toLocaleString("sr-Latn")}
+                    {r.izvor === "vazdusno" && <span className="text-muted"> ≈</span>}
+                  </span>
+                ),
+              desno: true,
+            },
+            {
+              naslov: "Procjena",
+              vrijednost: (r) => (r.procjenaGoriva == null ? <span className="text-muted">—</span> : formatPrice(r.procjenaGoriva)),
+              desno: true,
+            },
+            {
+              naslov: "Plaćeno",
+              vrijednost: (r) =>
+                r.placenoGorivo == null ? (
+                  <span className="text-muted">—</span>
+                ) : (
+                  <span>
+                    {formatPrice(r.placenoGorivo)}
+                    {r.placenoUnio === "admin" && <span className="text-muted"> (admin)</span>}
+                  </span>
+                ),
+              desno: true,
+            },
+            {
+              naslov: "Odstupanje",
+              vrijednost: (r) =>
+                r.odstupanjeProcenat == null ? (
+                  <span className="text-muted">—</span>
+                ) : (
+                  <span className={cn("font-semibold tabular-nums", r.bitnoOdstupanje ? "text-red-700" : "text-muted")}>
+                    {r.odstupanjeProcenat > 0 ? "+" : ""}
+                    {r.odstupanjeProcenat.toLocaleString("sr-Latn")} %
+                  </span>
+                ),
+              desno: true,
+            },
+            { naslov: "Napomena", vrijednost: (r) => r.napomena ?? <span className="text-muted">—</span> },
+            {
+              naslov: "",
+              vrijednost: (r) => (
+                <button
+                  type="button"
+                  onClick={() => otvori(r)}
+                  aria-label={`Gorivo za ${r.vozac} ${datum(r.datum)}`}
+                  className="rounded-full p-1.5 text-muted hover:bg-sand hover:text-ink print:hidden"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              ),
+              desno: true,
+            },
+          ]}
+        />
+      )}
+      {uredi && (
+        <form onSubmit={submit} className="flex flex-wrap items-end gap-2 rounded-card bg-sand/60 p-3 print:hidden">
+          <p className="w-full text-sm font-semibold text-ink">
+            {uredi.vozac}, {datum(uredi.datum)}
+            {uredi.procjenaGoriva != null && (
+              <span className="font-normal text-muted"> · procjena {formatPrice(uredi.procjenaGoriva)}</span>
+            )}
+          </p>
+          <Field label="Plaćeno (KM)">
+            <Input inputMode="decimal" value={form.iznos} onChange={(e) => setForm({ ...form, iznos: e.target.value })} className="w-28" autoFocus />
+          </Field>
+          <Field label="Litara">
+            <Input inputMode="decimal" value={form.litara} onChange={(e) => setForm({ ...form, litara: e.target.value })} className="w-24" />
+          </Field>
+          <Field label="Napomena">
+            <Input value={form.napomena} maxLength={300} onChange={(e) => setForm({ ...form, napomena: e.target.value })} className="w-64" />
+          </Field>
+          <Button type="submit" size="sm" disabled={sacuvaj.isPending} className="mb-1">
+            Sačuvaj
+          </Button>
+          {uredi.placenoGorivo != null && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={sacuvaj.isPending}
+              className="mb-1"
+              onClick={() => sacuvaj.mutate({ id: uredi.id, obrisi: true })}
+            >
+              Obriši unos
+            </Button>
+          )}
+          <Button type="button" variant="ghost" size="sm" className="mb-1" onClick={() => setUredi(null)}>
+            Odustani
+          </Button>
+        </form>
+      )}
+    </Odjeljak>
   );
 }
 
@@ -484,13 +657,13 @@ function GorivoOdjeljak({ d }: { d: TroskoviMjeseca }) {
 
   return (
     <Odjeljak
-      naslov="Gorivo po kilometrima ruta"
-      opis="Trošak rute = kilometri cijele ture (magacin → kupci → magacin) × potrošnja × cijena goriva na dan rute. Kad cijena promijeni, dodaj novu — stari mjeseci ostaju po staroj."
+      naslov="Cijena goriva"
+      opis="Procjena dana = kilometri dnevne ture (magacin → kupci → magacin) × potrošnja × cijena goriva na taj dan. Kad cijena promijeni, dodaj novu — stari mjeseci ostaju po staroj."
     >
       <Tabela<CijenaGoriva>
         kljuc={(r) => r.id}
         redovi={d.cijeneGoriva}
-        prazno="Cijena goriva nije unesena — gorivo po rutama se ne računa."
+        prazno="Cijena goriva nije unesena — procjena goriva po danima se ne računa."
         kolone={[
           { naslov: "Važi od", vrijednost: (r) => datum(r.vaziOd) },
           { naslov: "Cijena po litru", vrijednost: (r) => formatPrice(r.cijenaPoLitru), desno: true },
@@ -556,7 +729,7 @@ function VrsteOdjeljak({ d }: { d: TroskoviMjeseca }) {
   });
 
   return (
-    <Odjeljak naslov="Vrste troškova" opis="„Gorivo“ označava vrstu čiji računi zamjenjuju procjenu po rutama.">
+    <Odjeljak naslov="Vrste troškova" opis="„Gorivo“ označava vrstu čiji računi zamjenjuju dnevne ture u dobiti (za cijeli mjesec).">
       <Tabela<VrstaTroska>
         kljuc={(r) => r.id}
         redovi={d.vrste}
