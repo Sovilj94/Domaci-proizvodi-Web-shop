@@ -51,8 +51,10 @@ services:
 
       # --- Email. Free Render blokira SMTP (25/465/587), pa mejl ide preko Brevo HTTP API-ja.
       # Koraci (domen, SPF/DKIM, ključ) su u DEPLOY.md, „Mejlovi u produkciji". ---
-      - key: Email__Transport    # "brevo" u produkciji; "smtp" samo za lokalni Mailpit
-        value: brevo
+      # "brevo" tek kad je postavljen i Email__Brevo__ApiKey — brevo bez ključa namjerno ne starta API.
+      # Dok je prazno, mejlovi čekaju u redu (vidi /admin/mejlovi) i odu kad se Brevo podesi.
+      - key: Email__Transport
+        sync: false
       - key: Email__Brevo__ApiKey
         sync: false
       - key: Email__From         # adresa na domenu potvrđenom u Brevu
