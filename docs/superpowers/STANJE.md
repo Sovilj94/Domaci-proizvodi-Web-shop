@@ -838,6 +838,19 @@ Backend testova 651, frontend 129.
   vožnji preko OSRM-a, unosi sa pumpe kod 9 dana (jedno bitno odstupanje); oktobarski ručni računi za gorivo obrisani.
 Backend testova 695, frontend 132, vozač 161.
 
+### Mejlovi spremni za produkciju (2026-11-04) — grana `mejlovi` (na `gorivo-voznje`, nespojena)
+Spec `specs/2026-11-04-mejlovi-design.md`.
+- **Red (`EmailPoruka`)**: `RedEmailService` samo upisuje gotov mejl (zaseban kontekst), `SlanjeEmailovaService`
+  šalje odmah (signal) i svakih 15 s; ponovo za 1–60 min, poslije 10 pokušaja „Greška". Ključ sprečava duple.
+- **Transport** `Email:Transport`: `smtp` (lokalno Mailpit, kontejner `mailpit`) ili `brevo` (HTTP API, radi na Render
+  free). Koraci za produkciju (domen, SPF/DKIM/DMARC, ključ, env) u DEPLOY.md „Mejlovi u produkciji". **Nije još
+  postavljeno na Renderu** — treba Brevo nalog i DNS domena.
+- **Obavještenja** (prekidači na `/admin/mejlovi`): kupcu potvrđena/isporučena/nije uručena/otkazana/odbijena;
+  radnicima (lista adresa ili admini) nova narudžba, odbijene, fiskalna greška, gorivo; vozaču plan za sutra (17 h).
+- **Ručno slanje** grupama sa pregledom primalaca; „kupci" i „novosti" sa HMAC odjavom (`/odjava`, traži klik).
+- **Zaboravljena lozinka** (`/zaboravljena-lozinka`, `/nova-lozinka`): token 1 h, u bazi SHA-256, jednokratan.
+Backend testova 709, frontend 132.
+
 ## Otvoreni nalazi, nošeni dalje
 
 > **Radna lista svega što nije urađeno je `docs/superpowers/ZA-URADITI.md`** (sa prioritetima i
