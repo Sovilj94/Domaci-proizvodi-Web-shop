@@ -163,7 +163,7 @@ function Pravila({ podesavanja }: { podesavanja: Podesavanja }) {
   );
 
   return (
-    <section className="rounded-card bg-white p-5 shadow-card">
+    <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-semibold">Pravila za sve korpice</h2>
         <p className="text-xs text-muted">Ista su i u „Poslovna pravila“ — mijenjaju se na oba mjesta.</p>
@@ -259,7 +259,7 @@ function Vrsta({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-card bg-white p-5 shadow-card">
+      <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
         <h2 className="mb-3 font-display text-lg font-semibold">Veličine i cijene</h2>
         {korpice.length === 0 ? (
           <p className="text-sm text-muted">Ova vrsta još nema korpica. Dodaj ih kao proizvod vrste „korpica“.</p>
@@ -410,6 +410,7 @@ function Artikli({
       kolicinaMala: p.kolicinaMala ?? null,
       kolicinaSrednja: p.kolicinaSrednja ?? null,
       kolicinaVelika: p.kolicinaVelika ?? null,
+      cijenaPiljara: p.cijenaPiljara ?? null,
     };
   const promijeni = (p: Product, izmjena: Partial<ArtikalKorpiceUnos>) =>
     setIzmjene((s) => ({ ...s, [p.id]: { ...red(p), ...izmjena } }));
@@ -456,7 +457,7 @@ function Artikli({
   }
 
   return (
-    <section className="rounded-card bg-white p-5 shadow-card">
+    <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold">Artikli i količine</h2>
@@ -467,7 +468,7 @@ function Artikli({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="relative">
+          <label className="relative w-full sm:w-auto">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
               type="search"
@@ -475,7 +476,7 @@ function Artikli({
               onChange={(e) => setUpit(e.target.value)}
               placeholder="Traži artikal…"
               aria-label="Traži artikal"
-              className="h-9 w-48 rounded-full border border-line bg-white pl-8 pr-3 text-sm outline-none focus:border-brand-500"
+              className="h-9 w-full rounded-full sm:w-48 border border-line bg-white pl-8 pr-3 text-sm outline-none focus:border-brand-500"
             />
           </label>
           <label className="flex items-center gap-2 text-sm">
@@ -499,6 +500,9 @@ function Artikli({
                 <th className="py-2 pr-3 font-medium">Artikal</th>
                 <th className="py-2 pr-3 font-medium">Sezona</th>
                 <th className="py-2 pr-3 font-medium" title="0 = osnovni artikal, veći broj = dopuna">Prioritet</th>
+                <th className="py-2 pr-3 font-medium" title="Koliko isti artikal košta u piljari, po jedinici — za obračun cijene korpice">
+                  Piljara
+                </th>
                 {velicine.map((v) => (
                   <th key={v} className="py-2 pr-3 font-medium">
                     {NAZIV_VELICINE[v]}
@@ -570,6 +574,31 @@ function Artikli({
                         onChange={(e) => promijeni(p, { prioritetUKorpici: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
                         className="w-16"
                       />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <span className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          inputMode="decimal"
+                          placeholder="—"
+                          aria-label={`Cijena u piljari — ${p.name}`}
+                          value={r.cijenaPiljara ?? ""}
+                          onChange={(e) => {
+                            const t = e.target.value.replace(",", ".");
+                            promijeni(p, { cijenaPiljara: t.trim() === "" || Number(t) <= 0 ? null : Number(t) });
+                          }}
+                          className="w-20"
+                        />
+                        <span className="text-xs text-muted">KM</span>
+                      </span>
+                      {r.cijenaPiljara != null && r.cijenaPiljara > 0 && (
+                        <span className={cn("block text-[11px] tabular-nums", p.price > r.cijenaPiljara ? "text-red-700" : "text-muted")}>
+                          mi {p.price <= r.cijenaPiljara ? "−" : "+"}
+                          {Math.abs(Math.round((1 - p.price / r.cijenaPiljara) * 100))} %
+                        </span>
+                      )}
                     </td>
                     {velicine.map((v) => {
                       const polje = POLJE_KOLICINE[v];

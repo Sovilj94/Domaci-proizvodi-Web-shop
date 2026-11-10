@@ -121,9 +121,10 @@ public class SacuvajTipKorpiceHandler(IAppDbContext db) : IRequestHandler<Sacuva
 
 /* ---------- artikli: u korpici, prioritet, zadate količine ---------- */
 
+/// <param name="CijenaPiljara">Cijena u piljari po jedinici; null = nije unesena (red se šalje cio).</param>
 public record ArtikalKorpiceUnos(
     Guid Id, bool MozeUKorpicu, int PrioritetUKorpici,
-    decimal? KolicinaMala, decimal? KolicinaSrednja, decimal? KolicinaVelika);
+    decimal? KolicinaMala, decimal? KolicinaSrednja, decimal? KolicinaVelika, decimal? CijenaPiljara = null);
 
 public record SacuvajArtikleKorpicaCommand(IReadOnlyList<ArtikalKorpiceUnos> Artikli) : IRequest<int>;
 
@@ -135,6 +136,8 @@ public class SacuvajArtikleKorpicaValidator : AbstractValidator<SacuvajArtikleKo
             .WithMessage("Prioritet u korpici ne može biti negativan.");
         RuleForEach(x => x.Artikli).Must(a => new[] { a.KolicinaMala, a.KolicinaSrednja, a.KolicinaVelika }.All(v => v is null or > 0))
             .WithMessage("Količina u korpici mora biti veća od 0 (ili prazna).");
+        RuleForEach(x => x.Artikli).Must(a => a.CijenaPiljara is null or (> 0 and <= 10000))
+            .WithMessage("Cijena u piljari mora biti veća od 0 (ili prazna).");
     }
 }
 
@@ -156,6 +159,7 @@ public class SacuvajArtikleKorpicaHandler(IAppDbContext db) : IRequestHandler<Sa
             p.MozeUKorpicu = a.MozeUKorpicu;
             p.PrioritetUKorpici = a.PrioritetUKorpici;
             (p.KolicinaMala, p.KolicinaSrednja, p.KolicinaVelika) = (a.KolicinaMala, a.KolicinaSrednja, a.KolicinaVelika);
+            p.CijenaPiljara = a.CijenaPiljara is decimal pc ? Math.Round(pc, 2) : null;
             p.UpdatedAt = DateTime.UtcNow;
         }
 

@@ -42,18 +42,18 @@ export function SpisakNabavke({ redovi }: { redovi: RedNabavke[] }) {
               <span className="print:hidden">{g.trosak ? ` · ${formatPrice(g.trosak)}` : ""}</span>
             </p>
           </div>
-          <table className="w-full min-w-[32rem] text-sm">
+          <table className="w-full text-sm sm:min-w-[32rem]">
             <thead className="text-left text-xs text-muted">
               <tr className="border-b border-line">
-                <th className="p-3 font-medium">Artikal</th>
-                <th className="p-3 text-right font-medium">Nabaviti</th>
-                <th className="p-3 text-right font-medium print:hidden">Nabavno</th>
+                <th className="px-2 py-2.5 sm:p-3 font-medium">Artikal</th>
+                <th className="px-2 py-2.5 sm:p-3 text-right font-medium">Nabaviti</th>
+                <th className="px-2 py-2.5 sm:p-3 text-right font-medium print:hidden">Nabavno</th>
               </tr>
             </thead>
             <tbody className="tabular-nums">
               {g.redovi.map((r) => (
                 <tr key={`${r.artikal}|${r.jedinica}`} className="break-inside-avoid border-b border-line last:border-0">
-                  <td className="p-3">
+                  <td className="px-2 py-2.5 sm:p-3">
                     <p className="font-medium text-ink">
                       {r.artikal}
                       {r.artikalObrisan && (
@@ -64,10 +64,10 @@ export function SpisakNabavke({ redovi }: { redovi: RedNabavke[] }) {
                     </p>
                     {r.kategorija && r.kategorija !== g.naziv && <p className="text-xs text-muted">{r.kategorija}</p>}
                   </td>
-                  <td className="p-3 text-right font-display text-lg font-bold text-ink">
+                  <td className="px-2 py-2.5 sm:p-3 text-right whitespace-nowrap font-display text-base font-bold sm:text-lg text-ink">
                     {broj(r.kolicina)} <span className="text-sm font-semibold text-muted">{r.jedinica}</span>
                   </td>
-                  <td className="p-3 text-right text-muted print:hidden">{r.trosak ? formatPrice(r.trosak) : "—"}</td>
+                  <td className="px-2 py-2.5 sm:p-3 whitespace-nowrap text-right text-muted print:hidden">{r.trosak ? formatPrice(r.trosak) : "—"}</td>
                 </tr>
               ))}
             </tbody>

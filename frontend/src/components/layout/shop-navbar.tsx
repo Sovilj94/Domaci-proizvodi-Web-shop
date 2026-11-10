@@ -26,12 +26,34 @@ export function ShopNavbar() {
   const pathname = usePathname();
   const naPocetnoj = pathname === "/";
 
+  // Na telefonu (ispod lg) se zaglavlje sklanja dok se skroluje nadolje i vraća čim se krene
+  // nagore — kao na uzoru, da sadržaj dobije cijeli ekran.
+  const [skriveno, setSkriveno] = useState(false);
+
   useEffect(() => {
-    const azuriraj = () => setSkrolovano(window.scrollY > 40);
+    let prethodni = window.scrollY;
+    const telefon = window.matchMedia("(max-width: 1023.98px)");
+    const azuriraj = () => {
+      const y = window.scrollY;
+      setSkrolovano(y > 40);
+      if (!telefon.matches || y < 120) setSkriveno(false);
+      else if (Math.abs(y - prethodni) > 6) setSkriveno(y > prethodni);
+      prethodni = y;
+    };
     azuriraj();
     window.addEventListener("scroll", azuriraj, { passive: true });
     return () => window.removeEventListener("scroll", azuriraj);
   }, []);
+
+  // Nova stranica počinje sa vidljivim zaglavljem.
+  useEffect(() => setSkriveno(false), [pathname]);
+
+  const sakriveno = skriveno && !meniOtvoren;
+
+  // Ljepljivi elementi stranica (LjepljiveKartice) čitaju ovo da bi stali ispod zaglavlja dok je vidljivo.
+  useEffect(() => {
+    document.documentElement.dataset.zaglavlje = sakriveno ? "skriveno" : "vidljivo";
+  }, [sakriveno]);
 
   const proziran = naPocetnoj && !skrolovano && !meniOtvoren;
 
@@ -39,17 +61,18 @@ export function ShopNavbar() {
     <>
       <header
         className={cn(
-          "inset-x-0 top-0 z-40 transition-colors duration-200",
+          "inset-x-0 top-0 z-40 transition-[background-color,box-shadow,transform] duration-200",
           naPocetnoj ? "fixed" : "sticky",
           proziran ? "bg-transparent" : "bg-white shadow-[0_2px_12px_rgba(64,74,61,0.08)]",
+          sakriveno && "-translate-y-full shadow-none",
         )}
       >
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-3 px-4 lg:h-24 lg:px-8">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-1.5 px-3 sm:gap-3 sm:px-4 lg:h-24 lg:px-8">
           <button
             onClick={() => setMeniOtvoren(true)}
             aria-label="Otvori meni"
             className={cn(
-              "grid h-10 w-10 place-items-center rounded-full lg:hidden",
+              "grid h-10 w-10 shrink-0 place-items-center rounded-full lg:hidden",
               proziran ? "text-white" : "text-brand-600",
             )}
           >
@@ -77,7 +100,7 @@ export function ShopNavbar() {
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2 lg:ml-6">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-6">
             {isAdmin && (
               <Link
                 href="/admin/dashboard"
@@ -142,7 +165,7 @@ export function ShopNavbar() {
                   </Link>
                   <Link
                     href="/login"
-                    className="inline-flex h-10 items-center rounded-full border border-honey-500 bg-white px-4 text-base text-honey-500 lg:hidden"
+                    className="inline-flex h-9 items-center whitespace-nowrap rounded-full border border-honey-500 bg-white px-3.5 text-sm font-semibold text-honey-500 sm:h-10 sm:px-4 sm:text-base lg:hidden"
                   >
                     Prijavi se
                   </Link>

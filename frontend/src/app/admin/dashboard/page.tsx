@@ -64,7 +64,7 @@ export default function AdminDashboardPage() {
         {zadaci.isLoading ? (
           <LoadingBlock />
         ) : lista.length === 0 ? (
-          <div className="flex items-center gap-3 rounded-card bg-white p-5 shadow-card">
+          <div className="flex items-center gap-3 rounded-card bg-white p-4 sm:p-5 shadow-card">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-50 text-brand-600">
               <CheckCircle2 className="h-5 w-5" />
             </span>
@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
         )}
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard label="Narudžbe danas" value={s?.ordersToday ?? 0} icon={<ShoppingBag className="h-4 w-4" />} accent="brand" />
         <StatCard label="Promet danas" value={formatPrice(s?.revenueToday ?? 0)} icon={<Banknote className="h-4 w-4" />} accent="honey" />
         <StatCard label="Na čekanju" value={s?.pendingOrders ?? 0} hint="čeka potvrdu" icon={<Clock className="h-4 w-4" />} accent="blue" />
@@ -90,7 +90,7 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <section className="rounded-card bg-white p-5 shadow-card">
+        <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold">Narudžbe danas</h2>
             <Link href="/admin/orders" className="text-sm font-semibold text-brand-700 hover:underline">
@@ -126,7 +126,7 @@ export default function AdminDashboardPage() {
           )}
         </section>
 
-        <section className="rounded-card bg-white p-5 shadow-card">
+        <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
           <h2 className="mb-4 font-display text-lg font-semibold">Po statusu</h2>
           <ul className="space-y-1">
             {s?.statusBreakdown.map((row) => (

@@ -51,6 +51,49 @@ export interface ArtikalKorpiceUnos {
   kolicinaMala: number | null;
   kolicinaSrednja: number | null;
   kolicinaVelika: number | null;
+  /** Cijena istog artikla u piljari, po jedinici; null = nije unesena. */
+  cijenaPiljara: number | null;
+}
+
+export interface ObracunMjeseca {
+  mjesec: number;
+  artikala: number;
+  minimum: number;
+  glavnih: number;
+  nabavno: number;
+  nasaVrijednost: number;
+  piljaraVrijednost: number;
+  bezPiljare: number;
+  minCijena: number;
+  maxCijena: number;
+  moguce: boolean;
+  marzaSada?: number | null;
+  ustedaSada?: number | null;
+}
+
+export interface ObracunKorpice {
+  id: string;
+  naziv: string;
+  tip: string;
+  velicina: string;
+  cijena: number;
+  uProdaji: boolean;
+  ambalaza: number;
+  izabrani: ObracunMjeseca;
+  mjeseci: ObracunMjeseca[];
+  preporuka: number;
+  marzaPriPreporuci: number;
+  ustedaPriPreporuci: number;
+  preporukaGodina: number;
+}
+
+export interface ObracunCijena {
+  marza: number;
+  povoljnije: number;
+  mjesec: number;
+  korpice: ObracunKorpice[];
+  bezNabavne: number;
+  bezPiljare: number;
 }
 
 export interface KalendarStavka {
@@ -60,6 +103,10 @@ export interface KalendarStavka {
   izrezUrl?: string;
   uKorpici: boolean;
   mjeseci: number[];
+  /** Mjeseci u kojima je kultura glavna — generator je stavlja u početni sadržaj prije ostalog. */
+  mjeseciGlavni: number[];
+  /** Samo kao zamjena koju kupac bira; nikad u početnom sadržaju. */
+  opciono: boolean;
   dostupan: boolean;
 }
 
@@ -127,6 +174,7 @@ import type {
   Voznja,
   GorivoUnos,
   EmailPregled,
+  PlanPoslovanja,
   EmailDetalj,
   EmailRed,
   ObavjestenjaPodesavanja,
@@ -243,8 +291,17 @@ export const adminKorpiceApi = {
   kalendar: (tip: "povrce" | "voce") =>
     apiFetch<KalendarStavka[]>("/admin/korpice/kalendar", { query: { tip } }).then((r) => r.data),
 
-  postaviKalendar: (productId: string, body: { uKorpici: boolean; mjeseci: number[] }) =>
+  postaviKalendar: (
+    productId: string,
+    body: { uKorpici: boolean; mjeseci: number[]; mjeseciGlavni: number[]; opciono: boolean },
+  ) =>
     apiFetch<KalendarStavka>(`/admin/korpice/kalendar/${productId}`, { method: "PUT", body }).then((r) => r.data),
+
+  obracun: (marza: number, povoljnije: number, mjesec: number) =>
+    apiFetch<ObracunCijena>("/admin/korpice/obracun", { query: { marza, povoljnije, mjesec } }).then((r) => r.data),
+
+  postaviCijenu: (id: string, cijena: number) =>
+    apiFetch<number>(`/admin/korpice/${id}/cijena`, { method: "PUT", body: { cijena } }).then((r) => r.data),
 
   /** Postavke korpica: po vrsti veličine (cijena, u ponudi) i kategorije koje ulaze. */
   postavke: () => apiFetch<PostavkeKorpica>("/admin/korpice/postavke").then((r) => r.data),
@@ -499,6 +556,8 @@ export const adminApi = {
     ),
   poslovanje: (godina?: number, mjesec?: number) =>
     apiFetch<PoslovanjeMjeseca>("/admin/poslovanje", { query: godina && mjesec ? { godina, mjesec } : {} }).then((r) => r.data),
+  planPoslovanja: (narudzbi: number, godina: number, mjesec: number, dodatno: number) =>
+    apiFetch<PlanPoslovanja>("/admin/poslovanje/plan", { query: { narudzbi, godina, mjesec, dodatno } }).then((r) => r.data),
   poslovanjeGodina: (godina?: number) =>
     apiFetch<PoslovanjeGodine>("/admin/poslovanje/godina", { query: godina ? { godina } : {} }).then((r) => r.data),
 

@@ -57,7 +57,7 @@ export function StopLocationDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="lokacija-naslov"
-        className="w-full max-w-lg rounded-card bg-white p-5 shadow-lg"
+        className="w-full max-w-lg rounded-card bg-white p-4 sm:p-5 shadow-lg"
       >
         <h2 id="lokacija-naslov" className="font-display text-lg font-semibold">
           Postavi lokaciju

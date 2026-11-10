@@ -79,7 +79,7 @@ export function KorpicaKupcaEditor({ orderItemId, onClose }: { orderItemId: stri
       onClose={onClose}
       sirina="max-w-2xl"
     >
-      <div className="flex-1 overflow-y-auto p-5">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5">
         {isError ? (
           <p className="text-sm text-red-700">Korpica nije učitana.</p>
         ) : isLoading || redovi === null ? (

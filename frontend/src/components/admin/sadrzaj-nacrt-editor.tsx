@@ -116,7 +116,7 @@ export function SadrzajNacrtEditor({
 
   return (
     <AdminLadica naslov={samoPregled ? "Sadržaj korpice" : "Izmjena nacrta"} podnaslov={korpicaNaziv} onClose={onClose} sirina="max-w-2xl">
-      <div className="flex-1 overflow-y-auto p-5">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5">
         {isLoading || !spreman ? (
           isError ? (
             <EmptyState title="Nacrt nije učitan" description="Pokušaj ponovo malo kasnije." />

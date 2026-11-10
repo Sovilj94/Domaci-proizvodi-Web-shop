@@ -1565,6 +1565,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("CijenaPiljara")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1607,6 +1611,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(60)")
                         .HasDefaultValue("");
 
+                    b.Property<string>("MjeseciGlavni")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasDefaultValue("");
+
                     b.Property<bool>("MozeUKorpicu")
                         .HasColumnType("boolean");
 
@@ -1621,6 +1632,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("NazivEn")
                         .HasColumnType("text");
+
+                    b.Property<bool>("Opciono")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("OpisEn")
                         .HasColumnType("text");

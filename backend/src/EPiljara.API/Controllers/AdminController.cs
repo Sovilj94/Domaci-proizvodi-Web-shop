@@ -30,6 +30,11 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Poslovanje([FromQuery] int? godina, [FromQuery] int? mjesec) =>
         Envelope(await Mediator.Send(new GetPoslovanjeQuery(godina, mjesec)));
 
+    /// <summary>Plan poslovanja: mjesec sa N narudžbi po današnjim cijenama, nabavnim i troškovima.</summary>
+    [HttpGet("admin/poslovanje/plan")]
+    public async Task<IActionResult> PlanPoslovanja([FromQuery] int narudzbi = 200, [FromQuery] int? godina = null, [FromQuery] int? mjesec = null, [FromQuery] decimal dodatno = 0m) =>
+        Envelope(await Mediator.Send(new GetPlanPoslovanjaQuery(narudzbi, godina, mjesec, dodatno)));
+
     [HttpGet("admin/poslovanje/godina")]
     public async Task<IActionResult> PoslovanjeGodina([FromQuery] int? godina) =>
         Envelope(await Mediator.Send(new GetPoslovanjeGodinaQuery(godina)));
@@ -312,7 +317,16 @@ public class AdminController : ApiControllerBase
 
     [HttpPut("admin/korpice/kalendar/{productId:guid}")]
     public async Task<IActionResult> PostaviKalendar(Guid productId, [FromBody] PostaviKalendarRequest body) =>
-        Envelope(await Mediator.Send(new PostaviKalendarCommand(productId, body.UKorpici, body.Mjeseci ?? [])));
+        Envelope(await Mediator.Send(new PostaviKalendarCommand(productId, body.UKorpici, body.Mjeseci ?? [], body.MjeseciGlavni, body.Opciono)));
+
+    /// <summary>Obračun cijene korpica: tipičan sadržaj mjeseca, najniža cijena za maržu i najviša da budemo povoljniji od piljare.</summary>
+    [HttpGet("admin/korpice/obracun")]
+    public async Task<IActionResult> ObracunCijena([FromQuery] decimal marza, [FromQuery] decimal povoljnije, [FromQuery] int? mjesec) =>
+        Envelope(await Mediator.Send(new GetObracunCijenaKorpicaQuery(marza, povoljnije, mjesec)));
+
+    [HttpPut("admin/korpice/{id:guid}/cijena")]
+    public async Task<IActionResult> PostaviCijenuKorpice(Guid id, [FromBody] PostaviCijenuKorpiceRequest body) =>
+        Envelope(await Mediator.Send(new PostaviCijenuKorpiceCommand(id, body.Cijena)));
 
     /// <summary>Postavke korpica: po vrsti kategorije, cijene i ponuda veličina.</summary>
     [HttpGet("admin/korpice/postavke")]

@@ -79,7 +79,7 @@ export default function FiskalniRacuniPage() {
         />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <KarticaPoslovanja label="Izdato u periodu" vrijednost={String(d.izdato)} hint={`promet ${formatPrice(d.iznosPromet)}`} />
             <KarticaPoslovanja label="Refundirano" vrijednost={formatPrice(d.iznosRefundacija)} />
             <KarticaPoslovanja label="Na čekanju" vrijednost={String(d.naCekanju)} hint="šalju se svakih 30 sekundi" />
@@ -165,7 +165,7 @@ function RacunLadica({ id, onClose }: { id: string; onClose: () => void }) {
 
   return (
     <AdminLadica naslov={r ? (r.vrsta === "Refundacija" ? "Refundacioni račun" : "Fiskalni račun") : "Račun"} podnaslov={r?.kodNarudzbe} onClose={onClose}>
-      <div className="flex-1 space-y-4 overflow-y-auto p-6">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         {q.isLoading || !r ? (
           <LoadingBlock />
         ) : (

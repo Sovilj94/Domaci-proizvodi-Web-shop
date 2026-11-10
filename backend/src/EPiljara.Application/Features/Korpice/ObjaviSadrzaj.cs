@@ -49,6 +49,22 @@ public class ObjaviSadrzajHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
                 "Nacrt sadrži artikal koji je obrisan ili više nije dostupan. Uklonite ga pa objavite ponovo.",
                 "sadrzaj_sadrzi_nedostupan_artikal");
 
+        // Pravila iz Postavki korpica važe i za objavu, ne samo za generator: nacrt koji ih krši
+        // (generator je javio upozorenje, ili je admin ručno izbacio artikle) se ne objavljuje.
+        // Rješenje je dopuniti nacrt, podići cijenu korpice ili namjerno spustiti pravilo u postavkama.
+        var krsi = new List<string>();
+        var minimum = opcije.Value.MinimalanBrojArtikala.GetValueOrDefault(sadrzaj.Korpica?.Velicina ?? VelicinaKorpice.Mala, 1);
+        if (sadrzaj.Stavke.Count < minimum)
+            krsi.Add($"ima {sadrzaj.Stavke.Count} {(sadrzaj.Stavke.Count == 1 ? "artikal" : "artikala")}, a najmanje je {minimum}");
+        var trosak = AdminSadrzajMapiranje.Trosak(sadrzaj, sadrzaj.Korpica?.Price ?? 0m);
+        if (trosak.Marza is decimal marza && marza < opcije.Value.MinimalnaMarza)
+            krsi.Add($"marža {Math.Floor(marza * 100):0} %, a najmanje je {opcije.Value.MinimalnaMarza * 100:0.#} %");
+        if (krsi.Count > 0)
+            throw new DomainException(
+                $"{sadrzaj.Korpica?.Name ?? "Korpica"} se ne može objaviti: {string.Join("; ", krsi)}. " +
+                "Dopuni nacrt (ili ga generiši ponovo), podigni cijenu korpice ili promijeni pravilo u Postavkama korpica.",
+                "sadrzaj_krsi_pravila");
+
         foreach (var stavka in sadrzaj.Stavke)
             stavka.JedinicnaCijena = stavka.Product?.Price ?? stavka.JedinicnaCijena;
 

@@ -61,6 +61,26 @@ public class Product : Entity
     /// (testovi) nema tip niza; vidi AppDbContext.
     /// </summary>
     public int[] Mjeseci { get; set; } = [];
+
+    /// <summary>
+    /// Mjeseci u kojima je kultura GLAVNA u sezoni (npr. bundeva u oktobru): generator je stavlja u
+    /// početni sadržaj korpice prije svega ostalog. Kupac je i dalje može zamijeniti do roka.
+    /// </summary>
+    public int[] MjeseciGlavni { get; set; } = [];
+
+    /// <summary>
+    /// Opciona kultura (npr. kopriva): nikad ne ulazi u početni sadržaj korpice, nego se nudi kao
+    /// zamjena koju kupac sam izabere do roka.
+    /// </summary>
+    public bool Opciono { get; set; }
+
+    public bool GlavnoU(int mjesec) => !Opciono && MjeseciGlavni.Contains(mjesec);
+
+    /// <summary>
+    /// Cijena istog artikla u piljari / na pijaci (po jedinici artikla), koju admin povremeno provjeri.
+    /// Služi samo obračunu cijene korpice — da korpica bude povoljnija od kupovine istog u piljari. Nije javna.
+    /// </summary>
+    public decimal? CijenaPiljara { get; set; }
     public string Description { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     /// <summary>Slika bez pozadine (PNG) za obojene pločice korpica; bez nje pločica koristi ImageUrl.</summary>

@@ -85,11 +85,11 @@ export default function AdminWarehousePage() {
       {warehouse.isLoading ? (
         <LoadingBlock />
       ) : warehouse.isError ? (
-        <p className="rounded-card bg-white p-6 text-sm text-red-600 shadow-card">
+        <p className="rounded-card bg-white p-4 sm:p-6 text-sm text-red-600 shadow-card">
           Magacin nije moguće pročitati. Provjerite da je backend podignut.
         </p>
       ) : (
-        <div className="max-w-2xl space-y-4 rounded-card bg-white p-6 shadow-card">
+        <div className="max-w-2xl space-y-4 rounded-card bg-white p-4 sm:p-6 shadow-card">
           <Field label="Naziv" required error={errors.name?.[0]}>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </Field>

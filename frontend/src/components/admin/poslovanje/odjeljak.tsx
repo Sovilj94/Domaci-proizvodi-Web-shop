@@ -12,11 +12,11 @@ export function Odjeljak({
 }) {
   return (
     <details open={otvoren} className="group rounded-card bg-white shadow-card print:shadow-none">
-      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3 px-5 py-4">
+      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3 px-4 py-4 sm:px-5">
         <h2 className="font-display text-lg font-bold text-ink">{naslov}</h2>
         <span className="text-muted transition-transform group-open:rotate-90 print:hidden">›</span>
       </summary>
-      <div className="space-y-4 border-t border-line px-5 py-4">
+      <div className="space-y-4 border-t border-line px-3 py-4 sm:px-5">
         {opis && <p className="text-sm text-muted">{opis}</p>}
         {children}
       </div>

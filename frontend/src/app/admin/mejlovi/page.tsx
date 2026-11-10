@@ -107,7 +107,7 @@ export default function MejloviPage() {
         />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <KarticaPoslovanja label="Poslato danas" vrijednost={String(d.poslatoDanas)} hint={`dobavljač: ${d.transport}`} />
             <KarticaPoslovanja label="Poslato ovog mjeseca" vrijednost={String(d.poslatoMjesec)} />
             <KarticaPoslovanja label="Na čekanju" vrijednost={String(d.naCekanju)} hint="šalju se odmah, pri grešci ponovo" />
@@ -137,7 +137,7 @@ export default function MejloviPage() {
                 </Select>
               </Field>
               <Field label="Traži">
-                <Input value={trazi} onChange={(e) => setTrazi(e.target.value)} placeholder="adresa ili naslov" className="w-56" />
+                <Input value={trazi} onChange={(e) => setTrazi(e.target.value)} placeholder="adresa ili naslov" className="w-full sm:w-56" />
               </Field>
             </div>
             <Tabela<EmailRed>
@@ -524,7 +524,7 @@ function Podesavanja() {
         </Button>
         <div className="flex flex-wrap items-end gap-2">
           <Field label="Probni mejl na">
-            <Input value={probna} onChange={(e) => setProbna(e.target.value)} placeholder="prazno = moja adresa" className="w-60" />
+            <Input value={probna} onChange={(e) => setProbna(e.target.value)} placeholder="prazno = moja adresa" className="w-full sm:w-60" />
           </Field>
           <Button size="sm" variant="secondary" onClick={() => probni.mutate()} disabled={probni.isPending} className="mb-1">
             <Send className="h-4 w-4" /> Pošalji probni mejl

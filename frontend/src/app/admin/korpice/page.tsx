@@ -181,7 +181,7 @@ function AdminKorpiceSadrzaj() {
       )}
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-bold text-ink">Sadržaj po korpici</h2>
           <Button
             size="sm"
@@ -206,8 +206,8 @@ function AdminKorpiceSadrzaj() {
           <div className="overflow-hidden rounded-card bg-white shadow-card">
             <ul className="divide-y divide-line">
               {pregled.data.map((r) => (
-                <li key={r.korpicaId} className="flex flex-wrap items-center gap-4 p-3">
-                  <div className="min-w-0 flex-1">
+                <li key={r.korpicaId} className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3">
+                  <div className="min-w-[10rem] flex-1">
                     <p className="truncate font-medium text-ink">{r.korpicaNaziv}</p>
                     <p className="truncate text-xs text-muted">
                       {NAZIVI_TIPA[r.tip].label} · {VELICINA_LABEL[r.velicina]}
@@ -216,7 +216,7 @@ function AdminKorpiceSadrzaj() {
 
                   <StatusPregledaBadge status={r.status} />
 
-                  <div className="w-32 shrink-0 text-right">
+                  <div className="w-32 shrink-0 sm:text-right">
                     <p className="text-sm font-semibold text-ink">
                       {r.brojArtikala} {artikalaRijec(r.brojArtikala)}
                     </p>
@@ -230,7 +230,7 @@ function AdminKorpiceSadrzaj() {
                     </p>
                   </div>
 
-                  <div className="w-36 shrink-0 text-right" title="Nabavna vrijednost sadržaja i marža prema cijeni korpice">
+                  <div className="w-36 shrink-0 sm:text-right" title="Nabavna vrijednost sadržaja i marža prema cijeni korpice">
                     <p
                       className={cn(
                         "text-sm font-semibold",
@@ -249,7 +249,7 @@ function AdminKorpiceSadrzaj() {
                     )}
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
                     {r.status === "Nema" && (
                       <Button
                         size="sm"
@@ -331,7 +331,7 @@ function AdminKorpiceSadrzaj() {
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-bold text-ink">Pakerska lista — roba za sedmicu</h2>
           {pakerska.data && pakerska.data.stavke.length > 0 && (
             <Button

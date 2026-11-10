@@ -86,9 +86,16 @@
 }
 .animate-bump { animation: bump 0.35s ease; }
 
-html,
-body {
+/*
+ * body ima min-height, ne height: sa fiksnom visinom body je visok koliko ekran, sadržaj se
+ * prelije preko njega, pa se ljepljivo zaglavlje (position: sticky u body-ju) odlijepi
+ * poslije prvog ekrana skrola.
+ */
+html {
   height: 100%;
+}
+body {
+  min-height: 100%;
 }
 
 /*

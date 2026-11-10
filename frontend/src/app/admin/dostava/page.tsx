@@ -262,7 +262,7 @@ function AdminDostavaContent() {
             Izaberi vozača i rasporedi mu narudžbe za dan.
           </p>
         </div>
-        <div className="flex items-end gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">Datum dostave</span>
             <Input
@@ -415,7 +415,7 @@ function VozacHeader({
   const pun = slobodno === 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-card border border-line bg-white p-5 shadow-card">
+    <div className="flex flex-wrap items-center gap-4 rounded-card border border-line bg-white p-4 sm:p-5 shadow-card">
       <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">
         {inicijali(vozac.name)}
       </span>

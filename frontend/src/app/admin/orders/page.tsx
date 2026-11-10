@@ -69,6 +69,20 @@ function AdminOrders() {
   }
   const status = prikaz === "tabla" ? null : filter;
 
+  /*
+    Na telefonu je tabla (kolone jedna do druge, ~1500px) neupotrebljiva, a nabavka sedmice
+    na vrhu gura narudžbe ekranima niže — pa ispod `lg` stranica počinje listom i sklopljenom
+    nabavkom. Radi se tek posle montiranja: širinu ekrana prerender ne zna.
+  */
+  const nabavka = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    if (nabavka.current) nabavka.current.open = false;
+    if (!params.get("prikaz") && !params.get("status")) setPrikazStanje("lista");
+    // Samo pri prvom prikazu — kasniji izbor ostaje korisnikov.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const kljuc = ["admin", "orders", { status, pretraga, ...sedmica }] as const;
   const orders = useQuery({
     queryKey: kljuc,
@@ -156,7 +170,7 @@ function AdminOrders() {
               : "Klikni narudžbu da je proširiš i promijeniš status."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-full bg-white p-0.5 ring-1 ring-black/10" role="group" aria-label="Prikaz">
             {([
               ["tabla", "Tabla", Columns3],
@@ -184,12 +198,12 @@ function AdminOrders() {
         </div>
       </div>
 
-      <details open className="group rounded-card border border-line bg-surface">
-        <summary className="cursor-pointer list-none px-5 py-3 font-display text-lg font-bold text-ink">
+      <details ref={nabavka} open className="group rounded-card border border-line bg-surface">
+        <summary className="cursor-pointer list-none px-4 py-3 font-display text-base font-bold text-ink sm:px-5 sm:text-lg">
           Nabavka za sedmicu {izbor.sedmica}. — koliko robe treba
           <span className="ml-2 text-sm font-normal text-muted group-open:hidden">(otvori)</span>
         </summary>
-        <div className="space-y-3 border-t border-line px-5 py-4">
+        <div className="space-y-3 border-t border-line px-4 py-4 sm:px-5">
           <IzborSedmice s={izbor} />
           <RobaZaSedmicu godina={izbor.godina} sedmica={izbor.sedmica} />
         </div>

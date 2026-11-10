@@ -172,7 +172,9 @@ public class NabavnaCijenaIZamjeneTests
         await t.Db.SaveChangesAsync();
         t.Db.ChangeTracker.Clear();
 
-        var dto = await new ObjaviSadrzajHandler(t.Db, Opcije)
+        var bezMinimuma = TestOpcije.Korpice();
+        bezMinimuma.MinimalanBrojArtikala = new() { [VelicinaKorpice.Mala] = 1, [VelicinaKorpice.Srednja] = 1, [VelicinaKorpice.Velika] = 1 };
+        var dto = await new ObjaviSadrzajHandler(t.Db, Options.Create(bezMinimuma))
             .Handle(new ObjaviSadrzajCommand(sadrzaj.Id), default);
 
         Assert.Empty(dto.Zamjene);

@@ -32,7 +32,12 @@ export default function KalendarKorpicaPage() {
 
   const snimi = useMutation({
     mutationFn: (s: KalendarStavka) =>
-      adminKorpiceApi.postaviKalendar(s.productId, { uKorpici: s.uKorpici, mjeseci: s.mjeseci }),
+      adminKorpiceApi.postaviKalendar(s.productId, {
+        uKorpici: s.uKorpici,
+        mjeseci: s.mjeseci,
+        mjeseciGlavni: s.mjeseciGlavni,
+        opciono: s.opciono,
+      }),
     onMutate: async (s) => {
       await qc.cancelQueries({ queryKey: kljuc });
       const prije = qc.getQueryData<KalendarStavka[]>(kljuc);
@@ -51,12 +56,22 @@ export default function KalendarKorpicaPage() {
   // Prazni mjeseci znače „cijele godine" — u tabeli se prikazuju kao svih 12.
   const mjeseciOd = (s: KalendarStavka) => (s.mjeseci.length ? s.mjeseci : SVI);
 
+  /**
+   * Klik na mjesec: prazno → ✓ u sezoni → ★ glavno → prazno. Opciona kultura nema „glavno",
+   * pa kod nje ide samo prazno ↔ ✓.
+   */
   function prebaciMjesec(s: KalendarStavka, m: number) {
     const sad = mjeseciOd(s);
+    const glavno = s.mjeseciGlavni.includes(m);
+    if (sad.includes(m) && !glavno && !s.opciono) {
+      snimi.mutate({ ...s, mjeseciGlavni: [...s.mjeseciGlavni, m].sort((a, b) => a - b) });
+      return;
+    }
     const novi = sad.includes(m) ? sad.filter((x) => x !== m) : [...sad, m].sort((a, b) => a - b);
+    const glavni = s.mjeseciGlavni.filter((x) => x !== m);
     // Isključen svaki mjesec bi značio „cijele godine" — umjesto toga kultura izlazi iz korpice.
-    if (novi.length === 0) snimi.mutate({ ...s, uKorpici: false, mjeseci: sad });
-    else snimi.mutate({ ...s, mjeseci: novi.length === 12 ? [] : novi });
+    if (novi.length === 0) snimi.mutate({ ...s, uKorpici: false, mjeseci: sad, mjeseciGlavni: glavni });
+    else snimi.mutate({ ...s, mjeseci: novi.length === 12 ? [] : novi, mjeseciGlavni: glavni });
   }
 
   const lista = kalendar.data ?? [];
@@ -73,6 +88,20 @@ export default function KalendarKorpicaPage() {
             Koja kultura ide u korpicu i u kojim mjesecima. Ovo vide kupci u „Šta dobijaš u korpici?“ i po
             ovome generator puni sedmični sadržaj. Izmjena se snima odmah.
           </p>
+          <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
+            <li>
+              <span className="mr-1 inline-grid h-5 w-6 place-items-center rounded bg-brand-600 font-semibold text-white">✓</span>
+              u sezoni — može u korpicu
+            </li>
+            <li>
+              <span className="mr-1 inline-grid h-5 w-6 place-items-center rounded bg-honey-500 font-semibold text-white">★</span>
+              glavno tog mjeseca — uvijek u početnoj korpici (kupac je može zamijeniti do roka)
+            </li>
+            <li>
+              <b className="text-ink">Opciono</b> — nikad u početnoj korpici, samo kao zamjena koju kupac izabere
+            </li>
+          </ul>
+          <p className="mt-1 text-xs text-muted">Klik na mjesec: prazno → ✓ → ★ → prazno.</p>
         </div>
         <Link
           href="/admin/products?novi=1"
@@ -109,6 +138,7 @@ export default function KalendarKorpicaPage() {
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-3 py-2">Kultura</th>
                 <th className="px-2 py-2 text-center">U korpici</th>
+                <th className="px-2 py-2 text-center">Opciono</th>
                 {MJESECI.map((m) => (
                   <th key={m} className="px-1 py-2 text-center">
                     {m}
@@ -118,10 +148,18 @@ export default function KalendarKorpicaPage() {
             </thead>
             <tbody>
               {uKorpici.map((s) => (
-                <Red key={s.productId} s={s} mjeseci={mjeseciOd(s)} onKorpica={(v) => snimi.mutate({ ...s, uKorpici: v })} onMjesec={(m) => prebaciMjesec(s, m)} />
+                <Red
+                  key={s.productId}
+                  s={s}
+                  mjeseci={mjeseciOd(s)}
+                  onKorpica={(v) => snimi.mutate({ ...s, uKorpici: v })}
+                  onOpciono={(v) => snimi.mutate({ ...s, opciono: v, mjeseciGlavni: v ? [] : s.mjeseciGlavni })}
+                  onMjesec={(m) => prebaciMjesec(s, m)}
+                />
               ))}
               <tr className="border-y border-line bg-sand/60 text-xs font-semibold text-muted">
                 <td className="px-3 py-1.5">Kultura u mjesecu</td>
+                <td />
                 <td />
                 {poMjesecu.map((c, i) => (
                   <td
@@ -135,13 +173,20 @@ export default function KalendarKorpicaPage() {
               </tr>
               {van.length > 0 && (
                 <tr>
-                  <td colSpan={14} className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted">
+                  <td colSpan={15} className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted">
                     Van korpica — uključi da kultura uđe u kalendar
                   </td>
                 </tr>
               )}
               {van.map((s) => (
-                <Red key={s.productId} s={s} mjeseci={mjeseciOd(s)} onKorpica={(v) => snimi.mutate({ ...s, uKorpici: v })} onMjesec={(m) => prebaciMjesec(s, m)} />
+                <Red
+                  key={s.productId}
+                  s={s}
+                  mjeseci={mjeseciOd(s)}
+                  onKorpica={(v) => snimi.mutate({ ...s, uKorpici: v })}
+                  onOpciono={(v) => snimi.mutate({ ...s, opciono: v, mjeseciGlavni: v ? [] : s.mjeseciGlavni })}
+                  onMjesec={(m) => prebaciMjesec(s, m)}
+                />
               ))}
             </tbody>
           </table>
@@ -155,11 +200,13 @@ function Red({
   s,
   mjeseci,
   onKorpica,
+  onOpciono,
   onMjesec,
 }: {
   s: KalendarStavka;
   mjeseci: number[];
   onKorpica: (v: boolean) => void;
+  onOpciono: (v: boolean) => void;
   onMjesec: (m: number) => void;
 }) {
   return (
@@ -182,8 +229,20 @@ function Red({
           className="h-4 w-4 accent-brand-600"
         />
       </td>
+      <td className="px-2 text-center">
+        <input
+          type="checkbox"
+          checked={s.opciono}
+          disabled={!s.uKorpici}
+          onChange={(e) => onOpciono(e.target.checked)}
+          aria-label={`${s.naziv} opciono`}
+          title="Samo kao zamjena koju kupac izabere — nikad u početnoj korpici"
+          className="h-4 w-4 accent-honey-500 disabled:opacity-40"
+        />
+      </td>
       {SVI.map((m) => {
         const da = mjeseci.includes(m);
+        const glavno = da && s.mjeseciGlavni.includes(m);
         return (
           <td key={m} className="px-0.5 py-1 text-center">
             <button
@@ -191,13 +250,17 @@ function Red({
               disabled={!s.uKorpici}
               onClick={() => onMjesec(m)}
               aria-pressed={da}
-              aria-label={`${s.naziv}, ${MJESECI[m - 1]}`}
+              aria-label={`${s.naziv}, ${MJESECI[m - 1]}${glavno ? ", glavno" : da ? ", u sezoni" : ""}`}
               className={cn(
                 "h-7 w-full min-w-[34px] rounded-md text-xs font-semibold transition disabled:cursor-not-allowed",
-                da ? "bg-brand-600 text-white hover:bg-brand-700" : "bg-sand text-transparent hover:bg-brand-100",
+                glavno
+                  ? "bg-honey-500 text-white hover:bg-honey-600"
+                  : da
+                    ? "bg-brand-600 text-white hover:bg-brand-700"
+                    : "bg-sand text-transparent hover:bg-brand-100",
               )}
             >
-              ✓
+              {glavno ? "★" : "✓"}
             </button>
           </td>
         );

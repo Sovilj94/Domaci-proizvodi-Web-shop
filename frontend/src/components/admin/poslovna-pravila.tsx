@@ -111,7 +111,7 @@ export function PoslovnaPravila() {
       {q.isLoading ? (
         <LoadingBlock />
       ) : q.isError ? (
-        <p className="rounded-card bg-white p-6 text-sm text-red-600 shadow-card">Pravila nije moguće pročitati.</p>
+        <p className="rounded-card bg-white p-4 sm:p-6 text-sm text-red-600 shadow-card">Pravila nije moguće pročitati.</p>
       ) : (
         <form
           onSubmit={(e) => {
@@ -119,7 +119,7 @@ export function PoslovnaPravila() {
             setGreske({});
             sacuvaj.mutate();
           }}
-          className="max-w-2xl space-y-6 rounded-card bg-white p-6 shadow-card"
+          className="max-w-2xl space-y-6 rounded-card bg-white p-4 shadow-card sm:p-6"
         >
           {GRUPE.map((g) => (
             <fieldset key={g.naslov} className="space-y-3">

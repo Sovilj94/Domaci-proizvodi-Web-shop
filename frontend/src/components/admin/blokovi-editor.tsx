@@ -95,7 +95,7 @@ export function BlokoviEditor() {
   const greska = (i: number, polje: string) => greske[`blokovi[${i}].${polje}`]?.[0];
 
   return (
-    <section className="space-y-4 rounded-card border border-line bg-surface p-5">
+    <section className="space-y-4 rounded-card border border-line bg-surface p-4 sm:p-5">
       <div>
         <h2 className="font-display text-lg font-bold text-ink">Sekcije sajta</h2>
         <p className="text-sm text-muted">Izaberi sekciju, uredi blokove i sačuvaj. Engleska polja koristi engleska verzija sajta.</p>
