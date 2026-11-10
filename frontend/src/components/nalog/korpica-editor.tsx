@@ -117,7 +117,7 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
           <SmartImage src={korpica.imageUrl} alt={korpica.naziv} sizes="56px" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display font-semibold text-ink">{korpica.naziv}</p>
+          <p className="line-clamp-2 font-display font-semibold leading-snug text-ink sm:truncate">{korpica.naziv}</p>
           <p className="truncate text-sm text-muted">
             {korpica.kodNarudzbe} · {stavke.length} artikala · vrijednost {formatPrice(korpica.trenutnaVrijednost)}
           </p>
@@ -145,7 +145,8 @@ export function KorpicaEditor({ orderItemId }: { orderItemId: string }) {
                   <SmartImage src={slike.get(s.productId)} alt={s.naziv} sizes="44px" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-ink">
+                  {/* Na telefonu naziv ide u dva reda umjesto da ga „Zamijeni" odsiječe. */}
+                  <p className="line-clamp-2 font-medium leading-snug text-ink sm:truncate">
                     {s.naziv}
                     {s.dodaoKupac && (
                       <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 align-middle text-[10px] font-semibold text-brand-700">

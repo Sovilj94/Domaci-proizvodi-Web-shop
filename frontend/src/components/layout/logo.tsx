@@ -22,14 +22,14 @@ export function Logo({
     <Link
       href={href}
       translate="no"
-      className={cn("inline-flex items-center gap-2.5", className)}
+      className={cn("inline-flex shrink-0 items-center gap-2 whitespace-nowrap sm:gap-2.5", className)}
     >
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-600 text-white shadow-sm">
+      <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-600 text-white shadow-sm sm:h-9 sm:w-9">
         <Sprout className="h-[18px] w-[18px]" />
       </span>
       <span
         className={cn(
-          "font-display text-xl font-bold",
+          "font-display text-lg font-bold sm:text-xl",
           tone === "dark" ? "text-cream" : "text-ink",
         )}
       >

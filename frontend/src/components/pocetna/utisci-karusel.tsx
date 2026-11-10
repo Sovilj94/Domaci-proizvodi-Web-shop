@@ -31,6 +31,9 @@ export function UtisciKarusel() {
   // Širina prozora trake: tačno onoliko cijelih fotografija koliko stane (bez odsječenih na ivici).
   const okvir = useRef<HTMLDivElement>(null);
   const [sirinaProzora, setSirinaProzora] = useState<number | null>(null);
+  // Koliko malih fotografija stoji lijevo od aktivne: jedna kad ih stane bar jedna, inače nijedna —
+  // na telefonu prozor prima samo aktivnu, pa bi mala ispred nje gurnula aktivnu van prozora.
+  const [ispred, setIspred] = useState(1);
 
   useEffect(() => {
     const el = okvir.current;
@@ -43,6 +46,7 @@ export function UtisciKarusel() {
       // Jedna velika + što više malih, sa razmacima između.
       const malih = Math.max(0, Math.floor((dostupno - velika) / (mala + razmak)));
       setSirinaProzora(velika + malih * (mala + razmak));
+      setIspred(malih > 0 ? 1 : 0);
     };
     izmjeri();
     const ro = new ResizeObserver(izmjeri);
@@ -88,7 +92,8 @@ export function UtisciKarusel() {
       <div
         ref={okvir}
         className={cn(
-          "relative",
+          // Na telefonu je tekst utiska iznad fotografije, kao na uzoru; od lg stoji desno od trake.
+          "relative flex flex-col lg:block",
           // Mjere kao na uzoru: mala 150×267 → 100×178 → 130×231 → 160×284; velika 240×426 → 340×569.
           "[--mala-s:150px] [--mala-v:267px] [--velika-s:240px] [--velika-v:426px] [--razmak:16px]",
           "sm:[--mala-s:100px] sm:[--mala-v:178px] sm:[--velika-s:200px] sm:[--velika-v:355px]",
@@ -99,12 +104,12 @@ export function UtisciKarusel() {
         onMouseEnter={() => setPauza(true)}
         onMouseLeave={() => setPauza(false)}
       >
-        <div className="mx-auto overflow-hidden" style={sirinaProzora ? { width: sirinaProzora } : undefined}>
+        <div className="order-2 mx-auto overflow-hidden lg:order-none" style={sirinaProzora ? { width: sirinaProzora } : undefined}>
         <ul
           className="flex h-[var(--velika-v)] items-end gap-[var(--razmak)]"
           style={{
-            // Aktivna je druga s lijeva: ispred nje je tačno jedna mala fotografija.
-            transform: `translateX(calc(${-(poz - 1)} * (var(--mala-s) + var(--razmak))))`,
+            // Aktivna je druga s lijeva (ispred nje jedna mala), a na telefonu prva.
+            transform: `translateX(calc(${-(poz - ispred)} * (var(--mala-s) + var(--razmak))))`,
             transition: bezPrelaza ? "none" : `transform ${PRELAZ_MS}ms ease`,
           }}
           onTransitionEnd={(e) => {
@@ -147,7 +152,7 @@ export function UtisciKarusel() {
         </div>
 
         <figure
-          className="mt-6 lg:absolute lg:right-0 lg:top-12 lg:mt-0 lg:w-[420px] xl:right-8 xl:top-20 xl:w-[520px] 2xl:w-[620px]"
+          className="order-1 mb-6 lg:absolute lg:mb-0 lg:right-0 lg:top-12 lg:mt-0 lg:w-[420px] xl:right-8 xl:top-20 xl:w-[520px] 2xl:w-[620px]"
           aria-live="polite"
         >
           <figcaption className="text-2xl font-bold uppercase text-ink md:text-[40px] md:leading-[46px]">

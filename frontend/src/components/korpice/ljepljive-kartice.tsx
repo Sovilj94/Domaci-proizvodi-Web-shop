@@ -40,8 +40,11 @@ export function LjepljiveKartice({
     <div
       aria-hidden={!vidljiva}
       className={cn(
-        "fixed inset-x-0 top-0 z-[45] px-2 transition-transform duration-200 sm:px-4",
-        vidljiva ? "translate-y-0" : "pointer-events-none -translate-y-full",
+        // Na telefonu staje ispod zaglavlja dok je ono vidljivo (skrol nagore), a na vrh kad se skloni.
+        "fixed inset-x-0 top-0 z-[45] px-2 transition-[transform,top] duration-200 sm:px-4",
+        "max-lg:[html[data-zaglavlje=vidljivo]_&]:top-[72px]",
+        // +80px: i kad stoji ispod zaglavlja (top 72px), skrivena mora izaći iznad ekrana.
+        vidljiva ? "translate-y-0" : "pointer-events-none -translate-y-[calc(100%+80px)]",
       )}
     >
       <div className="mx-auto grid max-w-[940px] grid-cols-3 gap-1.5 sm:gap-3">

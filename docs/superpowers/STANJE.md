@@ -933,3 +933,16 @@ Geokodiranje lokalno zna da vrati `{}` (izlazni soket 10013) — restart API-ja 
 pa restart API-ja. **Vratiti poslije.**
 
 API i Next dev server rade u zasebnim prozorima („EPiljara API“, „EPiljara web“).
+
+## Mobilni prikaz po uzoru na farmit (2026-11-10, grana `mobilni-prikaz`)
+
+Sve javne stranice i stranice naloga provjerene na 360 i 390 px (skripta traži elemente van ekrana):
+nijedna ne izlazi van ekrana. Popravljeno:
+- **Zaglavlje** se na telefonu više ne lomi („E piljara" i „Prijavi se" u dva reda) — manji razmaci, `whitespace-nowrap`.
+- **Zaglavlje se sklanja** dok se skroluje nadolje i vraća na skrol nagore (ispod `lg`), kao na farmitu.
+  Stanje ide u `<html data-zaglavlje="vidljivo|skriveno">`; ljepljiva traka korpica staje ispod zaglavlja dok je vidljivo.
+- **Bag:** `html, body { height: 100% }` u `globals.css` je činio body visokim koliko ekran, pa se ljepljivo
+  zaglavlje odlijepilo poslije ~770 px na svakoj stranici osim početne. Sada `body { min-height: 100% }`.
+- **Utisci** na telefonu: tekst iznad fotografije, aktivna fotografija je cijela (prije je mala ispred nje gurala aktivnu van prozora).
+- **Plaćanje:** donja traka (Korpa / iznos / Nastavi) se na telefonu lijepi za dno ekrana; iznos se ne lomi.
+- **Izmjena korpice:** nazivi artikala u dva reda umjesto odsječenih.

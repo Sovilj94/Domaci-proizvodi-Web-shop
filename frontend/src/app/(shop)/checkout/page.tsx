@@ -631,20 +631,21 @@ export default function CheckoutPage() {
             />
           </div>
 
-          {/* Bottom navigation */}
-          <div className="flex items-center justify-between gap-3">
+          {/* Bottom navigation — na telefonu se lijepi za dno ekrana, pa su iznos i „Nastavi"
+              uvijek pod palcem, i kad je forma duža od ekrana. */}
+          <div className="sticky bottom-3 z-30 flex items-center justify-between gap-2 rounded-card bg-white p-3 shadow-[0_-2px_16px_rgba(64,74,61,0.14)] sm:static sm:gap-3 sm:bg-transparent sm:p-0 sm:shadow-none">
             {step > 1 ? (
-              <Button type="button" variant="secondary" onClick={() => setStep((s) => s - 1)}>
+              <Button type="button" variant="secondary" onClick={() => setStep((s) => s - 1)} className="shrink-0 px-4 sm:px-5">
                 <ArrowLeft className="h-4 w-4" /> Nazad
               </Button>
             ) : (
-              <Link href="/cart" className={cn(buttonVariants({ variant: "secondary" }))}>
+              <Link href="/cart" className={cn(buttonVariants({ variant: "secondary" }), "shrink-0 px-4 sm:px-5")}>
                 <ArrowLeft className="h-4 w-4" /> Korpa
               </Link>
             )}
 
-            <div className="flex items-center gap-3">
-              <span className="font-display text-lg font-bold">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <span className="whitespace-nowrap font-display text-base font-bold sm:text-lg">
                 {formatPrice(selectedZone ? total : cijenaRobe)}
               </span>
               {/* Različiti `key`-evi su obavezni. Bez njih React zadrži isti <button> i samo mu
