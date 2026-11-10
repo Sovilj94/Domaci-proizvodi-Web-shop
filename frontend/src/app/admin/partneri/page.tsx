@@ -142,7 +142,7 @@ export default function AdminPartneriPage() {
       {lista.isLoading ? (
         <LoadingBlock />
       ) : !lista.data?.length ? (
-        <p className="rounded-card bg-white p-6 text-muted shadow-card">Nema prijava.</p>
+        <p className="rounded-card bg-white p-4 sm:p-6 text-muted shadow-card">Nema prijava.</p>
       ) : (
         <div className="overflow-hidden rounded-card bg-white shadow-card">
           <ul className="divide-y divide-line">

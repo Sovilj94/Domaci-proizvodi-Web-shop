@@ -102,7 +102,7 @@ export default function PlanPoslovanjaPage() {
         <EmptyState title="Plan nije izračunat" description={q.error instanceof ApiRequestError ? q.error.message : ""} />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
             <KarticaPoslovanja label="Neto prihod" vrijednost={formatPrice(d.plan.neto)} hint={`${d.narudzbi} × ${formatPrice(d.prosjek.neto)}`} />
             <KarticaPoslovanja label="Roba, ambalaža, gorivo" vrijednost={formatPrice(d.plan.varijabilno)} hint="raste sa svakom narudžbom" />
             <KarticaPoslovanja label="Fiksni troškovi" vrijednost={formatPrice(d.fiksni)} hint="isti bez obzira na broj narudžbi" />

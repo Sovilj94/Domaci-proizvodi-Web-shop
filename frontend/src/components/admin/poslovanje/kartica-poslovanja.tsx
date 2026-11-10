@@ -20,9 +20,9 @@ export function KarticaPoslovanja({
   const p = sada === undefined || prije === undefined ? null : promjena(sada, prije);
   const dobro = p !== null && (obrnuto ? p < 0 : p > 0);
   return (
-    <div className="rounded-card bg-white p-5 shadow-card print:border print:border-line print:shadow-none">
-      <p className="text-sm font-medium text-muted">{label}</p>
-      <p className="mt-2 font-display text-2xl font-bold tabular-nums">{vrijednost}</p>
+    <div className="min-w-0 rounded-card bg-white p-4 shadow-card sm:p-5 print:border print:border-line print:shadow-none">
+      <p className="text-xs font-medium text-muted sm:text-sm">{label}</p>
+      <p className="mt-1.5 break-words font-display text-xl font-bold tabular-nums sm:mt-2 sm:text-2xl">{vrijednost}</p>
       {p !== null ? (
         <p
           className={cn(

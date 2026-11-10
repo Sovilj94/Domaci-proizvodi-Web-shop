@@ -35,11 +35,11 @@ export function OrderCard({
       <button
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-sand/40"
+        className="flex w-full items-center gap-2 p-3 sm:gap-3 sm:p-4 text-left transition hover:bg-sand/40"
       >
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-display font-semibold">{order.code}</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="whitespace-nowrap font-display font-semibold">{order.code}</span>
             <StatusBadge status={order.status} />
           </div>
           <p className="mt-0.5 truncate text-xs text-muted">
@@ -79,7 +79,7 @@ export function OrderCard({
             </p>
           </section>
 
-          <section className="rounded-lg bg-sand/50 p-4">
+          <section className="rounded-lg bg-sand/50 p-3 sm:p-4">
             <h3 className="mb-2 text-sm font-semibold">Stavke</h3>
             <ul className="space-y-1.5 text-sm">
               {order.items.map((it) => (

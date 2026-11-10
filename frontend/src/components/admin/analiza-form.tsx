@@ -115,7 +115,7 @@ export function AnalizaForm({
 
   return (
     <AdminLadica naslov={analiza ? "Uredi analizu" : "Nova analiza"} onClose={onClose}>
-      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <Field label="Proizvođač" required error={errors["input.producerId"]?.[0]}>
           <Select
             value={form.producerId}

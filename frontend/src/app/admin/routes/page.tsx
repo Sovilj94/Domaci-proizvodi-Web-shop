@@ -106,7 +106,7 @@ export default function AdminRoutesPage() {
           <h1 className="font-display text-2xl font-bold">Rute dostave</h1>
           <p className="text-muted">Dodijeli narudžbe vozačima i optimizuj redoslijed.</p>
         </div>
-        <div className="flex items-end gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <div className="w-40">
             <Field label="Datum dostave">
               <input
@@ -129,12 +129,12 @@ export default function AdminRoutesPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Assign */}
-        <section className="rounded-card bg-white p-5 shadow-card">
+        <section className="min-w-0 rounded-card bg-white p-4 shadow-card sm:p-5">
           <h2 className="font-display text-lg font-semibold">Narudžbe za dostavu</h2>
           <p className="text-sm text-muted">Odaberite narudžbe i vozača.</p>
 
-          <div className="mt-4 flex items-end gap-3">
-            <div className="flex-1">
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <div className="min-w-0 flex-1 basis-48">
               <Field label="Vozač">
                 <Select value={driverId} onChange={(e) => setDriverId(e.target.value)}>
                   <option value="">Odaberite vozača…</option>
@@ -191,7 +191,7 @@ export default function AdminRoutesPage() {
         </section>
 
         {/* Routes */}
-        <section className="space-y-4">
+        <section className="min-w-0 space-y-4">
           <h2 className="font-display text-lg font-semibold">
             Rute za {date}
           </h2>
@@ -284,8 +284,8 @@ function RouteCard({
   }
 
   return (
-    <div className="rounded-card bg-white p-5 shadow-card">
-      <div className="flex items-center justify-between">
+    <div className="rounded-card bg-white p-4 sm:p-5 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-display font-semibold">{route.driverName}</p>
           <p className="text-xs text-muted">{route.stops.length} stajanja</p>

@@ -153,7 +153,7 @@ export function PromoKodForm({
 
   return (
     <AdminLadica naslov={promo ? "Uredi promo kod" : "Novi promo kod"} onClose={onClose}>
-      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <Field label="Kod" required error={greska(errors, "kod")}>
           <Input
             value={form.kod}
@@ -176,7 +176,7 @@ export function PromoKodForm({
 
         <fieldset>
           <legend className="mb-1.5 text-sm font-medium text-ink">Vrsta popusta</legend>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
             {(["Procenat", "Iznos"] as const).map((t) => (
               <label key={t} className={labelKlasa}>
                 <input

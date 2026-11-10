@@ -35,7 +35,7 @@ export default function AdminPoslovanjePage() {
 
 function ArtikliTabela({ naslov, lista }: { naslov: string; lista: ArtikalProdaje[] }) {
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <h3 className="font-semibold">{naslov}</h3>
       <Tabela
         kljuc={(r) => `${r.naziv}|${r.jedinica}`}
@@ -131,7 +131,7 @@ function Poslovanje() {
             </p>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
             <KarticaPoslovanja label="Neto prihod" vrijednost={formatPrice(d.prihod.neto)} sada={d.prihod.neto} prije={d.prethodni.neto} />
             <KarticaPoslovanja
               label="Zarada"
@@ -222,7 +222,7 @@ function Poslovanje() {
           </Odjeljak>
 
           <Odjeljak naslov="Kupci">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <KarticaPoslovanja label="Novi / povratni" vrijednost={`${d.kupci.novi} / ${d.kupci.povratni}`} />
               <KarticaPoslovanja
                 label="Zadržavanje"
@@ -253,7 +253,7 @@ function Poslovanje() {
           </Odjeljak>
 
           <Odjeljak naslov="Pretplate">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <KarticaPoslovanja label="Aktivne na kraju mjeseca" vrijednost={String(d.pretplate.aktivneNaKraju)} />
               <KarticaPoslovanja label="Nove / otkazane" vrijednost={`${d.pretplate.nove} / ${d.pretplate.otkazane}`} />
               <KarticaPoslovanja label="Stopa otkazivanja" vrijednost={procenat(d.pretplate.stopaOtkazivanja)} />
@@ -273,7 +273,7 @@ function Poslovanje() {
           </Odjeljak>
 
           <Odjeljak naslov="Dostava i kvalitet">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
               <KarticaPoslovanja
                 label="Uspješnost isporuke"
                 vrijednost={procenat(d.dostava.uspjesnost)}

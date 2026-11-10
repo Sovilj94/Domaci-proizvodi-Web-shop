@@ -67,7 +67,7 @@ export function AdminLadica({
           sirina,
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-4 sm:px-6">
           <div>
             <h2 id={naslovId} className="font-display text-lg font-bold text-ink">
               {naslov}

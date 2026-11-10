@@ -115,7 +115,7 @@ function PoeniKupca({ kupac, onClose }: { kupac: AdminPoeniKupac; onClose: () =>
 
   return (
     <AdminLadica naslov={kupac.ime} podnaslov={kupac.email} onClose={onClose}>
-      <div className="flex-1 space-y-6 overflow-y-auto p-6">
+      <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
         <p className="text-sm text-muted">
           Stanje:{" "}
           <span className="font-display text-2xl font-bold text-ink tabular-nums">

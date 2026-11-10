@@ -98,7 +98,7 @@ function Pakovanje() {
             </Link>
           </p>
         </div>
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
           <IzborSedmice s={izbor} />
           <Button variant="secondary" size="sm" onClick={() => window.print()}>
             <Printer className="h-4 w-4" /> Štampaj
@@ -123,7 +123,7 @@ function Pakovanje() {
             </button>
           ))}
           {dani.length > 1 && (
-            <span className="ml-2 flex gap-1">
+            <span className="flex flex-wrap gap-1 sm:ml-2">
               {(["svi", ...dani] as const).map((d) => (
                 <button
                   key={d}
@@ -165,7 +165,7 @@ function Pakovanje() {
       )}
 
       {!!q.data?.zbirDodataka.length && (
-        <section className="rounded-card border border-line bg-surface p-5 print:break-before-page">
+        <section className="rounded-card border border-line bg-surface p-4 sm:p-5 print:break-before-page">
           <h2 className="font-display text-lg font-bold text-ink">Dodaci iz Špajza — ukupno za sedmicu</h2>
           <p className="text-sm text-muted">Nisu dio sadržaja korpica, pa ih pakerska lista ne sabira.</p>
           <ul className="mt-3 divide-y divide-line text-sm">
@@ -195,7 +195,7 @@ function Kutija({
   const zaPakovanje = ZA_PAKOVANJE.includes(n.status);
 
   return (
-    <article className="break-inside-avoid rounded-card border border-line bg-surface p-5 print:mb-4 print:border-black">
+    <article className="break-inside-avoid rounded-card border border-line bg-surface p-4 sm:p-5 print:mb-4 print:border-black">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-display text-lg font-bold text-ink">

@@ -110,7 +110,7 @@ function Troskovi() {
       ) : (
         <>
           {t && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <KarticaPoslovanja label="Troškovi ukupno" vrijednost={formatPrice(t.ukupno)} hint="sa ambalažom i gorivom" />
               <KarticaPoslovanja
                 label="Ambalaža (uz prodaju)"
@@ -298,7 +298,7 @@ function VoznjeOdjeljak({ godina, mjesec }: { godina: number; mjesec: number }) 
             <Input inputMode="decimal" value={form.litara} onChange={(e) => setForm({ ...form, litara: e.target.value })} className="w-24" />
           </Field>
           <Field label="Napomena">
-            <Input value={form.napomena} maxLength={300} onChange={(e) => setForm({ ...form, napomena: e.target.value })} className="w-64" />
+            <Input value={form.napomena} maxLength={300} onChange={(e) => setForm({ ...form, napomena: e.target.value })} className="w-full sm:w-64" />
           </Field>
           <Button type="submit" size="sm" disabled={sacuvaj.isPending} className="mb-1">
             Sačuvaj
@@ -457,7 +457,7 @@ function TrosakLadica({ d, trosak, onClose }: { d: TroskoviMjeseca; trosak: Tros
 
   return (
     <AdminLadica naslov={trosak ? "Izmijeni trošak" : "Novi trošak"} onClose={onClose}>
-      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <Field label="Datum" required>
           <Input type="date" value={form.datum} onChange={(e) => setForm({ ...form, datum: e.target.value })} />
         </Field>

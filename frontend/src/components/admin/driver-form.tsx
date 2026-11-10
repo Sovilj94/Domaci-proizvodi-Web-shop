@@ -79,7 +79,7 @@ export function DriverForm({
 
   return (
     <AdminLadica naslov={driver ? "Uredi vozača" : "Novi vozač"} onClose={onClose}>
-      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <Field label="Ime i prezime" required error={errors["input.name"]?.[0]}>
           <Input
             value={form.name}

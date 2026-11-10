@@ -103,7 +103,7 @@ export default function AdminOcjenePage() {
       {sazetak && (
         <section
           aria-label="Sažetak ocjena"
-          className="grid gap-6 rounded-card bg-white p-5 shadow-card sm:grid-cols-[auto_1fr]"
+          className="grid gap-6 rounded-card bg-white p-4 sm:p-5 shadow-card sm:grid-cols-[auto_1fr]"
         >
           <div className="space-y-1">
             <p className="font-display text-4xl font-bold">
@@ -156,14 +156,14 @@ export default function AdminOcjenePage() {
       {podaci.isLoading ? (
         <LoadingBlock />
       ) : podaci.isError ? (
-        <div className="space-y-3 rounded-card bg-white p-6 shadow-card">
+        <div className="space-y-3 rounded-card bg-white p-4 sm:p-6 shadow-card">
           <p className="text-muted">Učitavanje ocjena nije uspjelo.</p>
           <Button size="sm" onClick={() => podaci.refetch()}>
             Pokušaj ponovo
           </Button>
         </div>
       ) : !podaci.data?.stavke.length ? (
-        <p className="rounded-card bg-white p-6 text-muted shadow-card">Nema ocjena.</p>
+        <p className="rounded-card bg-white p-4 sm:p-6 text-muted shadow-card">Nema ocjena.</p>
       ) : (
         <div className="overflow-hidden rounded-card bg-white shadow-card">
           <ul className="divide-y divide-line">

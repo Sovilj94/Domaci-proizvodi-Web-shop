@@ -163,7 +163,7 @@ function Pravila({ podesavanja }: { podesavanja: Podesavanja }) {
   );
 
   return (
-    <section className="rounded-card bg-white p-5 shadow-card">
+    <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-semibold">Pravila za sve korpice</h2>
         <p className="text-xs text-muted">Ista su i u „Poslovna pravila“ — mijenjaju se na oba mjesta.</p>
@@ -259,7 +259,7 @@ function Vrsta({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-card bg-white p-5 shadow-card">
+      <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
         <h2 className="mb-3 font-display text-lg font-semibold">Veličine i cijene</h2>
         {korpice.length === 0 ? (
           <p className="text-sm text-muted">Ova vrsta još nema korpica. Dodaj ih kao proizvod vrste „korpica“.</p>
@@ -457,7 +457,7 @@ function Artikli({
   }
 
   return (
-    <section className="rounded-card bg-white p-5 shadow-card">
+    <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold">Artikli i količine</h2>
@@ -468,7 +468,7 @@ function Artikli({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="relative">
+          <label className="relative w-full sm:w-auto">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
               type="search"
@@ -476,7 +476,7 @@ function Artikli({
               onChange={(e) => setUpit(e.target.value)}
               placeholder="Traži artikal…"
               aria-label="Traži artikal"
-              className="h-9 w-48 rounded-full border border-line bg-white pl-8 pr-3 text-sm outline-none focus:border-brand-500"
+              className="h-9 w-full rounded-full sm:w-48 border border-line bg-white pl-8 pr-3 text-sm outline-none focus:border-brand-500"
             />
           </label>
           <label className="flex items-center gap-2 text-sm">

@@ -101,7 +101,7 @@ function Godina() {
         />
       ) : (
         <>
-          <div className="rounded-card bg-white p-5 shadow-card print:shadow-none">
+          <div className="rounded-card bg-white p-4 sm:p-5 shadow-card print:shadow-none">
             <GrafikonGodine mjeseci={d.mjeseci} />
           </div>
 

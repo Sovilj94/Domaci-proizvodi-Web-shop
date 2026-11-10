@@ -20,7 +20,8 @@ export function Tabela<T>({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[28rem] text-sm">
+      {/* Do tri kolone tabela staje i na telefon; šira se skroluje vodoravno. */}
+      <table className={cn("w-full text-sm", kolone.length > 3 && "min-w-[28rem]")}>
         <thead className="text-left text-xs text-muted">
           <tr className="border-b border-line">
             {kolone.map((k) => (

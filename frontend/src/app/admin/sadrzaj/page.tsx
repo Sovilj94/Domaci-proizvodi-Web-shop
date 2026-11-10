@@ -87,7 +87,7 @@ export default function AdminSadrzajPage() {
         </p>
       </div>
 
-      <section className="space-y-4 rounded-card border border-line bg-surface p-5">
+      <section className="space-y-4 rounded-card border border-line bg-surface p-4 sm:p-5">
         <h2 className="font-display text-lg font-bold text-ink">Kontakt (footer i „O nama“)</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Telefon" error={greske.telefon?.[0]}>
@@ -105,7 +105,7 @@ export default function AdminSadrzajPage() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-card border border-line bg-surface p-5">
+      <section className="space-y-4 rounded-card border border-line bg-surface p-4 sm:p-5">
         <div>
           <h2 className="font-display text-lg font-bold text-ink">Česta pitanja (početna)</h2>
           <p className="text-sm text-muted">

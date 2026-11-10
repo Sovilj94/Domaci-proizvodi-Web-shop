@@ -40,7 +40,7 @@ export default function AdminUtisciPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Utisci</h1>
           <p className="text-muted">Šta kupci kažu — prikazuje se na početnoj, samo objavljeni.</p>
@@ -58,7 +58,7 @@ export default function AdminUtisciPage() {
       {utisci.isLoading ? (
         <LoadingBlock />
       ) : !utisci.data?.length ? (
-        <p className="rounded-card bg-white p-6 text-muted shadow-card">
+        <p className="rounded-card bg-white p-4 sm:p-6 text-muted shadow-card">
           Još nema utisaka. Dok nijedan nije objavljen, sekcija se na početnoj ne prikazuje.
         </p>
       ) : (

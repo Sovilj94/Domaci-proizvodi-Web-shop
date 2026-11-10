@@ -153,7 +153,7 @@ export default function AdminNewOrderPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
           {/* Kupac */}
-          <section className="rounded-card bg-white p-5 shadow-card">
+          <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
             <h2 className="mb-4 font-display text-lg font-semibold">Kupac</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Ime i prezime" required error={errors["customer.name"]?.[0]}>
@@ -178,7 +178,7 @@ export default function AdminNewOrderPage() {
           </section>
 
           {/* Proizvodi */}
-          <section className="rounded-card bg-white p-5 shadow-card">
+          <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
             <h2 className="mb-4 font-display text-lg font-semibold">Proizvodi</h2>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -251,7 +251,7 @@ export default function AdminNewOrderPage() {
           </section>
 
           {/* Dostava */}
-          <section className="rounded-card bg-white p-5 shadow-card">
+          <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
             <h2 className="mb-4 font-display text-lg font-semibold">Dostava</h2>
             <div className="grid gap-4">
               <Field label="Zona dostave" required error={errors.deliveryZoneId?.[0]}>
@@ -298,7 +298,7 @@ export default function AdminNewOrderPage() {
         </div>
 
         {/* Sažetak */}
-        <aside className="h-fit rounded-card bg-white p-5 shadow-card lg:sticky lg:top-6">
+        <aside className="h-fit rounded-card bg-white p-4 sm:p-5 shadow-card lg:sticky lg:top-6">
           <h2 className="font-display text-lg font-semibold">Sažetak</h2>
           {lines.length === 0 ? (
             <p className="mt-3 text-sm text-muted">Dodajte proizvode iznad.</p>

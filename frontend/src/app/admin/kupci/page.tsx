@@ -63,7 +63,29 @@ function AdminKupci() {
       ) : !q.data?.length ? (
         <p className="text-muted">Nema kupaca{pretraga && " za ovu pretragu"}.</p>
       ) : (
-        <div className="overflow-x-auto rounded-card border border-line bg-surface">
+        <>
+        {/* Telefon: šest kolona ne stane, pa je svaki kupac kartica sa istim podacima. */}
+        <ul className="divide-y divide-line rounded-card border border-line bg-surface sm:hidden">
+          {q.data.map((k) => (
+            <li key={k.id}>
+              <button type="button" className="w-full px-3 py-2.5 text-left text-sm hover:bg-sand" onClick={() => setIzabran(k)}>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="min-w-0 truncate font-medium text-ink">{k.ime}</span>
+                  <span className="shrink-0 tabular-nums font-semibold">{formatPrice(k.isporuceno)}</span>
+                </span>
+                <span className="block truncate text-muted">
+                  {k.email}
+                  {!k.emailPotvrdjen && " · nepotvrđen"}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {k.brojNarudzbi} narudžbi · pretplate {k.aktivnePretplate || "—"} · {k.poeni} poena
+                  {k.zadnjaNarudzba && ` · zadnja ${formatDate(k.zadnjaNarudzba)}`}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-card border border-line bg-surface sm:block">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line text-xs uppercase text-muted">
               <tr>
@@ -97,6 +119,7 @@ function AdminKupci() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {izabran && <Kupac kupac={izabran} onClose={() => setIzabran(null)} />}
@@ -110,7 +133,7 @@ function Kupac({ kupac, onClose }: { kupac: AdminKupac; onClose: () => void }) {
 
   return (
     <AdminLadica naslov={kupac.ime} podnaslov={kupac.email} onClose={onClose}>
-      <div className="flex-1 space-y-6 overflow-y-auto p-6 text-sm">
+      <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6 text-sm">
         {q.isLoading || !d ? (
           <LoadingBlock />
         ) : (

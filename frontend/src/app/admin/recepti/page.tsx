@@ -40,7 +40,7 @@ export default function AdminReceptiPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Recepti</h1>
           <p className="text-muted">Recepti sa sastojcima vezanim za ponudu — javno se vide samo objavljeni.</p>
@@ -58,7 +58,7 @@ export default function AdminReceptiPage() {
       {recepti.isLoading ? (
         <LoadingBlock />
       ) : !recepti.data?.length ? (
-        <p className="rounded-card bg-white p-6 text-muted shadow-card">Još nema recepata.</p>
+        <p className="rounded-card bg-white p-4 sm:p-6 text-muted shadow-card">Još nema recepata.</p>
       ) : (
         <div className="overflow-hidden rounded-card bg-white shadow-card">
           <ul className="divide-y divide-line">

@@ -162,7 +162,7 @@ export default function AdminPromoKodoviPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Promo kodovi</h1>
           <p className="text-muted">Popusti koje kupac upisuje na naplati.</p>
@@ -180,9 +180,9 @@ export default function AdminPromoKodoviPage() {
       {kodovi.isLoading ? (
         <LoadingBlock />
       ) : kodovi.isError ? (
-        <p className="rounded-card bg-white p-6 text-red-600 shadow-card">Promo kodovi se nisu učitali.</p>
+        <p className="rounded-card bg-white p-4 sm:p-6 text-red-600 shadow-card">Promo kodovi se nisu učitali.</p>
       ) : !lista.length ? (
-        <p className="rounded-card bg-white p-6 text-muted shadow-card">Još nema promo kodova.</p>
+        <p className="rounded-card bg-white p-4 sm:p-6 text-muted shadow-card">Još nema promo kodova.</p>
       ) : (
         <>
           <div className="hidden overflow-hidden rounded-card bg-white shadow-card md:block">

@@ -183,7 +183,7 @@ export function ProductForm({
 
   return (
     <AdminLadica naslov={product ? "Uredi proizvod" : "Novi proizvod"} onClose={onClose}>
-      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <Field label="Naziv" required error={errors.name?.[0]}>
           <Input
             value={form.name}
@@ -191,7 +191,7 @@ export function ProductForm({
           />
         </Field>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label="Cijena (KM)" required error={errors.price?.[0]}>
             <Input
               type="number"
@@ -334,7 +334,7 @@ export function ProductForm({
           </div>
         </Field>
 
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
           <label className="flex items-center gap-2 text-sm font-medium">
             <input
               type="checkbox"

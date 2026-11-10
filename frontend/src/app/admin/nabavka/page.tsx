@@ -106,7 +106,7 @@ function Nabavka() {
             />
           ) : (
             <>
-              <div className="grid gap-4 sm:grid-cols-3 print:hidden">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 print:hidden">
                 <StatCard label="Artikala" value={redovi.length} icon={<ClipboardList className="h-4 w-4" />} accent="brand" />
                 <StatCard
                   label="Ukupno nabavno"

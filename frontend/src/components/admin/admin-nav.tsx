@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  Menu,
   MapPinned,
   Package,
   PanelLeftClose,
@@ -42,6 +43,7 @@ import {
   UserRound,
   Users,
   Warehouse,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -294,11 +296,64 @@ function inicijali(email?: string | null): string {
  * ostavljao bijelo). Razmaknica iste širine drži sadržaj desno od njega. Može se sklopiti na
  * same ikone — pamti se po pregledaču.
  */
-export function AdminSidebar() {
+/**
+ * Stavke menija po grupama — isti sadržaj u bočnom meniju (desktop) i u ladici na telefonu.
+ */
+function StavkeMenija({ sklopljen = false, className }: { sklopljen?: boolean; className?: string }) {
   const isActive = useActive();
-  const { user, logout } = useAuth();
   const counts = useBadgeCounts();
   const { zatvorene, prebaci } = useZatvoreneGrupe();
+
+  return (
+    <nav
+      aria-label="Admin meni"
+      className={cn(
+        "space-y-4 overflow-y-auto overscroll-contain [scrollbar-color:rgba(255,255,255,0.15)_transparent] [scrollbar-width:thin]",
+        className,
+      )}
+    >
+      <StavkaMenija item={PREGLED} aktivna={isActive(PREGLED.href)} counts={counts} sklopljen={sklopljen} />
+      <StavkaMenija item={POSLOVANJE} aktivna={isActive(POSLOVANJE.href)} counts={counts} sklopljen={sklopljen} />
+      <StavkaMenija item={TROSKOVI} aktivna={isActive(TROSKOVI.href)} counts={counts} sklopljen={sklopljen} />
+      {GRUPE.map((g) => {
+        const sadrziAktivnu = g.stavke.some((i) => isActive(i.href));
+        // Sklopljen meni pokazuje sve ikone — grupe se tada ne zatvaraju.
+        const otvorena = sklopljen || sadrziAktivnu || !zatvorene.includes(g.naziv);
+        const zbir = g.stavke.reduce((n, i) => n + (i.badge ? counts[i.badge] : 0), 0);
+        return (
+          <div key={g.naziv}>
+            {sklopljen ? (
+              <div aria-hidden className="mx-3 mb-2 border-t border-white/10" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => !sadrziAktivnu && prebaci(g.naziv)}
+                aria-expanded={otvorena}
+                className="mb-1 flex w-full items-center gap-2 rounded-md px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/35 transition hover:text-white/70"
+              >
+                {g.naziv}
+                {!otvorena && zbir > 0 && <PendingBadge count={zbir} label={`${zbir} u grupi ${g.naziv}`} />}
+                <ChevronDown
+                  className={cn("ml-auto h-3.5 w-3.5 transition", !otvorena && "-rotate-90", sadrziAktivnu && "opacity-0")}
+                />
+              </button>
+            )}
+            {otvorena && (
+              <div className="space-y-0.5">
+                {g.stavke.map((item) => (
+                  <StavkaMenija key={item.href} item={item} aktivna={isActive(item.href)} counts={counts} sklopljen={sklopljen} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function AdminSidebar() {
+  const { user, logout } = useAuth();
   const { sklopljen, prebaci: prebaciSklopljen } = useSklopljen();
   const sirina = sklopljen ? "w-[4.5rem]" : "w-64";
 
@@ -370,49 +425,10 @@ export function AdminSidebar() {
           </button>
         </div>
 
-        <nav
-          className={cn(
-            "mt-3 flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4 [scrollbar-color:rgba(255,255,255,0.15)_transparent] [scrollbar-width:thin]",
-            sklopljen ? "px-2" : "px-3",
-          )}
-        >
-          <StavkaMenija item={PREGLED} aktivna={isActive(PREGLED.href)} counts={counts} sklopljen={sklopljen} />
-          <StavkaMenija item={POSLOVANJE} aktivna={isActive(POSLOVANJE.href)} counts={counts} sklopljen={sklopljen} />
-          <StavkaMenija item={TROSKOVI} aktivna={isActive(TROSKOVI.href)} counts={counts} sklopljen={sklopljen} />
-          {GRUPE.map((g) => {
-            const sadrziAktivnu = g.stavke.some((i) => isActive(i.href));
-            // Sklopljen meni pokazuje sve ikone — grupe se tada ne zatvaraju.
-            const otvorena = sklopljen || sadrziAktivnu || !zatvorene.includes(g.naziv);
-            const zbir = g.stavke.reduce((n, i) => n + (i.badge ? counts[i.badge] : 0), 0);
-            return (
-              <div key={g.naziv}>
-                {sklopljen ? (
-                  <div aria-hidden className="mx-3 mb-2 border-t border-white/10" />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => !sadrziAktivnu && prebaci(g.naziv)}
-                    aria-expanded={otvorena}
-                    className="mb-1 flex w-full items-center gap-2 rounded-md px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/35 transition hover:text-white/70"
-                  >
-                    {g.naziv}
-                    {!otvorena && zbir > 0 && <PendingBadge count={zbir} label={`${zbir} u grupi ${g.naziv}`} />}
-                    <ChevronDown
-                      className={cn("ml-auto h-3.5 w-3.5 transition", !otvorena && "-rotate-90", sadrziAktivnu && "opacity-0")}
-                    />
-                  </button>
-                )}
-                {otvorena && (
-                  <div className="space-y-0.5">
-                    {g.stavke.map((item) => (
-                      <StavkaMenija key={item.href} item={item} aktivna={isActive(item.href)} counts={counts} sklopljen={sklopljen} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
+        <StavkeMenija
+          sklopljen={sklopljen}
+          className={cn("mt-3 flex-1 pb-4", sklopljen ? "px-2" : "px-3")}
+        />
 
         <div className={cn("shrink-0 border-t border-white/10", sklopljen ? "space-y-1 p-2" : "p-3")}>
           {/*
@@ -453,69 +469,130 @@ export function AdminSidebar() {
   );
 }
 
+/**
+ * Traka na telefonu (ispod `lg`). Ranije je pod njom bio horizontalni skrol sa svih 30 stavki
+ * — na telefonu se tražena stranica teško nalazila, a grupe se nisu vidjele. Sada hamburger
+ * otvara ladicu sa istim grupisanim menijem kao na desktopu; u traci stoji naziv trenutne
+ * stranice. Ladica se zatvara na izbor stavke (promjena putanje), Escape i klik pored nje.
+ */
 export function AdminMobileBar() {
   const isActive = useActive();
-  const { logout } = useAuth();
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
   const counts = useBadgeCounts();
+  const [otvoren, setOtvoren] = useState(false);
+  const trenutna = ITEMS.find((i) => isActive(i.href));
+  const ukupno = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  // Izbor stavke mijenja putanju — tada se ladica zatvara.
+  useEffect(() => {
+    setOtvoren(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!otvoren) return;
+    function naTaster(e: KeyboardEvent) {
+      if (e.key === "Escape") setOtvoren(false);
+    }
+    document.addEventListener("keydown", naTaster);
+    // Stranica ispod ladice ne skroluje dok je ladica otvorena.
+    const prije = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", naTaster);
+      document.body.style.overflow = prije;
+    };
+  }, [otvoren]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden print:hidden">
-      <div className="flex h-14 items-center justify-between px-4">
-        <span className="font-display font-bold">
-          E piljara{" "}
-          <span className="text-xs font-medium text-white/50">admin</span>
-        </span>
-        {/*
-          Na telefonu izlaza u shop nije ni bilo — sidebar sa tim linkom je skriven
-          ispod `lg`, pa se iz panela moglo izaći samo ručnim kucanjem adrese.
-          U traci nema mjesta za natpis, zato ikona sa aria-label.
-        */}
-        <div className="flex items-center gap-1">
+    <>
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-ink text-white lg:hidden print:hidden">
+        <div className="flex h-14 items-center gap-2 px-2">
+          <button
+            type="button"
+            onClick={() => setOtvoren(true)}
+            aria-label="Otvori meni"
+            aria-expanded={otvoren}
+            className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white"
+          >
+            <Menu className="h-5 w-5" />
+            {ukupno > 0 && <span aria-hidden className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-ink" />}
+          </button>
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {trenutna && <trenutna.icon className="h-4 w-4 shrink-0 text-brand-300" />}
+            <span className="truncate font-semibold">{trenutna?.label ?? "Admin"}</span>
+          </div>
+          {/*
+            Izlaz u shop i odjava su i u ladici; u traci ostaje pretraga, jer je najbrži put do
+            bilo koje stranice.
+          */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(OTVORI_PALETU))}
             aria-label="Traži"
-            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
           >
             <Search className="h-4 w-4" />
           </button>
-          <Link
-            href="/"
-            aria-label="Nazad u shop"
-            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
-          >
-            <Store className="h-4 w-4" />
-          </Link>
-          <button
-            onClick={logout}
-            aria-label="Odjava"
-            className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
         </div>
-      </div>
-      <nav className="no-scrollbar flex gap-1 overflow-x-auto px-2 pb-2">
-        {ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium",
-              isActive(item.href) ? "bg-brand-600" : "text-white/70",
-            )}
+      </header>
+
+      {otvoren && (
+        <div className="fixed inset-0 z-50 lg:hidden print:hidden">
+          <button
+            type="button"
+            aria-label="Zatvori meni"
+            tabIndex={-1}
+            onClick={() => setOtvoren(false)}
+            className="absolute inset-0 bg-black/50"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Admin meni"
+            className="absolute inset-y-0 left-0 flex w-[min(18rem,85vw)] flex-col bg-gradient-to-b from-ink to-[#1f2a20] text-white shadow-xl"
           >
-            <item.icon className="h-4 w-4" />
-            {item.label}
-            {item.badge && (
-              <PendingBadge
-                count={counts[item.badge]}
-                label={badgeLabel(item.badge, counts[item.badge])}
-              />
-            )}
-          </Link>
-        ))}
-      </nav>
-    </header>
+            <div className="flex h-14 shrink-0 items-center gap-2 px-4">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand-500 shadow-inner">
+                <Sprout className="h-4 w-4" />
+              </span>
+              <span className="font-display font-extrabold">E piljara</span>
+              <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold">admin</span>
+              <button
+                type="button"
+                onClick={() => setOtvoren(false)}
+                aria-label="Zatvori meni"
+                className="ml-auto grid h-9 w-9 place-items-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <StavkeMenija className="mt-1 flex-1 px-3 pb-4" />
+            <div className="shrink-0 border-t border-white/10 p-3">
+              <Link
+                href="/"
+                className="flex items-center justify-center gap-2 rounded-full border border-white/25 px-3 py-2.5 text-sm font-medium text-white transition hover:border-white/50 hover:bg-white/10"
+              >
+                <Store className="h-4 w-4" /> Nazad u shop
+              </Link>
+              <div className="mt-3 flex items-center gap-2.5 px-1">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-600/80 text-[11px] font-bold">
+                  {inicijali(user?.email)}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs text-white/55">{user?.email}</span>
+                <button
+                  onClick={logout}
+                  aria-label="Odjava"
+                  title="Odjava"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/55 transition hover:bg-white/10 hover:text-white"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

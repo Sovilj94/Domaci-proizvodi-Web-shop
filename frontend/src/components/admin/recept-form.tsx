@@ -155,7 +155,7 @@ export function ReceptForm({
 
   return (
     <AdminLadica naslov={recept ? "Uredi recept" : "Novi recept"} onClose={onClose} sirina="max-w-xl">
-      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
+      <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <Field label="Naslov" required error={errors["input.naslov"]?.[0]}>
           <Input
             value={form.naslov}
@@ -181,7 +181,7 @@ export function ReceptForm({
           error={errors["input.slikaUrl"]?.[0]}
         />
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label="Vrijeme (min)" required error={errors["input.vrijemeMinuta"]?.[0]}>
             <Input
               type="number"

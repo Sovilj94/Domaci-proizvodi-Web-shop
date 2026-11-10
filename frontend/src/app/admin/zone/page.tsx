@@ -33,7 +33,7 @@ export default function AdminZonePage() {
       </div>
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-lg font-bold text-ink">Zone</h2>
           <Button size="sm" onClick={() => setZona("nova")}>
             <Plus className="h-4 w-4" /> Nova zona
@@ -63,7 +63,7 @@ export default function AdminZonePage() {
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-lg font-bold text-ink">Termini isporuke</h2>
           <Button size="sm" onClick={() => setTermin("novi")}>
             <Plus className="h-4 w-4" /> Novi termin
@@ -151,7 +151,7 @@ function ZonaForma({ zona, onClose }: { zona: DeliveryZone | null; onClose: () =
           setGreske({});
           m.mutate();
         }}
-        className="flex-1 space-y-4 overflow-y-auto p-6"
+        className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6"
       >
         <Field label="Naziv" required error={greske["input.name"]?.[0]}>
           <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={80} />
@@ -219,7 +219,7 @@ function TerminForma({ termin, onClose }: { termin: DeliverySlot | null; onClose
           setGreske({});
           m.mutate();
         }}
-        className="flex-1 space-y-4 overflow-y-auto p-6"
+        className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6"
       >
         <p className="rounded-lg bg-honey-100 px-3 py-2 text-sm text-honey-700">
           Termin sa najranijim danom u sedmici određuje rok naručivanja za sve. Promjena dana, sata ili roka pomjera rok
