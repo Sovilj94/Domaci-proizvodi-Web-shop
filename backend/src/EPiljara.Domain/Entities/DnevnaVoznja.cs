@@ -32,4 +32,12 @@ public class DnevnaVoznja : Entity
     public DateTime? PlacenoUneseno { get; set; }
     /// <summary>"vozac" ili "admin".</summary>
     public string? PlacenoUnio { get; set; }
+
+    /// <summary>Stanje sata (km) kad vozač krene iz magacina.</summary>
+    public int? KmPocetak { get; set; }
+    /// <summary>Stanje sata (km) kad se vrati u magacin. Pređeni km dana = KmKraj − KmPocetak; tada
+    /// zamjenjuju procijenjenu turu u procjeni goriva.</summary>
+    public int? KmKraj { get; set; }
+
+    public int? PredjenoKm => KmPocetak is int p && KmKraj is int k && k >= p ? k - p : null;
 }

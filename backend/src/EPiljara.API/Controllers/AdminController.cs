@@ -108,6 +108,10 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> VoznjeMjeseca([FromQuery] int godina, [FromQuery] int mjesec) =>
         EnvelopeList(await Mediator.Send(new GetVoznjeMjesecaQuery(godina, mjesec)));
 
+    [HttpPut("admin/voznje/{id:guid}/kilometraza")]
+    public async Task<IActionResult> KilometrazaVoznje(Guid id, [FromBody] KilometrazaUnos body) =>
+        Envelope(await Mediator.Send(new SacuvajKilometrazuVoznjeCommand(id, body.Pocetak, body.Kraj)));
+
     [HttpPut("admin/voznje/{id:guid}/gorivo")]
     public async Task<IActionResult> GorivoVoznje(Guid id, [FromBody] GorivoUnos body) =>
         Envelope(await Mediator.Send(new SacuvajGorivoVoznjeCommand(id, body.Iznos, body.Litara, body.Napomena)));

@@ -721,6 +721,11 @@ export interface Voznja {
   placenoUneseno?: string | null;
   odstupanjeProcenat?: number | null;
   bitnoOdstupanje: boolean;
+  /** Stanje sata na polasku i povratku u magacin (unosi vozač). */
+  kmPocetak?: number | null;
+  kmKraj?: number | null;
+  /** Stvarno pređeni km (kraj − početak); tada procjena goriva računa iz njih. */
+  predjenoKm?: number | null;
 }
 
 export interface GorivoUnos {

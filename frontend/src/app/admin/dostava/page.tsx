@@ -414,6 +414,15 @@ function VoznjaKartica({ voznja, ucitava }: { voznja?: Voznja; ucitava: boolean 
         <span className="text-muted"> · sa povratkom u magacin</span>
       </span>
       <span className="tabular-nums text-ink">
+        Sat:{" "}
+        {voznja.kmPocetak == null
+          ? <span className="text-muted">vozač još nije unio polazak</span>
+          : <>
+              {voznja.kmPocetak.toLocaleString("sr-Latn")} → {voznja.kmKraj == null ? "…" : voznja.kmKraj.toLocaleString("sr-Latn")} km
+              {voznja.predjenoKm != null && <span className="font-semibold"> · pređeno {voznja.predjenoKm.toLocaleString("sr-Latn")} km</span>}
+            </>}
+      </span>
+      <span className="tabular-nums text-ink">
         Gorivo ≈ {voznja.procjenaGoriva == null ? "—" : formatPrice(voznja.procjenaGoriva)}
         {voznja.procjenaLitara != null && voznja.cijenaPoLitru != null && (
           <span className="text-muted">

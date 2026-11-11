@@ -643,6 +643,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.ProcjenaIzvor).HasMaxLength(16);
             e.Property(x => x.ProcjenaPotpis).HasMaxLength(64);
             e.Property(x => x.PlacenoGorivo).HasPrecision(10, 2);
+            e.Ignore(x => x.PredjenoKm);
             e.Property(x => x.Litara).HasPrecision(8, 2);
             e.Property(x => x.Napomena).HasMaxLength(300);
             e.Property(x => x.PlacenoUnio).HasMaxLength(10);

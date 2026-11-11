@@ -399,6 +399,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DriverId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("KmKraj")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("KmPocetak")
+                        .HasColumnType("integer");
+
                     b.Property<decimal?>("Litara")
                         .HasPrecision(8, 2)
                         .HasColumnType("numeric(8,2)");
