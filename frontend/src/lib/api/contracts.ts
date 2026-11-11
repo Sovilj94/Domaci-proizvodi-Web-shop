@@ -31,7 +31,8 @@ export interface CreateOrderRequest {
     email: string;
     phone: string;
   };
-  deliveryZoneId: string;
+  /** Server ga ignoriše — naselje određuje iz tačke. */
+  deliveryZoneId?: string;
   deliverySlotId: string;
   deliveryAddress: string;
   note?: string;
@@ -383,7 +384,8 @@ export interface AdminKorpicaNarudzbe {
  */
 export interface PretplataInput {
   productId: string;
-  deliveryZoneId: string;
+  /** Server ga ignoriše — naselje određuje iz tačke. */
+  deliveryZoneId?: string;
   deliverySlotId: string;
   deliveryAddress: string;
   latitude?: number;

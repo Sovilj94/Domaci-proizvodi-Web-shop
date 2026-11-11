@@ -196,21 +196,19 @@ function AdresaKartica({
       )}
 
       {/*
-        `deliveryZoneActive` je `a.DeliveryZone?.IsActive ?? false` (MappingExtensions.cs:203),
-        pa je `false` i kad zone uopšte NEMA. Zona je u formi opciona, tako da bi adresa
-        sačuvana bez zone inače odmah dobila crveno „zona je ugašena" — što nije istina.
-        Dva su to različita stanja i čitaju se različito.
+        Naselje određuje sistem iz tačke adrese. Stara adresa bez tačke nema naselje, a
+        `deliveryZoneActive` je `false` i tada — pa se ta dva stanja čitaju odvojeno.
       */}
       {!adresa.deliveryZoneId ? (
         <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Bez zone dostave — izaberi zonu da checkout prihvati ovu adresu.
+          Adresa nema naselje — uredi je i potvrdi lokaciju na mapi.
         </p>
       ) : (
         !adresa.deliveryZoneActive && (
           <p className="flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Zona dostave je ugašena — checkout će odbiti ovu adresu dok je ne promijeniš.
+            Na ovu adresu trenutno ne dostavljamo — checkout će je odbiti dok je ne promijeniš.
           </p>
         )
       )}

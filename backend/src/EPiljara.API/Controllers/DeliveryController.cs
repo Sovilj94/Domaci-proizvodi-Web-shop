@@ -15,6 +15,10 @@ public class DeliveryController : ApiControllerBase
     public async Task<IActionResult> NaseljeZaTacku([FromQuery] double lat, [FromQuery] double lon) =>
         Envelope(await Mediator.Send(new NaseljeZaTackuQuery(lat, lon)));
 
+    /// <summary>Cijena dostave (uz korpicu / bez nje) i minimum narudžbe.</summary>
+    [HttpGet("delivery/pravila")]
+    public async Task<IActionResult> Pravila() => Envelope(await Mediator.Send(new GetDostavaPravilaQuery()));
+
     [HttpGet("delivery/slots")]
     public async Task<IActionResult> GetSlots() =>
         EnvelopeList(await Mediator.Send(new GetDeliverySlotsQuery()));

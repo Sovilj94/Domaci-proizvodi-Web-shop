@@ -7,10 +7,9 @@ import { MailCheck } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { SocialLogin } from "@/components/auth/social-login";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useDeliveryZones } from "@/lib/api/hooks";
 import { authApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 
@@ -26,7 +25,6 @@ export default function RegisterPage() {
 
 function RegisterForm() {
   const { register } = useAuth();
-  const zones = useDeliveryZones();
   const searchParams = useSearchParams();
 
   // Only an internal path is a safe redirect target — an open `next` is an invitation
@@ -46,7 +44,6 @@ function RegisterForm() {
     phone: "",
     password: "",
     address: "",
-    deliveryZoneId: "",
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +66,6 @@ function RegisterForm() {
         phone: form.phone,
         password: form.password,
         address: form.address || undefined,
-        deliveryZoneId: form.deliveryZoneId || undefined,
         preporukaKod: preporuka ?? undefined,
       });
       setSentTo(res.email);
@@ -170,16 +166,6 @@ function RegisterForm() {
           </Field>
           <Field label="Adresa (opcionalno)">
             <Input value={form.address} onChange={set("address")} />
-          </Field>
-          <Field label="Zona dostave (opcionalno)">
-            <Select value={form.deliveryZoneId} onChange={set("deliveryZoneId")}>
-              <option value="">Odaberi kasnije…</option>
-              {zones.data?.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.name}
-                </option>
-              ))}
-            </Select>
           </Field>
 
           {error && (

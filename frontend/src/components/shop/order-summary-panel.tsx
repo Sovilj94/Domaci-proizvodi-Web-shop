@@ -19,7 +19,8 @@ export function OrderSummaryPanel({
 }: {
   items: CartItem[];
   subtotal: number;
-  deliveryFee: number;
+  /** null dok se pravila dostave učitavaju. */
+  deliveryFee: number | null;
   total: number;
   zoneName?: string;
   popust?: number;
@@ -50,8 +51,13 @@ export function OrderSummaryPanel({
         </div>
         <div className="flex justify-between">
           <dt className="text-muted">Dostava{zoneName ? ` (${zoneName})` : ""}</dt>
-          <dd className="font-medium">{formatPrice(deliveryFee)}</dd>
+          <dd className="font-medium">
+            {deliveryFee === null ? "—" : deliveryFee === 0 ? "besplatno" : formatPrice(deliveryFee)}
+          </dd>
         </div>
+        {deliveryFee !== null && deliveryFee > 0 && (
+          <p className="text-xs text-muted">Uz korpicu je dostava besplatna.</p>
+        )}
         {popust > 0 && (
           <div className="flex justify-between text-brand-700">
             <dt>

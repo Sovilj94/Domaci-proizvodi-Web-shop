@@ -7,10 +7,10 @@ import { AddressPicker } from "@/components/shop/address-picker";
 import { Button } from "@/components/ui/button";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
-import { useDeliverySlots, useDeliveryZones, useKorpiceList, queryKeys } from "@/lib/api/hooks";
+import { useDeliverySlots, useKorpiceList, useNaseljeZaTacku, queryKeys } from "@/lib/api/hooks";
+import { NaseljeOznaka } from "@/components/shop/naselje-oznaka";
 import { accountApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import { pogodiZonu } from "@/lib/zone";
 import { formatPrice } from "@/lib/utils";
 import type { PretplataInput } from "@/lib/api/contracts";
 import type { PlanPretplate, Pretplata } from "@/types/domain";
@@ -19,7 +19,6 @@ import { cijenaPlana, isporuka, obavezaPlana, PLAN_TEKST } from "@/lib/planovi";
 function pocetnoStanje(pretplata?: Pretplata | null, korpicaId?: string) {
   return {
     productId: pretplata?.productId ?? korpicaId ?? "",
-    deliveryZoneId: pretplata?.deliveryZoneId ?? "",
     deliverySlotId: pretplata?.deliverySlotId ?? "",
     deliveryAddress: pretplata?.deliveryAddress ?? "",
     latitude: pretplata?.latitude,
@@ -76,7 +75,6 @@ function Forma({
   const izabraniPlan: PlanPretplate = pretplata?.plan ?? plan ?? "Nedjeljna";
   const qc = useQueryClient();
   const { show } = useToast();
-  const zones = useDeliveryZones();
   const slots = useDeliverySlots();
   const korpice = useKorpiceList();
   const [form, setForm] = useState(() => pocetnoStanje(pretplata, korpicaId));
@@ -89,13 +87,9 @@ function Forma({
     setForm((f) => ({ ...f, latitude: coords?.lat, longitude: coords?.lon }));
   }, []);
 
-  const predloziZonu = useCallback(
-    (localities: string[]) => {
-      const match = pogodiZonu(localities, zones.data);
-      if (match) setForm((f) => (f.deliveryZoneId ? f : { ...f, deliveryZoneId: match.id }));
-    },
-    [zones.data],
-  );
+  // Naselje određuje sistem iz tačke; server isto provjerava pri čuvanju.
+  const naselje = useNaseljeZaTacku(form.latitude, form.longitude);
+  const imaTacku = form.latitude !== undefined && form.longitude !== undefined;
 
   const mutation = useMutation({
     mutationFn: (body: PretplataInput) =>
@@ -123,7 +117,6 @@ function Forma({
     setError(null);
     mutation.mutate({
       productId: form.productId,
-      deliveryZoneId: form.deliveryZoneId,
       deliverySlotId: form.deliverySlotId,
       deliveryAddress: form.deliveryAddress,
       latitude: form.latitude,
@@ -187,7 +180,6 @@ function Forma({
               onChange={(value) => setForm((f) => ({ ...f, deliveryAddress: value }))}
               onCoordinates={postaviTacku}
               onVanPodrucja={setVanPodrucja}
-              onLocalities={predloziZonu}
               initialCoordinates={
                 pretplata?.latitude != null && pretplata?.longitude != null
                   ? { lat: pretplata.latitude, lon: pretplata.longitude }
@@ -196,19 +188,7 @@ function Forma({
             />
           </Field>
 
-          <Field label="Zona dostave" required error={errors.deliveryZoneId?.[0]}>
-            <Select
-              value={form.deliveryZoneId}
-              onChange={(e) => setForm({ ...form, deliveryZoneId: e.target.value })}
-            >
-              <option value="">Odaberite…</option>
-              {zones.data?.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <NaseljeOznaka naselje={naselje} imaTacku={imaTacku} />
 
           <Field label="Termin dostave" required error={errors.deliverySlotId?.[0]}>
             <Select
@@ -244,7 +224,7 @@ function Forma({
           <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
             Otkaži
           </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja}>
+          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja || !naselje.data}>
             {mutation.isPending ? "Spremam…" : "Spremi"}
           </Button>
         </div>

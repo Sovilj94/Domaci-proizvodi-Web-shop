@@ -5,6 +5,8 @@ import type {
   Category,
   DeliveryRoute,
   DeliverySlot,
+  DostavaPravila,
+  NaseljeZaTacku,
   DeliveryZone,
   GeocodeHit,
   Korpica,
@@ -358,6 +360,11 @@ export const deliveryApi = {
     apiFetch<DeliveryZone[]>("/delivery/zones", { auth: false }).then((r) => r.data),
   slots: () =>
     apiFetch<DeliverySlot[]>("/delivery/slots", { auth: false }).then((r) => r.data),
+  /** Van naselja u kojima dostavljamo baca ApiRequestError sa kodom van_podrucja_dostave. */
+  naselje: (lat: number, lon: number) =>
+    apiFetch<NaseljeZaTacku>(`/delivery/naselje?lat=${lat}&lon=${lon}`, { auth: false }).then((r) => r.data),
+  pravila: () =>
+    apiFetch<DostavaPravila>("/delivery/pravila", { auth: false }).then((r) => r.data),
 };
 
 /* ---------- Orders (customer) ---------- */

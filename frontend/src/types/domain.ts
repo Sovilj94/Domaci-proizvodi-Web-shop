@@ -108,6 +108,19 @@ export interface DeliveryZone {
   isActive: boolean;
 }
 
+/** Naselje u koje pada tačka adrese (GET /delivery/naselje). */
+export interface NaseljeZaTacku {
+  id: string;
+  name: string;
+}
+
+/** Pravila dostave za cijeli grad (GET /delivery/pravila). */
+export interface DostavaPravila {
+  dostavaSaKorpicom: number;
+  dostavaBezKorpice: number;
+  minimalnaNarudzba: number;
+}
+
 export interface DeliverySlot {
   id: string;
   dayOfWeek: number; // 0 = Sunday .. 6 = Saturday
