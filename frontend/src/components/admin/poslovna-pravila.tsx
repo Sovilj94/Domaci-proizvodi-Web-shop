@@ -49,6 +49,14 @@ const GRUPE: { naslov: string; polja: { k: Kljuc; naziv: string; procenat?: bool
       { k: "pragPriKraju", naziv: "„Još samo X na stanju\" od", korak: "0.01" },
     ],
   },
+  {
+    naslov: "Dostava",
+    polja: [
+      { k: "dostavaSaKorpicom", naziv: "Dostava uz korpicu (KM)", korak: "0.5" },
+      { k: "dostavaBezKorpice", naziv: "Dostava bez korpice (KM)", korak: "0.5" },
+      { k: "minimalnaNarudzba", naziv: "Minimalna narudžba (KM)", korak: "0.5" },
+    ],
+  },
 ];
 
 const DANI = ["nedjelja", "ponedjeljak", "utorak", "srijeda", "četvrtak", "petak", "subota"];

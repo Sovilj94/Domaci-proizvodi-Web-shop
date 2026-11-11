@@ -207,6 +207,42 @@ export interface DeliveryRoute {
   /** Rezultat optimizacije; null kad nije računata — 0 bi lagalo da je ruta duga 0 km. */
   duzinaMetara?: number | null;
   trajanjeSekundi?: number | null;
+  /** Planirani redoslijed u danu vozača (1 = prva); null za stare rute. */
+  redniBroj?: number | null;
+  /** "osrm" ili "vazdusno" (dužina je tada vazdušna procjena). */
+  izvorRedoslijeda?: string | null;
+}
+
+/** Naselje u adminu (GET /admin/naselja). Granica je GeoJSON (lon, lat). */
+export interface NaseljeAdmin {
+  id: string;
+  name: string;
+  isActive: boolean;
+  granica?: string | null;
+  centarLat?: number | null;
+  centarLon?: number | null;
+  izvorGranice: "procjena" | "potvrdjeno";
+  otvorenihNarudzbi: number;
+  /** Otvorene narudžbe i adrese ovog naselja čija tačka više nije u njegovoj granici. */
+  vanGranica: number;
+  imaNarudzbi: boolean;
+}
+
+export interface UticajNaselja {
+  narudzbe: number;
+  adrese: number;
+  pretplate: number;
+}
+
+export interface SacuvajNaseljeRezultat {
+  sacuvano: boolean;
+  uticaj?: UticajNaselja | null;
+  naselje?: NaseljeAdmin | null;
+}
+
+export interface PodjelaStavka {
+  naziv: string;
+  broj: number;
 }
 
 export interface Customer {
@@ -857,6 +893,12 @@ export interface Podesavanja {
   pragPriKraju: number;
   /** Grad dostave kako ga piše geokoder („Banja Luka"); prazno = bez ograničenja. */
   gradDostave: string;
+  /** Dostava za narudžbu sa bar jednom korpicom (KM). */
+  dostavaSaKorpicom: number;
+  /** Dostava za narudžbu bez korpice (KM). */
+  dostavaBezKorpice: number;
+  /** Najmanji iznos narudžbe (KM); 0 = bez minimuma. */
+  minimalnaNarudzba: number;
 }
 
 /** Mjesta na sajtu koja se pune iz baze (BlokSadrzaja) — isti ključevi kao SekcijeSadrzaja na backendu. */

@@ -198,14 +198,21 @@ export default function AdminRoutesPage() {
           {routes.isLoading ? (
             <LoadingBlock />
           ) : routes.data && routes.data.length > 0 ? (
-            routes.data.map((r) => (
-              <RouteCard
-                key={r.id}
-                route={r}
-                optimizing={optimize.isPending}
-                onOptimize={() => optimize.mutate(r.id)}
-              />
-            ))
+            // Po vozaču, pa po planiranom redoslijedu dana (redniBroj).
+            [...routes.data]
+              .sort(
+                (a, b) =>
+                  (a.driverName ?? "").localeCompare(b.driverName ?? "") ||
+                  (a.redniBroj ?? Infinity) - (b.redniBroj ?? Infinity),
+              )
+              .map((r) => (
+                <RouteCard
+                  key={r.id}
+                  route={r}
+                  optimizing={optimize.isPending}
+                  onOptimize={() => optimize.mutate(r.id)}
+                />
+              ))
           ) : (
             <EmptyState
               icon={<Route className="h-7 w-7" />}
