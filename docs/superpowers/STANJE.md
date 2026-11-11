@@ -946,3 +946,22 @@ nijedna ne izlazi van ekrana. Popravljeno:
 - **Utisci** na telefonu: tekst iznad fotografije, aktivna fotografija je cijela (prije je mala ispred nje gurala aktivnu van prozora).
 - **Plaćanje:** donja traka (Korpa / iznos / Nastavi) se na telefonu lijepi za dno ekrana; iznos se ne lomi.
 - **Izmjena korpice:** nazivi artikala u dva reda umjesto odsječenih.
+
+## Vozačka aplikacija — provjera kompatibilnosti (2026-11-11, `EPiljaraVozac` main `4cec324`)
+
+Aplikacija nije mijenjana od 04.11., a backend jeste (fiskalizacija, mejlovi, korpice, mobilni prikaz).
+Provjereno uživo protiv `main` (`d666afb`), lokalno i na Renderu: konzolna proba koja koristi pravi
+`ApiClient`/`DriverService`/`Dtos.cs` aplikacije gađa svih 9 vozačevih endpointa. **Sve kompatibilno**;
+backend samo izostavlja `null` polja, što aplikacija podnosi. Isporuka iz aplikacije sada pokreće i
+fiskalni račun (`NaCekanju`), poene i mejl kupcu — provjereno na `EP-2610-0195`.
+
+Popravljeno u aplikaciji:
+- **Buđenje Rendera:** `HttpClient.Timeout` je 20 s, Render free se budi ~33 s, pa je prva prijava u danu
+  padala sa „Nema veze sa serverom". `ApiClient` sada čitanja i prijavu ponavlja do 3 puta poslije isteka;
+  potvrda isporuke, gorivo i preračunavanje se ne ponavljaju (mijenjaju stanje). Ekran prijave to objašnjava.
+- **Release** gađa `https://epiljara-api.onrender.com` umjesto `api.example.invalid`.
+- „Haso Begić" u testu → „Dragan Petrović" (bivši ZA-URADITI F2).
+- CLAUDE.md i README aplikacije usklađeni sa kodom (Istorija/Profil urađeni, `RouteOverviewPage` je keširani tab).
+
+Ostavljeno u dev bazi: današnja ruta (11.11.) vozaču Mladenu sa 10 narudžbi u 4 naselja; `EP-2610-0195`
+isporučena. Backup prije toga: `Desktop\epiljara-backupi\prije-testa-vozaca-2026-11-11.dump`.
