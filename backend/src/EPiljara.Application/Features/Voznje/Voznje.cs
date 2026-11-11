@@ -36,6 +36,11 @@ public record VoznjaDto
     public decimal? OdstupanjeProcenat { get; init; }
     /// <summary>|odstupanje| ≥ <see cref="VoznjeMapa.BitnoOdstupanje"/>%.</summary>
     public bool BitnoOdstupanje { get; init; }
+    /// <summary>Stanje sata na polasku i povratku u magacin (unosi vozač).</summary>
+    public int? KmPocetak { get; init; }
+    public int? KmKraj { get; init; }
+    /// <summary>Stvarno pređeni km (KmKraj − KmPocetak); null dok oba nisu unesena.</summary>
+    public int? PredjenoKm { get; init; }
 }
 
 public static class VoznjeMapa
@@ -46,8 +51,10 @@ public static class VoznjeMapa
     public static VoznjaDto UDto(DnevnaVoznja v, string vozac, IEnumerable<CijenaGoriva> cijene)
     {
         var km = v.ProcjenaMetara is double m ? Math.Round(m / 1000, 1) : (double?)null;
+        // Stvarno pređeni km (sa sata) imaju prednost nad procijenjenom turom.
+        var kmGoriva = v.PredjenoKm is int pk ? pk : km;
         var c = DnevnaVoznjaProcjena.CijenaZa(cijene, v.Datum);
-        decimal? procjena = km is double k && c is not null ? Math.Round(DnevnaVoznjaProcjena.TrosakKm(k, c), 2) : null;
+        decimal? procjena = kmGoriva is double k && c is not null ? Math.Round(DnevnaVoznjaProcjena.TrosakKm(k, c), 2) : null;
         decimal? odstupanje = procjena is > 0 && v.PlacenoGorivo is decimal p
             ? Math.Round((p - procjena.Value) / procjena.Value * 100m, 1)
             : null;
@@ -57,12 +64,13 @@ public static class VoznjeMapa
             Stanica = v.ProcjenaStanica, BezKoordinata = v.ProcjenaBezKoordinata,
             Km = km, TrajanjeMin = v.ProcjenaSekundi is double s ? (int)Math.Round(s / 60) : null, Izvor = v.ProcjenaIzvor,
             CijenaPoLitru = c?.CijenaPoLitru, PotrosnjaL100km = c?.PotrosnjaL100km,
-            ProcjenaLitara = km is double kl && c is not null ? Math.Round((decimal)kl * c.PotrosnjaL100km / 100m, 1) : null,
+            ProcjenaLitara = kmGoriva is double kl && c is not null ? Math.Round((decimal)kl * c.PotrosnjaL100km / 100m, 1) : null,
             ProcjenaGoriva = procjena,
             PlacenoGorivo = v.PlacenoGorivo, Litara = v.Litara, Napomena = v.Napomena,
             PlacenoUnio = v.PlacenoUnio, PlacenoUneseno = v.PlacenoUneseno,
             OdstupanjeProcenat = odstupanje,
             BitnoOdstupanje = odstupanje is decimal o && Math.Abs(o) >= BitnoOdstupanje,
+            KmPocetak = v.KmPocetak, KmKraj = v.KmKraj, PredjenoKm = v.PredjenoKm,
         };
     }
 
@@ -142,6 +150,8 @@ public class GetVoznjeMjesecaHandler(IAppDbContext db) : IRequestHandler<GetVozn
 /* ---------- Unos goriva sa pumpe ---------- */
 
 public record GorivoUnos(decimal? Iznos, decimal? Litara, string? Napomena);
+
+public record KilometrazaUnos(int? Pocetak, int? Kraj);
 
 internal static class GorivoPravila
 {
@@ -245,6 +255,84 @@ public class SacuvajMojeGorivoHandler(IAppDbContext db, ICurrentUser current, IR
         if (dto is { BitnoOdstupanje: true, ProcjenaGoriva: decimal procjena, PlacenoGorivo: decimal placeno, OdstupanjeProcenat: decimal odst })
             await Mejlovi.ObavjestenjaPravila.OdstupanjeGorivaAsync(db, email, vozac.Name, c.Datum, procjena, placeno, odst, dto.Napomena, ct);
         return dto;
+    }
+}
+
+/* ---------- Stanje sata (kilometraža) ---------- */
+
+internal static class KilometrazaPravila
+{
+    /// <summary>Više od ovoga u jednom danu je skoro sigurno greška u kucanju.</summary>
+    public const int MaxKmDnevno = 1000;
+    private const int MaxStanje = 2_000_000;
+
+    private static readonly System.Globalization.CultureInfo Sr = new("sr-Latn-BA");
+    private static string Km(int km) => km.ToString("#,0", Sr) + " km";
+
+    private static DomainException Greska(string poruka) => new(poruka, "kilometraza_neispravna");
+
+    /// <summary>Provjerava i upisuje oba stanja. null briše; kraj bez početka nije dozvoljen.</summary>
+    public static async Task UpisiAsync(IAppDbContext db, DnevnaVoznja v, int? pocetak, int? kraj, CancellationToken ct)
+    {
+        if (pocetak is < 0 or > MaxStanje || kraj is < 0 or > MaxStanje)
+            throw Greska("Stanje sata nije ispravno.");
+        if (kraj is not null && pocetak is null)
+            throw Greska("Prvo unesi stanje sata na polasku.");
+        if (kraj is int k && pocetak is int p)
+        {
+            if (k < p) throw Greska($"Stanje na povratku ne može biti manje od stanja na polasku ({Km(p)}).");
+            if (k - p > MaxKmDnevno) throw Greska($"Više od {Km(MaxKmDnevno)} u jednom danu — provjeri stanje sata.");
+        }
+        if (pocetak is int start)
+        {
+            // Sat ne ide unazad: polazak ne smije biti ispod posljednjeg povratka istog vozača.
+            var prethodni = await db.DnevneVoznje.AsNoTracking()
+                .Where(x => x.DriverId == v.DriverId && x.Datum < v.Datum && x.KmKraj != null)
+                .OrderByDescending(x => x.Datum)
+                .Select(x => new { x.Datum, x.KmKraj })
+                .FirstOrDefaultAsync(ct);
+            if (prethodni is { KmKraj: int pk } && start < pk)
+                throw Greska($"Stanje na polasku ne može biti manje od povratka {prethodni.Datum:d.M.} ({Km(pk)}).");
+        }
+        v.KmPocetak = pocetak;
+        v.KmKraj = kraj;
+    }
+}
+
+public record SacuvajMojuKilometrazuCommand(DateOnly Datum, int? Pocetak, int? Kraj) : IRequest<VoznjaDto>;
+
+public class SacuvajMojuKilometrazuHandler(IAppDbContext db, ICurrentUser current, IRouteOptimizer optimizer)
+    : IRequestHandler<SacuvajMojuKilometrazuCommand, VoznjaDto>
+{
+    public async Task<VoznjaDto> Handle(SacuvajMojuKilometrazuCommand c, CancellationToken ct)
+    {
+        var vozac = await db.Drivers.FirstOrDefaultAsync(d => d.UserId == current.Id, ct)
+                    ?? throw new ForbiddenException("Niste registrovani kao vozač.");
+        var danas = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (c.Datum > danas.AddDays(1))
+            throw new DomainException("Kilometraža se unosi za današnji ili raniji dan.", "datum_u_buducnosti");
+        if (c.Datum < danas.AddDays(-SacuvajMojeGorivoHandler.DanaUnazad))
+            throw new DomainException($"Kilometražu stariju od {SacuvajMojeGorivoHandler.DanaUnazad} dana ispravlja admin.", "datum_prestar");
+
+        var v = (await VoznjeMapa.OsvjeziOpsegAsync(db, optimizer, c.Datum, c.Datum, vozac.Id, ct)).FirstOrDefault()
+                ?? throw new DomainException("Taj dan nemate dostava.", "nema_voznje");
+        await KilometrazaPravila.UpisiAsync(db, v, c.Pocetak, c.Kraj, ct);
+        await db.SaveChangesAsync(ct);
+        return (await VoznjeMapa.UDtoAsync(db, [v], ct))[0];
+    }
+}
+
+public record SacuvajKilometrazuVoznjeCommand(Guid Id, int? Pocetak, int? Kraj) : IRequest<VoznjaDto>;
+
+public class SacuvajKilometrazuVoznjeHandler(IAppDbContext db) : IRequestHandler<SacuvajKilometrazuVoznjeCommand, VoznjaDto>
+{
+    public async Task<VoznjaDto> Handle(SacuvajKilometrazuVoznjeCommand c, CancellationToken ct)
+    {
+        var v = await db.DnevneVoznje.FirstOrDefaultAsync(x => x.Id == c.Id, ct)
+                ?? throw new NotFoundException("Vožnja nije pronađena.");
+        await KilometrazaPravila.UpisiAsync(db, v, c.Pocetak, c.Kraj, ct);
+        await db.SaveChangesAsync(ct);
+        return (await VoznjeMapa.UDtoAsync(db, [v], ct))[0];
     }
 }
 

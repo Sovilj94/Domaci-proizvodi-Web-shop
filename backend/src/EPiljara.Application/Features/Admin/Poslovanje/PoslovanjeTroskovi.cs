@@ -59,7 +59,10 @@ public sealed partial class PoslovanjeRacun
         foreach (var dan in dani)
         {
             voznje.TryGetValue(dan.Key, out var v);
-            var kmDana = (v?.ProcjenaMetara ?? dan.Sum(r => r.KilometrazaMetara ?? r.DuzinaMetara ?? 0)) / 1000.0;
+            // Stvarno pređeni km sa sata imaju prednost nad procjenom ture.
+            var kmDana = v?.PredjenoKm is int predjeno
+                ? predjeno
+                : (v?.ProcjenaMetara ?? dan.Sum(r => r.KilometrazaMetara ?? r.DuzinaMetara ?? 0)) / 1000.0;
             km += kmDana;
             var c = cijene.LastOrDefault(x => x.VaziOd <= dan.Key.Date);
             decimal? procjenaDana = c is null ? null : (decimal)kmDana * c.PotrosnjaL100km / 100m * c.CijenaPoLitru;

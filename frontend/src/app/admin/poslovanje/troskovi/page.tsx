@@ -235,6 +235,18 @@ function VoznjeOdjeljak({ godina, mjesec }: { godina: number; mjesec: number }) 
               desno: true,
             },
             {
+              naslov: "Pređeno (sat)",
+              vrijednost: (r) =>
+                r.predjenoKm == null ? (
+                  <span className="text-muted">—</span>
+                ) : (
+                  <span title={`Sat: ${r.kmPocetak?.toLocaleString("sr-Latn")} → ${r.kmKraj?.toLocaleString("sr-Latn")} km`}>
+                    {r.predjenoKm.toLocaleString("sr-Latn")}
+                  </span>
+                ),
+              desno: true,
+            },
+            {
               naslov: "Procjena",
               vrijednost: (r) => (r.procjenaGoriva == null ? <span className="text-muted">—</span> : formatPrice(r.procjenaGoriva)),
               desno: true,

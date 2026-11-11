@@ -1001,3 +1001,20 @@ Dizajn: `specs/2026-11-11-naselja-i-redoslijed-ruta-design.md`, plan: `plans/202
     „van granica". Prvo čuvanje granice nekog naselja sa potvrdom preračuna ih sve.
   - Grupna dodjela narudžbi koje su već kod istog vozača ne prenumeriše dan. Za to služi
     `/admin/routes`.
+
+## Stanje sata umjesto procijenjene kilometraže (2026-11-11, grana `kilometraza-sat`)
+
+- **Odluka vlasnika:** vozač ne vidi procijenjenu kilometražu ni procjenu goriva. Unosi stanje sata
+  kad krene iz magacina i kad se vrati.
+- **Backend:** `DnevnaVoznja.KmPocetak` / `KmKraj` (migracija `KilometrazaSata`). `PredjenoKm` je
+  povratak minus polazak.
+  - Kad su pređeni km poznati, zamjenjuju procjenu ture u procjeni goriva i u troškovima poslovanja.
+  - Server odbija povratak manji od polaska, više od 1000 km u danu i polazak ispod posljednjeg
+    povratka.
+  - `PUT /driver/voznja/kilometraza`, a admin ispravlja preko `PUT /admin/voznje/{id}/kilometraza`
+    (zasad samo API).
+- **Admin:** dispečer prikazuje „Sat: polazak → povratak · pređeno". Troškovi imaju kolonu
+  „Pređeno (sat)".
+- **Vozač:** pločica „Pređeno" i kartica „Polazak / Kraj dana / Izmijeni". Km više nema na karticama
+  ruta ni u detalju rute.
+- **Dev baza:** Mladen 11.11. ima probni unos 184.445 → 184.532 km.
