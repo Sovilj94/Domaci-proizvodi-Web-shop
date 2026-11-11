@@ -31,7 +31,7 @@ public class MojePretplateTests
             var s = new Scena(new TestDb());
             var db = s.Db;
 
-            var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+            var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
             var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48, Label = "Četvrtak 16–20" };
             var kat = new Category { Name = "Mješovito", Slug = "mjesovito" };
             var proiz = new Producer { Name = "Marko", Village = "Manjača" };

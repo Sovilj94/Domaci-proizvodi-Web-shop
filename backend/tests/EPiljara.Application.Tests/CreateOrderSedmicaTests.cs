@@ -15,7 +15,7 @@ public class CreateOrderSedmicaTests
     {
         var t = new TestDb();
 
-        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
         var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
         var kat = new Category { Name = "Povrće", Slug = "povrce" };
         var proizvodjac = new Producer { Name = "Marko", Village = "Manjača" };
@@ -35,7 +35,7 @@ public class CreateOrderSedmicaTests
 
     private static CreateOrderHandler Handler(TestDb t) =>
         new(t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
+            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()), TestOpcije.DostavaO());
 
     [Fact]
     public async Task Narudzba_dobija_ISO_sedmicu_isporuke()
@@ -46,7 +46,7 @@ public class CreateOrderSedmicaTests
         var cmd = new CreateOrderCommand(
             new CustomerInput("Marko", "marko@example.com", "065"),
             zonaId, slotId, "Testna 1", null,
-            [new OrderItemInput(productId, 1m)]);
+            [new OrderItemInput(productId, 1m)], TestNaselje.Lat, TestNaselje.Lon);
 
         var dto = await Handler(t).Handle(cmd, default);
 

@@ -20,7 +20,7 @@ public class CreateOrderVlasnikTests
     {
         var t = new TestDb();
 
-        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
         var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
         var kat = new Category { Name = "Povrće", Slug = "povrce" };
         var proizvodjac = new Producer { Name = "Marko", Village = "Manjača" };
@@ -40,7 +40,7 @@ public class CreateOrderVlasnikTests
 
     private static CreateOrderHandler Handler(TestDb t, Guid? prijavljen) =>
         new(t.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
-            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
+            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()), TestOpcije.DostavaO());
 
     private static CreateOrderCommand Komanda(
         Guid zonaId, Guid slotId, Guid productId,
@@ -48,7 +48,7 @@ public class CreateOrderVlasnikTests
         new(new CustomerInput("Marko", "marko@example.com", "065"),
             zonaId, slotId, "Testna 1", null,
             [new OrderItemInput(productId, 1m)],
-            CustomerId: customerId, PretplataId: pretplataId);
+            Latitude: TestNaselje.Lat, Longitude: TestNaselje.Lon, CustomerId: customerId, PretplataId: pretplataId);
 
     [Fact]
     public async Task Posao_bez_prijavljenog_korisnika_upisuje_vlasnika_iz_komande()

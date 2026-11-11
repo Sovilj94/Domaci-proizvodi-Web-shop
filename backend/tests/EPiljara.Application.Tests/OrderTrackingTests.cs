@@ -87,7 +87,7 @@ internal sealed class Scena
         // strane ključeve — bez ova dva reda upis proizvoda puca.
         var category = new Category { Name = "Med i zimnica", Slug = "med-i-zimnica" };
         var producer = new Producer { Name = "Porodica Kovačević", Village = "Han Kola" };
-        var zone = new DeliveryZone { Name = "Centar", MinOrderAmount = minimalniIznos, DeliveryFee = 3m, IsActive = true };
+        var zone = new DeliveryZone { Name = "Centar", MinOrderAmount = minimalniIznos, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
         var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", Label = "Četvrtak 16–20h" };
         t.Db.Categories.Add(category);
         t.Db.Producers.Add(producer);
@@ -109,7 +109,7 @@ internal sealed class Scena
     public Task<OrderDto> Naruci() =>
         new CreateOrderHandler(
                 _t.Db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-                Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()))
+                Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()), TestOpcije.DostavaO())
             .Handle(Komanda(), default);
 
     public CreateOrderCommand Komanda() => new(

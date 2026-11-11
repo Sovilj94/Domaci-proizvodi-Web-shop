@@ -82,7 +82,13 @@ public static class PodesavanjaMapa
 
     public static ProdavnicaOpcije Prodavnica(Domain.Entities.Podesavanja p) => new() { PragPriKraju = p.PragPriKraju };
 
-    public static Geocoding.DostavaOpcije Dostava(Domain.Entities.Podesavanja p) => new() { GradDostave = p.GradDostave };
+    public static Geocoding.DostavaOpcije Dostava(Domain.Entities.Podesavanja p) => new()
+    {
+        GradDostave = p.GradDostave,
+        DostavaSaKorpicom = p.DostavaSaKorpicom,
+        DostavaBezKorpice = p.DostavaBezKorpice,
+        MinimalnaNarudzba = p.MinimalnaNarudzba,
+    };
 
     public static PodesavanjaDto UDto(Domain.Entities.Podesavanja p) => new()
     {

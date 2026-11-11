@@ -45,7 +45,7 @@ public class PoeniPravilaTests
         OrderStatus status = OrderStatus.OutForDelivery, bool gost = false, decimal subtotal = 30m)
     {
         var t = new TestDb();
-        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
         var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
         var kupac = new User { Name = "Marko", Email = $"{Guid.NewGuid():N}@x.ba" };
         t.Db.AddRange(zona, slot, kupac);

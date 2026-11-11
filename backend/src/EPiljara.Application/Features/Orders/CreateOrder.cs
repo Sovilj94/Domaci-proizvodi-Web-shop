@@ -1,7 +1,9 @@
 using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Geocoding;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Naselja;
 using EPiljara.Application.Features.Poeni;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Features.PromoKodovi;
@@ -30,7 +32,9 @@ public record OrderItemInput(Guid ProductId, decimal Quantity);
 /// </summary>
 public record CreateOrderCommand(
     CustomerInput Customer,
-    Guid DeliveryZoneId,
+    // Server je ignoriše i naselje određuje iz tačke; služi samo kao rezerva za pretplatnu
+    // narudžbu sa starom adresom bez tačke (Pretplata.DeliveryZoneId).
+    Guid? DeliveryZoneId,
     Guid DeliverySlotId,
     string DeliveryAddress,
     string? Note,
@@ -49,7 +53,7 @@ public record CreateOrderCommand(
 /// (pretplatna cijena bez pretplate).
 /// </summary>
 public record CreateOrderRequest(
-    CustomerInput Customer, Guid DeliveryZoneId, Guid DeliverySlotId, string DeliveryAddress,
+    CustomerInput Customer, Guid? DeliveryZoneId, Guid DeliverySlotId, string DeliveryAddress,
     string? Note, IReadOnlyList<OrderItemInput> Items,
     double? Latitude = null, double? Longitude = null, string? PromoKod = null,
     bool IskoristiPoene = false)
@@ -76,7 +80,6 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
                 .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
                 .WithMessage("E-mail je predugačak.");
         });
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
         RuleFor(x => x.DeliveryAddress).MaximumLength(400).WithMessage("Adresa je predugačka.");
@@ -99,6 +102,13 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
             .WithMessage("Neispravna geografska dužina.");
         // Pola tačke nije tačka — pin bez jedne ose bi se vodio kao "ima lokaciju", a ne bi se
         // mogao iscrtati.
+        // Bez tačke se ne zna naselje. Pretplatna narudžba je izuzetak: pravi je posao, a stara
+        // pretplata bez tačke ide u naselje pretplate (vidi handler).
+        RuleFor(x => x)
+            .Must(x => x.Latitude.HasValue && x.Longitude.HasValue)
+            .When(x => x.PretplataId is null)
+            .OverridePropertyName("deliveryAddress")
+            .WithMessage("Označi adresu na mapi.");
         RuleFor(x => x)
             .Must(x => x.Latitude.HasValue == x.Longitude.HasValue)
             .OverridePropertyName("deliveryAddress")
@@ -126,14 +136,23 @@ public class CreateOrderHandler(
     IViberService viber,
     IOptions<KorpiceOpcije> korpiceOpcije,
     IOptions<PretplateOpcije> pretplateOpcije,
-    IOptions<PoeniOpcije> poeniOpcije)
+    IOptions<PoeniOpcije> poeniOpcije,
+    IOptions<DostavaOpcije> dostavaOpcije)
     : IRequestHandler<CreateOrderCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(CreateOrderCommand cmd, CancellationToken ct)
     {
-        var zone = await db.DeliveryZones
-            .FirstOrDefaultAsync(z => z.Id == cmd.DeliveryZoneId && z.IsActive, ct)
-            ?? throw new DomainException("Nepoznata zona dostave.", "invalid_zone");
+        // Naselje određuje server iz tačke — kupac ga ne bira. Pretplatna narudžba čija stara
+        // adresa nema tačku (ili je poslije izmjene granice ispala van) ide u naselje pretplate:
+        // obećana je kupcu unaprijed i ne smije tiho izostati.
+        DeliveryZone zone;
+        if (cmd.PretplataId is not null)
+            zone = (cmd.Latitude is { } la && cmd.Longitude is { } lo
+                       ? await OdredjivanjeNaselja.NadjiAsync(db, la, lo, ct) : null)
+                   ?? await db.DeliveryZones.FirstOrDefaultAsync(z => z.Id == cmd.DeliveryZoneId, ct)
+                   ?? throw new DomainException("Pretplata nema naselje.", "invalid_zone");
+        else
+            zone = await OdredjivanjeNaselja.OdrediAsync(db, cmd.Latitude, cmd.Longitude, ct);
 
         var slot = await db.DeliverySlots.FirstOrDefaultAsync(s => s.Id == cmd.DeliverySlotId, ct)
             ?? throw new DomainException("Nepoznat termin dostave.", "invalid_slot");
@@ -161,12 +180,14 @@ public class CreateOrderHandler(
         var zalihe = await Zalihe.UcitajAsync(db, godina, sedmica, ct);
 
         var items = new List<OrderItem>();
+        var imaKorpicu = false;
         foreach (var line in cmd.Items)
         {
             var product = await db.Products.FirstOrDefaultAsync(p => p.Id == line.ProductId, ct);
             if (product is null || !product.IsAvailable || (product.Vrsta == VrstaProizvoda.Obican && !product.USpajzu))
                 throw new DomainException($"Proizvod nije dostupan ({line.ProductId}).", "product_unavailable");
             if (product.Vrsta == VrstaProizvoda.Obican) zalihe.ProvjeriArtikal(product, line.Quantity);
+            imaKorpicu |= DostavaPravila.ImaKorpicu([product]);
 
             // Cijena se snima u trenutku narudžbe. Za pretplatnu korpicu to je cijena
             // umanjena za popust koji je kupac dotad ZARADIO — popust visi o broju
@@ -206,10 +227,8 @@ public class CreateOrderHandler(
         }
 
         var subtotal = Math.Round(items.Sum(i => i.UnitPrice * i.Quantity), 2);
-        if (subtotal < zone.MinOrderAmount)
-            throw new DomainException(
-                $"Minimalna narudžba za zonu {zone.Name} je {zone.MinOrderAmount:0.##} KM.",
-                "below_minimum");
+        DostavaPravila.ProvjeriMinimum(subtotal, dostavaOpcije.Value);
+        var dostava = DostavaPravila.Cijena(imaKorpicu, dostavaOpcije.Value);
 
         // Svako ko je prijavljen dobija narudžbu vezanu za svoj nalog — u ovoj prodavnici
         // kupuju i admin i vozači, a narudžba koju vlasnik ne može naći pod "Moje narudžbe"
@@ -269,13 +288,13 @@ public class CreateOrderHandler(
             Status = OrderStatus.Pending,
             Items = items,
             Subtotal = subtotal,
-            DeliveryFee = zone.DeliveryFee,
+            DeliveryFee = dostava,
             PromoKodId = promo?.Id,
             PromoKod = promo?.Kod,
             Popust = popust,
             IskoristeniPoeni = iskoristeniPoeni,
             PoeniPopust = poeniPopust,
-            TotalAmount = Math.Round(subtotal - popust - poeniPopust + zone.DeliveryFee, 2),
+            TotalAmount = Math.Round(subtotal - popust - poeniPopust + dostava, 2),
             DeliverySlotId = slot.Id,
             DeliverySlot = slot,
             DeliveryZoneId = zone.Id,

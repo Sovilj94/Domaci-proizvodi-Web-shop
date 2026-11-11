@@ -1,7 +1,9 @@
 using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Geocoding;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Naselja;
 using EPiljara.Application.Features.PromoKodovi;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
@@ -16,7 +18,8 @@ namespace EPiljara.Application.Features.Orders;
 
 public record CreateGuestOrderRequestCommand(
     CustomerInput Customer,
-    Guid DeliveryZoneId,
+    // Server je ignoriše; naselje se određuje iz tačke.
+    Guid? DeliveryZoneId,
     Guid DeliverySlotId,
     string DeliveryAddress,
     string? Note,
@@ -56,7 +59,10 @@ public class CreateGuestOrderRequestValidator : AbstractValidator<CreateGuestOrd
                 .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
                 .WithMessage("E-mail je predugačak.");
         });
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
+        RuleFor(x => x)
+            .Must(x => x.Latitude.HasValue && x.Longitude.HasValue)
+            .OverridePropertyName("deliveryAddress")
+            .WithMessage("Označi adresu na mapi.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
         // GuestOrderRequest.DeliveryAddress je text bez granice u bazi — bez ove provjere
@@ -104,7 +110,8 @@ public class CreateGuestOrderRequestValidator : AbstractValidator<CreateGuestOrd
     }
 }
 
-public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser current, IEmailService email)
+public class CreateGuestOrderRequestHandler(
+    IAppDbContext db, ICurrentUser current, IEmailService email, IOptions<DostavaOpcije> dostavaOpcije)
     : IRequestHandler<CreateGuestOrderRequestCommand, GuestOrderRequestDto>
 {
     public async Task<GuestOrderRequestDto> Handle(CreateGuestOrderRequestCommand cmd, CancellationToken ct)
@@ -116,19 +123,19 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
         if (current.IsAuthenticated)
             throw new DomainException("Prijavljeni kupac naručuje sa svog naloga.", "already_authenticated");
 
-        var zone = await db.DeliveryZones
-            .FirstOrDefaultAsync(z => z.Id == cmd.DeliveryZoneId && z.IsActive, ct)
-            ?? throw new DomainException("Nepoznata zona dostave.", "invalid_zone");
+        var zone = await OdredjivanjeNaselja.OdrediAsync(db, cmd.Latitude, cmd.Longitude, ct);
 
         var slot = await db.DeliverySlots.FirstOrDefaultAsync(s => s.Id == cmd.DeliverySlotId, ct)
             ?? throw new DomainException("Nepoznat termin dostave.", "invalid_slot");
 
         var items = new List<GuestOrderRequestItem>();
+        var imaKorpicu = false;
         foreach (var line in cmd.Items)
         {
             var product = await db.Products.FirstOrDefaultAsync(p => p.Id == line.ProductId, ct);
             if (product is null || !product.IsAvailable || (product.Vrsta == VrstaProizvoda.Obican && !product.USpajzu))
                 throw new DomainException($"Proizvod nije dostupan ({line.ProductId}).", "product_unavailable");
+            imaKorpicu |= DostavaPravila.ImaKorpicu([product]);
 
             items.Add(new GuestOrderRequestItem
             {
@@ -148,10 +155,8 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
         }
 
         var subtotal = Math.Round(items.Sum(i => i.UnitPrice * i.Quantity), 2);
-        if (subtotal < zone.MinOrderAmount)
-            throw new DomainException(
-                $"Minimalna narudžba za zonu {zone.Name} je {zone.MinOrderAmount:0.##} KM.",
-                "below_minimum");
+        DostavaPravila.ProvjeriMinimum(subtotal, dostavaOpcije.Value);
+        var dostava = DostavaPravila.Cijena(imaKorpicu, dostavaOpcije.Value);
 
         // Gost nema nalog; kod se prepoznaje po e-mailu. Konačna provjera je pri potvrdi (O11).
         PromoKod? promo = null;
@@ -181,11 +186,11 @@ public class CreateGuestOrderRequestHandler(IAppDbContext db, ICurrentUser curre
             Pismo = current.Pismo,
             Items = items,
             Subtotal = subtotal,
-            DeliveryFee = zone.DeliveryFee,
+            DeliveryFee = dostava,
             PromoKodId = promo?.Id,
             PromoKod = promo?.Kod,
             Popust = popust,
-            TotalAmount = Math.Round(subtotal - popust + zone.DeliveryFee, 2),
+            TotalAmount = Math.Round(subtotal - popust + dostava, 2),
         };
 
         db.GuestOrderRequests.Add(request);
@@ -238,12 +243,9 @@ public class ConfirmGuestOrderHandler(
 {
     public async Task<OrderDto> Handle(ConfirmGuestOrderCommand cmd, CancellationToken ct)
     {
-        // Za razliku od CreateOrderHandler-a, ovdje se zona NE provjerava na IsActive (niti
-        // se uopšte ponovo čita van onoga što nosi sam zahtjev) — namjerno, ne propust.
-        // DeliveryFee i TotalAmount su već snimljeni u GuestOrderRequest u trenutku slanja
-        // forme, pa ako admin ugasi zonu unutar prozora od TrajanjeMinuta, potvrda i dalje
-        // treba da prizna cijenu koju je gost vidio. Provjera IsActive bi samo sprečavala
-        // NOVE zahtjeve (to već radi CreateGuestOrderRequestHandler), ne i potvrdu postojećeg.
+        // DeliveryFee i TotalAmount su snimljeni u GuestOrderRequest u trenutku slanja forme i
+        // ne preračunavaju se. Naselje se ipak provjerava ponovo (niže): adresa van naselja se ne
+        // smije isporučiti samo zato što je zahtjev poslat prije izmjene granice.
         var zahtjev = await db.GuestOrderRequests
             .Include(r => r.Items)
             .Include(r => r.DeliveryZone)
@@ -266,6 +268,10 @@ public class ConfirmGuestOrderHandler(
             throw new ConflictException(
                 "Potvrda je istekla ili je narudžba već primljena.", "guest_request_expired");
         }
+
+        // Naselje se provjerava ponovo: admin je za TrajanjeMinuta mogao pomjeriti granicu ili
+        // isključiti naselje. Cijena se ne dira — gost plaća ono što je vidio.
+        var naselje = await OdredjivanjeNaselja.OdrediAsync(db, zahtjev.Latitude, zahtjev.Longitude, ct);
 
         // Sedmica se računa SADA, u trenutku potvrde, a ne kad je gost poslao formu: zahtjev
         // je nepotvrđena namjera sa tokenom od GuestOrderRequest.TrajanjeMinuta minuta, a
@@ -366,8 +372,8 @@ public class ConfirmGuestOrderHandler(
             TotalAmount = zahtjev.TotalAmount,
             DeliverySlotId = zahtjev.DeliverySlotId,
             DeliverySlot = zahtjev.DeliverySlot,
-            DeliveryZoneId = zahtjev.DeliveryZoneId,
-            DeliveryZone = zahtjev.DeliveryZone,
+            DeliveryZoneId = naselje.Id,
+            DeliveryZone = naselje,
             DeliveryAddress = zahtjev.DeliveryAddress,
             Note = zahtjev.Note,
             Godina = godina,

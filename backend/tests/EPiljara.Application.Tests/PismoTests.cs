@@ -21,7 +21,7 @@ public class PismoTests
 {
     private static CreateOrderHandler NarudzbaHandler(TestDb t, FakeCurrentUser current) =>
         new(t.Db, current, new FakeEmail(), new FakeViber(),
-            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
+            Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()), TestOpcije.DostavaO());
 
     [Fact]
     public async Task Narudzba_pamti_cirilicu_iz_zahtjeva()
@@ -67,7 +67,7 @@ public class PismoTests
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
 
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null, pismo: Pismo.Cirilica), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null, pismo: Pismo.Cirilica), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
         var zahtjev = t.Db.GuestOrderRequests.Single();
         zahtjev.Pismo.Should().Be(Pismo.Cirilica);
