@@ -71,7 +71,6 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 | # | Šta |
 |---|---|
 | F1 | `Desktop\Kumov Web Shop` je detached HEAD daleko iza `main` — stara kopija. Ili obrisati ili `git switch main` pa pull, da ne zbunjuje. Radi se u `Desktop\epiljara-backend-wt`. |
-| F2 | Vozačka aplikacija (`Desktop\EPiljaraVozac`) je na grani `dizajn-po-mockupu`; u testu `ApiClientTests.cs` ostalo je ime „Haso Begić" (demo imena treba da budu srpska). Promijeniti kad se ta grana završi. |
 | F3 | Računar ima malo slobodne memorije (Visual Studio + tsserver zauzimaju ~4 GB) — API i Next dev server su gašeni zbog toga. Za ručne provjere zatvoriti nepotrebno. |
 | F4 | Snimci ekrana preko Chrome ekstenzije povremeno padaju („renderer ne odgovara") iako stranica radi — provjere raditi skriptama (`javascript_tool`, `get_page_text`). |
 
