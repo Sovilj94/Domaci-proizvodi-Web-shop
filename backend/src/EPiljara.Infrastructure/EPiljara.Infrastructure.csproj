@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <EmbeddedResource Include="Persistence\Podaci\naselja-2026-11-11.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\EPiljara.Application\EPiljara.Application.csproj" />
     <ProjectReference Include="..\EPiljara.Domain\EPiljara.Domain.csproj" />
   </ItemGroup>

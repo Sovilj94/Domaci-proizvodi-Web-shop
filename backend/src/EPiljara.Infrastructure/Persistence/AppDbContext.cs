@@ -261,6 +261,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<DeliveryZone>(e =>
         {
             e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Granica).HasColumnType("text");
+            e.Property(x => x.IzvorGranice).HasMaxLength(16).IsRequired().HasDefaultValue(IzvoriGranice.Procjena);
         });
 
         b.Entity<DeliverySlot>(e =>
@@ -449,6 +451,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.PragPriKraju).HasPrecision(10, 2);
             e.Property(x => x.VrijemeIsporukeRezerva).HasMaxLength(5).IsRequired();
             e.Property(x => x.GradDostave).HasMaxLength(100).IsRequired();
+            e.Property(x => x.DostavaSaKorpicom).HasPrecision(10, 2);
+            e.Property(x => x.DostavaBezKorpice).HasPrecision(10, 2).HasDefaultValue(5m);
+            e.Property(x => x.MinimalnaNarudzba).HasPrecision(10, 2);
             e.Property(x => x.FiskalStopaPdv).HasPrecision(5, 2).HasDefaultValue(17m);
             e.Property(x => x.FiskalOznakaPdv).HasMaxLength(10).IsRequired().HasDefaultValue("E");
             e.Property(x => x.FiskalOznakaBezPdv).HasMaxLength(10).IsRequired().HasDefaultValue("A");
@@ -650,6 +655,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.Naziv).HasMaxLength(100).IsRequired();
+            e.Property(x => x.IzvorRedoslijeda).HasMaxLength(16);
             // Namjerno BEZ indeksa na (DriverId, Date) — više ruta po danu je sad
             // očekivano stanje otkad se dodjela dijeli po zonama; stari indeks je
             // implicirao "jedan red po vozaču i danu" i zato je uklonjen.
