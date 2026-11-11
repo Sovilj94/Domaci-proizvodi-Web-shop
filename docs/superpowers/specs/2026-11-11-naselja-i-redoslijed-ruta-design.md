@@ -86,17 +86,21 @@ Stričići, Centar 1, Centar 2, Česma, Čokorska Polja, Šargovac, Šimići.
 
   `Order.DeliveryZoneId` i sve što na njega gleda ostaje, pa nema velikog prepravljanja.
 - **`IsActive` ostaje** i znači „dostavljamo u ovo naselje".
-- **Početni spisak:**
-  - **Moja odluka:** numerisane MZ se spajaju u jedno naselje, pa „Borik 1" i „Borik 2" postaju
-    „Borik". Isto važi za Centar, Lauš, Lazarevo, Obilićevo i Rekavice. To daje **51 naselje**.
-  - Razlog: vozač i kupac misle „Borik", a dvije male grupe od 3 i 4 narudžbe bile bi dvije
-    nepotrebne rute.
-  - Admin može naselje podijeliti ili preimenovati.
-- **Koja naselja su aktivna na početku:**
-  - **Moja odluka:** aktivna su naselja čiji centar pada u OSM granicu gradskog naselja „Banja Luka"
-    (admin_level 9).
-  - Ostala (Bočac, Krupa na Vrbasu, Bronzani Majdan…) su zabilježena, ali neaktivna. Admin ih
-    uključuje jednim klikom.
+- **Početni spisak (odluka vlasnika, 11.11.2026.): samo banjalučka regija, bez okolnih sela.**
+  - Numerisane MZ se spajaju u jedno naselje („Borik 1" + „Borik 2" = „Borik"; isto Centar, Lauš,
+    Lazarevo, Obilićevo).
+  - U bazu ulaze **24 naselja**, sva aktivna:
+    - 17 gradskih: Centar, Bulevar, Obilićevo, Nova Varoš, Borik, Kočićev Vijenac, Paprikovac,
+      Pobrđe, Rosulje, Starčevica, Lauš, Petrićevac, Ada, Srpske Toplice, Česma, Lazarevo, Vrbanja;
+    - 7 prigradskih do ~7,5 km od centra: Drakulić, Donja Kola, Debeljaci, Šargovac, Motike,
+      Saračica, Zalužani.
+  - Granica 7,5 km dolazi iz računice isplativosti (jedna narudžba sa korpicom zadržava bar pola
+    marže; gorivo 0,24 KM/km iz `DnevneVoznje`, marža ~33 % iz `OrderItems`).
+  - **Okolna sela** (Karanovac, Kuljani, Bočac, Krupa na Vrbasu…) **se ne upisuju**. Admin ih dodaje
+    na stranici „Naselja" kad odluči da tamo dostavlja.
+  - Voronoi se ipak računa sa centrima svih 51 naselja, a čuvaju se samo granice ovih 24. Tako se
+    granica Zalužana ne razvuče do Kozare: područje okolnih sela ostaje van svakog naselja i adresa
+    tamo dobija grešku iz B.
   - Naselje više **ne nosi cijenu dostave ni minimum** (vidi E). `DeliveryFee` i `MinOrderAmount`
     na zoni se prestaju koristiti za nove narudžbe. Kolone ostaju, da stari podaci ostanu čitljivi.
 - **Postojeće 4 zone:**
