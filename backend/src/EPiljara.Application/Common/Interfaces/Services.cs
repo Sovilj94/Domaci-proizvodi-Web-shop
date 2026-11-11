@@ -101,14 +101,24 @@ public interface IOdjavaPotpis
 public record RouteStopInput(Guid OrderId, string Address, string ZoneName, double? Latitude, double? Longitude);
 
 /// <summary>
-/// Rezultat optimizacije. Kilometraža, trajanje i geometrija su nullable jer
-/// rezervno sortiranje po zonama ne zna ništa o putevima — vraća samo redoslijed.
+/// Rezultat optimizacije. Trajanje i geometrija su nullable jer rezervni redoslijed (bez OSRM-a)
+/// ne zna ništa o putevima; njegova dužina je vazdušna procjena, što kaže <see cref="Izvor"/>.
 /// </summary>
 public record RouteOptimizationResult(
     IReadOnlyList<Guid> Order,
     double? DuzinaMetara,
     double? TrajanjeSekundi,
-    string? Geometrija);
+    string? Geometrija,
+    string Izvor = IzvoriRedoslijeda.Osrm);
+
+/// <summary>Odakle je redoslijed stanica — piše se u DeliveryRoute.IzvorRedoslijeda.</summary>
+public static class IzvoriRedoslijeda
+{
+    /// <summary>Pravi putevi (OSRM): kilometraža je prava i ruta je Optimized.</summary>
+    public const string Osrm = "osrm";
+    /// <summary>Rezerva po vazdušnoj udaljenosti: dužina je samo procjena.</summary>
+    public const string Vazdusno = "vazdusno";
+}
 
 /// <summary>
 /// Računa redoslijed obilaska stanica, počev od zadatog polazišta.

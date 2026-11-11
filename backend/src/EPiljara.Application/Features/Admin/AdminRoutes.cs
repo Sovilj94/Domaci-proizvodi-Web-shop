@@ -106,15 +106,19 @@ internal static class Optimizacija
         route.DuzinaMetara = rezultat.DuzinaMetara;
         // Kilometraža cijele ture (za gorivo): samo kad je obilazak od magacina i nijedna stanica
         // još nije zatvorena — inače je rezultat samo ostatak puta.
-        if (odMagacina && otvorene.Count == route.Stops.Count && rezultat.DuzinaMetara.HasValue)
+        if (odMagacina && otvorene.Count == route.Stops.Count && rezultat.DuzinaMetara.HasValue
+            && rezultat.Izvor == IzvoriRedoslijeda.Osrm)
             route.KilometrazaMetara = rezultat.DuzinaMetara;
         route.TrajanjeSekundi = rezultat.TrajanjeSekundi;
         route.Geometrija = rezultat.Geometrija;
 
-        // Status "Optimized" samo kad je stvarno optimizovano. Rezerva po zonama
-        // vraća redoslijed ali nema kilometražu — kad bismo i tada pisali Optimized,
-        // ništa u sistemu ne bi razlikovalo pravu rutu od degradirane.
-        if (rezultat.DuzinaMetara.HasValue) route.Status = RouteStatus.Optimized;
+        route.IzvorRedoslijeda = rezultat.Izvor;
+
+        // Status "Optimized" samo kad je stvarno optimizovano preko puteva. Rezerva vraća
+        // redoslijed i vazdušnu dužinu — kad bismo i tada pisali Optimized, ništa u sistemu ne bi
+        // razlikovalo pravu rutu od degradirane, a gorivo bi se računalo iz vazdušne linije.
+        if (rezultat.DuzinaMetara.HasValue && rezultat.Izvor == IzvoriRedoslijeda.Osrm)
+            route.Status = RouteStatus.Optimized;
     }
 }
 

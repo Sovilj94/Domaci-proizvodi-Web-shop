@@ -20,6 +20,13 @@ public class KilometrazaRuteTests
             Task.FromResult(new RouteOptimizationResult(stops.Select(s => s.OrderId).ToList(), metara, 1800, null));
     }
 
+    private sealed class VazdusniOptimizer(double metara) : IRouteOptimizer
+    {
+        public Task<RouteOptimizationResult> OptimizeAsync(double startLat, double startLon,
+            IReadOnlyList<RouteStopInput> stops, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new RouteOptimizationResult(stops.Select(s => s.OrderId).ToList(), metara, null, null, "vazdusno"));
+    }
+
     private sealed record Osnova(TestDb T, DeliveryRoute Ruta, User Vozac, List<Order> Narudzbe);
 
     private static Osnova Napravi()
@@ -66,6 +73,35 @@ public class KilometrazaRuteTests
         await new OptimizeRouteHandler(o.T.Db, new FiksniOptimizer(24_500)).Handle(new OptimizeRouteCommand(o.Ruta.Id), default);
 
         Assert.Equal(24_500, (await RutaAsync(o)).KilometrazaMetara);
+    }
+
+    [Fact]
+    public async Task Vazdusna_ruta_nije_Optimized_i_ne_pise_kilometrazu()
+    {
+        var o = Napravi();
+        using var _ = o.T;
+
+        var dto = await new OptimizeRouteHandler(o.T.Db, new VazdusniOptimizer(3_000)).Handle(new OptimizeRouteCommand(o.Ruta.Id), default);
+
+        Assert.Equal("vazdusno", dto.IzvorRedoslijeda);
+        var ruta = await RutaAsync(o);
+        Assert.Equal(RouteStatus.Planned, ruta.Status);
+        Assert.Null(ruta.KilometrazaMetara);
+        Assert.Equal(3_000, ruta.DuzinaMetara);
+        Assert.Equal("vazdusno", ruta.IzvorRedoslijeda);
+    }
+
+    [Fact]
+    public async Task Osrm_ruta_pise_izvor_osrm()
+    {
+        var o = Napravi();
+        using var _ = o.T;
+
+        await new OptimizeRouteHandler(o.T.Db, new FiksniOptimizer(24_500)).Handle(new OptimizeRouteCommand(o.Ruta.Id), default);
+
+        var ruta = await RutaAsync(o);
+        Assert.Equal(RouteStatus.Optimized, ruta.Status);
+        Assert.Equal("osrm", ruta.IzvorRedoslijeda);
     }
 
     [Fact]
