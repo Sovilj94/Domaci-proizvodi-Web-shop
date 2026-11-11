@@ -39,7 +39,7 @@ public class GetDriverRouteHandler(IAppDbContext db, ICurrentUser current)
             .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .Where(r => r.DriverId == driver.Id && r.Date == date)
-            .OrderBy(r => r.Naziv)
+            .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
             .FirstOrDefaultAsync(ct);
 
         return route?.ToDto();
@@ -71,7 +71,7 @@ public class GetDriverRoutesHandler(IAppDbContext db, ICurrentUser current)
             .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .Where(r => r.DriverId == driver.Id && r.Date == date)
-            .OrderBy(r => r.Naziv)
+            .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
             .ToListAsync(ct);
 
         return rute.Select(r => r.ToDto()).ToList();

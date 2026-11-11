@@ -269,6 +269,11 @@ public class AdminController : ApiControllerBase
         EnvelopeList(await Mediator.Send(
             new AssignOrdersBulkCommand(body.OrderIds, body.DriverId, body.Date)));
 
+    /// <summary>Kako bi grupna dodjela podijelila narudžbe na rute („Borik 1: 8 · Borik 2: 7") — bez upisa.</summary>
+    [HttpPost("admin/orders/assign-bulk/pregled")]
+    public async Task<IActionResult> PregledPodjele([FromBody] AssignOrdersBulkRequest body) =>
+        EnvelopeList(await Mediator.Send(new PregledPodjeleQuery(body.OrderIds, body.DriverId, body.Date)));
+
     /// <summary>Skida narudžbu sa rute; vraća je u „Nedodijeljeno".</summary>
     [HttpDelete("admin/orders/{id:guid}/driver")]
     public async Task<IActionResult> RemoveOrderDriver(Guid id, [FromQuery] string date)

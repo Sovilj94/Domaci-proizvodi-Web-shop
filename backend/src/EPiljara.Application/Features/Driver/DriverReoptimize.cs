@@ -37,7 +37,7 @@ public class ReoptimizeRouteHandler(IAppDbContext db, ICurrentUser current, IRou
             .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .Where(r => r.DriverId == driver.Id && r.Date == danas)
-            .OrderBy(r => r.Naziv)
+            .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Nemate rutu za danas.");
 

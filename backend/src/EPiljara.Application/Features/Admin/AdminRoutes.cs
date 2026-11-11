@@ -187,7 +187,8 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
             // DeliveryZoneId je non-nullable na Order u trenutnim pravilima, pa "Bez zone"
             // u praksi ne nastaje — grana ostaje kao odbrana za stariju bazu bez tog pravila.
             var bazniNaziv = grupa.First().DeliveryZone?.Name ?? NazivBezZone;
-            var komadi = grupa.Chunk(MaxStanicaPoRuti).ToList();
+            // Po lokaciji, ne po vremenu naručivanja: bliske adrese idu u istu rutu (RasporedDana).
+            var komadi = RasporedDana.Podijeli(grupa.ToList());
 
             for (var i = 0; i < komadi.Count; i++)
             {
@@ -221,6 +222,14 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
         foreach (var ruta in saStavkama)
             await Optimizacija.PrimijeniAsync(
                 ruta, magacin.Latitude, magacin.Longitude, optimizer, ct);
+
+        // Redni brojevi nad svim rutama vozača tog dana — i onim sa zatvorenim stanicama.
+        var sveVozaceve = await db.DeliveryRoutes
+            .Include(r => r.DeliveryZone)
+            .Include(r => r.Stops).ThenInclude(s => s.Order)
+            .Where(r => r.DriverId == driver.Id && r.Date == date)
+            .ToListAsync(ct);
+        RasporedDana.NumerisiIImenuj(sveVozaceve, magacin.Latitude, magacin.Longitude);
         await db.SaveChangesAsync(ct);
 
         return await LoadDriverDateRoutesAsync(db, driver.Id, date, ct);
@@ -236,7 +245,7 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
         return route.ToDto();
     }
 
-    /// <summary>Sve rute vozača za dati dan, poređane po nazivu — isti redoslijed kao
+    /// <summary>Sve rute vozača za dati dan, po rednom broju (pa nazivu) — isti redoslijed kao
     /// GET /driver/routes, da odgovor dodjele odmah pokaže konačno stanje.</summary>
     internal static async Task<IReadOnlyList<DeliveryRouteDto>> LoadDriverDateRoutesAsync(
         IAppDbContext db, Guid driverId, DateOnly date, CancellationToken ct)
@@ -246,7 +255,7 @@ public class AssignRouteHandler(IAppDbContext db, IRouteOptimizer optimizer)
             .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .Where(r => r.DriverId == driverId && r.Date == date)
-            .OrderBy(r => r.Naziv)
+            .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
             .ToListAsync(ct);
         return rute.Select(r => r.ToDto()).ToList();
     }
