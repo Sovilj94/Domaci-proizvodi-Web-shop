@@ -1,6 +1,7 @@
 using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Naselja;
 using EPiljara.Application.Mapping;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
@@ -112,13 +113,9 @@ public class CreateAddressHandler(IAppDbContext db, ICurrentUser current)
             throw new DomainException(
                 $"Možete sačuvati najviše {MaxAdresa} adresa.", "address_limit");
 
-        // Isti razlog kao u CreateOrderHandler: FK je Restrict, pa bi proizvoljan GUID
-        // bez ove provjere pao na SaveChanges kao DbUpdateException -> 500, umjesto
-        // tačnog 400. Neaktivna zona ostaje dozvoljena — DeliveryZoneActive u DTO-u
-        // postoji baš zato što klijent smije sačuvati adresu sa ugašenom zonom.
-        if (cmd.DeliveryZoneId is not null &&
-            !await db.DeliveryZones.AnyAsync(z => z.Id == cmd.DeliveryZoneId.Value, ct))
-            throw new DomainException("Nepoznata zona dostave.", "invalid_zone");
+        // Naselje određuje server iz tačke; DeliveryZoneId iz zahtjeva se ignoriše. Adresa van
+        // naselja u kojima dostavljamo se ne čuva — ne bi se mogla upotrijebiti ni za narudžbu.
+        var naselje = await OdredjivanjeNaselja.OdrediAsync(db, cmd.Latitude, cmd.Longitude, ct);
 
         var address = new Address
         {
@@ -127,7 +124,7 @@ public class CreateAddressHandler(IAppDbContext db, ICurrentUser current)
             FullAddress = cmd.FullAddress.Trim(),
             Latitude = cmd.Latitude,
             Longitude = cmd.Longitude,
-            DeliveryZoneId = cmd.DeliveryZoneId,
+            DeliveryZoneId = naselje.Id,
             // Prva adresa je glavna sama od sebe — inače bi kupac imao adresar
             // bez glavne adrese i checkout bi se ponašao kao za gosta.
             IsDefault = moje.Count == 0,
@@ -156,16 +153,13 @@ public class UpdateAddressHandler(IAppDbContext db, ICurrentUser current)
         if (address.UserId != current.Id)
             throw new ForbiddenException("Ova adresa nije tvoja.");
 
-        // Isti razlog kao u CreateAddressHandler — vidi komentar tamo.
-        if (cmd.DeliveryZoneId is not null &&
-            !await db.DeliveryZones.AnyAsync(z => z.Id == cmd.DeliveryZoneId.Value, ct))
-            throw new DomainException("Nepoznata zona dostave.", "invalid_zone");
+        var naselje = await OdredjivanjeNaselja.OdrediAsync(db, cmd.Latitude, cmd.Longitude, ct);
 
         address.Label = string.IsNullOrWhiteSpace(cmd.Label) ? null : cmd.Label.Trim();
         address.FullAddress = cmd.FullAddress.Trim();
         address.Latitude = cmd.Latitude;
         address.Longitude = cmd.Longitude;
-        address.DeliveryZoneId = cmd.DeliveryZoneId;
+        address.DeliveryZoneId = naselje.Id;
 
         await db.SaveChangesAsync(ct);
         // Include gore je učitao staru zonu (ili null); FK iznad se promijenio, pa EF-ova
