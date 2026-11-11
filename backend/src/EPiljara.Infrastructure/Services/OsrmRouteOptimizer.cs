@@ -11,12 +11,12 @@ namespace EPiljara.Infrastructure.Services;
 /// Računa redoslijed obilaska preko OSRM /trip endpointa, koji rješava problem
 /// trgovačkog putnika i u istom odgovoru vraća kilometražu, trajanje i liniju rute.
 ///
-/// Kad servis ne odgovori, vraća se na sortiranje po zonama — vozač dobije turu
+/// Kad servis ne odgovori, vraća se na vazdušni redoslijed (NajbliziSusjedOptimizer) — vozač dobije turu
 /// koja radi, samo neoptimizovanu. Nikad prazan ekran zbog tuđeg servera.
 /// </summary>
 public class OsrmRouteOptimizer(
     HttpClient http,
-    ZoneRouteOptimizer rezerva,
+    NajbliziSusjedOptimizer rezerva,
     IAppDbContext db,
     ILogger<OsrmRouteOptimizer> logger) : IRouteOptimizer
 {
@@ -39,7 +39,7 @@ public class OsrmRouteOptimizer(
 
         // Ispod dvije tačke nema šta da se računa, i rezerva se namjerno NE zove:
         // po spec-u redoslijed tada ostaje onakav kakav ga je admin postavio.
-        // Sortiranje po zonama je rezerva za neuspio poziv, ne za nedostatak podataka.
+        // Vazdušni redoslijed je rezerva za neuspio poziv, ne za nedostatak podataka.
         // I jedna stanica ide kroz OSRM: redoslijed je trivijalan, ali kilometraža ture
         // (magacin → stanica → magacin) treba za trošak goriva.
         if (saKoordinatama.Count == 0)
@@ -167,7 +167,7 @@ public class OsrmRouteOptimizer(
         {
             logger.LogWarning(
                 e,
-                "OSRM optimizacija nije uspjela poslije {Ms} ms, vraćam se na sortiranje po zonama",
+                "OSRM optimizacija nije uspjela poslije {Ms} ms, vraćam se na vazdušni redoslijed",
                 pocetak.ElapsedMilliseconds);
             return await rezerva.OptimizeAsync(startLat, startLon, stops, cancellationToken);
         }

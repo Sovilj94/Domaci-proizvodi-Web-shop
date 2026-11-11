@@ -51,20 +51,7 @@ public class AdminPanelTests
 
     // ---- Zone i termini ----
 
-    [Fact]
-    public async Task Zona_se_pravi_i_mijenja_a_isti_naziv_je_konflikt()
-    {
-        using var t = new TestDb();
-        var nova = await new CreateZonaHandler(t.Db).Handle(new CreateZonaCommand(new ZonaInput(" Borik ", 20m, 3m, true)), default);
-        nova.Name.Should().Be("Borik");
-
-        await ((Func<Task>)(() => new CreateZonaHandler(t.Db).Handle(new CreateZonaCommand(new ZonaInput("borik", 0, 0, true)), default)))
-            .Should().ThrowAsync<ConflictException>();
-
-        var izmijenjena = await new UpdateZonaHandler(t.Db).Handle(new UpdateZonaCommand(nova.Id, new ZonaInput("Borik", 25m, 4m, false)), default);
-        (izmijenjena.MinOrderAmount, izmijenjena.DeliveryFee, izmijenjena.IsActive).Should().Be((25m, 4m, false));
-        (await new GetAdminZoneHandler(t.Db).Handle(new GetAdminZoneQuery(), default)).Should().ContainSingle("ugašena zona ostaje u adminu");
-    }
+    // Zone su postale naselja — vidi AdminNaseljaTests.
 
     [Theory]
     [InlineData(7, "16:00", "20:00", 48, "dayOfWeek")]

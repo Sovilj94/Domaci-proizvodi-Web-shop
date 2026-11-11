@@ -32,6 +32,8 @@ internal sealed class Scenario : IDisposable
 
     public AppDbContext Db => _t.Db;
     public KorpiceOpcije Opcije { get; }
+    public Guid ZonaId => _zonaId;
+    public EPiljara.Application.Features.Geocoding.DostavaOpcije Dostava { get; set; } = TestOpcije.Dostava();
 
     /// <summary>Guid.Empty kad prijavljen == false (gost nema nalog).</summary>
     public Guid KupacId { get; }
@@ -95,6 +97,7 @@ internal sealed class Scenario : IDisposable
         var zona = new DeliveryZone
         {
             Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true,
+            Granica = TestNaselje.Granica,
         };
         var slot = new DeliverySlot
         {
@@ -254,14 +257,20 @@ internal sealed class Scenario : IDisposable
     public Task<OrderDto> PosaljiArtikalAsync(Guid productId, decimal kolicina = 1m) =>
         Handler().Handle(Komanda(productId, kolicina), default);
 
+    /// <summary>Narudžba sa zadatom tačkom i zonom u zahtjevu (server zonu iz zahtjeva ignoriše).</summary>
+    public Task<OrderDto> PosaljiAsync(Guid productId, decimal kolicina = 1m, Guid? zonaId = null,
+        double lat = TestNaselje.Lat, double lon = TestNaselje.Lon) =>
+        Handler().Handle(Komanda(productId, kolicina) with { DeliveryZoneId = zonaId ?? _zonaId, Latitude = lat, Longitude = lon }, default);
+
     private CreateOrderHandler Handler() => new(
         Db, new FakeCurrentUser(_prijavljen ? KupacId : null), new FakeEmail(), new FakeViber(),
-        Options.Create(Opcije), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
+        Options.Create(Opcije), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()),
+        Options.Create(Dostava));
 
     private CreateOrderCommand Komanda(Guid productId, decimal kolicina) => new(
         new CustomerInput("Test Kupac", "test@example.com", "065 000 000"),
         _zonaId, _slotId, "Testna adresa 1", null,
-        [new OrderItemInput(productId, kolicina)]);
+        [new OrderItemInput(productId, kolicina)], TestNaselje.Lat, TestNaselje.Lon);
 
     // ---------- Task 6 ----------
 
@@ -344,10 +353,11 @@ internal sealed class Scenario : IDisposable
     /// Zahtijeva <c>prijavljen: false</c> (podrazumijevano), jer
     /// CreateGuestOrderRequestHandler odbija prijavljenog kupca.
     /// </summary>
-    public async Task<string> ZahtjevGostaAsync(Guid productId, decimal kolicina = 1m)
+    public async Task<string> ZahtjevGostaAsync(Guid productId, decimal kolicina = 1m,
+        double lat = TestNaselje.Lat, double lon = TestNaselje.Lon)
     {
-        await new CreateGuestOrderRequestHandler(Db, new FakeCurrentUser(null), new FakeEmail())
-            .Handle(KomandaGosta(productId, kolicina), default);
+        await new CreateGuestOrderRequestHandler(Db, new FakeCurrentUser(null), new FakeEmail(), Options.Create(Dostava))
+            .Handle(KomandaGosta(productId, kolicina) with { Latitude = lat, Longitude = lon }, default);
         return (await Db.GuestOrderRequests.OrderBy(r => r.CreatedAt).LastAsync()).Token;
     }
 

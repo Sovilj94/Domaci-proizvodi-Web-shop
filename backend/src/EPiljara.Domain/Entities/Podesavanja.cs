@@ -61,6 +61,13 @@ public class Podesavanja : Entity
     /// </summary>
     public string GradDostave { get; set; } = string.Empty;
 
+    /// <summary>Cijena dostave za narudžbu koja sadrži bar jednu korpicu (odluka vlasnika: 0 KM).</summary>
+    public decimal DostavaSaKorpicom { get; set; }
+    /// <summary>Cijena dostave za narudžbu bez korpice (odluka vlasnika: 5 KM).</summary>
+    public decimal DostavaBezKorpice { get; set; } = 5m;
+    /// <summary>Najmanji iznos stavki narudžbe; 0 = bez minimuma. Ranije je bio vezan za zonu.</summary>
+    public decimal MinimalnaNarudzba { get; set; }
+
     // ----- Fiskalizacija -----
     /// <summary>Firma je u sistemu PDV-a: stavke dobijaju oznaku PDV-a, inače oznaku „nije u PDV-u".</summary>
     public bool FiskalPdvObveznik { get; set; }

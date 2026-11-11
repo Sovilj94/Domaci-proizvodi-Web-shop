@@ -17,7 +17,7 @@ public class OcjeneTests
         OrderStatus status = OrderStatus.Delivered)
     {
         var t = new TestDb();
-        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
         var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
         t.Db.DeliveryZones.Add(zona);
         t.Db.DeliverySlots.Add(slot);

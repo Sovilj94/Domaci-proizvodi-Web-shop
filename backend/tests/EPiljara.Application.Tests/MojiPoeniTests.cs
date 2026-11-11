@@ -107,7 +107,7 @@ public class MojiPoeniTests
         using var t = new TestDb();
         var u = await KorisnikAsync(t);
         var preporucen = await KorisnikAsync(t, "marko marković");
-        var zona = new DeliveryZone { Name = "Centar", IsActive = true };
+        var zona = new DeliveryZone { Name = "Centar", IsActive = true, Granica = TestNaselje.Granica };
         var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
         t.Db.AddRange(zona, slot);
         var o1 = new Order

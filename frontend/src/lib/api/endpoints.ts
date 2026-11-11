@@ -5,7 +5,12 @@ import type {
   Category,
   DeliveryRoute,
   DeliverySlot,
+  DostavaPravila,
+  NaseljeZaTacku,
   DeliveryZone,
+  NaseljeAdmin,
+  PodjelaStavka,
+  SacuvajNaseljeRezultat,
   GeocodeHit,
   Korpica,
   MojaKorpica,
@@ -358,6 +363,11 @@ export const deliveryApi = {
     apiFetch<DeliveryZone[]>("/delivery/zones", { auth: false }).then((r) => r.data),
   slots: () =>
     apiFetch<DeliverySlot[]>("/delivery/slots", { auth: false }).then((r) => r.data),
+  /** Van naselja u kojima dostavljamo baca ApiRequestError sa kodom van_podrucja_dostave. */
+  naselje: (lat: number, lon: number) =>
+    apiFetch<NaseljeZaTacku>(`/delivery/naselje?lat=${lat}&lon=${lon}`, { auth: false }).then((r) => r.data),
+  pravila: () =>
+    apiFetch<DostavaPravila>("/delivery/pravila", { auth: false }).then((r) => r.data),
 };
 
 /* ---------- Orders (customer) ---------- */
@@ -732,11 +742,20 @@ export const adminApi = {
   pakovanje: (godina: number, sedmica: number) =>
     apiFetch<Pakovanje>("/admin/pakovanje", { query: { godina, sedmica } }).then((r) => r.data),
 
-  zone: () => apiFetch<DeliveryZone[]>("/admin/zone").then((r) => r.data),
-  sacuvajZonu: (id: string | null, body: Omit<DeliveryZone, "id">) =>
-    apiFetch<DeliveryZone>(id ? "/admin/zone/" + id : "/admin/zone", { method: id ? "PUT" : "POST", body }).then(
-      (r) => r.data,
-    ),
+  naselja: () => apiFetch<NaseljeAdmin[]>("/admin/naselja").then((r) => r.data),
+  /** sacuvano = false: izmjena pomjera naselje postojećim zapisima — ponovi sa potvrdiUticaj. */
+  sacuvajNaselje: (body: {
+    id: string | null;
+    name: string;
+    isActive: boolean;
+    granica: string | null;
+    centarLat?: number | null;
+    centarLon?: number | null;
+    potvrdjeno: boolean;
+    potvrdiUticaj: boolean;
+  }) => apiFetch<SacuvajNaseljeRezultat>("/admin/naselja", { method: "POST", body }).then((r) => r.data),
+  obrisiNaselje: (id: string): Promise<void> =>
+    apiFetch<void>(`/admin/naselja/${id}`, { method: "DELETE" }).then(() => undefined),
 
   termini: () => apiFetch<DeliverySlot[]>("/admin/termini").then((r) => r.data),
   sacuvajTermin: (id: string | null, body: Omit<DeliverySlot, "id">) =>
@@ -835,6 +854,8 @@ export const adminApi = {
     }).then((r) => r.data),
 
   /** Dodjeljuje cijelo naselje jednom vozaču u jednom zahtjevu — sve ili ništa. */
+  pregledPodjele: (body: AssignOrdersBulkRequest) =>
+    apiFetch<PodjelaStavka[]>("/admin/orders/assign-bulk/pregled", { method: "POST", body }).then((r) => r.data),
   assignOrdersBulk: (body: AssignOrdersBulkRequest) =>
     apiFetch<DeliveryRoute[]>("/admin/orders/assign-bulk", {
       method: "POST",

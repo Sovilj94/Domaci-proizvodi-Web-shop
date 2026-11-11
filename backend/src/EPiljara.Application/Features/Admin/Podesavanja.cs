@@ -37,6 +37,9 @@ public record PodesavanjaDto
     public decimal PragPriKraju { get; init; }
     /// <summary>Grad dostave kako ga piše geokoder; prazno = bez ograničenja.</summary>
     public string GradDostave { get; init; } = string.Empty;
+    public decimal DostavaSaKorpicom { get; init; }
+    public decimal DostavaBezKorpice { get; init; }
+    public decimal MinimalnaNarudzba { get; init; }
 }
 
 /// <summary>Red <c>Podesavanja</c> → opcije koje handleri čitaju kroz <c>IOptions</c>.</summary>
@@ -79,7 +82,13 @@ public static class PodesavanjaMapa
 
     public static ProdavnicaOpcije Prodavnica(Domain.Entities.Podesavanja p) => new() { PragPriKraju = p.PragPriKraju };
 
-    public static Geocoding.DostavaOpcije Dostava(Domain.Entities.Podesavanja p) => new() { GradDostave = p.GradDostave };
+    public static Geocoding.DostavaOpcije Dostava(Domain.Entities.Podesavanja p) => new()
+    {
+        GradDostave = p.GradDostave,
+        DostavaSaKorpicom = p.DostavaSaKorpicom,
+        DostavaBezKorpice = p.DostavaBezKorpice,
+        MinimalnaNarudzba = p.MinimalnaNarudzba,
+    };
 
     public static PodesavanjaDto UDto(Domain.Entities.Podesavanja p) => new()
     {
@@ -92,6 +101,8 @@ public static class PodesavanjaMapa
         AlarmSatiPrijeRoka = p.AlarmSatiPrijeRoka, MaksPauzaSedmica = p.MaksPauzaSedmica,
         PoenaPoKM = p.PoenaPoKM, VrijednostPoenaKM = p.VrijednostPoenaKM, NagradaPreporuka = p.NagradaPreporuka,
         PragPriKraju = p.PragPriKraju, GradDostave = p.GradDostave,
+        DostavaSaKorpicom = p.DostavaSaKorpicom, DostavaBezKorpice = p.DostavaBezKorpice,
+        MinimalnaNarudzba = p.MinimalnaNarudzba,
     };
 }
 
@@ -149,6 +160,9 @@ public class SacuvajPodesavanjaValidator : AbstractValidator<SacuvajPodesavanjaC
         RuleFor(x => x.Podesavanja.VrijednostPoenaKM).InclusiveBetween(0m, 10m).WithMessage("Vrijednost poena: od 0 do 10 KM.");
         RuleFor(x => x.Podesavanja.NagradaPreporuka).InclusiveBetween(0, 10000).WithMessage("Nagrada: od 0 do 10000 poena.");
         RuleFor(x => x.Podesavanja.PragPriKraju).InclusiveBetween(0m, 10000m).WithMessage("Prag mora biti od 0 do 10000.");
+        RuleFor(x => x.Podesavanja.DostavaSaKorpicom).InclusiveBetween(0m, 100m).WithMessage("Dostava: od 0 do 100 KM.");
+        RuleFor(x => x.Podesavanja.DostavaBezKorpice).InclusiveBetween(0m, 100m).WithMessage("Dostava: od 0 do 100 KM.");
+        RuleFor(x => x.Podesavanja.MinimalnaNarudzba).InclusiveBetween(0m, 10000m).WithMessage("Minimalna narudžba: od 0 do 10000 KM.");
         RuleFor(x => x.Podesavanja.GradDostave).MaximumLength(100).WithMessage("Grad dostave: najviše 100 znakova.");
     }
 }
@@ -182,6 +196,9 @@ public class SacuvajPodesavanjaHandler(IAppDbContext db) : IRequestHandler<Sacuv
         p.NagradaPreporuka = d.NagradaPreporuka;
         p.PragPriKraju = d.PragPriKraju;
         p.GradDostave = (d.GradDostave ?? string.Empty).Trim();
+        p.DostavaSaKorpicom = d.DostavaSaKorpicom;
+        p.DostavaBezKorpice = d.DostavaBezKorpice;
+        p.MinimalnaNarudzba = d.MinimalnaNarudzba;
         await db.SaveChangesAsync(ct);
         return PodesavanjaMapa.UDto(p);
     }

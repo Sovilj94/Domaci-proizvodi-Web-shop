@@ -29,7 +29,7 @@ internal sealed class PoslovanjePodaciTest : IDisposable
     {
         var p = new PoslovanjePodaciTest();
         var db = p.T.Db;
-        p.Centar = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+        p.Centar = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
         p.Laus = new DeliveryZone { Name = "Lauš", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
         p.Slot = new DeliverySlot { DayOfWeek = (int)DayOfWeek.Thursday, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
         var povrce = new Category { Name = "Povrće", Slug = "povrce" };

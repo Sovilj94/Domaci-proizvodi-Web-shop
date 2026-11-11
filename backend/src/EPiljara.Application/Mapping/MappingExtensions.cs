@@ -227,6 +227,8 @@ public static class MappingExtensions
         Stops = r.Stops.OrderBy(x => x.Sequence).Select(x => x.ToDto()).ToList(),
         Naziv = r.Naziv,
         ZonaNaziv = r.DeliveryZone?.Name,
+        RedniBroj = r.RedniBroj,
+        IzvorRedoslijeda = r.IzvorRedoslijeda,
     };
 
     public static AddressDto ToDto(this Address a) => new()

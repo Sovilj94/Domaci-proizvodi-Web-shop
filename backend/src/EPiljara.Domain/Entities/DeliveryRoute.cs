@@ -41,5 +41,13 @@ public class DeliveryRoute : Entity
     public double? TrajanjeSekundi { get; set; }
     public string? Geometrija { get; set; }
 
+    /// <summary>Planirani redoslijed ruta vozača u danu (1 = prva). null = ruta iz vremena prije
+    /// redoslijeda; takve se ređaju po nazivu iza numerisanih.</summary>
+    public int? RedniBroj { get; set; }
+
+    /// <summary>Odakle je redoslijed stanica: "osrm" (pravi putevi) ili "vazdusno" (rezerva po
+    /// vazdušnoj udaljenosti — DuzinaMetara je tada samo procjena). null = nije računat.</summary>
+    public string? IzvorRedoslijeda { get; set; }
+
     public ICollection<RouteStop> Stops { get; set; } = new List<RouteStop>();
 }

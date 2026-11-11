@@ -9,6 +9,13 @@ public class DostavaOpcije
 {
     /// <summary>Grad dostave kako ga piše geokoder („Banja Luka"); prazno = bez ograničenja.</summary>
     public string GradDostave { get; set; } = string.Empty;
+
+    /// <summary>Dostava za narudžbu sa bar jednom korpicom (vidi DostavaPravila).</summary>
+    public decimal DostavaSaKorpicom { get; set; }
+    /// <summary>Dostava za narudžbu bez korpice.</summary>
+    public decimal DostavaBezKorpice { get; set; }
+    /// <summary>Najmanji iznos stavki; 0 = bez minimuma.</summary>
+    public decimal MinimalnaNarudzba { get; set; }
 }
 
 /// <summary>

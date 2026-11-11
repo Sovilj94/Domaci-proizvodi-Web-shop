@@ -31,7 +31,7 @@ public class MojePretplateTests
             var s = new Scena(new TestDb());
             var db = s.Db;
 
-            var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+            var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
             var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48, Label = "Četvrtak 16–20" };
             var kat = new Category { Name = "Mješovito", Slug = "mjesovito" };
             var proiz = new Producer { Name = "Marko", Village = "Manjača" };
@@ -63,12 +63,13 @@ public class MojePretplateTests
 
         private static readonly IOptions<KorpiceOpcije> Ko = Options.Create(TestOpcije.Korpice());
         private static readonly IOptions<PretplateOpcije> Po = Options.Create(TestOpcije.Pretplate());
+        public EPiljara.Application.Features.Geocoding.DostavaOpcije Dostava { get; set; } = TestOpcije.Dostava();
 
         public NapraviPretplatuHandler Novi(Guid? korisnik = null) =>
-            new(Db, new FakeCurrentUser(korisnik ?? Kupac.Id), Ko, Po);
+            new(Db, new FakeCurrentUser(korisnik ?? Kupac.Id), Ko, Po, Options.Create(Dostava));
 
         public IzmijeniPretplatuHandler Izmjena(Guid? korisnik = null) =>
-            new(Db, new FakeCurrentUser(korisnik ?? Kupac.Id), Ko, Po);
+            new(Db, new FakeCurrentUser(korisnik ?? Kupac.Id), Ko, Po, Options.Create(Dostava));
 
         public PauzirajPretplatuHandler Pauza(Guid? korisnik = null) =>
             new(Db, new FakeCurrentUser(korisnik ?? Kupac.Id), Ko, Po);
@@ -150,15 +151,53 @@ public class MojePretplateTests
     /// tiho ćutao, a kupac bi mislio da je pretplaćen.
     /// </summary>
     [Fact]
-    public async Task Zona_sa_minimumom_iznad_cijene_korpice_se_odbija_odmah()
+    public async Task Minimum_iznad_cijene_korpice_se_odbija_odmah()
     {
         using var s = await Scena.SpremiAsync();
-        s.Zona.MinOrderAmount = 40m;
-        await s.Db.SaveChangesAsync();
+        s.Dostava = TestOpcije.Dostava(minimalna: 40m);
 
         var ex = await Assert.ThrowsAsync<DomainException>(
             () => s.Novi().Handle(s.Komanda(), default));
         Assert.Equal("below_minimum", ex.Code);
+    }
+
+    [Fact]
+    public async Task Pretplata_dobija_naselje_po_tacki_a_ne_iz_zahtjeva()
+    {
+        using var s = await Scena.SpremiAsync();
+        var daleko = new DeliveryZone { Name = "Bijeljina", IsActive = true, Granica = TestNaselje.GranicaDaleko };
+        s.Db.DeliveryZones.Add(daleko);
+        await s.Db.SaveChangesAsync();
+
+        var dto = await s.Novi().Handle(s.Komanda() with { DeliveryZoneId = daleko.Id }, default);
+
+        Assert.Equal(s.Zona.Id, dto.DeliveryZoneId);
+    }
+
+    [Fact]
+    public async Task Pretplata_van_naselja_se_odbija()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => s.Novi().Handle(
+            s.Komanda() with { Latitude = TestNaselje.VanLat, Longitude = TestNaselje.VanLon }, default));
+
+        Assert.Equal("van_podrucja_dostave", ex.Code);
+    }
+
+    [Fact]
+    public async Task Izmjena_adrese_pretplate_mijenja_naselje()
+    {
+        using var s = await Scena.SpremiAsync();
+        var dto = await s.Novi().Handle(s.Komanda(), default);
+        var ada = new DeliveryZone { Name = "Bijeljina", IsActive = true, Granica = TestNaselje.GranicaDaleko };
+        s.Db.DeliveryZones.Add(ada);
+        await s.Db.SaveChangesAsync();
+
+        var izmijenjena = await s.Izmjena().Handle(new IzmijeniPretplatuCommand(
+            dto.Id, s.Korpica.Id, null, s.Slot.Id, "Bijeljinska 1", 44.75, 19.2, null), default);
+
+        Assert.Equal(ada.Id, izmijenjena.DeliveryZoneId);
     }
 
     [Fact]
@@ -236,7 +275,7 @@ public class MojePretplateTests
         await s.Db.SaveChangesAsync();
 
         var dto = await s.Izmjena().Handle(new IzmijeniPretplatuCommand(
-            p.Id, s.DrugaKorpica.Id, s.Zona.Id, s.Slot.Id, "Nova 5", null, null, "Zvoni dvaput"),
+            p.Id, s.DrugaKorpica.Id, s.Zona.Id, s.Slot.Id, "Nova 5", TestNaselje.Lat, TestNaselje.Lon, "Zvoni dvaput"),
             default);
 
         Assert.Equal(s.DrugaKorpica.Id, dto.ProductId);

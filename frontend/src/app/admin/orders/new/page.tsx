@@ -10,7 +10,9 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { AddressPicker } from "@/components/shop/address-picker";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
-import { useDeliverySlots, useDeliveryZones, useKorpiceList, useProducts } from "@/lib/api/hooks";
+import { useDeliverySlots, useDostavaPravila, useKorpiceList, useNaseljeZaTacku, useProducts } from "@/lib/api/hooks";
+import { NaseljeOznaka } from "@/components/shop/naselje-oznaka";
+import { cijenaDostave, imaKorpicu } from "@/lib/dostava";
 import { orderApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
@@ -27,7 +29,7 @@ export default function AdminNewOrderPage() {
   // Javni /products (iznad) ne sadrži korpice (vidi backend GetProductsHandler) — bez
   // ovoga, administrator ne bi mogao ručno dodati korpicu u telefonsku/ličnu narudžbu.
   const korpice = useKorpiceList();
-  const zones = useDeliveryZones();
+  const pravilaDostave = useDostavaPravila();
   const slots = useDeliverySlots();
 
   const katalog = useMemo(
@@ -39,7 +41,6 @@ export default function AdminNewOrderPage() {
     name: "",
     email: "",
     phone: "",
-    zoneId: "",
     slotId: "",
     address: "",
     note: "",
@@ -65,17 +66,18 @@ export default function AdminNewOrderPage() {
     [qty, productById],
   );
 
-  const selectedZone = useMemo(
-    () => zones.data?.find((z) => z.id === form.zoneId),
-    [zones.data, form.zoneId],
+  const naselje = useNaseljeZaTacku(coords?.lat, coords?.lon);
+  const deliveryFee = cijenaDostave(
+    imaKorpicu(lines.map((l) => l.product.id), new Set((korpice.data ?? []).map((k) => k.id))),
+    pravilaDostave.data,
   );
-  const deliveryFee = selectedZone?.deliveryFee ?? 0;
   const subtotal = useMemo(
     () => Math.round(lines.reduce((s, l) => s + l.product.price * l.quantity, 0) * 100) / 100,
     [lines],
   );
-  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
-  const belowMin = selectedZone ? subtotal < selectedZone.minOrderAmount : false;
+  const total = Math.round((subtotal + (deliveryFee ?? 0)) * 100) / 100;
+  const minimum = pravilaDostave.data?.minimalnaNarudzba ?? 0;
+  const belowMin = subtotal < minimum;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -111,7 +113,6 @@ export default function AdminNewOrderPage() {
     setErrors({});
     mutation.mutate({
       customer: { name: form.name, email: form.email, phone: form.phone },
-      deliveryZoneId: form.zoneId,
       deliverySlotId: form.slotId,
       deliveryAddress: form.address,
       note: form.note || undefined,
@@ -124,14 +125,14 @@ export default function AdminNewOrderPage() {
   const canSubmit =
     !!form.name &&
     !!form.phone &&
-    !!form.zoneId &&
+    !!naselje.data &&
     !!form.slotId &&
     !!form.address &&
     lines.length > 0 &&
     !belowMin &&
     !mutation.isPending;
 
-  if (products.isLoading || korpice.isLoading || zones.isLoading || slots.isLoading)
+  if (products.isLoading || korpice.isLoading || slots.isLoading)
     return <LoadingBlock />;
 
   return (
@@ -254,18 +255,6 @@ export default function AdminNewOrderPage() {
           <section className="rounded-card bg-white p-4 sm:p-5 shadow-card">
             <h2 className="mb-4 font-display text-lg font-semibold">Dostava</h2>
             <div className="grid gap-4">
-              <Field label="Zona dostave" required error={errors.deliveryZoneId?.[0]}>
-                <Select value={form.zoneId} onChange={(e) => set("zoneId")(e.target.value)}>
-                  <option value="">Odaberite zonu…</option>
-                  {zones.data?.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name} · min {formatPrice(z.minOrderAmount)} · dostava{" "}
-                      {formatPrice(z.deliveryFee)}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
               <Field label="Adresa" htmlFor="nova-narudzba-adresa" required error={errors.deliveryAddress?.[0]}>
                 <AddressPicker
                   id="nova-narudzba-adresa"
@@ -274,6 +263,7 @@ export default function AdminNewOrderPage() {
                   onCoordinates={setCoords}
                 />
               </Field>
+              <NaseljeOznaka naselje={naselje} imaTacku={!!coords} />
 
               <Field label="Termin dostave" required error={errors.deliverySlotId?.[0]}>
                 <Select value={form.slotId} onChange={(e) => set("slotId")(e.target.value)}>
@@ -324,7 +314,9 @@ export default function AdminNewOrderPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted">Dostava</dt>
-              <dd className="font-medium">{selectedZone ? formatPrice(deliveryFee) : "—"}</dd>
+              <dd className="font-medium">
+                {deliveryFee === null ? "—" : deliveryFee === 0 ? "besplatno" : formatPrice(deliveryFee)}
+              </dd>
             </div>
           </dl>
 
@@ -333,10 +325,9 @@ export default function AdminNewOrderPage() {
             <span className="font-display text-xl font-bold">{formatPrice(total)}</span>
           </div>
 
-          {belowMin && selectedZone && (
+          {belowMin && (
             <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-              Minimalna narudžba za zonu {selectedZone.name} je{" "}
-              {formatPrice(selectedZone.minOrderAmount)}.
+              Minimalna narudžba je {formatPrice(minimum)}.
             </p>
           )}
           {mutation.isError &&

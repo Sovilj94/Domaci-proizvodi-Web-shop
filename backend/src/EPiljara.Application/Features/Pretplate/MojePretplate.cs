@@ -2,7 +2,10 @@ using EPiljara.Application.Features.Account;
 using EPiljara.Application.Common;
 using EPiljara.Application.Common.Interfaces;
 using EPiljara.Application.DTOs;
+using EPiljara.Application.Features.Geocoding;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Naselja;
+using EPiljara.Application.Features.Orders;
 using EPiljara.Domain.Common;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
@@ -46,12 +49,15 @@ public static class PretplataPravila
     /// Provjerava sve što pretplata traži od kataloga i dostave. Zovu je i nova pretplata i
     /// izmjena, jer izmjena može promijeniti svaki od ovih izbora.
     ///
-    /// Minimum zone se provjerava OVDJE, a ne tek kad posao napravi narudžbu: pretplata koja
+    /// Naselje se određuje iz tačke adrese (kupac ga ne bira) i vraća se pozivaocu.
+    ///
+    /// Minimum narudžbe se provjerava OVDJE, a ne tek kad posao napravi narudžbu: pretplata koja
     /// ne može proći checkout bi inače tiho ćutala svake sedmice, a kupac bi mislio da je
     /// pretplaćen.
     /// </summary>
-    public static async Task ProvjeriIzborAsync(
-        IAppDbContext db, Guid productId, Guid zoneId, Guid slotId, CancellationToken ct)
+    public static async Task<DeliveryZone> ProvjeriIzborAsync(
+        IAppDbContext db, Guid productId, double? lat, double? lon, Guid slotId,
+        DostavaOpcije dostava, CancellationToken ct)
     {
         var korpica = await db.Products.FirstOrDefaultAsync(p => p.Id == productId, ct);
         if (korpica is null || !korpica.IsAvailable)
@@ -59,16 +65,13 @@ public static class PretplataPravila
         if (korpica.Vrsta != VrstaProizvoda.Korpica)
             throw new DomainException("Pretplata je moguća samo na korpicu.", "nije_korpica");
 
-        var zona = await db.DeliveryZones.FirstOrDefaultAsync(z => z.Id == zoneId && z.IsActive, ct)
-            ?? throw new DomainException("Nepoznata zona dostave.", "invalid_zone");
+        var zona = await OdredjivanjeNaselja.OdrediAsync(db, lat, lon, ct);
 
         if (!await db.DeliverySlots.AnyAsync(s => s.Id == slotId, ct))
             throw new DomainException("Nepoznat termin dostave.", "invalid_slot");
 
-        if (korpica.Price < zona.MinOrderAmount)
-            throw new DomainException(
-                $"Minimalna narudžba za zonu {zona.Name} je {zona.MinOrderAmount:0.##} KM, " +
-                "a cijena korpice je niža.", "below_minimum");
+        DostavaPravila.ProvjeriMinimum(korpica.Price, dostava);
+        return zona;
     }
 }
 
@@ -168,7 +171,7 @@ public class GetMojePretplateHandler(
 
 public record NapraviPretplatuCommand(
     Guid ProductId,
-    Guid DeliveryZoneId,
+    Guid? DeliveryZoneId, // ignoriše se — naselje se određuje iz tačke
     Guid DeliverySlotId,
     string DeliveryAddress,
     double? Latitude,
@@ -194,7 +197,6 @@ public class NapraviPretplatuValidator : AbstractValidator<NapraviPretplatuComma
     public NapraviPretplatuValidator()
     {
         RuleFor(x => x.ProductId).NotEmpty().WithMessage("Odaberi korpicu.");
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.Napomena).MaximumLength(1000)
             .When(x => x.Napomena is not null).WithMessage("Napomena je predugačka.");
@@ -209,7 +211,8 @@ public class NapraviPretplatuHandler(
     IAppDbContext db,
     ICurrentUser current,
     IOptions<KorpiceOpcije> korpiceOpcije,
-    IOptions<PretplateOpcije> pretplateOpcije)
+    IOptions<PretplateOpcije> pretplateOpcije,
+    IOptions<DostavaOpcije> dostavaOpcije)
     : IRequestHandler<NapraviPretplatuCommand, PretplataDto>
 {
     public async Task<PretplataDto> Handle(NapraviPretplatuCommand cmd, CancellationToken ct)
@@ -217,8 +220,8 @@ public class NapraviPretplatuHandler(
         if (!current.IsAuthenticated)
             throw new ForbiddenException("Pretplata traži nalog.");
 
-        await PretplataPravila.ProvjeriIzborAsync(
-            db, cmd.ProductId, cmd.DeliveryZoneId, cmd.DeliverySlotId, ct);
+        var zona = await PretplataPravila.ProvjeriIzborAsync(
+            db, cmd.ProductId, cmd.Latitude, cmd.Longitude, cmd.DeliverySlotId, dostavaOpcije.Value, ct);
 
         // Baza ovo brani filtriranim indeksom; ovdje se hvata da kupac dobije poruku umjesto
         // 500. Otkazane se namjerno ne broje — kupac se smije vratiti na isti paket.
@@ -234,7 +237,7 @@ public class NapraviPretplatuHandler(
             UserId = current.Id!.Value,
             ProductId = cmd.ProductId,
             Status = StatusPretplate.Aktivna,
-            DeliveryZoneId = cmd.DeliveryZoneId,
+            DeliveryZoneId = zona.Id,
             DeliverySlotId = cmd.DeliverySlotId,
             DeliveryAddress = cmd.DeliveryAddress.Trim(),
             Latitude = cmd.Latitude,
@@ -270,7 +273,7 @@ public class NapraviPretplatuHandler(
 public record IzmijeniPretplatuCommand(
     Guid Id,
     Guid ProductId,
-    Guid DeliveryZoneId,
+    Guid? DeliveryZoneId, // ignoriše se — naselje se određuje iz tačke
     Guid DeliverySlotId,
     string DeliveryAddress,
     double? Latitude,
@@ -285,7 +288,6 @@ public class IzmijeniPretplatuValidator : AbstractValidator<IzmijeniPretplatuCom
     public IzmijeniPretplatuValidator()
     {
         RuleFor(x => x.ProductId).NotEmpty().WithMessage("Odaberi korpicu.");
-        RuleFor(x => x.DeliveryZoneId).NotEmpty().WithMessage("Odaberi zonu dostave.");
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.Napomena).MaximumLength(1000)
             .When(x => x.Napomena is not null).WithMessage("Napomena je predugačka.");
@@ -297,7 +299,8 @@ public class IzmijeniPretplatuHandler(
     IAppDbContext db,
     ICurrentUser current,
     IOptions<KorpiceOpcije> korpiceOpcije,
-    IOptions<PretplateOpcije> pretplateOpcije)
+    IOptions<PretplateOpcije> pretplateOpcije,
+    IOptions<DostavaOpcije> dostavaOpcije)
     : IRequestHandler<IzmijeniPretplatuCommand, PretplataDto>
 {
     public async Task<PretplataDto> Handle(IzmijeniPretplatuCommand cmd, CancellationToken ct)
@@ -308,8 +311,8 @@ public class IzmijeniPretplatuHandler(
             throw new ConflictException(
                 "Otkazana pretplata se ne može mijenjati.", "pretplata_otkazana");
 
-        await PretplataPravila.ProvjeriIzborAsync(
-            db, cmd.ProductId, cmd.DeliveryZoneId, cmd.DeliverySlotId, ct);
+        var zona = await PretplataPravila.ProvjeriIzborAsync(
+            db, cmd.ProductId, cmd.Latitude, cmd.Longitude, cmd.DeliverySlotId, dostavaOpcije.Value, ct);
 
         if (p.ProductId != cmd.ProductId)
         {
@@ -324,7 +327,7 @@ public class IzmijeniPretplatuHandler(
         // Promjena paketa NE nulira BrojIsporuka: popust je zarađen vjernošću pretplati, ne
         // konkretnoj korpici. Kupac koji pređe sa male na srednju ne počinje iznova.
         p.ProductId = cmd.ProductId;
-        p.DeliveryZoneId = cmd.DeliveryZoneId;
+        p.DeliveryZoneId = zona.Id;
         p.DeliverySlotId = cmd.DeliverySlotId;
         p.DeliveryAddress = cmd.DeliveryAddress.Trim();
         p.Latitude = cmd.Latitude;

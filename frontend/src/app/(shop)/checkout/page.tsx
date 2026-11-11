@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -22,7 +22,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import {
   useDeliverySlots,
-  useDeliveryZones,
+  useDostavaPravila,
+  useNaseljeZaTacku,
   useKorpiceList,
   useMojiPoeni,
   useMyAddresses,
@@ -31,7 +32,8 @@ import {
 } from "@/lib/api/hooks";
 import { orderApi, promoApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
-import { pogodiZonu } from "@/lib/zone";
+import { cijenaDostave, imaKorpicu } from "@/lib/dostava";
+import { NaseljeOznaka } from "@/components/shop/naselje-oznaka";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useToast } from "@/components/ui/toast";
@@ -83,7 +85,7 @@ export default function CheckoutPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { show } = useToast();
-  const zones = useDeliveryZones();
+  const pravilaDostave = useDostavaPravila();
   const slots = useDeliverySlots();
   const products = useProducts();
   // Korpice su Product redovi (Vrsta == Korpica), ali se javni katalog (/products) od
@@ -136,7 +138,6 @@ export default function CheckoutPage() {
     prezime: "",
     email: "",
     phone: "",
-    zoneId: "",
     slotId: "",
     ulica: "",
     broj: "",
@@ -162,7 +163,6 @@ export default function CheckoutPage() {
       prezime: f.prezime || ostalo.join(" "),
       email: f.email || user.email,
       phone: f.phone || stripDialCode(user.phone ?? ""),
-      zoneId: f.zoneId || user.deliveryZoneId || "",
     }));
   }, [user]);
 
@@ -191,21 +191,16 @@ export default function CheckoutPage() {
     }
   };
 
-  // Best-effort: auto-select the delivery zone from the address's neighbourhood name.
-  // Sam uslov podudaranja stoji u `lib/zone.ts` jer ga od P2c dijeli sa formom adresara.
-  const applyZoneHint = useCallback(
-    (localities: string[]) => {
-      const match = pogodiZonu(localities, zones.data);
-      if (match) setForm((f) => ({ ...f, zoneId: match.id }));
-    },
-    [zones.data],
-  );
+  // Naselje određuje sistem iz potvrđene tačke (kupac ga ne bira); server isto provjerava pri slanju.
+  const naselje = useNaseljeZaTacku(coords?.lat, coords?.lon);
+  const selectedZone = naselje.data;
 
-  const selectedZone = useMemo(
-    () => zones.data?.find((z) => z.id === form.zoneId),
-    [zones.data, form.zoneId],
+  // Dostava: uz bar jednu korpicu po pravilu „sa korpicom" (besplatno), inače „bez korpice".
+  const korpicaIds = useMemo(() => new Set((korpice.data ?? []).map((k) => k.id)), [korpice.data]);
+  const deliveryFee = cijenaDostave(
+    imaKorpicu(items.map((i) => i.productId), korpicaIds),
+    pravilaDostave.data,
   );
-  const deliveryFee = selectedZone?.deliveryFee ?? 0;
   // Popust računa server (provjera koda) — klijent ga samo prikazuje.
   // Provjera ide tek na koraku 3 (e-mail je tada gotov, ne po svakom tasteru); prijavljenom
   // se e-mail ne šalje jer server koristi nalog. Keš i bez refetch-a na fokus štede
@@ -241,8 +236,9 @@ export default function CheckoutPage() {
       : 0;
   const poenaZaTrosenje = vrijednostPoena > 0 ? Math.round(popustPoena / vrijednostPoena) : 0;
   const poeniPopust = koristiPoene ? popustPoena : 0;
-  const total = Math.round((cijenaRobe - popust - poeniPopust + deliveryFee) * 100) / 100;
-  const belowMin = selectedZone ? cijenaRobe < selectedZone.minOrderAmount : false;
+  const total = Math.round((cijenaRobe - popust - poeniPopust + (deliveryFee ?? 0)) * 100) / 100;
+  const minimum = pravilaDostave.data?.minimalnaNarudzba ?? 0;
+  const belowMin = cijenaRobe < minimum;
 
   // Backend i dalje prima jedno ime i jednu adresu — admin, dispečerski ekran i
   // vozačka aplikacija čitaju upravo to. Razdvojena polja su samo oblik forme.
@@ -266,7 +262,7 @@ export default function CheckoutPage() {
 
   const gost = !user;
   const step1Valid =
-    !!form.ulica && (adresaVecPotpuna || !!form.broj) && !!form.zoneId && !!form.slotId && !vanPodrucja;
+    !!form.ulica && (adresaVecPotpuna || !!form.broj) && !!naselje.data && !!form.slotId && !vanPodrucja;
   const step2Valid =
     !!form.ime && !!form.prezime && !!form.phone && (!gost || !!form.email);
   const canOrder = step1Valid && step2Valid && !belowMin && items.length > 0;
@@ -315,7 +311,6 @@ export default function CheckoutPage() {
     setErrors({});
     const body: CreateOrderRequest = {
       customer: { name: punoIme, email: form.email, phone: telefon },
-      deliveryZoneId: form.zoneId,
       deliverySlotId: form.slotId,
       deliveryAddress: punaAdresa,
       note: form.note || undefined,
@@ -406,7 +401,6 @@ export default function CheckoutPage() {
                   value={form.ulica}
                   onChange={handleUlicaChange}
                   savedAddresses={savedAddresses}
-                  onLocalities={applyZoneHint}
                   onCoordinates={setCoords}
                   querySuffix={form.broj}
                   onBroj={set("broj")}
@@ -437,17 +431,7 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <Field label="Zona dostave" required error={errors.deliveryZoneId?.[0]}>
-                <Select value={form.zoneId} onChange={(e) => set("zoneId")(e.target.value)}>
-                  <option value="">Odaberi zonu…</option>
-                  {zones.data?.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name} · min {formatPrice(z.minOrderAmount)} · dostava{" "}
-                      {formatPrice(z.deliveryFee)}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
+              <NaseljeOznaka naselje={naselje} imaTacku={!!coords} />
 
               <Field label="Termin dostave" required error={errors.deliverySlotId?.[0]}>
                 <Select value={form.slotId} onChange={(e) => set("slotId")(e.target.value)}>
@@ -460,10 +444,9 @@ export default function CheckoutPage() {
                 </Select>
               </Field>
 
-              {belowMin && selectedZone && (
+              {belowMin && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                  Minimalna narudžba za zonu {selectedZone.name} je{" "}
-                  {formatPrice(selectedZone.minOrderAmount)}.
+                  Minimalna narudžba je {formatPrice(minimum)}.
                 </p>
               )}
             </section>
@@ -598,10 +581,9 @@ export default function CheckoutPage() {
                 )
               )}
 
-              {belowMin && selectedZone && (
+              {belowMin && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                  Minimalna narudžba za zonu {selectedZone.name} je{" "}
-                  {formatPrice(selectedZone.minOrderAmount)}.
+                  Minimalna narudžba je {formatPrice(minimum)}.
                 </p>
               )}
               {activeMutation.isError &&
@@ -646,7 +628,7 @@ export default function CheckoutPage() {
 
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <span className="whitespace-nowrap font-display text-base font-bold sm:text-lg">
-                {formatPrice(selectedZone ? total : cijenaRobe)}
+                {formatPrice(total)}
               </span>
               {/* Različiti `key`-evi su obavezni. Bez njih React zadrži isti <button> i samo mu
                   promijeni `type` u "submit" — a to se desi usred klika na „Nastavi" u koraku 2,

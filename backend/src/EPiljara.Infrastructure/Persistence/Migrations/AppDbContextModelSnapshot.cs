@@ -281,6 +281,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<string>("Geometrija")
                         .HasColumnType("text");
 
+                    b.Property<string>("IzvorRedoslijeda")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<double?>("KilometrazaMetara")
                         .HasColumnType("double precision");
 
@@ -288,6 +292,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("RedniBroj")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -343,12 +350,28 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<double?>("CentarLat")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("CentarLon")
+                        .HasColumnType("double precision");
+
                     b.Property<decimal>("DeliveryFee")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<string>("Granica")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("IzvorGranice")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("procjena");
 
                     b.Property<decimal>("MinOrderAmount")
                         .HasPrecision(12, 2)
@@ -1159,6 +1182,16 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<int>("DanIsporukeRezerva")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("DostavaBezKorpice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasDefaultValue(5m);
+
+                    b.Property<decimal>("DostavaSaKorpicom")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<string>("FiskalOznakaBezPdv")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1206,6 +1239,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("MinimalnaMarza")
                         .HasPrecision(5, 3)
                         .HasColumnType("numeric(5,3)");
+
+                    b.Property<decimal>("MinimalnaNarudzba")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
 
                     b.Property<int>("NagradaPreporuka")
                         .HasColumnType("integer");

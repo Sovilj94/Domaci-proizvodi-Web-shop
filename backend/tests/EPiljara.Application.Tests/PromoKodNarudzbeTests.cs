@@ -22,12 +22,13 @@ public class PromoKodNarudzbeTests
         public TestDb T { get; } = new();
         public DeliveryZone Zona { get; set; } = null!;
         public DeliverySlot Slot { get; set; } = null!;
+        public decimal Minimum { get; set; }
         public Product Proizvod { get; set; } = null!;
 
         public static async Task<Okruzenje> NapraviAsync(decimal minimum = 0m, decimal cijena = 20m)
         {
-            var o = new Okruzenje();
-            o.Zona = new DeliveryZone { Name = "Centar", MinOrderAmount = minimum, DeliveryFee = 3m, IsActive = true };
+            var o = new Okruzenje { Minimum = minimum };
+            o.Zona = new DeliveryZone { Name = "Centar", MinOrderAmount = minimum, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
             o.Slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
             o.Proizvod = new Product
             {
@@ -53,17 +54,17 @@ public class PromoKodNarudzbeTests
 
         public CreateOrderHandler Handler(Guid? prijavljen) =>
             new(T.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
-                Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()));
+                Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()), TestOpcije.DostavaO(Minimum, bezKorpice: 3m));
 
         public CreateOrderCommand Komanda(string? kod, decimal kolicina = 1m) =>
             new(new CustomerInput("Marko", "marko@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,
-                [new OrderItemInput(Proizvod.Id, kolicina)], PromoKod: kod);
+                [new OrderItemInput(Proizvod.Id, kolicina)], Latitude: TestNaselje.Lat, Longitude: TestNaselje.Lon, PromoKod: kod);
 
         public Task ZahtjevAsync(string? kod, string email = "gost@example.com") =>
-            new CreateGuestOrderRequestHandler(T.Db, new FakeCurrentUser(null), new FakeEmail())
+            new CreateGuestOrderRequestHandler(T.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO(Minimum, bezKorpice: 3m))
                 .Handle(new CreateGuestOrderRequestCommand(
                     new CustomerInput("Gost", email, "065"), Zona.Id, Slot.Id, "Testna 1", null,
-                    [new OrderItemInput(Proizvod.Id, 1m)], PromoKod: kod), default);
+                    [new OrderItemInput(Proizvod.Id, 1m)], Latitude: TestNaselje.Lat, Longitude: TestNaselje.Lon, PromoKod: kod), default);
 
         public Task<EPiljara.Application.DTOs.OrderDto> PotvrdiAsync(string token) =>
             new ConfirmGuestOrderHandler(T.Db, new FakeEmail(), new FakeViber(), Options.Create(TestOpcije.Korpice()))
@@ -116,7 +117,7 @@ public class PromoKodNarudzbeTests
     }
 
     [Fact]
-    public async Task Minimum_zone_se_mjeri_prije_popusta()
+    public async Task Minimum_se_mjeri_prije_popusta()
     {
         using var o = await Okruzenje.NapraviAsync(minimum: 30m, cijena: 30m);
         await o.KodAsync(k => { k.Tip = TipPopusta.Procenat; k.Vrijednost = 20m; });
@@ -278,7 +279,7 @@ public class PromoKodNarudzbeTests
     public void Validator_narudzbe_ogranicava_promo_kod_na_30_znakova(int duzina, bool valjan)
     {
         var cmd = new CreateOrderCommand(Kupac, Guid.NewGuid(), Guid.NewGuid(), "Testna 1", null,
-            [new OrderItemInput(Guid.NewGuid(), 1m)], PromoKod: new string('A', duzina));
+            [new OrderItemInput(Guid.NewGuid(), 1m)], Latitude: TestNaselje.Lat, Longitude: TestNaselje.Lon, PromoKod: new string('A', duzina));
 
         var rezultat = new CreateOrderValidator().Validate(cmd);
 
@@ -291,7 +292,7 @@ public class PromoKodNarudzbeTests
     public void Validator_zahtjeva_gosta_ogranicava_promo_kod_na_30_znakova(int duzina, bool valjan)
     {
         var cmd = new CreateGuestOrderRequestCommand(Kupac, Guid.NewGuid(), Guid.NewGuid(), "Testna 1", null,
-            [new OrderItemInput(Guid.NewGuid(), 1m)], PromoKod: new string('A', duzina));
+            [new OrderItemInput(Guid.NewGuid(), 1m)], Latitude: TestNaselje.Lat, Longitude: TestNaselje.Lon, PromoKod: new string('A', duzina));
 
         var rezultat = new CreateGuestOrderRequestValidator().Validate(cmd);
 

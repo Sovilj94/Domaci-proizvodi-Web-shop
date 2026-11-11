@@ -10,6 +10,8 @@ export const queryKeys = {
   producer: (id: string) => ["producer", id] as const,
   zones: () => ["delivery", "zones"] as const,
   slots: () => ["delivery", "slots"] as const,
+  naselje: (lat?: number, lon?: number) => ["delivery", "naselje", lat, lon] as const,
+  dostavaPravila: () => ["delivery", "pravila"] as const,
   myOrders: () => ["orders", "mine"] as const,
   adrese: () => ["account", "adrese"] as const,
   order: (id: string) => ["order", id] as const,
@@ -79,6 +81,25 @@ export function useDeliveryZones() {
   return useQuery({
     queryKey: queryKeys.zones(),
     queryFn: () => deliveryApi.zones(),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Naselje za potvrđenu tačku adrese. Greška (van_podrucja_dostave) je odgovor, ne kvar — bez ponavljanja. */
+export function useNaseljeZaTacku(lat?: number, lon?: number) {
+  return useQuery({
+    queryKey: queryKeys.naselje(lat, lon),
+    queryFn: () => deliveryApi.naselje(lat!, lon!),
+    enabled: lat !== undefined && lon !== undefined,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+export function useDostavaPravila() {
+  return useQuery({
+    queryKey: queryKeys.dostavaPravila(),
+    queryFn: () => deliveryApi.pravila(),
     staleTime: 5 * 60_000,
   });
 }

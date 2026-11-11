@@ -18,10 +18,9 @@ namespace EPiljara.Application.Features.Admin;
  * izgradnju cijelog dana plus onoliko poziva OSRM-u koliko vozač ima ruta, a „Prebaci"
  * bi bio dva odvojena zahtjeva između kojih narudžba visi nedodijeljena.
  *
- * Ovdje je izmjena tačkasta: jedna stanica se pomjeri, redoslijed preostalih se popravi,
- * optimizacija se NE dira. Ruta zato zadržava stare DuzinaMetara/TrajanjeSekundi dok je
- * dispečer ponovo ne optimizuje — što je i pošteno: ta dužina više ne opisuje izmijenjenu
- * rutu, a pisati novu bez OSRM-a značilo bi izmisliti je.
+ * Ovdje je izmjena tačkasta: jedna stanica ide u prostorno najbližu nepočetu rutu svog naselja,
+ * pa se optimizuje samo ta ruta (OSRM ili vazdušna rezerva). Grupna dodjela naselje dijeli iznova
+ * po lokaciji (RasporedDana). Poslije svake izmjene rute vozača dobijaju redne brojeve.
  *
  * Oba handlera učitavaju SVE rute tog dana jednim upitom, mijenjaju ih u memoriji i snimaju
  * jednim SaveChanges. Ne razbijati to na više upita: entitet označen za brisanje je i dalje
@@ -84,9 +83,10 @@ internal static class Dispecer
     internal static void PreimenujZonu(
         IEnumerable<DeliveryRoute> ruteVozacaZaDan, Guid? zonaId, string nazivZone)
     {
+        // Redoslijed vožnje, pa Id: „Centar 1" je ruta koja se vozi prva.
         var uZoni = ruteVozacaZaDan
             .Where(r => r.DeliveryZoneId == zonaId)
-            .OrderBy(r => r.Id)
+            .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Id)
             .ToList();
 
         for (var i = 0; i < uZoni.Count; i++)
@@ -119,15 +119,15 @@ internal static class Dispecer
     }
 
     /// <summary>
-    /// Lijepi narudžbu na vozačevu rutu za taj dan: traži rutu iste zone koja još ima mjesta,
-    /// inače pravi novu, pa popravlja redoslijed i nazive.
+    /// Lijepi narudžbu na vozačevu rutu za taj dan: prostorno najbliža nepočeta ruta istog naselja
+    /// koja još ima mjesta, inače nova. Vraća rutu u koju je stanica otišla (za optimizaciju).
     /// </summary>
     /// <remarks>
     /// Namjerno NE provjerava kapacitet i NE snima. Pojedinačna dodjela broji jedno mjesto po
     /// pozivu, a grupna sva unaprijed da bi mogla odbiti cijelo naselje odjednom — da provjera
     /// stoji ovdje, grupna bi je radila po narudžbi i pukla na sredini naselja.
     /// </remarks>
-    internal static void DodijeliNaRutu(
+    internal static DeliveryRoute DodijeliNaRutu(
         IAppDbContext db, List<DeliveryRoute> sveRute, Order narudzba, Guid vozacId, DateOnly datum)
     {
         var vozacevRute = sveRute.Where(r => r.DriverId == vozacId).ToList();
@@ -135,10 +135,15 @@ internal static class Dispecer
         var zonaId = narudzba.DeliveryZoneId;
         var nazivZone = narudzba.DeliveryZone?.Name ?? NazivBezZone;
 
-        // Ruta iste zone koja još ima mjesta; inače nova. Zona odlučuje jer vozač obilazi
-        // naselje po naselje, a granica od 10 dolazi od Google Maps linka.
-        var ruta = vozacevRute.FirstOrDefault(
-            r => r.DeliveryZoneId == zonaId && r.Stops.Count < MaxStanicaPoRuti);
+        // Ruta istog naselja koja još ima mjesta i nije počela; od takvih ona čiji je centar stanica
+        // najbliži narudžbi. Naselje odlučuje jer vozač obilazi naselje po naselje, a granica od 10
+        // dolazi od Google Maps linka. U počelu rutu se ne dodaje — vozač je već na putu.
+        var kandidati = vozacevRute
+            .Where(r => r.DeliveryZoneId == zonaId && r.Stops.Count < MaxStanicaPoRuti && !RasporedDana.JePocela(r))
+            .ToList();
+        var ruta = narudzba.Latitude is { } la && narudzba.Longitude is { } lo
+            ? kandidati.OrderBy(r => UdaljenostCentra(r, la, lo)).ThenBy(r => r.Stops.Count).ThenBy(r => r.Id).FirstOrDefault()
+            : kandidati.OrderBy(r => r.Stops.Count).ThenBy(r => r.Id).FirstOrDefault();
 
         if (ruta is null)
         {
@@ -174,12 +179,22 @@ internal static class Dispecer
 
         Prenumerisi(ruta);
         PreimenujZonu(vozacevRute, zonaId, nazivZone);
+        return ruta;
+    }
+
+    private static double UdaljenostCentra(DeliveryRoute r, double lat, double lon)
+    {
+        var t = r.Stops.Where(s => s.Order?.Latitude is not null && s.Order.Longitude is not null).ToList();
+        if (t.Count == 0) return double.MaxValue;
+        return PlanRuta.Metara(lat, lon, t.Average(s => s.Order!.Latitude!.Value), t.Average(s => s.Order!.Longitude!.Value));
     }
 
     /// <summary>Stanice vozača za taj dan, po rutama — zajednički odgovor oba handlera.</summary>
     internal static IReadOnlyList<DeliveryRouteDto> VozacevePoRutama(
         IEnumerable<DeliveryRoute> sveRute, Guid driverId) =>
-        sveRute.Where(r => r.DriverId == driverId).Select(r => r.ToDto()).ToList();
+        sveRute.Where(r => r.DriverId == driverId)
+            .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
+            .Select(r => r.ToDto()).ToList();
 }
 
 /* ---------- Dodjela i prebacivanje ---------- */
@@ -191,7 +206,7 @@ internal static class Dispecer
 public record AssignOrderDriverCommand(Guid OrderId, Guid DriverId, string Date)
     : IRequest<IReadOnlyList<DeliveryRouteDto>>;
 
-public class AssignOrderDriverHandler(IAppDbContext db)
+public class AssignOrderDriverHandler(IAppDbContext db, IRouteOptimizer optimizer)
     : IRequestHandler<AssignOrderDriverCommand, IReadOnlyList<DeliveryRouteDto>>
 {
     public async Task<IReadOnlyList<DeliveryRouteDto>> Handle(
@@ -219,6 +234,7 @@ public class AssignOrderDriverHandler(IAppDbContext db)
         var sveRute = await Dispecer.RuteZaDanAsync(db, datum, ct);
 
         // Postojeća stanica te narudžbe tog dana, kod bilo kog vozača — prebacivanje.
+        var vozaci = new List<Guid> { vozac.Id };
         var staraRuta = sveRute.FirstOrDefault(r => r.Stops.Any(s => s.OrderId == narudzba.Id));
         if (staraRuta is not null)
         {
@@ -228,6 +244,7 @@ public class AssignOrderDriverHandler(IAppDbContext db)
 
             Dispecer.SkiniStanicu(
                 db, sveRute, staraRuta, staraRuta.Stops.First(s => s.OrderId == narudzba.Id));
+            vozaci.Add(staraRuta.DriverId);
         }
 
         var zauzeto = sveRute.Where(r => r.DriverId == vozac.Id).Sum(r => r.Stops.Count);
@@ -236,7 +253,8 @@ public class AssignOrderDriverHandler(IAppDbContext db)
                 $"Vozač je popunjen — {Domain.Entities.Driver.MaxStanicaPoDanu} stanica je dnevni maksimum.",
                 "driver_full");
 
-        Dispecer.DodijeliNaRutu(db, sveRute, narudzba, vozac.Id, datum);
+        var ruta = Dispecer.DodijeliNaRutu(db, sveRute, narudzba, vozac.Id, datum);
+        await RasporedDana.ZavrsiAsync(db, sveRute, [ruta], vozaci, optimizer, ct);
 
         await db.SaveChangesAsync(ct);
 
@@ -258,7 +276,7 @@ public class AssignOrderDriverHandler(IAppDbContext db)
 public record AssignOrdersBulkCommand(IReadOnlyList<Guid> OrderIds, Guid DriverId, string Date)
     : IRequest<IReadOnlyList<DeliveryRouteDto>>;
 
-public class AssignOrdersBulkHandler(IAppDbContext db)
+public class AssignOrdersBulkHandler(IAppDbContext db, IRouteOptimizer optimizer)
     : IRequestHandler<AssignOrdersBulkCommand, IReadOnlyList<DeliveryRouteDto>>
 {
     public async Task<IReadOnlyList<DeliveryRouteDto>> Handle(
@@ -312,17 +330,26 @@ public class AssignOrdersBulkHandler(IAppDbContext db)
                 $"{vozac.Name} ima {slobodno} slobodnih mjesta, a dodjeljuje se {zaDodavanje.Count} narudžbi.",
                 "driver_full");
 
+        var vozaci = new List<Guid> { vozac.Id };
         foreach (var narudzba in zaDodavanje)
         {
-            // Prebacivanje: stanica kod drugog vozača se prvo skida, pa lijepi ovdje.
+            // Prebacivanje: stanica kod drugog vozača se prvo skida.
             var staraRuta = sveRute.FirstOrDefault(r => r.Stops.Any(s => s.OrderId == narudzba.Id));
             if (staraRuta is not null)
+            {
                 Dispecer.SkiniStanicu(
                     db, sveRute, staraRuta, staraRuta.Stops.First(s => s.OrderId == narudzba.Id));
-
-            Dispecer.DodijeliNaRutu(db, sveRute, narudzba, vozac.Id, datum);
+                vozaci.Add(staraRuta.DriverId);
+            }
         }
 
+        // Svako pogođeno naselje se dijeli iznova po lokaciji, zajedno sa nepočetim rutama vozača u njemu.
+        var nove = new List<DeliveryRoute>();
+        foreach (var zona in zaDodavanje.GroupBy(o => o.DeliveryZoneId))
+            nove.AddRange(RasporedDana.PrerasporediZonu(db, sveRute, vozac.Id, datum, zona.Key,
+                zona.First().DeliveryZone?.Name ?? Dispecer.NazivBezZone, zona.ToList()));
+
+        await RasporedDana.ZavrsiAsync(db, sveRute, nove, vozaci, optimizer, ct);
         await db.SaveChangesAsync(ct);
 
         return Dispecer.VozacevePoRutama(sveRute, vozac.Id);

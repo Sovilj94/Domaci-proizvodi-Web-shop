@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/toast";
 import { adminApi } from "@/lib/api/endpoints";
 import { narudzbeRijec } from "@/lib/orders";
 import type { Driver, Voznja } from "@/lib/api/contracts";
-import type { DeliveryRoute, Order, RouteStop } from "@/types/domain";
+import type { DeliveryRoute, Order, PodjelaStavka, RouteStop } from "@/types/domain";
 import { cn, formatPrice } from "@/lib/utils";
 
 const NEDODIJELJENO = "nedodijeljeno";
@@ -68,10 +68,15 @@ function AdminDostavaContent() {
   /** Stanice po vozaču, spojene iz svih njegovih ruta tog dana. */
   const poVozacu = useMemo(() => {
     const mapa = new Map<string, RouteStop[]>();
-    for (const r of routes.data ?? []) {
+    // Rute po planiranom redoslijedu dana (redniBroj), pa stanice po redoslijedu unutar rute.
+    const rute = [...(routes.data ?? [])].sort(
+      (a, b) => (a.redniBroj ?? Infinity) - (b.redniBroj ?? Infinity) || (a.naziv ?? "").localeCompare(b.naziv ?? ""),
+    );
+    const redRute = new Map<string, number>();
+    for (const [i, r] of rute.entries()) {
       if (!r.driverId) continue;
-      const dosad = mapa.get(r.driverId) ?? [];
-      mapa.set(r.driverId, [...dosad, ...r.stops]);
+      for (const s of r.stops) redRute.set(s.orderId, i);
+      mapa.set(r.driverId, [...(mapa.get(r.driverId) ?? []), ...r.stops]);
     }
     // Otvorene prvo (po redoslijedu vožnje), zatvorene na kraj — isto pravilo koje
     // aplikacija vozača koristi na svom ekranu rute.
@@ -81,7 +86,11 @@ function AdminDostavaContent() {
         [...stanice].sort((a, b) => {
           const az = ZATVORENI.has(a.status ?? "") ? 1 : 0;
           const bz = ZATVORENI.has(b.status ?? "") ? 1 : 0;
-          return az !== bz ? az - bz : a.sequence - b.sequence;
+          return (
+            az - bz ||
+            (redRute.get(a.orderId) ?? 0) - (redRute.get(b.orderId) ?? 0) ||
+            a.sequence - b.sequence
+          );
         }),
       );
     }
@@ -229,6 +238,17 @@ function AdminDostavaContent() {
     onSettled: osvjezi,
   });
 
+  // Prije grupne dodjele admin vidi kako će se naselje podijeliti („Borik 1: 8 · Borik 2: 7").
+  const [pregled, setPregled] = useState<
+    { orderIds: string[]; driverId: string; stavke: PodjelaStavka[] } | null
+  >(null);
+  const pregledaj = useMutation({
+    mutationFn: ({ orderIds, driverId }: { orderIds: string[]; driverId: string }) =>
+      adminApi.pregledPodjele({ orderIds, driverId, date }),
+    onSuccess: (stavke, { orderIds, driverId }) => setPregled({ orderIds, driverId, stavke }),
+    onError: (err) => show(poruka(err, "Pregled podjele nije uspio."), "error"),
+  });
+
   const ucitava = drivers.isLoading || routes.isLoading || nedodijeljene.isLoading;
 
   const stanice = aktivniVozac ? (poVozacu.get(aktivniVozac.id) ?? []) : [];
@@ -283,6 +303,30 @@ function AdminDostavaContent() {
 
       <DispatchTabs tabs={tabs} activeId={activeId} onSelect={selectTab} />
 
+      {pregled && (
+        <div role="status" className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-surface px-4 py-3 text-sm">
+          <span>
+            {(drivers.data ?? []).find((d) => d.id === pregled.driverId)?.name ?? "Vozač"}:{" "}
+            <span className="font-medium">{pregled.stavke.map((s) => `${s.naziv}: ${s.broj}`).join(" · ")}</span>
+          </span>
+          <div className="ml-auto flex gap-2">
+            <Button
+              size="sm"
+              disabled={dodijeliGrupu.isPending}
+              onClick={() => {
+                dodijeliGrupu.mutate({ orderIds: pregled.orderIds, driverId: pregled.driverId });
+                setPregled(null);
+              }}
+            >
+              Potvrdi dodjelu
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setPregled(null)}>
+              Odustani
+            </Button>
+          </div>
+        </div>
+      )}
+
       {ucitava ? (
         <LoadingBlock />
       ) : activeId === NEDODIJELJENO ? (
@@ -292,10 +336,8 @@ function AdminDostavaContent() {
           pretraga={pretraga}
           onPretraga={setPretraga}
           onDodijeli={(orderId, driverId) => dodijeli.mutate({ orderId, driverId })}
-          onDodijeliGrupu={(orderIds, driverId) =>
-            dodijeliGrupu.mutate({ orderIds, driverId })
-          }
-          uToku={dodijeli.isPending || dodijeliGrupu.isPending}
+          onDodijeliGrupu={(orderIds, driverId) => pregledaj.mutate({ orderIds, driverId })}
+          uToku={dodijeli.isPending || dodijeliGrupu.isPending || pregledaj.isPending}
         />
       ) : !aktivniVozac ? (
         <EmptyState

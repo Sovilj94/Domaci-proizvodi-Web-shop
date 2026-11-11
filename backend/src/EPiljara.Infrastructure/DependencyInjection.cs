@@ -76,7 +76,7 @@ public static class DependencyInjection
         // odmah poslije migracija, jer tek tada baza može biti pitana.
 
         // Rezerva se registruje zasebno jer je OsrmRouteOptimizer prima kroz konstruktor.
-        services.AddSingleton<ZoneRouteOptimizer>();
+        services.AddSingleton<NajbliziSusjedOptimizer>();
         services.AddHttpClient<IRouteOptimizer, OsrmRouteOptimizer>(c =>
         {
             c.BaseAddress = new Uri(

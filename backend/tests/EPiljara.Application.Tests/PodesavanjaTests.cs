@@ -57,6 +57,30 @@ public class PodesavanjaTests
     }
 
     [Fact]
+    public async Task Dostava_polja_se_cuvaju()
+    {
+        using var t = new TestDb();
+        t.Db.Podesavanja.Add(Red());
+        await t.Db.SaveChangesAsync();
+
+        var dto = PodesavanjaMapa.UDto(Red()) with { DostavaSaKorpicom = 1m, DostavaBezKorpice = 6m, MinimalnaNarudzba = 15m };
+        await new SacuvajPodesavanjaHandler(t.Db).Handle(new SacuvajPodesavanjaCommand(dto), default);
+        t.Db.ChangeTracker.Clear();
+
+        var red = new IzvorPodesavanja(t.Db).Red;
+        red.DostavaSaKorpicom.Should().Be(1m);
+        red.DostavaBezKorpice.Should().Be(6m);
+        red.MinimalnaNarudzba.Should().Be(15m);
+    }
+
+    [Fact]
+    public void Validator_odbija_negativnu_dostavu()
+    {
+        var dto = PodesavanjaMapa.UDto(Red()) with { DostavaBezKorpice = -1m };
+        new SacuvajPodesavanjaValidator().Validate(new SacuvajPodesavanjaCommand(dto)).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
     public void Validator_odbija_vrijednosti_van_opsega()
     {
         var v = new SacuvajPodesavanjaValidator();

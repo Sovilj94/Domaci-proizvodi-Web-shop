@@ -50,6 +50,12 @@ internal static class TestOpcije
 
     public static ProdavnicaOpcije Prodavnica() => new() { PragPriKraju = 10m };
 
+    /// <summary>Odluka vlasnika: uz korpicu besplatno, bez nje 5 KM, bez minimuma.</summary>
+    public static EPiljara.Application.Features.Geocoding.DostavaOpcije Dostava(decimal minimalna = 0m, decimal bezKorpice = 5m) =>
+        new() { DostavaSaKorpicom = 0m, DostavaBezKorpice = bezKorpice, MinimalnaNarudzba = minimalna };
+    public static IOptions<EPiljara.Application.Features.Geocoding.DostavaOpcije> DostavaO(decimal minimalna = 0m, decimal bezKorpice = 5m) =>
+        Options.Create(Dostava(minimalna, bezKorpice));
+
     public static IOptions<KorpiceOpcije> KorpiceO() => Options.Create(Korpice());
     public static IOptions<ProdavnicaOpcije> ProdavnicaO() => Options.Create(Prodavnica());
 }

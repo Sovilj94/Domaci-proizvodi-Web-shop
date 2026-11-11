@@ -27,7 +27,7 @@ public class PoeniNarudzbeTests
         public static async Task<Okruzenje> NapraviAsync()
         {
             var o = new Okruzenje();
-            o.Zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+            o.Zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
             o.Slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
             o.Proizvod = new Product
             {
@@ -63,11 +63,11 @@ public class PoeniNarudzbeTests
         public CreateOrderHandler Handler(Guid? prijavljen) =>
             new(T.Db, new FakeCurrentUser(prijavljen), new FakeEmail(), new FakeViber(),
                 Options.Create(TestOpcije.Korpice()), Options.Create(TestOpcije.Pretplate()),
-                Options.Create(TestOpcije.Poeni()));
+                Options.Create(TestOpcije.Poeni()), TestOpcije.DostavaO(bezKorpice: 3m));
 
         public CreateOrderCommand Komanda(bool poeni, string? kod = null, Guid? customerId = null) =>
             new(new CustomerInput("Marko", "marko@example.com", "065"), Zona.Id, Slot.Id, "Testna 1", null,
-                [new OrderItemInput(Proizvod.Id, 1m)], CustomerId: customerId, PromoKod: kod, IskoristiPoene: poeni);
+                [new OrderItemInput(Proizvod.Id, 1m)], Latitude: TestNaselje.Lat, Longitude: TestNaselje.Lon, CustomerId: customerId, PromoKod: kod, IskoristiPoene: poeni);
 
         public void Dispose() => T.Dispose();
     }

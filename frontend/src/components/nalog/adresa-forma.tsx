@@ -5,12 +5,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { AddressPicker } from "@/components/shop/address-picker";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input } from "@/components/ui/field";
+import { NaseljeOznaka } from "@/components/shop/naselje-oznaka";
 import { useToast } from "@/components/ui/toast";
-import { useDeliveryZones, queryKeys } from "@/lib/api/hooks";
+import { useNaseljeZaTacku, queryKeys } from "@/lib/api/hooks";
 import { accountApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import { pogodiZonu } from "@/lib/zone";
 import type { AddressInput } from "@/lib/api/contracts";
 import type { Address } from "@/types/domain";
 
@@ -18,7 +18,6 @@ function pocetnoStanje(adresa?: Address | null) {
   return {
     label: adresa?.label ?? "",
     fullAddress: adresa?.fullAddress ?? "",
-    deliveryZoneId: adresa?.deliveryZoneId ?? "",
     latitude: adresa?.latitude,
     longitude: adresa?.longitude,
   };
@@ -29,8 +28,8 @@ function pocetnoStanje(adresa?: Address | null) {
  *
  * Adresa se unosi kroz `AddressPicker`, isti birač koji koriste checkout i admin: tekst →
  * geokodiranje kroz naš `/geocode` → pin koji se može prevući. Tačka je ono što adresar
- * vrijedi vozaču — bez nje se ruta vraća na sortiranje po zonama — ali ostaje opciona,
- * jer Nominatim ne nalazi svaku adresu i prazna tačka je bolja od izmišljene.
+ * vrijedi vozaču i iz nje sistem određuje naselje, pa je obavezna: kad pretraga ne nađe adresu,
+ * kupac spusti pin na mapu.
  *
  * Sadržaj je izdvojen u `Forma` i montira se iznova za svaku adresu (`key`), umjesto da
  * se stanje puni efektom nakon otvaranja. Razlog je birač: on čita `value` i
@@ -61,7 +60,6 @@ function Forma({
 }) {
   const qc = useQueryClient();
   const { show } = useToast();
-  const zones = useDeliveryZones();
   const [form, setForm] = useState(() => pocetnoStanje(adresa));
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -75,16 +73,9 @@ function Forma({
     setForm((f) => ({ ...f, latitude: coords?.lat, longitude: coords?.lon }));
   }, []);
 
-  // Isti „best-effort" predlog zone kao na checkoutu, iz istog helpera. Predlaže se samo
-  // kad zona još nije izabrana: kupac koji je svjesno izabrao zonu ne gubi izbor zato što
-  // je poslije toga pomjerio pin.
-  const predloziZonu = useCallback(
-    (localities: string[]) => {
-      const match = pogodiZonu(localities, zones.data);
-      if (match) setForm((f) => (f.deliveryZoneId ? f : { ...f, deliveryZoneId: match.id }));
-    },
-    [zones.data],
-  );
+  // Naselje određuje sistem iz tačke; server isto provjerava pri čuvanju.
+  const naselje = useNaseljeZaTacku(form.latitude, form.longitude);
+  const imaTacku = form.latitude !== undefined && form.longitude !== undefined;
 
   const mutation = useMutation({
     mutationFn: (body: AddressInput) =>
@@ -111,7 +102,6 @@ function Forma({
     mutation.mutate({
       label: form.label || undefined,
       fullAddress: form.fullAddress,
-      deliveryZoneId: form.deliveryZoneId || undefined,
       latitude: form.latitude,
       longitude: form.longitude,
     });
@@ -150,7 +140,6 @@ function Forma({
               onChange={(value) => setForm((f) => ({ ...f, fullAddress: value }))}
               onCoordinates={postaviTacku}
               onVanPodrucja={setVanPodrucja}
-              onLocalities={predloziZonu}
               initialCoordinates={
                 adresa?.latitude != null && adresa?.longitude != null
                   ? { lat: adresa.latitude, lon: adresa.longitude }
@@ -159,19 +148,7 @@ function Forma({
             />
           </Field>
 
-          <Field label="Zona dostave" error={errors.deliveryZoneId?.[0]}>
-            <Select
-              value={form.deliveryZoneId}
-              onChange={(e) => setForm({ ...form, deliveryZoneId: e.target.value })}
-            >
-              <option value="">Odaberite…</option>
-              {zones.data?.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <NaseljeOznaka naselje={naselje} imaTacku={imaTacku} />
 
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
@@ -184,7 +161,7 @@ function Forma({
           <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
             Otkaži
           </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja}>
+          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja || !naselje.data}>
             {mutation.isPending ? "Spremam…" : "Spremi"}
           </Button>
         </div>

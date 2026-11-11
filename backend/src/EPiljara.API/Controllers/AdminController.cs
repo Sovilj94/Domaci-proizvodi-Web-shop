@@ -11,6 +11,7 @@ using EPiljara.Application.Features.Recepti;
 using EPiljara.Application.Features.PromoKodovi;
 using EPiljara.Application.Features.Utisci;
 using EPiljara.Application.Features.Korpice;
+using EPiljara.Application.Features.Naselja;
 using EPiljara.Application.Features.Partneri;
 using EPiljara.Application.Features.Pretplate;
 using EPiljara.Application.Features.Poeni;
@@ -268,6 +269,11 @@ public class AdminController : ApiControllerBase
         EnvelopeList(await Mediator.Send(
             new AssignOrdersBulkCommand(body.OrderIds, body.DriverId, body.Date)));
 
+    /// <summary>Kako bi grupna dodjela podijelila narudžbe na rute („Borik 1: 8 · Borik 2: 7") — bez upisa.</summary>
+    [HttpPost("admin/orders/assign-bulk/pregled")]
+    public async Task<IActionResult> PregledPodjele([FromBody] AssignOrdersBulkRequest body) =>
+        EnvelopeList(await Mediator.Send(new PregledPodjeleQuery(body.OrderIds, body.DriverId, body.Date)));
+
     /// <summary>Skida narudžbu sa rute; vraća je u „Nedodijeljeno".</summary>
     [HttpDelete("admin/orders/{id:guid}/driver")]
     public async Task<IActionResult> RemoveOrderDriver(Guid id, [FromQuery] string date)
@@ -445,16 +451,23 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> Pakovanje([FromQuery] int godina, [FromQuery] int sedmica) =>
         Envelope(await Mediator.Send(new GetPakovanjeQuery(godina, sedmica)));
 
-    [HttpGet("admin/zone")]
-    public async Task<IActionResult> Zone() => EnvelopeList(await Mediator.Send(new GetAdminZoneQuery()));
+    /* Naselja (zamjenjuju zone): granica, centar, aktivnost. Vidi AdminNaselja. */
 
-    [HttpPost("admin/zone")]
-    public async Task<IActionResult> CreateZona([FromBody] ZonaInput input) =>
-        EnvelopeCreated(await Mediator.Send(new CreateZonaCommand(input)));
+    [HttpGet("admin/naselja")]
+    public async Task<IActionResult> Naselja() => EnvelopeList(await Mediator.Send(new GetAdminNaseljaQuery()));
 
-    [HttpPut("admin/zone/{id:guid}")]
-    public async Task<IActionResult> UpdateZona(Guid id, [FromBody] ZonaInput input) =>
-        Envelope(await Mediator.Send(new UpdateZonaCommand(id, input)));
+    /// <summary>Novo naselje (Id = null) ili izmjena. Kad izmjena pomjera naselje postojećim
+    /// zapisima a PotvrdiUticaj = false, ništa se ne snima i vraća se uticaj (sacuvano = false).</summary>
+    [HttpPost("admin/naselja")]
+    public async Task<IActionResult> SacuvajNaselje([FromBody] SacuvajNaseljeCommand cmd) =>
+        Envelope(await Mediator.Send(cmd));
+
+    [HttpDelete("admin/naselja/{id:guid}")]
+    public async Task<IActionResult> ObrisiNaselje(Guid id)
+    {
+        await Mediator.Send(new ObrisiNaseljeCommand(id));
+        return NoContent();
+    }
 
     [HttpGet("admin/termini")]
     public async Task<IActionResult> Termini() => EnvelopeList(await Mediator.Send(new GetAdminTerminiQuery()));

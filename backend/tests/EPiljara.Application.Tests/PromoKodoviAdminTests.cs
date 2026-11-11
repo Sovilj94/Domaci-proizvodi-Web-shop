@@ -17,7 +17,7 @@ public class PromoKodoviAdminTests
     private static void DodajNarudzbu(TestDb t, Guid kodId, OrderStatus status, string code)
     {
         var zona = t.Db.DeliveryZones.FirstOrDefault()
-            ?? t.Db.DeliveryZones.Add(new DeliveryZone { Name = "Centar", DeliveryFee = 3m, IsActive = true }).Entity;
+            ?? t.Db.DeliveryZones.Add(new DeliveryZone { Name = "Centar", DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica }).Entity;
         var slot = t.Db.DeliverySlots.FirstOrDefault()
             ?? t.Db.DeliverySlots.Add(new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 }).Entity;
         t.Db.SaveChanges();

@@ -12,6 +12,8 @@ public class AddressCommandsTests
     {
         var u = new User { Name = "Kupac", Email = email, PasswordHash = "x" };
         t.Db.Users.Add(u);
+        if (!t.Db.DeliveryZones.Any())
+            t.Db.DeliveryZones.Add(new DeliveryZone { Name = "Centar", IsActive = true, Granica = TestNaselje.Granica });
         t.Db.SaveChanges();
         return u;
     }
@@ -24,7 +26,7 @@ public class AddressCommandsTests
         var handler = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
 
         var rezultat = await handler.Handle(
-            new CreateAddressCommand(null, "Prva 1", null, null, null), default);
+            new CreateAddressCommand(null, "Prva 1", TestNaselje.Lat, TestNaselje.Lon, null), default);
 
         rezultat.IsDefault.Should().BeTrue();
     }
@@ -35,8 +37,8 @@ public class AddressCommandsTests
         using var t = new TestDb();
         var u = NapraviKupca(t, "b@test.local");
         var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
-        var prva = await create.Handle(new CreateAddressCommand(null, "Prva 1", null, null, null), default);
-        var druga = await create.Handle(new CreateAddressCommand(null, "Druga 2", null, null, null), default);
+        var prva = await create.Handle(new CreateAddressCommand(null, "Prva 1", TestNaselje.Lat, TestNaselje.Lon, null), default);
+        var druga = await create.Handle(new CreateAddressCommand(null, "Druga 2", TestNaselje.Lat, TestNaselje.Lon, null), default);
 
         var setDefault = new SetDefaultAddressHandler(t.Db, new FakeCurrentUser(u.Id));
         await setDefault.Handle(new SetDefaultAddressCommand(druga.Id), default);
@@ -53,8 +55,8 @@ public class AddressCommandsTests
         using var t = new TestDb();
         var u = NapraviKupca(t, "c@test.local");
         var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
-        var prva = await create.Handle(new CreateAddressCommand(null, "Prva 1", null, null, null), default);
-        await create.Handle(new CreateAddressCommand(null, "Druga 2", null, null, null), default);
+        var prva = await create.Handle(new CreateAddressCommand(null, "Prva 1", TestNaselje.Lat, TestNaselje.Lon, null), default);
+        await create.Handle(new CreateAddressCommand(null, "Druga 2", TestNaselje.Lat, TestNaselje.Lon, null), default);
 
         var delete = new DeleteAddressHandler(t.Db, new FakeCurrentUser(u.Id));
         await delete.Handle(new DeleteAddressCommand(prva.Id), default);
@@ -79,7 +81,7 @@ public class AddressCommandsTests
 
         var ids = new List<Guid>();
         for (var i = 1; i <= CreateAddressHandler.MaxAdresa; i++)
-            ids.Add((await create.Handle(new CreateAddressCommand(null, $"Ulica {i}", null, null, null), default)).Id);
+            ids.Add((await create.Handle(new CreateAddressCommand(null, $"Ulica {i}", TestNaselje.Lat, TestNaselje.Lon, null), default)).Id);
 
         for (var krug = 0; krug < 3; krug++)
             foreach (var id in ids)
@@ -103,7 +105,7 @@ public class AddressCommandsTests
         var napadac = NapraviKupca(t, "napadac@test.local");
 
         var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(vlasnik.Id));
-        var adresa = await create.Handle(new CreateAddressCommand(null, "Moja 1", null, null, null), default);
+        var adresa = await create.Handle(new CreateAddressCommand(null, "Moja 1", TestNaselje.Lat, TestNaselje.Lon, null), default);
 
         var delete = new DeleteAddressHandler(t.Db, new FakeCurrentUser(napadac.Id));
         var cin = () => delete.Handle(new DeleteAddressCommand(adresa.Id), default);
@@ -120,10 +122,63 @@ public class AddressCommandsTests
         var create = new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id));
 
         for (var i = 1; i <= CreateAddressHandler.MaxAdresa; i++)
-            await create.Handle(new CreateAddressCommand(null, $"Ulica {i}", null, null, null), default);
+            await create.Handle(new CreateAddressCommand(null, $"Ulica {i}", TestNaselje.Lat, TestNaselje.Lon, null), default);
 
-        var cin = () => create.Handle(new CreateAddressCommand(null, "Preko granice", null, null, null), default);
+        var cin = () => create.Handle(new CreateAddressCommand(null, "Preko granice", TestNaselje.Lat, TestNaselje.Lon, null), default);
 
         (await cin.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("address_limit");
+    }
+
+    [Fact]
+    public async Task Adresa_dobija_naselje_po_tacki_a_ne_iz_zahtjeva()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "n1@test.local");
+        var daleko = new DeliveryZone { Name = "Bijeljina", IsActive = true, Granica = TestNaselje.GranicaDaleko };
+        t.Db.DeliveryZones.Add(daleko);
+        t.Db.SaveChanges();
+
+        var dto = await new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id)).Handle(
+            new CreateAddressCommand(null, "Reljina 18", TestNaselje.Lat, TestNaselje.Lon, daleko.Id), default);
+
+        dto.DeliveryZoneName.Should().Be("Centar");
+    }
+
+    [Fact]
+    public async Task Adresa_van_naselja_se_odbija()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "n2@test.local");
+
+        var radnja = () => new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id)).Handle(
+            new CreateAddressCommand(null, "Daleko 1", TestNaselje.VanLat, TestNaselje.VanLon, null), default);
+
+        (await radnja.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("van_podrucja_dostave");
+    }
+
+    [Fact]
+    public async Task Adresa_bez_tacke_se_odbija()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "n3@test.local");
+
+        var radnja = () => new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id)).Handle(
+            new CreateAddressCommand(null, "Bez pina 1", null, null, null), default);
+
+        (await radnja.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("van_podrucja_dostave");
+    }
+
+    [Fact]
+    public async Task Izmjena_adrese_van_naselja_se_odbija()
+    {
+        using var t = new TestDb();
+        var u = NapraviKupca(t, "n4@test.local");
+        var dto = await new CreateAddressHandler(t.Db, new FakeCurrentUser(u.Id)).Handle(
+            new CreateAddressCommand(null, "Reljina 18", TestNaselje.Lat, TestNaselje.Lon, null), default);
+
+        var radnja = () => new UpdateAddressHandler(t.Db, new FakeCurrentUser(u.Id)).Handle(
+            new UpdateAddressCommand(dto.Id, null, "Daleko 1", TestNaselje.VanLat, TestNaselje.VanLon, null), default);
+
+        (await radnja.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("van_podrucja_dostave");
     }
 }

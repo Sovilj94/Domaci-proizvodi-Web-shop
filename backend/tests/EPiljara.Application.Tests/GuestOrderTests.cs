@@ -18,7 +18,7 @@ public class GuestOrderTests
         var scena = await Scena.NapraviAsync(t);
         var mejl = new FakeEmail();
 
-        var rezultat = await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), mejl)
+        var rezultat = await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), mejl, TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
 
         t.Db.Orders.Should().BeEmpty("narudžba nastaje tek na potvrdu");
@@ -36,7 +36,7 @@ public class GuestOrderTests
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
 
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
 
         var stavka = t.Db.GuestOrderRequestItems.Single();
@@ -50,7 +50,7 @@ public class GuestOrderTests
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
 
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
 
         t.Db.Products.Single().Stock.Should().Be(100, "zalihe se skidaju tek kad narudžba nastane");
@@ -65,7 +65,7 @@ public class GuestOrderTests
         t.Db.Users.Add(kupac);
         t.Db.SaveChanges();
 
-        var radnja = () => new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(kupac.Id), new FakeEmail())
+        var radnja = () => new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(kupac.Id), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
 
         (await radnja.Should().ThrowAsync<DomainException>())
@@ -76,9 +76,9 @@ public class GuestOrderTests
     public async Task Zahtjev_ispod_minimuma_pada()
     {
         using var t = new TestDb();
-        var scena = await Scena.NapraviAsync(t, minimalniIznos: 500m);
+        var scena = await Scena.NapraviAsync(t);
 
-        var radnja = () => new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        var radnja = () => new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO(minimalna: 500m))
             .Handle(scena.ZahtjevGosta(), default);
 
         (await radnja.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("below_minimum");
@@ -91,7 +91,7 @@ public class GuestOrderTests
         var scena = await Scena.NapraviAsync(t);
         var mejl = new FakeEmail { BaciGresku = true };
 
-        var radnja = () => new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), mejl)
+        var radnja = () => new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), mejl, TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
 
         await radnja.Should().ThrowAsync<InvalidOperationException>();
@@ -104,7 +104,7 @@ public class GuestOrderTests
     {
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
         var token = t.Db.GuestOrderRequests.Single().Token;
 
@@ -128,7 +128,7 @@ public class GuestOrderTests
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
         var napomena = "Zvono ne radi, pozvati po dolasku.";
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(napomena), default);
         var zahtjev = t.Db.GuestOrderRequests.Single();
         var token = zahtjev.Token;
@@ -152,7 +152,7 @@ public class GuestOrderTests
     {
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
         var token = t.Db.GuestOrderRequests.Single().Token;
 
@@ -168,7 +168,7 @@ public class GuestOrderTests
     {
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
         var zahtjev = t.Db.GuestOrderRequests.Single();
         zahtjev.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
@@ -188,7 +188,7 @@ public class GuestOrderTests
     {
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
         var token = t.Db.GuestOrderRequests.Single().Token;
         var handler = new ConfirmGuestOrderHandler(
@@ -207,7 +207,7 @@ public class GuestOrderTests
     {
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
-        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail())
+        await new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO())
             .Handle(scena.ZahtjevGosta(), default);
         var token = t.Db.GuestOrderRequests.Single().Token;
         t.Db.Products.Single().IsAvailable = false;
@@ -227,7 +227,7 @@ public class GuestOrderTests
     {
         using var t = new TestDb();
         var scena = await Scena.NapraviAsync(t);
-        var handler = new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail());
+        var handler = new CreateGuestOrderRequestHandler(t.Db, new FakeCurrentUser(null), new FakeEmail(), TestOpcije.DostavaO());
         await handler.Handle(scena.ZahtjevGosta(), default);
         await handler.Handle(scena.ZahtjevGosta(), default);
 

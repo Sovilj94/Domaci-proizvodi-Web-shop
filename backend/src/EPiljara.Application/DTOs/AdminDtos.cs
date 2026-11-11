@@ -100,6 +100,10 @@ public record DeliveryRouteDto
     public string Naziv { get; init; } = string.Empty;
     /// <summary>Sirovi naziv zone bez rednog broja; null kad ruta nema zonu ("Bez zone").</summary>
     public string? ZonaNaziv { get; init; }
+    /// <summary>Planirani redoslijed rute u danu vozača (1 = prva); null za stare rute.</summary>
+    public int? RedniBroj { get; init; }
+    /// <summary>"osrm" ili "vazdusno" (DuzinaMetara je tada vazdušna procjena); null = nije računat.</summary>
+    public string? IzvorRedoslijeda { get; init; }
 }
 
 public record StatusCountDto

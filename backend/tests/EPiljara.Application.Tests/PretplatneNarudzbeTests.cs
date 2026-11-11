@@ -48,7 +48,7 @@ public class PretplatneNarudzbeTests
             var s = new Scena(new TestDb());
             var db = s.Db;
 
-            var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+            var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true, Granica = TestNaselje.Granica };
             var slot = new DeliverySlot { DayOfWeek = 4, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
             var kat = new Category { Name = "Povrće", Slug = "povrce" };
             var proizvodjac = new Producer { Name = "Marko", Village = "Manjača" };
@@ -149,7 +149,7 @@ public class PretplatneNarudzbeTests
             {
                 var dto = await new CreateOrderHandler(
                         db, new FakeCurrentUser(null), new FakeEmail(), new FakeViber(),
-                        Options.Create(TestOpcije.Korpice()), Options.Create(opcije), Options.Create(TestOpcije.Poeni()))
+                        Options.Create(TestOpcije.Korpice()), Options.Create(opcije), Options.Create(TestOpcije.Poeni()), TestOpcije.DostavaO())
                     .Handle(cmd, cancellationToken);
                 if (puca || (pucaZa is not null && cmd.PretplataId == pucaZa))
                     throw new InvalidOperationException("Pad poslije nastanka narudžbe.");
@@ -317,7 +317,7 @@ public class PretplatneNarudzbeTests
             .FirstAsync(o => o.PretplataId == s.Pretplata.Id);
         Assert.Equal(22.50m, order.Items.Single().UnitPrice);
         // Ukupno mora pratiti umanjenu cijenu, ne punu — inače popust postoji samo na stavci.
-        Assert.Equal(22.50m + 3m, order.TotalAmount);
+        Assert.Equal(22.50m, order.TotalAmount); // pretplata je korpica — dostava besplatna
     }
 
     /// <summary>

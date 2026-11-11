@@ -965,3 +965,39 @@ Popravljeno u aplikaciji:
 
 Ostavljeno u dev bazi: današnja ruta (11.11.) vozaču Mladenu sa 10 narudžbi u 4 naselja; `EP-2610-0195`
 isporučena. Backup prije toga: `Desktop\epiljara-backupi\prije-testa-vozaca-2026-11-11.dump`.
+
+## Naselja i redoslijed ruta (2026-11-11, grana `naselja-dizajn`)
+
+Dizajn: `specs/2026-11-11-naselja-i-redoslijed-ruta-design.md`, plan: `plans/2026-11-11-naselja-i-redoslijed-ruta.md`.
+
+- **Naselja umjesto zona.** `DeliveryZone` ima granicu (GeoJSON), centar i izvor (`procjena`/`potvrdjeno`).
+  - Migracija `NaseljaIGranice` upisuje 24 naselja: 17 gradskih plus Drakulić, Donja Kola, Debeljaci,
+    Šargovac, Motike, Saračica i Zalužani.
+  - Granice su Voronoi procjena iz OSM centara (`tools/naselja`, ODbL).
+  - Stare zone istog imena dobijaju granicu.
+- **Kupac ne bira naselje.**
+  - Server ga određuje iz tačke (`OdredjivanjeNaselja`) u `CreateOrder`, gost zahtjevu i potvrdi,
+    adresaru i pretplati.
+  - Van naselja dobija `van_podrucja_dostave` sa kontaktom iz `SadrzajSajta`.
+  - Javno: `GET /delivery/naselje?lat&lon` i `GET /delivery/pravila`.
+- **Dostava:** uz korpicu je besplatna, bez nje 5 KM. Minimum je 0. Sve su to `Podesavanja`
+  (Poslovna pravila → Dostava). Naselje na cijenu ne utiče.
+- **Admin „Naselja"** (`/admin/naselja`): mapa, uređivanje temena, preklapanje > 1000 m² se odbija,
+  promjena koja pomjera zapise traži potvrdu uticaja, a preračun ne dira cijene ni narudžbe na ruti.
+  `/admin/zone` je sada samo „Termini dostave".
+- **Rute:**
+  - Naselje se dijeli po lokaciji (`PlanRuta.Podijeli`, najviše 10).
+  - Rezerva bez OSRM-a je najbliži susjed + 2-opt (`NajbliziSusjedOptimizer`, izvor `vazdusno`,
+    nije `Optimized` i ne piše gorivo).
+  - Rute dobijaju redni broj (`RasporedDana`): prva je najbliža magacinu, a počete zadržavaju broj.
+  - Dispečer prije grupne dodjele pokazuje podjelu (`POST /admin/orders/assign-bulk/pregled`).
+  - `POST /driver/route/sljedeca` bira sljedeću rutu od pozicije vozača.
+- **Vozačka aplikacija:**
+  - rute idu po `RedniBroj`;
+  - poslije završene rute traži „Sljedeća" ako zna GPS poziciju;
+  - vazdušna kilometraža je označena.
+- **Poznato:**
+  - Stare demo adrese i otvorene narudžbe nose stare 4 zone, pa ih spisak naselja vodi kao
+    „van granica". Prvo čuvanje granice nekog naselja sa potvrdom preračuna ih sve.
+  - Grupna dodjela narudžbi koje su već kod istog vozača ne prenumeriše dan. Za to služi
+    `/admin/routes`.
