@@ -25,6 +25,11 @@ public class DriverController : ApiControllerBase
     public async Task<IActionResult> Reoptimize([FromBody] ReoptimizeRequest body) =>
         Envelope(await Mediator.Send(new ReoptimizeRouteCommand(body.Latitude, body.Longitude)));
 
+    /// <summary>Sljedeća ruta od pozicije vozača; data = null kad ruta više nema.</summary>
+    [HttpPost("driver/route/sljedeca")]
+    public async Task<IActionResult> SljedecaRuta([FromBody] ReoptimizeRequest body) =>
+        Envelope(await Mediator.Send(new SljedecaRutaCommand(body.Latitude, body.Longitude)));
+
     [HttpGet("driver/routes/history")]
     public async Task<IActionResult> RouteHistory() =>
         Envelope(await Mediator.Send(new GetDriverRouteHistoryQuery()));
