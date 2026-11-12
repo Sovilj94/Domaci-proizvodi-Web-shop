@@ -25,11 +25,6 @@ public class Driver : Entity
     /// </summary>
     public const int MaxStanicaPoDanu = 30;
 
-    /// <summary>Vozilo kojim vozač obično dostavlja, npr. "Kombi 1". null dok se ne unese.</summary>
-    public string? Vozilo { get; set; }
-    /// <summary>Registarska oznaka vozila. null dok se ne unese.</summary>
-    public string? Registracija { get; set; }
-
     public Guid? UserId { get; set; }
     public User? User { get; set; }
 

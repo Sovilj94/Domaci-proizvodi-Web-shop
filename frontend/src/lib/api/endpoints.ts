@@ -177,6 +177,9 @@ import type {
   TrosakInput,
   TroskoviMjeseca,
   Voznja,
+  Razduzenje,
+  RazduzenjeDan,
+  PredajaUnos,
   GorivoUnos,
   EmailPregled,
   PlanPoslovanja,
@@ -600,6 +603,12 @@ export const adminApi = {
     apiFetch<Voznja[]>("/admin/voznje", { query: { datum } }).then((r) => r.data),
   voznjeMjeseca: (godina: number, mjesec: number) =>
     apiFetch<Voznja[]>("/admin/voznje/mjesec", { query: { godina, mjesec } }).then((r) => r.data),
+  razduzenje: (od: string, doDatuma: string) =>
+    apiFetch<Razduzenje>("/admin/razduzenje", { query: { od, do: doDatuma } }).then((r) => r.data),
+  razduziSve: (driverId: string, doDatuma: string) =>
+    apiFetch<number>("/admin/razduzenje/sve", { method: "POST", body: { driverId, doDatuma } }).then((r) => r.data),
+  evidentirajPredaju: (body: PredajaUnos) =>
+    apiFetch<RazduzenjeDan>("/admin/razduzenje", { method: "PUT", body }).then((r) => r.data),
   gorivoVoznje: (id: string, body: GorivoUnos) =>
     apiFetch<Voznja>(`/admin/voznje/${id}/gorivo`, { method: "PUT", body }).then((r) => r.data),
   troskovi: (godina: number, mjesec: number) =>

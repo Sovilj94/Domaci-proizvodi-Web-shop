@@ -116,6 +116,21 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> GorivoVoznje(Guid id, [FromBody] GorivoUnos body) =>
         Envelope(await Mediator.Send(new SacuvajGorivoVoznjeCommand(id, body.Iznos, body.Litara, body.Napomena)));
 
+    /// <summary>Koliko gotovine koji vozač treba da preda po danu i ko još nije razdužen.</summary>
+    [HttpGet("admin/razduzenje")]
+    public async Task<IActionResult> Razduzenje([FromQuery] DateOnly od, [FromQuery] DateOnly @do) =>
+        Envelope(await Mediator.Send(new GetRazduzenjeQuery(od, @do)));
+
+    /// <summary>Evidencija predane gotovine za vozača i dan; iznos null poništava.</summary>
+    [HttpPut("admin/razduzenje")]
+    public async Task<IActionResult> EvidentirajPredaju([FromBody] PredajaUnos body) =>
+        Envelope(await Mediator.Send(new EvidentirajPredajuCommand(body.DriverId, body.Datum, body.Iznos)));
+
+    /// <summary>„Predao sve": svi nerazduženi dani vozača do datuma postaju predati u punom iznosu.</summary>
+    [HttpPost("admin/razduzenje/sve")]
+    public async Task<IActionResult> RazduziSve([FromBody] RazduziSveUnos body) =>
+        Envelope(await Mediator.Send(new RazduziSveCommand(body.DriverId, body.DoDatuma)));
+
     [HttpGet("admin/troskovi")]
     public async Task<IActionResult> Troskovi([FromQuery] int godina, [FromQuery] int mjesec) =>
         Envelope(await Mediator.Send(new GetTroskoviQuery(godina, mjesec)));

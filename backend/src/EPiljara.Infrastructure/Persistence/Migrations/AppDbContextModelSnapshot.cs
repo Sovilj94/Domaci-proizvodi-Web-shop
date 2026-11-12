@@ -424,6 +424,13 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<decimal?>("PredanoGotovine")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<DateTime?>("PredanoU")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("ProcjenaBezKoordinata")
                         .HasColumnType("integer");
 
@@ -479,16 +486,8 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("Registracija")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Vozilo")
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
 
                     b.HasKey("Id");
 

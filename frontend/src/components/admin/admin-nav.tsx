@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Banknote,
   CalendarClock,
   Calculator,
   CalendarDays,
@@ -98,6 +99,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
       { href: "/admin/naselja", label: "Naselja", icon: MapPinned },
       { href: "/admin/zone", label: "Termini dostave", icon: CalendarClock },
       { href: "/admin/drivers", label: "Vozači", icon: Users },
+      { href: "/admin/razduzenje", label: "Razduženje", icon: Banknote },
       { href: "/admin/settings", label: "Magacin", icon: Warehouse },
     ],
   },

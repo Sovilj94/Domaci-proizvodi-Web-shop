@@ -7,26 +7,18 @@ public record DriverDto
     public string Phone { get; init; } = string.Empty;
     /// <summary>Neaktivan vozač nema tab na dispečerskom ekranu i ne prima nove narudžbe.</summary>
     public bool Aktivan { get; init; } = true;
-    /// <summary>Vozilo kojim vozač obično dostavlja, npr. „Kombi 1". null dok se ne unese.</summary>
-    public string? Vozilo { get; init; }
-    /// <summary>Registarska oznaka vozila. null dok se ne unese.</summary>
-    public string? Registracija { get; init; }
     /// <summary>Dnevni kapacitet vozača u stanicama; puni traku kapaciteta na dispečerskom
     /// ekranu. Konstanta (<see cref="Domain.Entities.Driver.MaxStanicaPoDanu"/>), ne kolona —
     /// ide u DTO da ga front ne bi zakucao kod sebe.</summary>
     public int MaxStanica { get; init; } = Domain.Entities.Driver.MaxStanicaPoDanu;
 }
 
-/// <summary>Profil prijavljenog vozača za mobilnu aplikaciju (ime, kontakt, vozilo).</summary>
+/// <summary>Profil prijavljenog vozača za mobilnu aplikaciju (ime i kontakt).</summary>
 public record DriverProfileDto
 {
     public string Name { get; init; } = string.Empty;
     public string Phone { get; init; } = string.Empty;
     public string Email { get; init; } = string.Empty;
-    /// <summary>Vozilo kojim vozač dostavlja; null dok admin ne unese podatak.</summary>
-    public string? Vozilo { get; init; }
-    /// <summary>Registarska oznaka vozila; null dok admin ne unese podatak.</summary>
-    public string? Registracija { get; init; }
 }
 
 /// <summary>Jedna prošla (završena) ruta u istoriji vozača.</summary>

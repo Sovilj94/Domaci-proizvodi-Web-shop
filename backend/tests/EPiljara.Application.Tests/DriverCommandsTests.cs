@@ -11,9 +11,7 @@ public class DriverCommandsTests
     private static DriverInput Unos(
         string name = "Mladen Vozač",
         string phone = "+387 65 900 100",
-        string? vozilo = "Kombi 1",
-        string? registracija = "BL-123-A",
-        bool aktivan = true) => new(name, phone, vozilo, registracija, aktivan);
+        bool aktivan = true) => new(name, phone, aktivan);
 
     private static Driver NapraviVozaca(TestDb t, string name = "Postojeći")
     {
@@ -32,8 +30,6 @@ public class DriverCommandsTests
         var rezultat = await handler.Handle(new CreateDriverCommand(Unos()), default);
 
         rezultat.Name.Should().Be("Mladen Vozač");
-        rezultat.Vozilo.Should().Be("Kombi 1");
-        rezultat.Registracija.Should().Be("BL-123-A");
         rezultat.Aktivan.Should().BeTrue();
         t.Db.Drivers.Should().ContainSingle(d => d.Id == rezultat.Id);
     }
@@ -59,11 +55,10 @@ public class DriverCommandsTests
         var handler = new UpdateDriverHandler(t.Db);
 
         var rezultat = await handler.Handle(
-            new UpdateDriverCommand(vozac.Id, Unos(name: "Novo ime", vozilo: "Kombi 2", aktivan: false)),
+            new UpdateDriverCommand(vozac.Id, Unos(name: "Novo ime", aktivan: false)),
             default);
 
         rezultat.Name.Should().Be("Novo ime");
-        rezultat.Vozilo.Should().Be("Kombi 2");
         rezultat.Aktivan.Should().BeFalse();
     }
 

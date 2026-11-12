@@ -54,7 +54,7 @@ export default function AdminDriversPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Vozači</h1>
-          <p className="text-muted">Ko vozi dostavu i kojim vozilom.</p>
+          <p className="text-muted">Ko vozi dostavu.</p>
         </div>
         <Button onClick={openNew}>
           <Plus className="h-4 w-4" /> Novi vozač
@@ -68,7 +68,6 @@ export default function AdminDriversPage() {
           <ul className="divide-y divide-line">
             {drivers.data?.map((d) => {
               const confirming = confirmId === d.id;
-              const vozilo = [d.vozilo, d.registracija].filter(Boolean).join(" · ");
               return (
                 <li key={d.id} className="flex items-center gap-4 p-3">
                   <div className="min-w-0 flex-1">
@@ -82,7 +81,6 @@ export default function AdminDriversPage() {
                     </p>
                     <p className="truncate text-xs text-muted">
                       {d.phone}
-                      {vozilo ? ` · ${vozilo}` : ""}
                     </p>
                   </div>
 
