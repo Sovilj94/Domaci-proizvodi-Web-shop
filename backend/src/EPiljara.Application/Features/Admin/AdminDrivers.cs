@@ -13,8 +13,6 @@ namespace EPiljara.Application.Features.Admin;
 public record DriverInput(
     string Name,
     string Phone,
-    string? Vozilo,
-    string? Registracija,
     bool Aktivan);
 
 public class DriverInputValidator : AbstractValidator<DriverInput>
@@ -61,8 +59,6 @@ public class CreateDriverHandler(IAppDbContext db) : IRequestHandler<CreateDrive
         {
             Name = input.Name.Trim(),
             Phone = input.Phone.Trim(),
-            Vozilo = Ocisti(input.Vozilo),
-            Registracija = Ocisti(input.Registracija),
             Aktivan = input.Aktivan,
         };
 
@@ -71,8 +67,6 @@ public class CreateDriverHandler(IAppDbContext db) : IRequestHandler<CreateDrive
         return driver.ToDto();
     }
 
-    internal static string? Ocisti(string? vrijednost) =>
-        string.IsNullOrWhiteSpace(vrijednost) ? null : vrijednost.Trim();
 }
 
 /* ---------- Update ---------- */
@@ -94,8 +88,6 @@ public class UpdateDriverHandler(IAppDbContext db) : IRequestHandler<UpdateDrive
         var input = cmd.Input;
         driver.Name = input.Name.Trim();
         driver.Phone = input.Phone.Trim();
-        driver.Vozilo = CreateDriverHandler.Ocisti(input.Vozilo);
-        driver.Registracija = CreateDriverHandler.Ocisti(input.Registracija);
         driver.Aktivan = input.Aktivan;
 
         await db.SaveChangesAsync(ct);

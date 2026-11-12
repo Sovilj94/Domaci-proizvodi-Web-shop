@@ -184,18 +184,12 @@ export interface Driver {
   aktivan: boolean;
   /** Dnevni kapacitet u stanicama; dolazi sa servera da ga front ne bi zakucao kod sebe. */
   maxStanica: number;
-  /** Vozilo kojim vozač obično dostavlja, npr. „Kombi 1". */
-  vozilo?: string | null;
-  /** Registarska oznaka vozila. */
-  registracija?: string | null;
 }
 
 /** Tijelo za unos i izmjenu vozača. Nalog za mobilnu aplikaciju se ne dira odavde. */
 export interface DriverInput {
   name: string;
   phone: string;
-  vozilo?: string | null;
-  registracija?: string | null;
   aktivan: boolean;
 }
 
@@ -826,4 +820,40 @@ export interface PoslovanjeGodine {
   godina: number;
   mjeseci: MjesecGodine[];
   sezona: { kategorija: string; mjeseci: number[] }[];
+}
+
+/** Razduženje vozača za jedan dan: gotovina za isporučene narudžbe (naplata je pouzećem). */
+export interface RazduzenjeDan {
+  driverId: string;
+  vozac: string;
+  /** ISO "yyyy-MM-dd". */
+  datum: string;
+  dostavljeno: number;
+  zaPredati: number;
+  /** null dok predaja nije evidentirana. */
+  predano: number | null;
+  predanoU: string | null;
+  /** Predano − za predati; negativno je manjak. */
+  razlika: number | null;
+}
+
+/** Koliko vozač još nosi za sve nerazdužene dane. */
+export interface Nerazduzeno {
+  driverId: string;
+  vozac: string;
+  iznos: number;
+  dana: number;
+  odDatuma: string;
+}
+
+export interface Razduzenje {
+  dani: RazduzenjeDan[];
+  nerazduzeno: Nerazduzeno[];
+}
+
+/** iznos null poništava raniju evidenciju. */
+export interface PredajaUnos {
+  driverId: string;
+  datum: string;
+  iznos: number | null;
 }

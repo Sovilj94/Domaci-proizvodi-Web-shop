@@ -1018,3 +1018,23 @@ Dizajn: `specs/2026-11-11-naselja-i-redoslijed-ruta-design.md`, plan: `plans/202
 - **Vozač:** pločica „Pređeno" i kartica „Polazak / Kraj dana / Izmijeni". Km više nema na karticama
   ruta ni u detalju rute.
 - **Dev baza:** Mladen 11.11. ima probni unos 184.445 → 184.532 km.
+
+## Razduženje vozača i profil bez vozila (2026-11-12, grana `razduzenje-vozaca`)
+
+- **Odluka vlasnika:** vozač ne vozi stalno isti kombi, pa se podaci o vozilu ne čuvaju. Profil vozača
+  pokazuje pređene km i dostavljene narudžbe. Naplata je pouzećem, a admin mora vidjeti koliko gotovine
+  koji vozač treba da donese.
+- **Backend:** migracija `RazduzenjeBezVozila`.
+  - Briše `Drivers.Vozilo` / `Registracija`.
+  - Dodaje `DnevnaVoznja.PredanoGotovine` / `PredanoU`.
+  - Za predati po vozaču i danu = zbir `TotalAmount` isporučenih (`Delivered`) narudžbi na njegovim rutama
+    tog dana (`Features/Voznje/Razduzenje.cs`).
+  - Endpointi:
+    - `GET /admin/razduzenje?od&do`: dani i „nerazduženo" po vozaču, zadnjih 120 dana;
+    - `PUT /admin/razduzenje` {driverId, datum, iznos | null};
+    - `POST /admin/razduzenje/sve` {driverId, doDatuma}: „Predao sve", dani sa već upisanom predajom se ne diraju;
+    - `GET /driver/statistika`.
+- **Admin:** stranica `/admin/razduzenje` (meni Dostava → Razduženje) i vozači bez polja za vozilo.
+- **Vozač (EPiljaraVozac):** profil bez vozila, sa statistikom mjeseca i „Gotovina za predati".
+- **Napomena:** stari (demo) podaci se prikazuju kao nerazduženi, čiste se dugmetom „Predao sve". Imena
+  demo vozača i dalje sadrže „(kombi N)" jer je to dio imena, a mijenjaju se u adminu.

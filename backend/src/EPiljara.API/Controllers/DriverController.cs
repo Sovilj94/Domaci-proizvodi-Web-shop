@@ -49,6 +49,11 @@ public class DriverController : ApiControllerBase
     public async Task<IActionResult> MojaKilometraza([FromBody] SacuvajMojuKilometrazuCommand body) =>
         Envelope(await Mediator.Send(body));
 
+    /// <summary>Statistika za profil: dostave i km ovog mjeseca, gotovina danas i nepredata.</summary>
+    [HttpGet("driver/statistika")]
+    public async Task<IActionResult> MojaStatistika() =>
+        Envelope(await Mediator.Send(new GetMojaStatistikaQuery()));
+
     [HttpGet("driver/profile")]
     public async Task<IActionResult> Profile() =>
         Envelope(await Mediator.Send(new GetDriverProfileQuery()));

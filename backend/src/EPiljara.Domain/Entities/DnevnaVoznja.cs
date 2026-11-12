@@ -39,5 +39,9 @@ public class DnevnaVoznja : Entity
     /// zamjenjuju procijenjenu turu u procjeni goriva.</summary>
     public int? KmKraj { get; set; }
 
-    public int? PredjenoKm => KmPocetak is int p && KmKraj is int k && k >= p ? k - p : null;
+    /// <summary>Gotovina koju je vozač predao adminu za ovaj dan (naplata je pouzećem); null dok se ne razduži.</summary>
+    public decimal? PredanoGotovine { get; set; }
+    public DateTime? PredanoU { get; set; }
+
+    public int? PredjenoKm =>KmPocetak is int p && KmKraj is int k && k >= p ? k - p : null;
 }

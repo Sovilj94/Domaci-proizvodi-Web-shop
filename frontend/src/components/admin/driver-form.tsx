@@ -13,8 +13,6 @@ import type { Driver, DriverInput } from "@/lib/api/contracts";
 const EMPTY = {
   name: "",
   phone: "",
-  vozilo: "",
-  registracija: "",
   aktivan: true,
 };
 
@@ -40,8 +38,6 @@ export function DriverForm({
         ? {
             name: driver.name,
             phone: driver.phone,
-            vozilo: driver.vozilo ?? "",
-            registracija: driver.registracija ?? "",
             aktivan: driver.aktivan,
           }
         : EMPTY,
@@ -69,8 +65,6 @@ export function DriverForm({
     mutation.mutate({
       name: form.name,
       phone: form.phone,
-      vozilo: form.vozilo || undefined,
-      registracija: form.registracija || undefined,
       aktivan: form.aktivan,
     });
   }
@@ -96,21 +90,7 @@ export function DriverForm({
           />
         </Field>
 
-        <Field label="Vozilo">
-          <Input
-            value={form.vozilo}
-            onChange={(e) => setForm({ ...form, vozilo: e.target.value })}
-            placeholder="npr. Kombi 1"
-          />
-        </Field>
 
-        <Field label="Registracija">
-          <Input
-            value={form.registracija}
-            onChange={(e) => setForm({ ...form, registracija: e.target.value })}
-            placeholder="npr. A12-B-345"
-          />
-        </Field>
 
         <label className="flex items-center gap-2 text-sm font-medium">
           <input

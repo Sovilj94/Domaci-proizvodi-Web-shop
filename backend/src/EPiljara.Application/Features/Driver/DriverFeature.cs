@@ -197,8 +197,6 @@ public class GetDriverProfileHandler(IAppDbContext db, ICurrentUser current)
             Name = driver.Name,
             Phone = driver.Phone,
             Email = driver.User?.Email ?? string.Empty,
-            Vozilo = driver.Vozilo,
-            Registracija = driver.Registracija,
         };
     }
 }
