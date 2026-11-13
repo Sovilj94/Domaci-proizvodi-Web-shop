@@ -1067,3 +1067,32 @@ Dizajn: `specs/2026-11-11-naselja-i-redoslijed-ruta-design.md`, plan: `plans/202
   - Popup „Stigli ste" pokazuje naplatu, stavke i napomenu.
   - Neuspjela dostava otvara izbor razloga, a „Odustani" ne zatvara stanicu.
 - Testovi: backend 840, admin 144, vozač 204.
+
+## Storno računa i štampa na vratima (2026-11-13, grana `storno-i-stampa`, vozač `storno-i-stampa`)
+
+- **Propis RS** (Zakon o fiskalizaciji, Sl. glasnik RS 15/22; Pravilnik o fiskalnom računu, 48/22):
+  - račun se izdaje u momentu prometa, a to je isporuka ili plaćanje, šta je ranije — kod nas na vratima;
+  - kupac dobija štampan račun; elektronski samo kad nema štampača ili nema fizičkog kontakta;
+  - vozilo je poslovni prostor;
+  - refundacija (povrat novca) traži dokument kupca, a poništavanje (ispravka greške) ne traži;
+  - kopija mora nositi „OVO NIJE FISKALNI RAČUN".
+  Izmjenu pravilnika iz Sl. glasnika RS 95/2025 nisam pročitao.
+- **Storno:** `VrstaFiskalnogRacuna.Storno` = poništavanje. Pravi se kad vozač isporučenu stanicu ispravi
+  u neuspjelu (`IspravkaIsporuke`), umjesto refundacije. Posao ga šalje kao i refundaciju, kad je prometni
+  račun izdat. Admin prikazuje vrstu „Storno", a sažetak ima `IznosStorno`.
+- **Žurnal:** `FiskalniOdgovor.Zurnal` / `FiskalniRacun.Zurnal` je tekst računa kako ga složi ESIR, i
+  aplikacija ga štampa doslovno. Probni dobavljač pravi žurnal za 58 mm štampač, sa natpisom da nema
+  fiskalnu vrijednost. Migracija je `FiskalniStornoIZurnal`.
+- **Odmah za štampu:** `GET driver/orders/{id}/racuni` prvo izdaje račune te narudžbe koji čekaju
+  (`ObradiFiskalneRacuneCommand(OrderId:)`, bez čekanja razmaka), pa ih vraća.
+- **Aplikacija:**
+  - Bluetooth SPP ESC/POS štampač (`Platforms/Android/BluetoothStampac`); bira se u Profilu i pamti se
+    na telefonu;
+  - `RacunStampa` štampa poslije primopredaje (ekran i popup) i poslije storna, i čeka dobavljača do
+    3 pokušaja;
+  - prvi otisak je original, svaki sljedeći KOPIJA;
+  - na isporučenoj stanici su dugmad „Štampaj račun" i „Storniraj račun";
+  - ESC/POS piše bez kvačica, zbog kodnih strana jeftinih štampača.
+  Pravi štampač još nije isproban, jer emulator nema Bluetooth.
+- **Ostaje:** adminska „Refundiraj" ne traži dokument kupca, a pravilnik ga traži za refundaciju.
+- Testovi: backend 843, admin 144, vozač 212.

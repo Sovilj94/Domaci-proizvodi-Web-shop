@@ -34,10 +34,12 @@ public sealed class ProbniFiskalniDobavljac : IFiskalniDobavljac
             _ => "PR",
         };
         var broj = $"PROBNI-{sada:yyyyMMdd}-{z.RacunId.ToString("N")[..8].ToUpperInvariant()}";
-        var qr = string.Join(" | ",
+        var qr = string.Join(" | ", new[]
+        {
             "PROBNI RAČUN — NEMA FISKALNU VRIJEDNOST", broj,
             z.Ukupno.ToString("0.00", Kultura) + " KM",
-            z.ReferentniBroj is null ? null : $"ref {z.ReferentniBroj}");
+            z.ReferentniBroj is null ? null : $"ref {z.ReferentniBroj}",
+        }.Where(d => d is not null));
         return Task.FromResult(new FiskalniOdgovor(true, Broj: broj, Brojac: oznaka, Vrijeme: sada, QrSadrzaj: qr,
             Zurnal: Zurnal(z, broj, sada)));
     }
