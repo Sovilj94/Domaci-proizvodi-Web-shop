@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, PackageOpen, Phone } from "lucide-react";
 import { KorpicaKupcaEditor } from "@/components/admin/korpica-kupca-editor";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { NEXT_STATUSES, STATUS_META } from "@/lib/orders";
+import { NEXT_STATUSES, STATUS_META, razlogNeuspjeha } from "@/lib/orders";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "@/types/domain";
 import { cn, formatDateTime, formatPrice, unitSuffix } from "@/lib/utils";
 
@@ -134,6 +134,12 @@ export function OrderCard({
           {order.note && (
             <p className="rounded-lg bg-honey-100 px-3 py-2 text-sm text-ink/80">
               Napomena: {order.note}
+            </p>
+          )}
+
+          {order.status === "FailedDelivery" && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              Razlog neuspjele dostave: {razlogNeuspjeha(order.razlogNeuspjeha) ?? "vozač nije naveo"}
             </p>
           )}
 

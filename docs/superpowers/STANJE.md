@@ -1038,3 +1038,32 @@ Dizajn: `specs/2026-11-11-naselja-i-redoslijed-ruta-design.md`, plan: `plans/202
 - **Vozač (EPiljaraVozac):** profil bez vozila, sa statistikom mjeseca i „Gotovina za predati".
 - **Napomena:** stari (demo) podaci se prikazuju kao nerazduženi, čiste se dugmetom „Predao sve". Imena
   demo vozača i dalje sadrže „(kombi N)" jer je to dio imena, a mijenjaju se u adminu.
+
+## Detalji dostave i ispravka statusa (2026-11-13, grana `dostava-detalji`, vozač `dostava-detalji`)
+
+- **Stanica nosi više podataka** (`RouteStopDto`): `Napomena` (napomena kupca), `Stavke` (naziv, količina,
+  jedinica; pune ih samo upiti vozačke aplikacije, jer samo oni učitavaju `Order.Items`), `RazlogNeuspjeha`.
+- **Razlog neuspjele dostave:** enum `RazlogNeuspjeleDostave` (NijeKodKuce, NeJavljaSe, PogresnaAdresa,
+  OdbioPrijem, Ostalo) je u `Order.RazlogNeuspjeha`, a vozač ga šalje u `PATCH driver/orders/{id}/status`
+  kao `razlog`. Nije obavezan, jer ga aplikacija 1.1 ne šalje. Nepoznat razlog daje `invalid_razlog`.
+  Admin ga vidi na kartici narudžbe, na tabli i u Dostavi. Tekstovi su u `frontend/src/lib/orders.ts`
+  i `EPiljaraVozac/Services/RazloziNeuspjeha.cs` i moraju ostati isti.
+- **Ispravka vozača:** samo na DANAŠNJOJ ruti (inače `ispravka_nije_danas`), isporučena ↔ neuspjela.
+  - Neuspjela → isporučena ide preko OutForDelivery, a brojač, poeni i fiskalni račun se pokreću normalno.
+  - Isporučena → neuspjela: `IspravkaIsporuke.PonistiAsync` umanjuje brojač pretplate i briše poene
+    Isporuka/Preporuka* te narudžbe.
+  - Fiskalni račun te ispravke: nepokušan prometni račun se briše, a poslan ili pokušan dobija
+    refundaciju i oznaku `FiskalniRacun.Refundiran`. Zatim `Order.PonistiIsporuku()` vraća status
+    u OutForDelivery.
+  - Mašina stanja i dalje nema prelaz iz Delivered.
+- **Indeksi fiskalnih računa:** umjesto jedinstvenog `(OrderId, Vrsta)` važe dva:
+  - jedan nerefundiran prometni račun po narudžbi (`IX_FiskalniRacuni_OrderId_VazeciPromet`);
+  - jedna refundacija po prometnom računu.
+  Migracija `DostavaDetaljiIspravka` označava ranije refundirane prometne račune.
+- **Aplikacija:**
+  - `StanicaDetalji` pokazuje naplatu („Naplati / Naplaćeno / Iznos narudžbe"), napomenu, stavke,
+    opis statusa i koje ispravke nudi.
+  - Ekran stanice je preuređen.
+  - Popup „Stigli ste" pokazuje naplatu, stavke i napomenu.
+  - Neuspjela dostava otvara izbor razloga, a „Odustani" ne zatvara stanicu.
+- Testovi: backend 840, admin 144, vozač 204.

@@ -18,8 +18,8 @@ public class DriverController : ApiControllerBase
         EnvelopeList(await Mediator.Send(new GetDriverRoutesQuery(date)));
 
     [HttpPatch("driver/orders/{id:guid}/status")]
-    public async Task<IActionResult> UpdateStop(Guid id, [FromBody] UpdateStatusRequest body) =>
-        Envelope(await Mediator.Send(new UpdateStopStatusCommand(id, body.Status)));
+    public async Task<IActionResult> UpdateStop(Guid id, [FromBody] DriverStatusRequest body) =>
+        Envelope(await Mediator.Send(new UpdateStopStatusCommand(id, body.Status, body.Razlog)));
 
     [HttpPost("driver/route/reoptimize")]
     public async Task<IActionResult> Reoptimize([FromBody] ReoptimizeRequest body) =>

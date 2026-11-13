@@ -662,6 +662,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<bool>("Refundiran")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("RefundiraniRacunId")
                         .HasColumnType("uuid");
 
@@ -695,10 +698,16 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Status");
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FiskalniRacuni_OrderId_VazeciPromet")
+                        .HasFilter("\"Vrsta\" = 'Promet' AND NOT \"Refundiran\"");
 
-                    b.HasIndex("OrderId", "Vrsta")
-                        .IsUnique();
+                    b.HasIndex("RefundiraniRacunId")
+                        .IsUnique()
+                        .HasFilter("\"RefundiraniRacunId\" IS NOT NULL");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("FiskalniRacuni");
                 });
@@ -1025,6 +1034,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<string>("RazlogNeuspjeha")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int>("Sedmica")
                         .HasColumnType("integer");

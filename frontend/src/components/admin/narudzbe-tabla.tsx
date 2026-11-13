@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowRight, CheckCheck, GripVertical, XCircle } from "lu
 import { AdminLadica } from "@/components/admin/admin-ladica";
 import { OrderCard } from "@/components/admin/order-card";
 import { KOLONE, NAJVISE_U_ZAVRSENOJ, mozePreci, rasporedi, sljedeci } from "@/lib/admin/kanban";
-import { STATUS_META, narudzbeRijec } from "@/lib/orders";
+import { STATUS_META, narudzbeRijec, razlogNeuspjeha } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/types/domain";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -252,6 +252,9 @@ function Kartica({
               {o.deliverySlot?.label ? ` · ${o.deliverySlot.label}` : ""}
             </p>
             {o.note && <p className="mt-1 line-clamp-2 rounded bg-honey-100/60 px-1.5 py-0.5 text-[11px] text-honey-700">{o.note}</p>}
+            {o.status === "FailedDelivery" && o.razlogNeuspjeha && (
+              <p className="mt-1 text-[11px] font-medium text-red-700">{razlogNeuspjeha(o.razlogNeuspjeha)}</p>
+            )}
           </div>
         </div>
       </button>

@@ -72,7 +72,17 @@ public record RouteStopDto
     /// <summary>Kad je vozač zatvorio stanicu (UTC); null dok je otvorena. Dispečerski
     /// ekran time prigušuje isporučene narudžbe i ispisuje vrijeme isporuke.</summary>
     public DateTime? ZatvorenaU { get; init; }
+    /// <summary>Napomena kupca sa narudžbe („zvono ne radi"); vozač je vidi na stanici.</summary>
+    public string? Napomena { get; init; }
+    /// <summary>Šta vozač predaje. Puni se samo u upitima vozačke aplikacije (oni učitavaju
+    /// stavke); dispečerski ekran ih ne traži, pa je tamo lista prazna.</summary>
+    public IReadOnlyList<StavkaStaniceDto> Stavke { get; init; } = [];
+    /// <summary>Naziv vrijednosti RazlogNeuspjeleDostave; null kad nije neuspjela ili razlog nije upisan.</summary>
+    public string? RazlogNeuspjeha { get; init; }
 }
+
+/// <summary>Red narudžbe kako ga vidi vozač: „Korpica domaćinska" · 2 · "Kom".</summary>
+public record StavkaStaniceDto(string Naziv, decimal Kolicina, string Jedinica);
 
 public record DeliveryRouteDto
 {

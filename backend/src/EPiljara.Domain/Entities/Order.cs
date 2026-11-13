@@ -74,6 +74,8 @@ public class Order : Entity
     /// još nisu isporučene; to je normalno stanje, ne greška.
     /// </summary>
     public DateTime? ZatvorenaU { get; set; }
+    /// <summary>Razlog neuspjele dostave koji je vozač izabrao; null za isporučene i za stare narudžbe.</summary>
+    public RazlogNeuspjeleDostave? RazlogNeuspjeha { get; set; }
 
     /// <summary>
     /// Pretplata iz koje je ova narudžba nastala. `null` znači da ju je napravio čovjek —
@@ -119,5 +121,18 @@ public class Order : Entity
             throw new DomainException(
                 $"Prelaz statusa {Status} → {next} nije dozvoljen.", "invalid_transition");
         Status = next;
+    }
+
+    /// <summary>
+    /// Ispravka vozača koji je greškom kucnuo „Primopredaja izvršena": isporučena narudžba se
+    /// vraća u dostavu da bi se mogla zatvoriti kao neuspjela. Mašina stanja namjerno nema prelaz
+    /// iz Delivered — ovo je jedini put nazad, a posljedice isporuke (brojač, poeni, fiskalni
+    /// račun) poništava pozivalac (IspravkaIsporuke) prije ove metode.
+    /// </summary>
+    public void PonistiIsporuku()
+    {
+        if (Status != OrderStatus.Delivered)
+            throw new DomainException("Narudžba nije isporučena.", "invalid_transition");
+        Status = OrderStatus.OutForDelivery;
     }
 }

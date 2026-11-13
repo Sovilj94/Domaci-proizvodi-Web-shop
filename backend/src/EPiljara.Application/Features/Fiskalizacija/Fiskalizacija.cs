@@ -59,7 +59,10 @@ public static class FiskalizacijaPravila
     {
         if (novi != OrderStatus.Delivered || order.Status == OrderStatus.Delivered) return;
         if (order.TotalAmount <= 0) return;
-        if (await db.FiskalniRacuni.AnyAsync(r => r.OrderId == order.Id && r.Vrsta == VrstaFiskalnogRacuna.Promet, ct)) return;
+        // Prometni račun koji je refundiran (vozač je ispravio isporuku u neuspjelu) ne računa se:
+        // ponovna isporuka tada dobija novi.
+        if (await db.FiskalniRacuni.AnyAsync(r => r.OrderId == order.Id && r.Vrsta == VrstaFiskalnogRacuna.Promet
+                && !r.Refundiran, ct)) return;
 
         // Bez reda podešavanja isporuka se ipak zatvara (kao kod brojača) — račun ide bez oznake, a dobavljač
         // će ga odbiti i admin to vidi kao grešku, umjesto da vozač ne može zatvoriti stanicu.
@@ -185,12 +188,15 @@ public class RefundirajFiskalniRacunHandler(IAppDbContext db) : IRequestHandler<
 {
     public async Task<Guid> Handle(RefundirajFiskalniRacunCommand c, CancellationToken ct)
     {
-        var promet = await db.FiskalniRacuni.AsNoTracking()
-            .FirstOrDefaultAsync(r => r.OrderId == c.OrderId && r.Vrsta == VrstaFiskalnogRacuna.Promet, ct)
+        // Posljednji prometni račun: poslije ispravke vozača narudžba može imati i stari, refundiran.
+        var promet = await db.FiskalniRacuni
+            .Where(r => r.OrderId == c.OrderId && r.Vrsta == VrstaFiskalnogRacuna.Promet)
+            .OrderByDescending(r => r.Kreiran)
+            .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Narudžba nema fiskalni račun.");
         if (promet.Status != StatusFiskalnogRacuna.Izdat)
             throw new ConflictException("Prometni račun još nije izdat — refundacija može tek poslije.", "promet_nije_izdat");
-        if (await db.FiskalniRacuni.AnyAsync(r => r.OrderId == c.OrderId && r.Vrsta == VrstaFiskalnogRacuna.Refundacija, ct))
+        if (await db.FiskalniRacuni.AnyAsync(r => r.RefundiraniRacunId == promet.Id, ct))
             throw new ConflictException("Ova narudžba je već refundirana.", "vec_refundirano");
 
         var r = new FiskalniRacun
@@ -203,6 +209,7 @@ public class RefundirajFiskalniRacunHandler(IAppDbContext db) : IRequestHandler<
             RefundiraniRacunId = promet.Id,
         };
         db.FiskalniRacuni.Add(r);
+        promet.Refundiran = true;
         await db.SaveChangesAsync(ct);
         return r.Id;
     }
