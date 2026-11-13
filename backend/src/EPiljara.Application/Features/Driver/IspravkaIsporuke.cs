@@ -35,8 +35,9 @@ public static class IspravkaIsporuke
             .ToListAsync(ct);
         db.PoeniStavke.RemoveRange(poeni);
 
-        // Fiskalni račun: dok nije ni pokušan, samo se briše; poslan (ili u pokušajima) dobija
-        // refundaciju, koju posao šalje tek kad je prometni izdat.
+        // Fiskalni račun: dok nije ni pokušan, samo se briše; poslan (ili u pokušajima) se stornira
+        // (poništavanje, Pravilnik o fiskalnom računu RS čl. 3 — ispravka greške, bez dokumenta kupca).
+        // Storno se šalje tek kad je prometni izdat; vozačeva aplikacija ga odmah štampa.
         var promet = await db.FiskalniRacuni
             .Where(r => r.OrderId == order.Id && r.Vrsta == VrstaFiskalnogRacuna.Promet
                         && !r.Refundiran)
@@ -54,7 +55,7 @@ public static class IspravkaIsporuke
         db.FiskalniRacuni.Add(new FiskalniRacun
         {
             OrderId = order.Id,
-            Vrsta = VrstaFiskalnogRacuna.Refundacija,
+            Vrsta = VrstaFiskalnogRacuna.Storno,
             Iznos = promet.Iznos,
             NacinPlacanja = promet.NacinPlacanja,
             StavkeJson = promet.StavkeJson,

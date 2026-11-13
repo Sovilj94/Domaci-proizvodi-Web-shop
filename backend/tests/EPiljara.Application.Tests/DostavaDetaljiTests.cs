@@ -166,7 +166,7 @@ public class DostavaDetaljiTests
     }
 
     [Fact]
-    public async Task Izdat_racun_dobija_refundaciju_a_ponovna_isporuka_novi_racun()
+    public async Task Izdat_racun_se_stornira_a_ponovna_isporuka_dobija_novi()
     {
         using var s = await Scena.SpremiAsync();
         await s.ZatvoriAsync("Delivered");
@@ -177,7 +177,7 @@ public class DostavaDetaljiTests
 
         await s.ZatvoriAsync("FailedDelivery", "NeJavljaSe");
         s.Ctx.ChangeTracker.Clear();
-        var refund = await s.Ctx.FiskalniRacuni.AsNoTracking().SingleAsync(r => r.Vrsta == VrstaFiskalnogRacuna.Refundacija);
+        var refund = await s.Ctx.FiskalniRacuni.AsNoTracking().SingleAsync(r => r.Vrsta == VrstaFiskalnogRacuna.Storno);
         Assert.Equal((promet.Id, 28m), (refund.RefundiraniRacunId!.Value, refund.Iznos));
 
         await s.ZatvoriAsync("Delivered");
@@ -220,5 +220,69 @@ public class DostavaDetaljiTests
         var ex = await Assert.ThrowsAsync<DomainException>(() => s.ZatvoriAsync("FailedDelivery", "NijeKodKuce"));
         Assert.Equal("ispravka_nije_danas", ex.Code);
         Assert.Equal(OrderStatus.Delivered, (await s.NarudzbaAsync()).Status);
+    }
+
+    private static Task<IReadOnlyList<RacunStaniceDto>> RacuniAsync(Scena s)
+    {
+        var dobavljac = new Infrastructure.Services.ProbniFiskalniDobavljac();
+        return new GetRacuniStaniceHandler(s.Ctx, new FakeCurrentUser(s.Vozac.Id, UserRole.Driver),
+                new Features.Fiskalizacija.ObradiFiskalneRacuneHandler(s.Ctx, dobavljac, new FakeEmail()), dobavljac)
+            .Handle(new GetRacuniStaniceQuery(s.Narudzba.Id), default);
+    }
+
+    private static async Task PodesiOznakeAsync(Scena s)
+    {
+        s.Ctx.Podesavanja.Add(new Podesavanja { Id = Podesavanja.JediniId, FiskalOznakaBezPdv = "A", FiskalOznakaPdv = "E" });
+        await s.Ctx.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Racun_se_izdaje_odmah_za_stampu_na_vratima()
+    {
+        using var s = await Scena.SpremiAsync();
+        await PodesiOznakeAsync(s);
+        await s.ZatvoriAsync("Delivered");
+
+        var racun = Assert.Single(await RacuniAsync(s));
+
+        Assert.Equal(("Promet", "Izdat", 28m), (racun.Vrsta, racun.Status, racun.Iznos));
+        Assert.Contains("PROMET - PRODAJA", racun.Zurnal);
+        Assert.Contains("Korpica domaćinska", racun.Zurnal);
+        Assert.NotNull(racun.QrSadrzaj);
+        Assert.True(racun.Probni);
+    }
+
+    [Fact]
+    public async Task Storniraj_poslije_stampe_daje_storno_racun_bez_podataka_kupca()
+    {
+        using var s = await Scena.SpremiAsync();
+        await PodesiOznakeAsync(s);
+        await s.ZatvoriAsync("Delivered");
+        await RacuniAsync(s); // odštampan na vratima
+
+        await s.ZatvoriAsync("FailedDelivery", "OdbioPrijem");
+        var racuni = await RacuniAsync(s);
+
+        Assert.Equal(["Promet", "Storno"], racuni.Select(r => r.Vrsta));
+        var storno = racuni[1];
+        Assert.Equal("Izdat", storno.Status);
+        Assert.Contains("PROMET - PONISTAVANJE", storno.Zurnal);
+        Assert.Contains($"Ref: {racuni[0].Broj}", storno.Zurnal);
+    }
+
+    [Fact]
+    public async Task Tudja_stanica_nema_racune()
+    {
+        using var s = await Scena.SpremiAsync();
+        var drugi = new User { Name = "Drugi", Email = "drugi@test.local", PasswordHash = "x", Role = UserRole.Driver };
+        s.Ctx.Users.Add(drugi);
+        s.Ctx.Drivers.Add(new Driver { Name = "Drugi", UserId = drugi.Id, Aktivan = true });
+        await s.Ctx.SaveChangesAsync();
+        var dobavljac = new Infrastructure.Services.ProbniFiskalniDobavljac();
+
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            new GetRacuniStaniceHandler(s.Ctx, new FakeCurrentUser(drugi.Id, UserRole.Driver),
+                    new Features.Fiskalizacija.ObradiFiskalneRacuneHandler(s.Ctx, dobavljac, new FakeEmail()), dobavljac)
+                .Handle(new GetRacuniStaniceQuery(s.Narudzba.Id), default));
     }
 }

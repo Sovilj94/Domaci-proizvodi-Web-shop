@@ -54,6 +54,11 @@ public class DriverController : ApiControllerBase
     public async Task<IActionResult> MojaStatistika() =>
         Envelope(await Mediator.Send(new GetMojaStatistikaQuery()));
 
+    /// <summary>Fiskalni računi stanice za štampu; računi koji čekaju se prije toga odmah izdaju.</summary>
+    [HttpGet("driver/orders/{id:guid}/racuni")]
+    public async Task<IActionResult> Racuni(Guid id) =>
+        EnvelopeList(await Mediator.Send(new GetRacuniStaniceQuery(id)));
+
     [HttpGet("driver/profile")]
     public async Task<IActionResult> Profile() =>
         Envelope(await Mediator.Send(new GetDriverProfileQuery()));
