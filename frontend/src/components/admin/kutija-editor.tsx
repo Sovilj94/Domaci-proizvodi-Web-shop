@@ -46,6 +46,7 @@ export function KutijaEditor({
   minimalnoArtikala,
   najmanjaVrijednost,
   posljedica,
+  preporucene,
 }: {
   redovi: KutijaRed[];
   onChange: (redovi: KutijaRed[]) => void;
@@ -62,6 +63,8 @@ export function KutijaEditor({
   minimalnoArtikala?: number;
   /** Najmanja vrijednost kutije (objavljen sadržaj); bez nje se donja granica ne provjerava. */
   najmanjaVrijednost?: number;
+  /** Predložene zamjene sadržaja — u izboru za ⇄ idu prve i istaknute. */
+  preporucene?: Set<string>;
   /** Šta slijedi iz neekonomične kutije, npr. „ovakva se ne može objaviti" — ide u naslov upozorenja. */
   posljedica?: string;
 }) {
@@ -73,6 +76,10 @@ export function KutijaEditor({
   const slobodno = ponuda
     .filter((p) => !uKutiji.has(p.id))
     .sort((a, b) => Number(kategorijeKutije.has(b.categoryId)) - Number(kategorijeKutije.has(a.categoryId)));
+  // Za zamjenu (⇄): prvo ono što je već na spisku predloženih zamjena.
+  const zaZamjenu = preporucene?.size
+    ? [...slobodno].sort((a, b) => Number(preporucene.has(b.id)) - Number(preporucene.has(a.id)))
+    : slobodno;
   const pct = cilj > 0 ? Math.round((z.vrijednost / cilj) * 100) : 0;
   const tonVrijednosti = cilj <= 0 ? "text-ink" : pct < 95 ? "text-honey-700" : pct > 100 ? "text-red-700" : "text-brand-700";
 
@@ -240,7 +247,9 @@ export function KutijaEditor({
                     <b className="text-ink">{formatPrice(r.kolicina * r.cijena)}</b> — umjesto ulazi isto toliko u cijeni:
                   </p>
                   <Plocice
-                    ponuda={slobodno}
+                    ponuda={zaZamjenu}
+                    pretraga
+                    istaknuto={preporucene ? (p) => preporucene.has(p.id) : undefined}
                     opis={(p) => {
                       const n = zamijeni(r, p, slobodnoKM);
                       return n
@@ -342,6 +351,7 @@ export function Plocice({
   onIzaberi,
   onemoguceno,
   upozorenje,
+  istaknuto,
   pretraga = false,
   najvise = 18,
 }: {
@@ -352,6 +362,8 @@ export function Plocice({
   onemoguceno?: (p: Product) => boolean;
   /** Crveni red na pločici (npr. „marža pada na 21%") — pločica se i dalje može izabrati. */
   upozorenje?: (p: Product) => string | undefined;
+  /** Pločica sa oznakom „predložena" (artikal sa spiska predloženih zamjena). */
+  istaknuto?: (p: Product) => boolean;
   pretraga?: boolean;
   najvise?: number;
 }) {
@@ -391,14 +403,21 @@ export function Plocice({
               disabled={onemoguceno?.(p)}
               className={cn(
                 "flex items-center gap-2 rounded-lg border bg-white p-1.5 text-left transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-line disabled:hover:shadow-none",
-                upozori ? "border-red-200 hover:border-red-400" : "border-line hover:border-brand-500",
+                upozori
+                  ? "border-red-200 hover:border-red-400"
+                  : istaknuto?.(p)
+                    ? "border-brand-400 bg-brand-50 hover:border-brand-600"
+                    : "border-line hover:border-brand-500",
               )}
             >
               <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md" style={{ backgroundColor: p.boja ?? "var(--color-sand)" }}>
                 <SmartImage src={p.imageUrl} alt={p.name} sizes="32px" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-xs font-medium">{p.name}</span>
+                <span className="block truncate text-xs font-medium">
+                  {p.name}
+                  {istaknuto?.(p) && <span className="ml-1 rounded bg-brand-100 px-1 text-[10px] font-semibold text-brand-700">predložena</span>}
+                </span>
                 <span className="block truncate text-[11px] text-muted">
                   {opis ? opis(p) : `${formatPrice(p.price)}${unitSuffix(p.unit)}`}
                   {p.marza != null && <span className={cn("ml-1", TON[tonMarze(p.marza, minimalnaMarza)])}>{formatMarza(p.marza)}</span>}

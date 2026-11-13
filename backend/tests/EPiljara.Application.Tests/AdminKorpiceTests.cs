@@ -308,6 +308,33 @@ public class AdminKorpiceTests
     }
 
     [Fact]
+    public async Task U_korpicu_povrca_ulazi_samo_artikal_iz_njenih_kategorija()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
+        var voce = new Category { Name = "Voće", Slug = "voce" };
+        t.Db.Categories.Add(voce);
+        var jabuka = new Product
+        {
+            Name = "Jabuka", Slug = "jabuka", Price = 2m, Unit = Unit.Kg,
+            CategoryId = voce.Id, ProducerId = p.Proizvodjac.Id, Stock = 50, MozeUKorpicu = true,
+        };
+        t.Db.Products.Add(jabuka);
+        t.Db.KorpicaKategorije.Add(new KorpicaKategorija { TipKorpice = TipKorpice.Povrce, CategoryId = p.Artikal.CategoryId });
+        t.Db.SaveChanges();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(jabuka.Id, 1m)]), default));
+        Assert.Equal("artikal_van_kategorija_korpice", ex.Code);
+
+        // Povrće prolazi, a ekran dobija kategorije da ponudu suzi unaprijed.
+        var dto = await new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(p.Artikal2.Id, 1m)]), default);
+        Assert.Equal([p.Artikal.CategoryId], dto.KategorijeIds);
+    }
+
+    [Fact]
     public async Task Admin_sadrzaj_javlja_koliko_je_kutija_vec_naruceno()
     {
         using var t = new TestDb();

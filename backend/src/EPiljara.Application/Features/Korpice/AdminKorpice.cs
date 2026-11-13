@@ -116,8 +116,17 @@ public static class AdminSadrzajMapiranje
                         && i.Order.Status != OrderStatus.Cancelled)
             .SumAsync(i => (int?)i.Quantity, ct) ?? 0;
 
-        return sadrzaj.ToAdminDto(o, narucene);
+        return sadrzaj.ToAdminDto(o, narucene) with
+        {
+            KategorijeIds = await KategorijeKorpiceAsync(db, sadrzaj.Korpica?.TipKorpice, ct),
+        };
     }
+
+    /// <summary>Kategorije iz kojih se puni ta vrsta korpice (povrće u korpicu povrća). Prazno = bez ograničenja.</summary>
+    public static async Task<List<Guid>> KategorijeKorpiceAsync(IAppDbContext db, TipKorpice? tip, CancellationToken ct) =>
+        tip is null
+            ? []
+            : await db.KorpicaKategorije.Where(k => k.TipKorpice == tip).Select(k => k.CategoryId).ToListAsync(ct);
 
     /// <summary>Traži učitane Korpica, Stavke.Product(.Producer) i Zamjene.Product.</summary>
     public static AdminSadrzajDto ToAdminDto(this SedmicniSadrzaj s, KorpiceOpcije o, int naruceneKutije = 0)
@@ -240,9 +249,22 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
 
         var korpica = await db.Products.IgnoreQueryFilters()
             .Where(p => p.Id == sadrzaj.KorpicaId)
-            .Select(p => new { p.Name, p.Price, p.Velicina })
+            .Select(p => new { p.Name, p.Price, p.Velicina, p.TipKorpice })
             .FirstOrDefaultAsync(ct);
         var cijenaKorpice = korpica?.Price ?? 0m;
+
+        // U korpicu povrća ulazi samo povrće: NOVI artikal mora biti iz kategorija te vrste
+        // korpice (Postavke korpica). Ono što je već u kutiji ostaje i kad mu je kategorija
+        // kasnije isključena — inače se takav sadržaj ne bi mogao ni popraviti.
+        var kategorije = await AdminSadrzajMapiranje.KategorijeKorpiceAsync(db, korpica?.TipKorpice, ct);
+        var tudji = kategorije.Count == 0
+            ? null
+            : artikli.FirstOrDefault(a => !snimljeneCijene.ContainsKey(a.Id) && !kategorije.Contains(a.CategoryId));
+        if (tudji is not null)
+            throw new DomainException(
+                $"{tudji.Name} ne spada u kategorije ove korpice. Kategorije se biraju u Postavkama korpica.",
+                "artikal_van_kategorija_korpice");
+
         var staraVrijednost = sadrzaj.Stavke.Sum(s => s.Kolicina * s.JedinicnaCijena);
         var novaVrijednost = c.Stavke.Sum(s => s.Kolicina * Cijena(artikli.First(a => a.Id == s.ProductId)));
 

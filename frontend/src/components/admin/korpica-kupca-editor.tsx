@@ -60,10 +60,17 @@ export function KorpicaKupcaEditor({ orderItemId, onClose }: { orderItemId: stri
     onError: (err) => show(err instanceof ApiRequestError ? err.message : "Čuvanje nije uspjelo", "error"),
   });
 
-  const ponuda = useMemo(
-    () => (data && sviArtikli ? sezonskaPonuda(sviArtikli, mjesecSedmice(data.godina, data.sedmica)) : []),
-    [data, sviArtikli],
-  );
+  // Korpica JEDNOG kupca, za razliku od sedmičnog sadržaja, prima i ono van sezonske ponude za
+  // korpice: po potrebi se doda zimnica, med i ostalo što se prodaje u Špajzu. Sezonska roba ide prva.
+  const ponuda = useMemo(() => {
+    if (!data || !sviArtikli) return [];
+    const sezona = sezonskaPonuda(sviArtikli, mjesecSedmice(data.godina, data.sedmica));
+    const uSezoni = new Set(sezona.map((p) => p.id));
+    const spajz = sviArtikli
+      .filter((p) => p.uSpajzu && p.isAvailable && p.stock > 0 && !uSezoni.has(p.id))
+      .sort((a, b) => a.name.localeCompare(b.name, "sr"));
+    return [...sezona, ...spajz];
+  }, [data, sviArtikli]);
   const izbjegnuti = useMemo(() => new Set(data?.izbjegnuti.map((a) => a.productId)), [data]);
   const samoPregled = !!data && !data.mozeSeMijenjati;
 

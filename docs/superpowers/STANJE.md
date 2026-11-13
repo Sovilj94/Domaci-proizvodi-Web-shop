@@ -1129,3 +1129,16 @@ a sistem ga obavještava kad korpica prestane biti ekonomična.
   zamjena u nacrtu, upozorenje pri marži 30,3 % < 35 %, objava, zamjena u objavljenom (vidi se na javnoj
   stranici), odbijeno čuvanje ispod 95 %.
 - **Dev baza:** sedmica 47 „Mala korpica povrća" sastavljena i objavljena (Crveni luk zamijenjen Mrkvom).
+
+**Dorada istog dana (primjedbe korisnika):**
+- **U korpicu povrća ulazi samo povrće**: novi artikal sedmičnog sadržaja mora biti iz kategorija te vrste korpice
+  (`KorpicaKategorije`; server `artikal_van_kategorija_korpice`, editor nudi samo tu sezonsku robu preko
+  `AdminSadrzajDto.KategorijeIds`). Bez podešenih kategorija nema suženja; ono što je već u kutiji ostaje.
+- **Zamjena iz predloženih zamjena**: ⇄ na predloženoj zamjeni → „umjesto čega?" → ulazi u korpicu po vrijednosti,
+  a izbačeni artikal postaje predložena zamjena. U izboru za ⇄ na artiklu predložene zamjene idu prve, označene.
+  Pločice ispod su jasno „Dodaj na spisak zamjena (ne ulazi u korpicu)".
+- **Korpica kupca u narudžbi** (`korpica-kupca-editor.tsx`) nudi i artikle iz Špajza (zimnica, med…), ne samo
+  sezonsku robu za korpice. I dalje u okviru vrijednosti korpice — dodatak koji se posebno naplaćuje nije urađen.
+- **Suhomesnato van ponude**: u dev bazi je svih 7 artikala kategorije „Meso i suhomesnato" označeno nedostupnim
+  (podatak, ne kod; na produkciji to radi vlasnik u Proizvodima).
+- Testovi: backend 852, admin 147.

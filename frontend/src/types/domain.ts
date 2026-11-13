@@ -473,6 +473,8 @@ export interface AdminSadrzajKorpice extends SadrzajKorpice {
   minimalanBrojArtikala: number;
   /** Kutije već naručene za tu sedmicu — nose svoj snimak sadržaja, izmjena ih ne dira. */
   naruceneKutije: number;
+  /** Kategorije koje pune ovu vrstu korpice; prazno = nije ograničeno. */
+  kategorijeIds: string[];
   cijene: { productId: string; jedinicnaCijena: number; nabavnaCijena?: number | null }[];
   zamjene: ZamjenaSadrzaja[];
 }

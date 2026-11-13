@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Info, X } from "lucide-react";
+import { ArrowLeftRight, Info, X } from "lucide-react";
 import { AdminLadica } from "@/components/admin/admin-ladica";
 import { KutijaEditor, Plocice } from "@/components/admin/kutija-editor";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,17 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { adminApi, adminKorpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import { type KutijaRed, mjesecSedmice, sezonskaPonuda } from "@/lib/admin/kutija";
+import {
+  type KutijaRed,
+  granicaKutije,
+  mjesecSedmice,
+  sezonskaPonuda,
+  slobodnoZaDodavanje,
+  zamijeni,
+  zbir,
+} from "@/lib/admin/kutija";
 import { formatMarza } from "@/lib/marza";
-import { formatPrice, unitSuffix } from "@/lib/utils";
+import { cn, formatPrice, unitSuffix } from "@/lib/utils";
 import type { Product } from "@/types/domain";
 
 /** Poruka iz ApiRequestError ako je ima; inače rezerva. */
@@ -54,6 +62,10 @@ export function SadrzajNacrtEditor({
   const { show } = useToast();
   const [redovi, setRedovi] = useState<KutijaRed[] | null>(null);
   const [zamjene, setZamjene] = useState<string[] | null>(null);
+  /** Predložena zamjena za koju admin upravo bira umjesto čega ulazi u korpicu. */
+  const [ubacuje, setUbacuje] = useState<string | null>(null);
+  /** Vrijednost sa kojom je kutija otvorena — granica je cilj ili ona, šta je veće (kao u KutijaEditor). */
+  const [pocetna, setPocetna] = useState(0);
 
   const sadrzajKljuc = ["admin", "korpice", "sadrzaj", sadrzajId] as const;
   const { data: sadrzaj, isLoading, isError } = useQuery({
@@ -72,6 +84,15 @@ export function SadrzajNacrtEditor({
     if (!sadrzaj || !sviArtikli || redovi !== null) return;
     const snimak = sadrzaj.status !== "Nacrt";
     const cijene = new Map(sadrzaj.cijene.map((c) => [c.productId, c]));
+    setPocetna(
+      Math.round(
+        sadrzaj.stavke.reduce((z, s) => {
+          const c = cijene.get(s.productId);
+          const p = poId.get(s.productId);
+          return z + s.kolicina * (snimak ? (c?.jedinicnaCijena ?? p?.price ?? 0) : (p?.price ?? c?.jedinicnaCijena ?? 0));
+        }, 0) * 100,
+      ) / 100,
+    );
     setRedovi(
       sadrzaj.stavke.map((s) => {
         const p = poId.get(s.productId);
@@ -115,13 +136,32 @@ export function SadrzajNacrtEditor({
     onError: (err) => show(poruka(err, "Čuvanje nije uspjelo"), "error"),
   });
 
-  const ponuda = useMemo(
-    () => (sadrzaj && sviArtikli ? sezonskaPonuda(sviArtikli, mjesecSedmice(sadrzaj.godina, sadrzaj.sedmica)) : []),
-    [sadrzaj, sviArtikli],
-  );
+  // U korpicu povrća ide samo povrće: ponuda je sezonska roba iz kategorija te vrste korpice
+  // (Postavke korpica). Bez podešenih kategorija nema suženja. Server provjerava isto.
+  const ponuda = useMemo(() => {
+    if (!sadrzaj || !sviArtikli) return [];
+    const sezona = sezonskaPonuda(sviArtikli, mjesecSedmice(sadrzaj.godina, sadrzaj.sedmica));
+    const kategorije = new Set(sadrzaj.kategorijeIds);
+    return kategorije.size > 0 ? sezona.filter((p) => kategorije.has(p.categoryId)) : sezona;
+  }, [sadrzaj, sviArtikli]);
   // Nacrt se puni do cilja generisanja; objavljen i zaključan do vrijednosti sa kojom su objavljeni.
   const cilj = sadrzaj ? (sadrzaj.status === "Nacrt" || !sadrzaj.ciljnaVrijednost ? sadrzaj.ciljGenerisanja : sadrzaj.ciljnaVrijednost) : 0;
+  /** Smije li artikal u ovu korpicu (kategorije vrste korpice) — zamjena van njih ostaje samo kupcu na izbor. */
+  const smijeUKorpicu = (p: Product) => !sadrzaj || sadrzaj.kategorijeIds.length === 0 || sadrzaj.kategorijeIds.includes(p.categoryId);
   const zauzeti = new Set([...(redovi ?? []).map((r) => r.productId), ...(zamjene ?? [])]);
+  const slobodnoKM = slobodnoZaDodavanje(granicaKutije(cilj, pocetna), zbir(redovi ?? [], sadrzaj?.cijenaKorpice ?? 0).vrijednost);
+
+  /**
+   * Predložena zamjena ulazi u korpicu umjesto reda `umjesto` (po vrijednosti, kao ⇄), a
+   * izbačeni artikal odlazi na spisak predloženih zamjena — glavna ponuda i zamjene mijenjaju mjesta.
+   */
+  function ubaciUmjesto(nov: Product, umjesto: KutijaRed) {
+    const n = zamijeni(umjesto, nov, slobodnoKM);
+    if (!n || !redovi) return;
+    setRedovi(redovi.map((r) => (r.productId === umjesto.productId ? n : r)));
+    setZamjene((z) => z && [...z.filter((id) => id !== nov.id), umjesto.productId]);
+    setUbacuje(null);
+  }
 
   return (
     <AdminLadica
@@ -176,12 +216,14 @@ export function SadrzajNacrtEditor({
               }
               posljedica={samoPregled ? undefined : objavljen ? "ovako se ne može sačuvati" : "ovakva se ne može objaviti"}
               ponuda={ponuda}
+              preporucene={new Set(zamjene!)}
               samoPregled={samoPregled}
             />
 
             <h3 className="mb-1 mt-6 text-sm font-semibold">Predložene zamjene</h3>
             <p className="mb-2 text-xs text-muted">
               Kupac koji neće neki artikal bira jedan od ovih (ili „izaberi umjesto mene“); količinu računa server.
+              {!samoPregled && " Klikni ⇄ na zamjeni da je ubaciš u korpicu umjesto nekog artikla — taj artikal tada postaje zamjena."}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {zamjene!.length === 0 && <p className="text-sm text-muted">Nema predloženih zamjena.</p>}
@@ -190,12 +232,32 @@ export function SadrzajNacrtEditor({
                 const z = sadrzaj!.zamjene.find((x) => x.productId === id);
                 const naziv = p?.name ?? z?.naziv ?? id;
                 return (
-                  <span key={id} className="inline-flex items-center gap-1 rounded-full border border-line bg-white py-1 pl-3 pr-1 text-sm">
+                  <span
+                    key={id}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border bg-white py-1 pl-3 pr-1 text-sm",
+                      ubacuje === id ? "border-brand-500" : "border-line",
+                    )}
+                  >
                     {naziv}
                     <span className="text-xs text-muted">
                       {p ? `${formatPrice(p.price)}${unitSuffix(p.unit)}` : ""}
                       {p?.marza != null ? ` · ${formatMarza(p.marza)}` : ""}
                     </span>
+                    {!samoPregled && p && smijeUKorpicu(p) && (
+                      <button
+                        type="button"
+                        onClick={() => setUbacuje(ubacuje === id ? null : id)}
+                        aria-label={`Ubaci ${naziv} u korpicu`}
+                        title="Ubaci u korpicu umjesto nekog artikla"
+                        className={cn(
+                          "grid h-6 w-6 place-items-center rounded-full",
+                          ubacuje === id ? "bg-ink text-white" : "text-muted hover:bg-sand hover:text-ink",
+                        )}
+                      >
+                        <ArrowLeftRight className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     {!samoPregled && (
                       <button
                         type="button"
@@ -210,8 +272,39 @@ export function SadrzajNacrtEditor({
                 );
               })}
             </div>
+            {!samoPregled && ubacuje && poId.get(ubacuje) && (
+              <div className="mt-3 rounded-xl border border-brand-400 bg-white p-3">
+                <p className="mb-2 text-xs text-muted">
+                  <b className="text-ink">{poId.get(ubacuje)!.name}</b> ulazi u korpicu — umjesto čega?
+                </p>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {redovi!.map((r) => {
+                    const n = zamijeni(r, poId.get(ubacuje)!, slobodnoKM);
+                    return (
+                      <button
+                        key={r.productId}
+                        type="button"
+                        disabled={!n}
+                        onClick={() => ubaciUmjesto(poId.get(ubacuje)!, r)}
+                        className="rounded-lg border border-line p-2 text-left text-xs transition hover:border-brand-500 disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        <span className="block truncate font-medium">
+                          umjesto: {r.naziv} {r.kolicina.toLocaleString("sr-Latn-BA")} {r.jedinica}
+                        </span>
+                        <span className="block truncate text-muted">
+                          {n
+                            ? `ulazi ${n.kolicina.toLocaleString("sr-Latn-BA")} ${n.jedinica} = ${formatPrice(n.kolicina * n.cijena)}`
+                            : "ne stane"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {!samoPregled && (
               <div className="mt-3">
+                <p className="mb-1.5 text-xs font-semibold">Dodaj na spisak zamjena (ne ulazi u korpicu)</p>
                 <Plocice
                   ponuda={ponuda.filter((p) => !zauzeti.has(p.id))}
                   najvise={9}
