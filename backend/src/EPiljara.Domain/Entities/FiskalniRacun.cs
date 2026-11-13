@@ -5,7 +5,12 @@ namespace EPiljara.Domain.Entities;
 public enum VrstaFiskalnogRacuna
 {
     Promet,
+    /// <summary>Povrat novca kupcu (Pravilnik o fiskalnom računu RS, čl. 3: traži dokument kupca).</summary>
     Refundacija,
+    /// <summary>Poništavanje računa — ispravka greške poslije izdavanja (Pravilnik čl. 3), npr. vozač je
+    /// kucnuo „Primopredaja izvršena", a roba nije predata. Kao storno u prodavnici: bez dokumenta kupca.
+    /// Referiše prometni račun preko RefundiraniRacunId.</summary>
+    Storno,
 }
 
 public enum StatusFiskalnogRacuna
@@ -34,10 +39,10 @@ public class FiskalniRacun : Entity
     /// <summary>Snimak stavki (lista FiskalnaStavka) u JSON-u.</summary>
     public string StavkeJson { get; set; } = "[]";
 
-    /// <summary>Za refundaciju: prometni račun koji se poništava.</summary>
+    /// <summary>Za refundaciju i storno: prometni račun na koji se poziva.</summary>
     public Guid? RefundiraniRacunId { get; set; }
-    /// <summary>Za prometni: poništen refundacijom (admin vratio novac, ili vozač ispravio isporuku u
-    /// neuspjelu). Narudžba smije imati samo jedan NErefundiran prometni račun; ponovna isporuka
+    /// <summary>Za prometni: poništen refundacijom (admin vratio novac) ili stornom (vozač ispravio
+    /// isporuku u neuspjelu). Narudžba smije imati samo jedan NErefundiran prometni račun; ponovna isporuka
     /// poslije ispravke dobija novi.</summary>
     public bool Refundiran { get; set; }
 
@@ -50,6 +55,9 @@ public class FiskalniRacun : Entity
     public DateTime? Izdat { get; set; }
     public string? QrSadrzaj { get; set; }
     public string? VerifikacijaUrl { get; set; }
+    /// <summary>Tekst računa kako ga je dobavljač složio (žurnal) — vozačeva aplikacija ga štampa
+    /// doslovno, uz QR kod, da sadržaj odštampanog računa određuje ESIR, a ne aplikacija.</summary>
+    public string? Zurnal { get; set; }
 
     // ----- ponovni pokušaji -----
     public int Pokusaja { get; set; }

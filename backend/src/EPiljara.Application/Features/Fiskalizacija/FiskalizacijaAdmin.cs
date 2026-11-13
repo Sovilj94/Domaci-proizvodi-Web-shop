@@ -46,6 +46,8 @@ public record FiskalniPregledDto
     public int Izdato { get; init; }
     public decimal IznosPromet { get; init; }
     public decimal IznosRefundacija { get; init; }
+    /// <summary>Stornirano (poništavanje) — vozač je ispravio isporuku u neuspjelu.</summary>
+    public decimal IznosStorno { get; init; }
     /// <summary>Svi neizdati, bez obzira na period — to je posao za danas.</summary>
     public int NaCekanju { get; init; }
     public int Greske { get; init; }
@@ -103,6 +105,7 @@ public class GetFiskalniRacuniHandler(IAppDbContext db, IFiskalniDobavljac dobav
             Izdato = izdati.Count,
             IznosPromet = izdati.Where(r => r.Vrsta == nameof(VrstaFiskalnogRacuna.Promet)).Sum(r => r.Iznos),
             IznosRefundacija = izdati.Where(r => r.Vrsta == nameof(VrstaFiskalnogRacuna.Refundacija)).Sum(r => r.Iznos),
+            IznosStorno = izdati.Where(r => r.Vrsta == nameof(VrstaFiskalnogRacuna.Storno)).Sum(r => r.Iznos),
             NaCekanju = racuni.Count(r => r.Status == nameof(StatusFiskalnogRacuna.NaCekanju)),
             Greske = racuni.Count(r => r.Status == nameof(StatusFiskalnogRacuna.Greska)),
             Dobavljac = dobavljac.Naziv,

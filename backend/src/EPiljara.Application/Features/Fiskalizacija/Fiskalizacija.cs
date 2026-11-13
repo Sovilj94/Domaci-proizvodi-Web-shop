@@ -86,8 +86,11 @@ public static class FiskalizacijaPravila
 
 /* ---------- obrada (posao) ---------- */
 
-/// <summary>Šalje dobavljaču račune na čekanju i one čiji je ponovni pokušaj došao. Vraća broj izdatih.</summary>
-public record ObradiFiskalneRacuneCommand(DateTime? Sada = null) : IRequest<int>;
+/// <summary>Šalje dobavljaču račune na čekanju i one čiji je ponovni pokušaj došao. Vraća broj izdatih.
+/// Sa <paramref name="OrderId"/> obrađuje samo račune te narudžbe i odmah, bez čekanja razmaka — vozač
+/// stoji na vratima i treba da odštampa račun. Dobavljač je idempotentan po Id-u računa, pa istovremeni
+/// prolaz posla ne pravi drugi fiskalni račun.</summary>
+public record ObradiFiskalneRacuneCommand(DateTime? Sada = null, Guid? OrderId = null) : IRequest<int>;
 
 public class ObradiFiskalneRacuneHandler(IAppDbContext db, IFiskalniDobavljac dobavljac, IEmailService email)
     : IRequestHandler<ObradiFiskalneRacuneCommand, int>
@@ -97,9 +100,11 @@ public class ObradiFiskalneRacuneHandler(IAppDbContext db, IFiskalniDobavljac do
     public async Task<int> Handle(ObradiFiskalneRacuneCommand c, CancellationToken ct)
     {
         var sada = c.Sada ?? DateTime.UtcNow;
-        var racuni = await db.FiskalniRacuni
-            .Where(r => r.Status != StatusFiskalnogRacuna.Izdat && !r.TrajnaGreska
-                        && (r.SljedeciPokusaj == null || r.SljedeciPokusaj <= sada))
+        var upit = db.FiskalniRacuni.Where(r => r.Status != StatusFiskalnogRacuna.Izdat && !r.TrajnaGreska);
+        upit = c.OrderId is Guid orderId
+            ? upit.Where(r => r.OrderId == orderId)
+            : upit.Where(r => r.SljedeciPokusaj == null || r.SljedeciPokusaj <= sada);
+        var racuni = await upit
             .OrderBy(r => r.Kreiran)
             .Take(Paket)
             .ToListAsync(ct);
@@ -108,7 +113,7 @@ public class ObradiFiskalneRacuneHandler(IAppDbContext db, IFiskalniDobavljac do
         foreach (var r in racuni)
         {
             FiskalniRacun? promet = null;
-            if (r.Vrsta == VrstaFiskalnogRacuna.Refundacija)
+            if (r.Vrsta is VrstaFiskalnogRacuna.Refundacija or VrstaFiskalnogRacuna.Storno)
             {
                 promet = await db.FiskalniRacuni.AsNoTracking().FirstOrDefaultAsync(x => x.Id == r.RefundiraniRacunId, ct);
                 if (promet?.Status != StatusFiskalnogRacuna.Izdat) continue; // čeka prometni
@@ -136,6 +141,7 @@ public class ObradiFiskalneRacuneHandler(IAppDbContext db, IFiskalniDobavljac do
                 r.Izdat = odgovor.Vrijeme ?? sada;
                 r.QrSadrzaj = odgovor.QrSadrzaj;
                 r.VerifikacijaUrl = odgovor.VerifikacijaUrl;
+                r.Zurnal = odgovor.Zurnal;
                 r.ZadnjaGreska = null;
                 r.SljedeciPokusaj = null;
                 izdato++;

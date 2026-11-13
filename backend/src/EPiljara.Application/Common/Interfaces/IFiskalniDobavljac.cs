@@ -18,6 +18,8 @@ public sealed record FiskalniZahtjev(
     DateTime? ReferentnoVrijeme);
 
 /// <param name="Trajna">Greška zbog sadržaja zahtjeva — ponovno slanje istog ne pomaže.</param>
+/// <param name="Zurnal">Tekst računa za štampu, kako ga ESIR složi (zaglavlje firme, stavke, porezi,
+/// broj i vrijeme). Aplikacija ga štampa doslovno; QR se štampa odvojeno iz <c>QrSadrzaj</c>.</param>
 public sealed record FiskalniOdgovor(
     bool Uspjeh,
     string? Broj = null,
@@ -26,7 +28,8 @@ public sealed record FiskalniOdgovor(
     string? QrSadrzaj = null,
     string? VerifikacijaUrl = null,
     string? Greska = null,
-    bool Trajna = false);
+    bool Trajna = false,
+    string? Zurnal = null);
 
 /// <summary>
 /// Certifikovani izdavalac fiskalnih računa (ESIR + PFR). Aplikacija sama ne fiskalizuje — samo predaje

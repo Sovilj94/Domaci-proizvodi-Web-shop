@@ -737,7 +737,7 @@ export interface FiskalniRacunRed {
   orderId: string;
   kodNarudzbe: string;
   kupac: string;
-  vrsta: "Promet" | "Refundacija";
+  vrsta: "Promet" | "Refundacija" | "Storno";
   status: StatusFiskalnog;
   iznos: number;
   kreiran: string;
@@ -768,6 +768,8 @@ export interface FiskalniPregled {
   izdato: number;
   iznosPromet: number;
   iznosRefundacija: number;
+  /** Stornirano (poništavanje): vozač je ispravio isporuku u neuspjelu. */
+  iznosStorno?: number;
   naCekanju: number;
   greske: number;
   dobavljac: string;

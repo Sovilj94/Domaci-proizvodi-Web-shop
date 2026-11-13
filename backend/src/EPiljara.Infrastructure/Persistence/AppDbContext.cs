@@ -623,6 +623,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Brojac).HasMaxLength(60);
             e.Property(x => x.QrSadrzaj).HasMaxLength(2000);
             e.Property(x => x.VerifikacijaUrl).HasMaxLength(1000);
+            e.Property(x => x.Zurnal).HasMaxLength(8000);
             e.Property(x => x.ZadnjaGreska).HasMaxLength(1000);
             // Jedan važeći (nerefundiran) prometni račun po narudžbi i najviše jedna refundacija po
             // prometnom. Ispravka vozača (isporučena → neuspjela → isporučena) pravi drugi par.

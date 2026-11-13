@@ -17,6 +17,8 @@ import { adminApi } from "@/lib/api/endpoints";
 import type { FiskalnaPodesavanja, FiskalniRacunRed, StatusFiskalnog } from "@/lib/api/contracts";
 import { cn, formatPrice } from "@/lib/utils";
 
+/** Naziv vrste računa; storno je poništavanje (vozač ispravio isporuku), refundacija povrat novca. */
+const VRSTA = { Promet: "Promet", Refundacija: "Refundacija", Storno: "Storno" } as const;
 const pad = (n: number) => String(n).padStart(2, "0");
 const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const vrijeme = (s?: string | null) =>
@@ -81,7 +83,7 @@ export default function FiskalniRacuniPage() {
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <KarticaPoslovanja label="Izdato u periodu" vrijednost={String(d.izdato)} hint={`promet ${formatPrice(d.iznosPromet)}`} />
-            <KarticaPoslovanja label="Refundirano" vrijednost={formatPrice(d.iznosRefundacija)} />
+            <KarticaPoslovanja label="Refundirano i stornirano" vrijednost={formatPrice(d.iznosRefundacija + (d.iznosStorno ?? 0))} hint={`storno ${formatPrice(d.iznosStorno ?? 0)}`} />
             <KarticaPoslovanja label="Na čekanju" vrijednost={String(d.naCekanju)} hint="šalju se svakih 30 sekundi" />
             <KarticaPoslovanja label="Greške" vrijednost={String(d.greske)} hint={d.greske ? "otvori račun za detalje" : "nema"} />
           </div>
@@ -96,7 +98,7 @@ export default function FiskalniRacuniPage() {
                 { naslov: "Narudžba", vrijednost: (r) => `${r.kodNarudzbe} · ${r.kupac}` },
                 {
                   naslov: "Vrsta",
-                  vrijednost: (r) => (r.vrsta === "Refundacija" ? "Refundacija" : r.refundiran ? "Promet (refundiran)" : "Promet"),
+                  vrijednost: (r) => (r.vrsta !== "Promet" ? VRSTA[r.vrsta] : r.refundiran ? "Promet (poništen)" : "Promet"),
                 },
                 {
                   naslov: "Status",
@@ -109,7 +111,7 @@ export default function FiskalniRacuniPage() {
                 { naslov: "Broj", vrijednost: (r) => <span className="font-mono text-xs">{r.broj ?? "—"}</span> },
                 {
                   naslov: "Iznos",
-                  vrijednost: (r) => (r.vrsta === "Refundacija" ? `− ${formatPrice(r.iznos)}` : formatPrice(r.iznos)),
+                  vrijednost: (r) => (r.vrsta !== "Promet" ? `− ${formatPrice(r.iznos)}` : formatPrice(r.iznos)),
                   desno: true,
                 },
                 {
@@ -164,7 +166,7 @@ function RacunLadica({ id, onClose }: { id: string; onClose: () => void }) {
   const r = q.data;
 
   return (
-    <AdminLadica naslov={r ? (r.vrsta === "Refundacija" ? "Refundacioni račun" : "Fiskalni račun") : "Račun"} podnaslov={r?.kodNarudzbe} onClose={onClose}>
+    <AdminLadica naslov={r ? (r.vrsta === "Promet" ? "Fiskalni račun" : `${VRSTA[r.vrsta]} — račun`) : "Račun"} podnaslov={r?.kodNarudzbe} onClose={onClose}>
       <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         {q.isLoading || !r ? (
           <LoadingBlock />
@@ -173,7 +175,7 @@ function RacunLadica({ id, onClose }: { id: string; onClose: () => void }) {
             <div className="space-y-3 rounded-card border border-line bg-white p-4 font-mono text-xs">
               <p className="text-center font-bold">E piljara</p>
               {r.dobavljac?.startsWith("Probni") && <p className="text-center font-bold text-red-700">PROBNI — NEMA FISKALNU VRIJEDNOST</p>}
-              <p className="text-center">{r.vrsta === "Refundacija" ? "REFUNDACIJA" : "PROMET"} · {r.nacinPlacanja}</p>
+              <p className="text-center">{r.vrsta === "Promet" ? "PROMET" : VRSTA[r.vrsta].toUpperCase()} · {r.nacinPlacanja}</p>
               <table className="w-full">
                 <tbody>
                   {r.stavke.map((s, i) => (
@@ -191,11 +193,11 @@ function RacunLadica({ id, onClose }: { id: string; onClose: () => void }) {
               </table>
               <p className="flex justify-between border-t border-dashed border-line pt-2 font-bold">
                 <span>UKUPNO</span>
-                <span>{r.vrsta === "Refundacija" ? "− " : ""}{formatPrice(r.iznos)}</span>
+                <span>{r.vrsta !== "Promet" ? "− " : ""}{formatPrice(r.iznos)}</span>
               </p>
               <p>Broj: {r.broj ?? "—"}{r.brojac ? ` · ${r.brojac}` : ""}</p>
               <p>Vrijeme: {vrijeme(r.izdat)}</p>
-              {r.refundiraniBroj && <p>Refundira: {r.refundiraniBroj}</p>}
+              {r.refundiraniBroj && <p>{r.vrsta === "Storno" ? "Poništava" : "Refundira"}: {r.refundiraniBroj}</p>}
               {r.qrSadrzaj && <p className="break-all rounded bg-sand p-2">QR: {r.qrSadrzaj}</p>}
               {r.verifikacijaUrl && (
                 <a href={r.verifikacijaUrl} target="_blank" rel="noreferrer" className="block text-brand-700 underline">
