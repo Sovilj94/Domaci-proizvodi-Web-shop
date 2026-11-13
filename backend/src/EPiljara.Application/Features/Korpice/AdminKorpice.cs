@@ -317,6 +317,17 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
         if (c.Zamjene is not null && artikliZamjena.Count != zamjeneIdjevi.Count)
             throw new NotFoundException("Jedna ili više zamjena nije pronađena.");
 
+        // I predložena zamjena je iz kategorija korpice. Ona koja je već na spisku ostaje dok
+        // je admin ne skine (editor ih pri otvaranju sam izbaci) — odbija se samo NOVA.
+        var naSpisku = sadrzaj.Zamjene.Select(z => z.ProductId).ToHashSet();
+        var tudjaZamjena = kategorije.Count == 0
+            ? null
+            : artikliZamjena.Values.FirstOrDefault(p => !naSpisku.Contains(p.Id) && !kategorije.Contains(p.CategoryId));
+        if (tudjaZamjena is not null)
+            throw new DomainException(
+                $"{tudjaZamjena.Name} ne spada u kategorije ove korpice, pa ne može biti ni predložena zamjena.",
+                "artikal_van_kategorija_korpice");
+
         // Isti obrazac kao za stavke: Clear() briše (Cascade), novi redovi idu i kroz DbSet.
         var stareCijene = sadrzaj.Zamjene.ToDictionary(z => z.ProductId, z => z.JedinicnaCijena);
         sadrzaj.Zamjene.Clear();

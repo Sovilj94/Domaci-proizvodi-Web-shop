@@ -74,6 +74,8 @@ export function SadrzajNacrtEditor({
   /** Vrijednost sa kojom je kutija otvorena — granica je cilj ili ona, šta je veće. */
   const [pocetna, setPocetna] = useState(0);
   const [upit, setUpit] = useState("");
+  /** Koliko je zatečenih zamjena van kategorija korpice izbačeno pri otvaranju (stari sadržaji). */
+  const [izbaceno, setIzbaceno] = useState(0);
 
   const sadrzajKljuc = ["admin", "korpice", "sadrzaj", sadrzajId] as const;
   const { data: sadrzaj, isLoading, isError } = useQuery({
@@ -110,7 +112,19 @@ export function SadrzajNacrtEditor({
     });
     setPocetna(zbir(novi, sadrzaj.cijenaKorpice).vrijednost);
     setRedovi(novi);
-    setZamjene(sadrzaj.zamjene.map((z) => z.productId));
+    // Zamjena van kategorija korpice (pavlaka u korpici povrća — ostatak starog generatora) se
+    // ne prikazuje: izbacuje se odmah, a čuvanje je briše i iz baze. Zaključan se ne dira.
+    const kategorije = new Set(sadrzaj.kategorijeIds);
+    const sve = sadrzaj.zamjene.map((z) => z.productId);
+    const dobre =
+      kategorije.size === 0 || sadrzaj.status === "Zakljucan"
+        ? sve
+        : sve.filter((id) => {
+            const p = poId.get(id);
+            return !p || kategorije.has(p.categoryId);
+          });
+    setIzbaceno(sve.length - dobre.length);
+    setZamjene(dobre);
   }, [sadrzaj, sviArtikli, redovi, poId]);
 
   const spreman = redovi !== null && zamjene !== null && !!sadrzaj;
@@ -457,6 +471,12 @@ export function SadrzajNacrtEditor({
           <p className="mb-2 text-xs text-muted">
             Kupac koji neće neki artikal bira jedan od ovih. {!samoPregled && "Odavde ih možeš i ubaciti u korpicu."}
           </p>
+          {izbaceno > 0 && !samoPregled && (
+            <p className="mb-2 rounded-lg bg-honey-100 p-2 text-xs text-honey-700">
+              {izbaceno} {izbaceno === 1 ? "zamjena nije" : "zamjena nisu"} za ovu vrstu korpice (npr. mliječno u korpici povrća), pa{" "}
+              {izbaceno === 1 ? "je skinuta" : "su skinute"} sa spiska — klikni „Sačuvaj“ da tako i ostane.
+            </p>
+          )}
           <ul className="flex flex-col gap-1.5">
             {predlozene.length === 0 && (
               <li className="rounded-xl border border-dashed border-line p-3 text-center text-sm text-muted">

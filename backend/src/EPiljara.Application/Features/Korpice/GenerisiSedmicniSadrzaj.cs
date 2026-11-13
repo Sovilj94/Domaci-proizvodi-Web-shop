@@ -298,9 +298,10 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
     /// inače bi svaka zamjena kutiju gurala ispod marže. Zamjena bez nabavne cijene se
     /// dozvoljava (ne zna se), ali ide na kraj.
     ///
-    /// Prvo se biraju artikli iz kategorija korpice; kad ih kutija sve potroši (mali sezonski
-    /// bazen, npr. povrće u novembru), dopunjava se iz ostale sezonske ponude — kupac i tako
-    /// smije birati iz cijele ponude (odluka P2b).
+    /// Biraju se SAMO artikli iz kategorija korpice (bazen): u korpicu povrća ne ide pavlaka,
+    /// sir ni med, ni kao predložena zamjena (odluka vlasnika, 13.11.2026). Kad kutija potroši
+    /// cijeli sezonski bazen, zamjena je manje od <c>BrojZamjena</c> ili nijedna — ranije se
+    /// tada dopunjavalo iz ostale sezonske ponude.
     /// </summary>
     private void DodajZamjene(
         SedmicniSadrzaj sadrzaj, List<Product> bazen, List<Product> sezonskaPonuda,
@@ -310,18 +311,14 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
 
         var najveciOdnos = nabavniBudzet / cilj;
         var uKutiji = sadrzaj.Stavke.Select(s => s.ProductId).ToHashSet();
-        var izBazena = bazen.Select(p => p.Id).ToHashSet();
 
         // Opcione kulture su prve među zamjenama — to je jedini način da stignu do kupca.
-        IEnumerable<Product> Kandidati(IEnumerable<Product> izvor) => izvor
+        var izbor = bazen
             .Where(p => !uKutiji.Contains(p.Id) && p.Price > 0)
             .Where(p => p.NabavnaCijena is not > 0 || p.NabavnaCijena.Value / p.Price <= najveciOdnos)
             .OrderByDescending(p => p.Opciono)
             .ThenByDescending(RazredMarze)
-            .ThenBy(_ => Guid.NewGuid());
-
-        var izbor = Kandidati(bazen)
-            .Concat(Kandidati(sezonskaPonuda.Where(p => !izBazena.Contains(p.Id))))
+            .ThenBy(_ => Guid.NewGuid())
             .Take(_o.BrojZamjena);
 
         foreach (var p in izbor)
