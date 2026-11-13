@@ -241,6 +241,14 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   `OrderItem` and the customer may edit it. The content is **copied** at order time, never referenced — an
   admin editing the template afterwards must not change what somebody already bought. It hangs off
   `OrderItem` rather than `Order` because one order can carry two different korpice.
+- **Published weekly content is editable; its budget is not.** `IzmijeniNacrtHandler` accepts `Nacrt` and
+  `Objavljen` (never `Zakljucan`). On a published one `CiljnaVrijednost` stays frozen — customers' editors and
+  already-ordered boxes are measured against it — so the new box must be worth 95–100 % of it, keep the rows
+  that stay at their publish-time price, and may not make margin or item count worse than the publish rules
+  allow. Recomputing `CiljnaVrijednost` on edit would silently push every existing order of that week out of
+  its 95–100 % budget. The editor's live warning (`ekonomicnost()` in `lib/admin/kutija.ts`) mirrors these
+  rules but the server decides; the same editor opens from `/admin/korpice` and from Postavke korpica
+  (`sadrzaj-vrste.tsx`).
 - **A korpica with no published content for its week cannot be ordered** (`korpica_bez_sadrzaja`). A korpica
   is just a `Product` and checkout checks no deadline, so before P2b one could be bought for a week whose
   content was already locked and whose packing list was already printed. This guard is the only thing

@@ -134,3 +134,48 @@ export function mjesecSedmice(godina: number, sedmica: number): number {
   ponedjeljak.setUTCDate(ponedjeljak.getUTCDate() + 3);
   return ponedjeljak.getUTCMonth() + 1;
 }
+
+/** Pravila po kojima se kutija mjeri — sva dolaze sa servera (Podesavanja, AdminSadrzajDto). */
+export interface PravilaKutije {
+  cijenaKorpice: number;
+  /** Najmanja marža korpice (0–1); dok nije poznata, marža se ne provjerava. */
+  minimalnaMarza?: number | null;
+  /** Najmanje kultura u kutiji. */
+  minimalnoArtikala?: number;
+  /** Najmanje koliko kutija smije vrijediti (objavljen sadržaj: 95 % budžeta). */
+  najmanjaVrijednost?: number;
+}
+
+export interface Ekonomicnost {
+  /** Popunjeno kad je marža ispod minimuma: koliko je nabavno preko onoga što cijena korpice podnosi. */
+  marza: { marza: number; minimum: number; nabavno: number; budzet: number; preko: number } | null;
+  faliArtikala: number;
+  faliVrijednosti: number;
+  uRedu: boolean;
+}
+
+/**
+ * Da li je kutija ekonomična: marža bar minimalna, dovoljno kultura, vrijednost ne ispod donje
+ * granice. Ista pravila koja server traži pri objavi (ObjaviSadrzaj) i pri izmjeni objavljenog
+ * sadržaja (IzmijeniNacrtHandler) — ovdje samo da admin vidi upozorenje prije nego što sačuva.
+ */
+export function ekonomicnost(redovi: KutijaRed[], p: PravilaKutije): Ekonomicnost {
+  const z = zbir(redovi, p.cijenaKorpice);
+  let marza: Ekonomicnost["marza"] = null;
+  if (z.marza != null && p.minimalnaMarza != null && z.marza < p.minimalnaMarza) {
+    const budzet = Math.round(p.cijenaKorpice * (1 - p.minimalnaMarza) * 100) / 100;
+    marza = {
+      marza: z.marza,
+      minimum: p.minimalnaMarza,
+      nabavno: z.nabavno,
+      budzet,
+      preko: Math.round((z.nabavno - budzet) * 100) / 100,
+    };
+  }
+  const faliArtikala = Math.max(0, (p.minimalnoArtikala ?? 0) - redovi.length);
+  const faliVrijednosti =
+    p.najmanjaVrijednost != null && z.vrijednost < p.najmanjaVrijednost - 0.005
+      ? Math.round((p.najmanjaVrijednost - z.vrijednost) * 100) / 100
+      : 0;
+  return { marza, faliArtikala, faliVrijednosti, uRedu: !marza && faliArtikala === 0 && faliVrijednosti === 0 };
+}

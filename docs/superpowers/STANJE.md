@@ -1096,3 +1096,36 @@ Dizajn: `specs/2026-11-11-naselja-i-redoslijed-ruta-design.md`, plan: `plans/202
   Pravi štampač još nije isproban, jer emulator nema Bluetooth.
 - **Ostaje:** adminska „Refundiraj" ne traži dokument kupca, a pravilnik ga traži za refundaciju.
 - Testovi: backend 843, admin 144, vozač 212.
+
+## Sadržaj korpice u Postavkama i izmjena objavljenog sadržaja (2026-11-13, grana `sadrzaj-u-postavkama`)
+
+Zahtjev: u Postavkama korpica admin na jednostavan način mijenja sadržaj korpice (sistem ga i dalje sam sastavlja),
+a sistem ga obavještava kad korpica prestane biti ekonomična.
+
+- **Postavke korpica → „Sadržaj korpice"** (`components/admin/sadrzaj-vrste.tsx`), po vrsti, između „Veličine i
+  cijene" i „Artikli i količine": kartica po veličini za sedmicu koja se prodaje (strelice do +4 sedmice) — status,
+  spisak artikala sa količinama, vrijednost / cilj, marža. Dugmad: „Sastavi automatski" (generator), „Izmijeni
+  sadržaj" (isti editor kao na ekranu Korpice), „Sastavi ponovo", „Objavi". Kartica pocrveni i kaže zašto kad
+  je marža ispod najmanje ili fali kultura.
+- **Upozorenje o ekonomičnosti u editoru** (`KutijaEditor`, `ekonomicnost()` u `lib/admin/kutija.ts`): zbir je
+  zalijepljen na vrh ladice; čim marža padne ispod najmanje, crveni okvir kaže koliko je nabavno preko budžeta
+  („nabavno 20.22 KM, a smije najviše 18.85 KM"), isto za premalo kultura i vrijednost ispod donje granice.
+  Pločica za zamjenu (⇄) ili dodavanje koja bi oborila maržu to piše prije klika („marža pada na 30%"). Važi i
+  za adminov editor kupčeve korpice.
+- **Objavljen sadržaj se sada može mijenjati** (`IzmijeniNacrtHandler`; do sada `sadrzaj_nije_nacrt`):
+  - `CiljnaVrijednost` se NE dira (budžet kupčevog editora i već naručenih kutija); nova kutija mora vrijediti
+    95–100 % tog iznosa (`korpica_preko_cilja`, novo `korpica_ispod_cilja`);
+  - marža ne smije pasti ispod najmanje, niti broj kultura ispod minimuma (`sadrzaj_krsi_pravila`) — osim ako je
+    već bilo lošije, tada smije samo da se popravlja;
+  - artikal koji ostaje zadržava cijenu snimljenu pri objavi; novi artikal mora biti dostupan;
+  - već naručene kutije nose svoj snimak i ne mijenjaju se — editor kaže koliko ih je (`NaruceneKutije`).
+  Zaključan sadržaj ostaje samo za pregled (`sadrzaj_zakljucan`). Nacrt se i dalje čuva i kad krši pravila
+  (editor upozorava, objava zaustavlja).
+- `AdminSadrzajDto` nosi `CiljGenerisanja`, `MinimalanBrojArtikala`, `NaruceneKutije`; editor više ne prima cilj
+  ni „samo pregled" od ekrana — odlučuje status sa servera. Oznaka statusa je u `status-sadrzaja.tsx`.
+- **Nije mijenjano:** generator i dalje bira po sezoni, prioritetu i marži — ne po prodaji („najtraženije" bi
+  tražilo signal iz narudžbi; otvoreno).
+- Testovi: backend 851 (+8), admin 147 (+3); `tsc`, eslint, `npm run build` ✓. Uživo (pregledač): sastavljanje,
+  zamjena u nacrtu, upozorenje pri marži 30,3 % < 35 %, objava, zamjena u objavljenom (vidi se na javnoj
+  stranici), odbijeno čuvanje ispod 95 %.
+- **Dev baza:** sedmica 47 „Mala korpica povrća" sastavljena i objavljena (Crveni luk zamijenjen Mrkvom).

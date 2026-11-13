@@ -97,6 +97,12 @@ public record AdminSadrzajDto : SadrzajDto
     /// <summary>Najviše koliko sadržaj smije koštati u nabavci (cijena × (1 − minimalna marža)).</summary>
     public decimal NabavniBudzet { get; init; }
     public decimal MinimalnaMarza { get; init; }
+    /// <summary>Do koliko nacrt smije vrijediti (cijena × koeficijent vrijednosti).</summary>
+    public decimal CiljGenerisanja { get; init; }
+    /// <summary>Najmanje kultura za ovu veličinu (pravilo iz Postavki korpica).</summary>
+    public int MinimalanBrojArtikala { get; init; }
+    /// <summary>Kutije ove korpice već naručene za tu sedmicu — nose svoj snimak, izmjena ih ne dira.</summary>
+    public int NaruceneKutije { get; init; }
     public IReadOnlyList<CijenaStavkeDto> Cijene { get; init; } = [];
     public IReadOnlyList<ZamjenaDto> Zamjene { get; init; } = [];
 }

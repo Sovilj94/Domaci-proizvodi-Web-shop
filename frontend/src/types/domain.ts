@@ -467,6 +467,12 @@ export interface AdminSadrzajKorpice extends SadrzajKorpice {
   marza?: number | null;
   nabavniBudzet: number;
   minimalnaMarza: number;
+  /** Do koliko nacrt smije vrijediti (cijena × koeficijent vrijednosti). */
+  ciljGenerisanja: number;
+  /** Najmanje kultura za ovu veličinu. */
+  minimalanBrojArtikala: number;
+  /** Kutije već naručene za tu sedmicu — nose svoj snimak sadržaja, izmjena ih ne dira. */
+  naruceneKutije: number;
   cijene: { productId: string; jedinicnaCijena: number; nabavnaCijena?: number | null }[];
   zamjene: ZamjenaSadrzaja[];
 }

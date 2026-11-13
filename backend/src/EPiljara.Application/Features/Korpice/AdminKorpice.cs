@@ -107,11 +107,20 @@ public static class AdminSadrzajMapiranje
             .FirstOrDefaultAsync(s => s.Id == id, ct)
             ?? throw new NotFoundException("Sadržaj korpice nije pronađen.");
 
-        return sadrzaj.ToAdminDto(o);
+        // Kutije koje su kupci već naručili za tu sedmicu: one nose SVOJ snimak sadržaja
+        // (StavkaKorpiceNarudzbe), pa ih izmjena šablona ne dira — ekran to mora reći.
+        var narucene = await db.OrderItems
+            .Where(i => i.ProductId == sadrzaj.KorpicaId
+                        && i.Order!.Godina == sadrzaj.Godina
+                        && i.Order.Sedmica == sadrzaj.Sedmica
+                        && i.Order.Status != OrderStatus.Cancelled)
+            .SumAsync(i => (int?)i.Quantity, ct) ?? 0;
+
+        return sadrzaj.ToAdminDto(o, narucene);
     }
 
     /// <summary>Traži učitane Korpica, Stavke.Product(.Producer) i Zamjene.Product.</summary>
-    public static AdminSadrzajDto ToAdminDto(this SedmicniSadrzaj s, KorpiceOpcije o)
+    public static AdminSadrzajDto ToAdminDto(this SedmicniSadrzaj s, KorpiceOpcije o, int naruceneKutije = 0)
     {
         var cijena = s.Korpica?.Price ?? 0m;
         var t = Trosak(s, cijena);
@@ -123,6 +132,9 @@ public static class AdminSadrzajMapiranje
             Marza = t.Marza,
             MinimalnaMarza = o.MinimalnaMarza,
             NabavniBudzet = cijena * (1 - o.MinimalnaMarza),
+            CiljGenerisanja = cijena * o.KoeficijentVrijednosti,
+            MinimalanBrojArtikala = o.MinimalanBrojArtikala.GetValueOrDefault(s.Korpica?.Velicina ?? VelicinaKorpice.Mala, 1),
+            NaruceneKutije = naruceneKutije,
             Cijene = s.Stavke.Select(st => new CijenaStavkeDto
             {
                 ProductId = st.ProductId,
@@ -146,14 +158,24 @@ public static class AdminSadrzajMapiranje
     }
 }
 
-/* ---------- izmjena nacrta ---------- */
+/* ---------- izmjena sadržaja (nacrt ili objavljen) ---------- */
 
 public record StavkaUnos(Guid ProductId, decimal Kolicina);
 
 /// <summary>
-/// Zamjenjuje stavke nacrta u cjelosti. Objavljen sadržaj se ne dira. <c>Zamjene</c>:
-/// null = ne mijenjaj spisak zamjena (osim što artikal koji je ušao u kutiju ispada iz
-/// zamjena), lista = zamijeni spisak tom listom.
+/// Zamjenjuje stavke sadržaja u cjelosti. <c>Zamjene</c>: null = ne mijenjaj spisak zamjena
+/// (osim što artikal koji je ušao u kutiju ispada iz zamjena), lista = zamijeni spisak tom listom.
+/// <para>
+/// <b>Nacrt</b> se mijenja slobodno do cilja generisanja; pravila (marža, broj kultura) provjerava
+/// tek objava, a editor na njih upozorava uživo.
+/// </para>
+/// <para>
+/// <b>Objavljen</b> sadržaj se od 13.11.2026. takođe može mijenjati (roba nije stigla, bolja
+/// ponuda), ali mora ostati ekonomičan: pravila koja objava traži moraju i dalje važiti, a
+/// <see cref="SedmicniSadrzaj.CiljnaVrijednost"/> se NE dira — to je budžet kupčevog editora i
+/// svih već naručenih kutija, pa nova kutija mora vrijediti 95–100 % tog iznosa. Već naručene
+/// kutije nose svoj snimak i ne mijenjaju se. <b>Zaključan</b> se ne mijenja.
+/// </para>
 /// </summary>
 public record IzmijeniNacrtCommand(
     Guid SadrzajId, IReadOnlyList<StavkaUnos> Stavke, IReadOnlyList<Guid>? Zamjene = null)
@@ -170,9 +192,11 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
             .FirstOrDefaultAsync(s => s.Id == c.SadrzajId, ct)
             ?? throw new NotFoundException("Sadržaj korpice nije pronađen.");
 
-        if (sadrzaj.Status != StatusSadrzaja.Nacrt)
+        if (sadrzaj.Status == StatusSadrzaja.Zakljucan)
             throw new ConflictException(
-                "Objavljen sadržaj se ne može mijenjati.", "sadrzaj_nije_nacrt");
+                "Sadržaj je zaključan — rok naručivanja je prošao. Korpicu pojedinog kupca mijenjaj u Narudžbama.",
+                "sadrzaj_zakljucan");
+        var objavljen = sadrzaj.Status == StatusSadrzaja.Objavljen;
 
         // Isti ProductId dvaput u zahtjevu bi, bez ove provjere, prošao postojanje-provjeru
         // ispod (ona koristi Distinct()) ali pri insertu ostavio DVA reda za jedan artikal
@@ -207,13 +231,31 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
             throw new DomainException(
                 "Količina za artikal na komade mora biti cio broj.", "kolicina_mora_biti_cio_broj");
 
-        // Cilj nacrta je isti koji generator puni i koji ekran pokazuje (CiljGenerisanja).
-        var cijenaKorpice = await db.Products.IgnoreQueryFilters()
-            .Where(p => p.Id == sadrzaj.KorpicaId).Select(p => p.Price).FirstOrDefaultAsync(ct);
+        // Nacrt se računa po katalogu (objava ionako ponovo snima cijene). U objavljenom
+        // artikal koji OSTAJE zadržava cijenu snimljenu pri objavi — CiljnaVrijednost je
+        // sabrana po tim cijenama, pa bi katalog pomjerio zbir a da admin ništa nije takao.
+        var snimljeneCijene = sadrzaj.Stavke.ToDictionary(s => s.ProductId, s => s.JedinicnaCijena);
+        decimal Cijena(Product a) =>
+            objavljen && snimljeneCijene.TryGetValue(a.Id, out var snimak) ? snimak : a.Price;
+
+        var korpica = await db.Products.IgnoreQueryFilters()
+            .Where(p => p.Id == sadrzaj.KorpicaId)
+            .Select(p => new { p.Name, p.Price, p.Velicina })
+            .FirstOrDefaultAsync(ct);
+        var cijenaKorpice = korpica?.Price ?? 0m;
+        var staraVrijednost = sadrzaj.Stavke.Sum(s => s.Kolicina * s.JedinicnaCijena);
+        var novaVrijednost = c.Stavke.Sum(s => s.Kolicina * Cijena(artikli.First(a => a.Id == s.ProductId)));
+
+        // Gornja granica: nacrt do cilja koji generator puni i koji ekran pokazuje
+        // (CiljGenerisanja), objavljen do zamrznutog budžeta.
         GranicaKutije.Provjeri(
-            sadrzaj.Stavke.Sum(s => s.Kolicina * s.JedinicnaCijena),
-            c.Stavke.Sum(s => s.Kolicina * artikli.First(a => a.Id == s.ProductId).Price),
-            cijenaKorpice * opcije.Value.KoeficijentVrijednosti);
+            staraVrijednost,
+            novaVrijednost,
+            objavljen ? sadrzaj.CiljnaVrijednost : cijenaKorpice * opcije.Value.KoeficijentVrijednosti);
+
+        if (objavljen)
+            await ProvjeriObjavljenAsync(sadrzaj, c, artikli, korpica?.Name, korpica?.Velicina, cijenaKorpice,
+                staraVrijednost, novaVrijednost, ct);
 
         // Clear() je dovoljno za brisanje: StavkaSadrzaja → SedmicniSadrzaj je obavezna
         // veza (DeleteBehavior.Cascade), pa EF pri DetectChanges sam obriše osirotjele
@@ -235,7 +277,7 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
             {
                 ProductId = artikal.Id,
                 Kolicina = unos.Kolicina,
-                JedinicnaCijena = artikal.Price,
+                JedinicnaCijena = Cijena(artikal),
             };
             sadrzaj.Stavke.Add(stavka);
             db.StavkeSadrzaja.Add(stavka);
@@ -259,6 +301,8 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
         foreach (var id in zamjeneIdjevi)
         {
             if (!artikliZamjena.TryGetValue(id, out var p)) continue;
+            // Kupci objavljen spisak već vide: nova zamjena koju ne mogu dobiti se ne dodaje.
+            if (objavljen && !stareCijene.ContainsKey(id) && !p.IsAvailable) continue;
             var z = new ZamjenaSadrzaja
             {
                 ProductId = id,
@@ -270,6 +314,70 @@ public class IzmijeniNacrtHandler(IAppDbContext db, IOptions<KorpiceOpcije> opci
 
         await db.SaveChangesAsync(ct);
         return await AdminSadrzajMapiranje.UcitajAsync(db, sadrzaj.Id, opcije.Value, ct);
+    }
+
+    /// <summary>
+    /// Objavljen sadržaj poslije izmjene mora i dalje biti ono što bi objava pustila. Stanje
+    /// koje je već bilo loše (nabavna cijena je skočila poslije objave) smije da se popravlja
+    /// ili ostane isto — samo ne smije da se pogorša; isto načelo kao <see cref="GranicaKutije"/>.
+    /// </summary>
+    private async Task ProvjeriObjavljenAsync(
+        SedmicniSadrzaj sadrzaj, IzmijeniNacrtCommand c, List<Product> artikli,
+        string? nazivKorpice, VelicinaKorpice? velicina, decimal cijenaKorpice,
+        decimal staraVrijednost, decimal novaVrijednost, CancellationToken ct)
+    {
+        var stariIdjevi = sadrzaj.Stavke.Select(s => s.ProductId).ToHashSet();
+
+        var nedostupan = artikli.FirstOrDefault(a => !stariIdjevi.Contains(a.Id) && !a.IsAvailable);
+        if (nedostupan is not null)
+            throw new DomainException(
+                $"{nedostupan.Name} trenutno nije dostupan, pa ne može u objavljenu korpicu.",
+                "sadrzaj_sadrzi_nedostupan_artikal");
+
+        // Donja granica je kupčeva (95 % budžeta): kutija koju neko naruči ispod toga bi mu
+        // pri prvoj izmjeni javila da je budžet premali, a ništa nije ni takao.
+        var cilj = sadrzaj.CiljnaVrijednost;
+        var najmanje = Math.Min(staraVrijednost, Math.Round(cilj * IzmijeniMojuKorpicuHandler.DonjaGranica, 2));
+        if (cilj > 0m && novaVrijednost < najmanje - 0.005m)
+            throw new DomainException(
+                $"Korpica bi vrijedila {novaVrijednost:0.00} KM, a objavljena je sa {cilj:0.00} KM — " +
+                $"smije najmanje {najmanje:0.00} KM. Povećaj količinu ili dodaj artikal za još {najmanje - novaVrijednost:0.00} KM.",
+                "korpica_ispod_cilja");
+
+        var krsi = new List<string>();
+
+        var minimum = opcije.Value.MinimalanBrojArtikala.GetValueOrDefault(velicina ?? VelicinaKorpice.Mala, 1);
+        var najmanjeArtikala = Math.Min(minimum, sadrzaj.Stavke.Count);
+        if (c.Stavke.Count < najmanjeArtikala)
+            krsi.Add($"ostalo bi {c.Stavke.Count} {(c.Stavke.Count == 1 ? "artikal" : "artikala")}, a najmanje je {najmanjeArtikala}");
+
+        // Nabavna se čita iz trenutnog kataloga i za ono što izlazi (i obrisano) — isto kao
+        // AdminSadrzajMapiranje.Trosak, da „prije" i „poslije" mjere isto.
+        var nabavneStarih = await db.Products.IgnoreQueryFilters()
+            .Where(p => stariIdjevi.Contains(p.Id))
+            .Select(p => new { p.Id, p.NabavnaCijena })
+            .ToDictionaryAsync(p => p.Id, p => p.NabavnaCijena, ct);
+        var staraMarza = Marza(
+            sadrzaj.Stavke.Select(s => (s.Kolicina, nabavneStarih.GetValueOrDefault(s.ProductId))), cijenaKorpice);
+        var novaMarza = Marza(
+            c.Stavke.Select(s => (s.Kolicina, artikli.First(a => a.Id == s.ProductId).NabavnaCijena)), cijenaKorpice);
+        var minMarza = opcije.Value.MinimalnaMarza;
+        if (novaMarza is decimal nova && nova < minMarza && (staraMarza is not decimal stara || nova < stara))
+            krsi.Add($"marža bi pala na {Math.Floor(nova * 100):0} %, a najmanje je {minMarza * 100:0.#} %");
+
+        if (krsi.Count > 0)
+            throw new DomainException(
+                $"{nazivKorpice ?? "Korpica"} više ne bi bila ekonomična: {string.Join("; ", krsi)}. " +
+                "Izaberi jeftiniju zamjenu ili smanji količinu skupljeg artikla.",
+                "sadrzaj_krsi_pravila");
+    }
+
+    /// <summary>Isti račun kao <see cref="AdminSadrzajMapiranje.Trosak"/>: null kad nijedan red nema nabavnu.</summary>
+    private static decimal? Marza(IEnumerable<(decimal Kolicina, decimal? Nabavna)> redovi, decimal cijenaKorpice)
+    {
+        var saNabavnom = redovi.Where(r => r.Nabavna is > 0).ToList();
+        if (saNabavnom.Count == 0 || cijenaKorpice <= 0m) return null;
+        return Math.Round((cijenaKorpice - saNabavnom.Sum(r => r.Kolicina * r.Nabavna!.Value)) / cijenaKorpice, 4);
     }
 }
 

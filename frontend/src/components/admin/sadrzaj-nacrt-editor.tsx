@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { AdminLadica } from "@/components/admin/admin-ladica";
 import { KutijaEditor, Plocice } from "@/components/admin/kutija-editor";
 import { Button } from "@/components/ui/button";
@@ -21,32 +21,33 @@ function poruka(err: unknown, rezerva: string): string {
   return err instanceof ApiRequestError && err.message.trim() ? err.message : rezerva;
 }
 
+/** Kupčev budžet ide od 95 % objavljene vrijednosti (server: IzmijeniMojuKorpicuHandler.DonjaGranica) — tekst uz granicu koju šalje server. */
+const DONJA_GRANICA_OBJAVLJENOG = 0.95;
+
 /**
  * Bočni panel za sedmični sadržaj korpice. Kutija se uređuje zajedničkim `KutijaEditor`-om
  * (+/−, zamjena iste vrijednosti, dodavanje klikom na pločicu sezonske ponude), a ispod su
  * predložene zamjene koje kupci vide — i one se dodaju klikom.
  *
- * `PUT /admin/korpice/sadrzaj/{id}` zamjenjuje CIJELI sadržaj (i spisak zamjena) onim što se
- * pošalje, pa se lokalni redovi popune tek kad nacrt stigne (prije toga su `null`, ne prazan
- * niz) i „Sačuvaj" je do tada onemogućen — nikad se ne šalje prazna lista preko nacrta.
+ * Šta se smije zavisi od statusa koji vrati server, ne od onoga ko je panel otvorio:
+ * - **Nacrt** — slobodno do cilja generisanja; na pravila (marža, broj kultura) editor upozorava,
+ *   a zaustavlja ih tek objava.
+ * - **Objavljen** — mijenja se, ali kutija mora ostati ekonomična i u 95–100 % vrijednosti sa
+ *   kojom je objavljena (to je budžet kupaca); artikal koji ostaje računa se po cijeni
+ *   snimljenoj pri objavi. Već naručene kutije se ne mijenjaju.
+ * - **Zaključan** — samo pregled.
  *
- * Objavljen ili zaključan sadržaj se otvara samo za pregled (`samoPregled`).
+ * `PUT /admin/korpice/sadrzaj/{id}` zamjenjuje CIJELI sadržaj (i spisak zamjena) onim što se
+ * pošalje, pa se lokalni redovi popune tek kad sadržaj stigne (prije toga su `null`, ne prazan
+ * niz) i „Sačuvaj" je do tada onemogućen — nikad se ne šalje prazna lista.
  */
 export function SadrzajNacrtEditor({
   sadrzajId,
   korpicaNaziv,
-  cilj,
-  samoPregled = false,
   onClose,
 }: {
   sadrzajId: string;
   korpicaNaziv: string;
-  /**
-   * Ciljna vrijednost iz pregleda sedmice (`ciljGenerisanja`), NE `SadrzajKorpice.ciljnaVrijednost`
-   * — potonje polje backend upisuje tek pri objavi (`ObjaviSadrzaj`), pa je za nacrt uvijek 0.
-   */
-  cilj: number;
-  samoPregled?: boolean;
   onClose: () => void;
 }) {
   const qc = useQueryClient();
@@ -62,10 +63,14 @@ export function SadrzajNacrtEditor({
   const { data: sviArtikli } = useQuery({ queryKey: ["admin", "products"], queryFn: () => adminApi.products() });
   const poId = useMemo(() => new Map<string, Product>((sviArtikli ?? []).map((a) => [a.id, a])), [sviArtikli]);
 
-  // Nacrt se u lokalni state popuni TAČNO JEDNOM (kad stignu i sadržaj i katalog) — refetch
+  const objavljen = sadrzaj?.status === "Objavljen";
+  const samoPregled = sadrzaj?.status === "Zakljucan";
+
+  // Sadržaj se u lokalni state popuni TAČNO JEDNOM (kad stignu i sadržaj i katalog) — refetch
   // sa nekog drugog panela ne smije pregaziti izmjene koje admin još nije sačuvao.
   useEffect(() => {
     if (!sadrzaj || !sviArtikli || redovi !== null) return;
+    const snimak = sadrzaj.status !== "Nacrt";
     const cijene = new Map(sadrzaj.cijene.map((c) => [c.productId, c]));
     setRedovi(
       sadrzaj.stavke.map((s) => {
@@ -76,8 +81,9 @@ export function SadrzajNacrtEditor({
           naziv: s.naziv,
           jedinica: s.jedinica,
           kolicina: s.kolicina,
-          // Objavljen: snimak cijene; nacrt: katalog (server pri čuvanju nacrta uzima katalog).
-          cijena: samoPregled ? (c?.jedinicnaCijena ?? p?.price ?? 0) : (p?.price ?? c?.jedinicnaCijena ?? 0),
+          // Objavljen: cijena snimljena pri objavi (server je zadržava za artikal koji ostaje);
+          // nacrt: katalog (server pri čuvanju nacrta uzima katalog).
+          cijena: snimak ? (c?.jedinicnaCijena ?? p?.price ?? 0) : (p?.price ?? c?.jedinicnaCijena ?? 0),
           nabavna: p?.nabavnaCijena ?? c?.nabavnaCijena ?? null,
           imageUrl: s.imageUrl,
           boja: p?.boja,
@@ -85,23 +91,25 @@ export function SadrzajNacrtEditor({
       }),
     );
     setZamjene(sadrzaj.zamjene.map((z) => z.productId));
-  }, [sadrzaj, sviArtikli, redovi, poId, samoPregled]);
+  }, [sadrzaj, sviArtikli, redovi, poId]);
 
   const spreman = redovi !== null && zamjene !== null;
 
   const sacuvaj = useMutation({
     mutationFn: () => {
-      if (!redovi || !zamjene) throw new Error("Nacrt još nije učitan.");
+      if (!redovi || !zamjene) throw new Error("Sadržaj još nije učitan.");
       return adminKorpiceApi.izmijeni(sadrzajId, {
         stavke: redovi.map((r) => ({ productId: r.productId, kolicina: r.kolicina })),
         zamjene: zamjene.filter((id) => !redovi.some((r) => r.productId === id)),
       });
     },
-    onSuccess: () => {
+    onSuccess: (novo) => {
+      qc.setQueryData(sadrzajKljuc, novo);
       qc.invalidateQueries({ queryKey: ["admin", "korpice", "pregled"] });
-      qc.invalidateQueries({ queryKey: sadrzajKljuc });
       qc.invalidateQueries({ queryKey: ["admin", "zadaci"] });
-      show("Nacrt sačuvan");
+      // Objavljen sadržaj kupci vide: izlog i stranica korpice moraju povući novi.
+      if (objavljen) qc.invalidateQueries({ queryKey: ["korpice"] });
+      show(objavljen ? "Objavljen sadržaj izmijenjen" : "Nacrt sačuvan");
       onClose();
     },
     onError: (err) => show(poruka(err, "Čuvanje nije uspjelo"), "error"),
@@ -111,20 +119,45 @@ export function SadrzajNacrtEditor({
     () => (sadrzaj && sviArtikli ? sezonskaPonuda(sviArtikli, mjesecSedmice(sadrzaj.godina, sadrzaj.sedmica)) : []),
     [sadrzaj, sviArtikli],
   );
-  const ciljPrikaz = samoPregled && sadrzaj?.ciljnaVrijednost ? sadrzaj.ciljnaVrijednost : cilj;
+  // Nacrt se puni do cilja generisanja; objavljen i zaključan do vrijednosti sa kojom su objavljeni.
+  const cilj = sadrzaj ? (sadrzaj.status === "Nacrt" || !sadrzaj.ciljnaVrijednost ? sadrzaj.ciljGenerisanja : sadrzaj.ciljnaVrijednost) : 0;
   const zauzeti = new Set([...(redovi ?? []).map((r) => r.productId), ...(zamjene ?? [])]);
 
   return (
-    <AdminLadica naslov={samoPregled ? "Sadržaj korpice" : "Izmjena nacrta"} podnaslov={korpicaNaziv} onClose={onClose} sirina="max-w-2xl">
+    <AdminLadica
+      naslov={samoPregled ? "Sadržaj korpice" : objavljen ? "Izmjena objavljenog sadržaja" : "Izmjena nacrta"}
+      podnaslov={sadrzaj ? `${korpicaNaziv} · sedmica ${sadrzaj.sedmica}` : korpicaNaziv}
+      onClose={onClose}
+      sirina="max-w-2xl"
+    >
       <div className="flex-1 overflow-y-auto p-4 sm:p-5">
         {isLoading || !spreman ? (
           isError ? (
-            <EmptyState title="Nacrt nije učitan" description="Pokušaj ponovo malo kasnije." />
+            <EmptyState title="Sadržaj nije učitan" description="Pokušaj ponovo malo kasnije." />
           ) : (
             <LoadingBlock label="Učitavanje…" />
           )
         ) : (
           <>
+            {objavljen && (
+              <p className="mb-3 flex gap-2 rounded-xl border border-line bg-white p-3 text-xs text-muted">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" />
+                <span>
+                  Kupci ovaj sadržaj već vide. Izmjena važi za <b className="text-ink">nove narudžbe</b>
+                  {sadrzaj!.naruceneKutije > 0 ? (
+                    <>
+                      {" "}
+                      — <b className="text-ink">{sadrzaj!.naruceneKutije}</b> već naručenih kutija ostaje sa dosadašnjim sadržajem
+                      (pojedinačno se mijenjaju u Narudžbama)
+                    </>
+                  ) : (
+                    " (za ovu sedmicu još nema naručenih kutija)"
+                  )}
+                  . Kutija mora ostati u 95–100 % vrijednosti sa kojom je objavljena i iznad najmanje marže.
+                </span>
+              </p>
+            )}
+
             <KutijaEditor
               redovi={redovi!}
               onChange={(novi) => {
@@ -132,9 +165,16 @@ export function SadrzajNacrtEditor({
                 // Artikal koji uđe u kutiju više nije zamjena (isto pravilo kao server).
                 setZamjene((z) => z && z.filter((id) => !novi.some((r) => r.productId === id)));
               }}
-              cilj={ciljPrikaz}
+              cilj={cilj}
               cijenaKorpice={sadrzaj!.cijenaKorpice}
               minimalnaMarza={sadrzaj!.minimalnaMarza}
+              minimalnoArtikala={sadrzaj!.minimalanBrojArtikala}
+              najmanjaVrijednost={
+                objavljen && sadrzaj!.ciljnaVrijednost > 0
+                  ? Math.round(sadrzaj!.ciljnaVrijednost * DONJA_GRANICA_OBJAVLJENOG * 100) / 100
+                  : undefined
+              }
+              posljedica={samoPregled ? undefined : objavljen ? "ovako se ne može sačuvati" : "ovakva se ne može objaviti"}
               ponuda={ponuda}
               samoPregled={samoPregled}
             />

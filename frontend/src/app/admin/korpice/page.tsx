@@ -8,12 +8,13 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { SadrzajNacrtEditor } from "@/components/admin/sadrzaj-nacrt-editor";
+import { StatusPregledaBadge } from "@/components/admin/status-sadrzaja";
 import { RobaZaSedmicu } from "@/components/admin/roba-za-sedmicu";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { NAZIVI as NAZIVI_TIPA } from "@/components/korpice/tipovi-tabovi";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import type { RezultatGenerisanja, StatusPregleda } from "@/lib/api/contracts";
+import type { RezultatGenerisanja } from "@/lib/api/contracts";
 import type { VelicinaKorpice } from "@/types/domain";
 import { cn, formatPrice } from "@/lib/utils";
 import { formatMarza } from "@/lib/marza";
@@ -24,28 +25,6 @@ const VELICINA_LABEL: Record<VelicinaKorpice, string> = {
   srednja: "Srednja",
   velika: "Velika",
 };
-
-const STATUS_META: Record<StatusPregleda, { label: string; badge: string; dot: string }> = {
-  Nema: { label: "Nema sadržaja", badge: "bg-zinc-200 text-zinc-600", dot: "bg-zinc-400" },
-  Nacrt: { label: "Nacrt", badge: "bg-honey-100 text-honey-600", dot: "bg-honey-500" },
-  Objavljen: { label: "Objavljeno", badge: "bg-brand-100 text-brand-700", dot: "bg-brand-500" },
-  Zakljucan: { label: "Zaključano", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
-};
-
-function StatusPregledaBadge({ status }: { status: StatusPregleda }) {
-  const meta = STATUS_META[status];
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-        meta.badge,
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
-      {meta.label}
-    </span>
-  );
-}
 
 /**
  * Srpska deklinacija uz broj artikala: 1 artikal, 2–4 artikla, 5+ artikala.
@@ -81,12 +60,8 @@ function AdminKorpiceSadrzaj() {
   const izbor = useIzabranaSedmica();
   const { godina, sedmica } = izbor;
 
-  const [editor, setEditor] = useState<{
-    sadrzajId: string;
-    korpicaNaziv: string;
-    cilj: number;
-    samoPregled: boolean;
-  } | null>(null);
+  // Šta se u editoru smije (nacrt, objavljen, zaključan) određuje status koji vrati server.
+  const [editor, setEditor] = useState<{ sadrzajId: string; korpicaNaziv: string } | null>(null);
   const [upozorenja, setUpozorenja] = useState<RezultatGenerisanja[]>([]);
 
   // Upozorenja iz generisanja su samo odgovor POST-a (SadrzajPregled ih ne nosi), pa nemaju
@@ -155,7 +130,8 @@ function AdminKorpiceSadrzaj() {
           <h1 className="font-display text-2xl font-bold text-ink">Korpice</h1>
           <p className="mt-1 text-sm text-muted">
             Sistem sastavlja korpice iz sezonske ponude po cijeni i nabavnoj cijeni (čuvajući minimalnu maržu)
-            i predlaže zamjene. Uredi, objavi, pa odštampaj pakersku listu.
+            i predlaže zamjene. Uredi, objavi, pa odštampaj pakersku listu. Objavljen sadržaj se do roka i dalje može
+            mijenjati — izmjena važi za nove narudžbe.
           </p>
         </div>
 
@@ -268,14 +244,7 @@ function AdminKorpiceSadrzaj() {
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() =>
-                            setEditor({
-                              sadrzajId: r.sadrzajId!,
-                              korpicaNaziv: r.korpicaNaziv,
-                              cilj: r.ciljGenerisanja,
-                              samoPregled: false,
-                            })
-                          }
+                          onClick={() => setEditor({ sadrzajId: r.sadrzajId!, korpicaNaziv: r.korpicaNaziv })}
                         >
                           Izmijeni
                         </Button>
@@ -310,16 +279,9 @@ function AdminKorpiceSadrzaj() {
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() =>
-                          setEditor({
-                            sadrzajId: r.sadrzajId!,
-                            korpicaNaziv: r.korpicaNaziv,
-                            cilj: r.ciljGenerisanja,
-                            samoPregled: true,
-                          })
-                        }
+                        onClick={() => setEditor({ sadrzajId: r.sadrzajId!, korpicaNaziv: r.korpicaNaziv })}
                       >
-                        Pregled
+                        {r.status === "Objavljen" ? "Izmijeni" : "Pregled"}
                       </Button>
                     )}
                   </div>
@@ -352,8 +314,6 @@ function AdminKorpiceSadrzaj() {
         <SadrzajNacrtEditor
           sadrzajId={editor.sadrzajId}
           korpicaNaziv={editor.korpicaNaziv}
-          cilj={editor.cilj}
-          samoPregled={editor.samoPregled}
           onClose={() => setEditor(null)}
         />
       )}

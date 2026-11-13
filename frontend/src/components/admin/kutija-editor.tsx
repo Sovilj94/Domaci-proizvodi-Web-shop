@@ -2,10 +2,11 @@
 
 import { usePodesavanja } from "@/lib/api/hooks";
 import { useState } from "react";
-import { ArrowLeftRight, Minus, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, Minus, Plus, Search, TriangleAlert, X } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import {
   type KutijaRed,
+  ekonomicnost,
   granicaKutije,
   korak,
   najvecaKolicina,
@@ -29,7 +30,9 @@ const TON = { nema: "text-muted", losa: "text-red-700", tijesna: "text-honey-700
  * ponude, u ekvivalentu onoga što je oslobođeno. Kutija ne smije preći cilj (ili vrijednost
  * sa kojom je otvorena, ako je već bila preko) — server isto provjerava (GranicaKutije.cs).
  * Zadate količine iz postavki su za osnovni sadržaj (generator), ne za zamjene.
- * Gore stalno stoji vrijednost naspram cilja, koliko je slobodno i marža.
+ * Gore stalno stoji vrijednost naspram cilja, koliko je slobodno i marža — i upozorenje čim
+ * kutija prestane biti ekonomična (marža ispod minimuma, premalo kultura, vrijednost ispod donje
+ * granice). Pločica za zamjenu ili dodavanje koja bi oborila maržu to kaže prije klika.
  */
 export function KutijaEditor({
   redovi,
@@ -40,6 +43,9 @@ export function KutijaEditor({
   ponuda,
   samoPregled = false,
   izbjegnuti,
+  minimalnoArtikala,
+  najmanjaVrijednost,
+  posljedica,
 }: {
   redovi: KutijaRed[];
   onChange: (redovi: KutijaRed[]) => void;
@@ -52,6 +58,12 @@ export function KutijaEditor({
   samoPregled?: boolean;
   /** Kupčev spisak „ne stavljaj mi" — red sa takvim artiklom se istakne. */
   izbjegnuti?: Set<string>;
+  /** Najmanje kultura (pravilo veličine); bez njega se broj kultura ne provjerava. */
+  minimalnoArtikala?: number;
+  /** Najmanja vrijednost kutije (objavljen sadržaj); bez nje se donja granica ne provjerava. */
+  najmanjaVrijednost?: number;
+  /** Šta slijedi iz neekonomične kutije, npr. „ovakva se ne može objaviti" — ide u naslov upozorenja. */
+  posljedica?: string;
 }) {
   const [zamjenaZa, setZamjenaZa] = useState<string | null>(null);
   const z = zbir(redovi, cijenaKorpice);
@@ -79,29 +91,40 @@ export function KutijaEditor({
     );
   }
 
+  const redOd = (p: Product, kolicina: number): KutijaRed => ({
+    productId: p.id,
+    naziv: p.name,
+    jedinica: p.unit,
+    kolicina,
+    cijena: p.price,
+    nabavna: p.nabavnaCijena ?? null,
+    imageUrl: p.imageUrl,
+    boja: p.boja,
+    izmijenjeno: true,
+  });
+
   function dodaj(p: Product) {
     const kolicina = zaDodavanje(p);
     if (kolicina <= 0) return;
-    onChange([
-      ...redovi,
-      {
-        productId: p.id,
-        naziv: p.name,
-        jedinica: p.unit,
-        kolicina,
-        cijena: p.price,
-        nabavna: p.nabavnaCijena ?? null,
-        imageUrl: p.imageUrl,
-        boja: p.boja,
-        izmijenjeno: true,
-      },
-    ]);
+    onChange([...redovi, redOd(p, kolicina)]);
+  }
+
+  const eko = ekonomicnost(redovi, { cijenaKorpice, minimalnaMarza, minimalnoArtikala, najmanjaVrijednost });
+
+  /** Upozorenje na pločici: marža kutije kad bi `novi` ušao (umjesto reda `umjesto`, ili kao dodatak). */
+  function obaraMarzu(novi: KutijaRed | null, umjesto?: string): string | undefined {
+    if (!novi || minimalnaMarza == null) return undefined;
+    const poslije = umjesto ? redovi.map((x) => (x.productId === umjesto ? novi : x)) : [...redovi, novi];
+    const m = zbir(poslije, cijenaKorpice).marza;
+    if (m == null || m >= minimalnaMarza) return undefined;
+    // Kutija koja je već ispod minimuma: zamjena koja je popravlja ne „obara" maržu.
+    return z.marza != null && m >= z.marza ? `marža ostaje ispod: ${formatMarza(m)}` : `marža pada na ${formatMarza(m)}`;
   }
 
   return (
     <div className="flex flex-col gap-4">
       {/* Zbir: vrijednost naspram cilja i marža, stalno na vrhu. */}
-      <div className="rounded-xl bg-sand p-3">
+      <div className="sticky top-0 z-10 rounded-xl bg-sand p-3 shadow-sm">
         <div className="flex items-baseline justify-between gap-3 text-sm">
           <span className="text-muted">Vrijednost</span>
           <span className={cn("font-semibold tabular-nums", tonVrijednosti)}>
@@ -133,6 +156,31 @@ export function KutijaEditor({
         </div>
         {z.bezNabavne > 0 && (
           <p className="mt-1 text-xs text-honey-700">{z.bezNabavne} bez nabavne cijene — nisu u marži</p>
+        )}
+        {!eko.uRedu && (
+          <div role="alert" className="mt-2 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-0.5">
+              <p className="font-semibold">Korpica nije ekonomična{posljedica ? ` — ${posljedica}` : ""}</p>
+              {eko.marza && (
+                <p>
+                  Marža {formatMarza(eko.marza.marza)} je ispod najmanje {formatMarza(eko.marza.minimum)}: nabavno{" "}
+                  {formatPrice(eko.marza.nabavno)}, a smije najviše {formatPrice(eko.marza.budzet)} (preko za{" "}
+                  {formatPrice(eko.marza.preko)}).{!samoPregled && " Zamijeni skuplji artikal jeftinijim ili mu smanji količinu."}
+                </p>
+              )}
+              {eko.faliArtikala > 0 && (
+                <p>
+                  U kutiji je {redovi.length}, a najmanje je {minimalnoArtikala} kultura — fali još {eko.faliArtikala}.
+                </p>
+              )}
+              {eko.faliVrijednosti > 0 && najmanjaVrijednost != null && (
+                <p>
+                  Vrijednost je ispod najmanje {formatPrice(najmanjaVrijednost)} — fali još {formatPrice(eko.faliVrijednosti)}.
+                </p>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -200,6 +248,7 @@ export function KutijaEditor({
                         : `${formatPrice(p.price)}${unitSuffix(p.unit)} · ne stane`;
                     }}
                     onemoguceno={(p) => zamijeni(r, p, slobodnoKM) === null}
+                    upozorenje={(p) => obaraMarzu(zamijeni(r, p, slobodnoKM), r.productId)}
                     onIzaberi={(p) => {
                       const n = zamijeni(r, p, slobodnoKM);
                       if (!n) return;
@@ -232,6 +281,10 @@ export function KutijaEditor({
                 : `${formatPrice(p.price)}${unitSuffix(p.unit)} · prvo izvadi nešto`;
             }}
             onemoguceno={(p) => zaDodavanje(p) <= 0}
+            upozorenje={(p) => {
+              const k = zaDodavanje(p);
+              return k > 0 ? obaraMarzu(redOd(p, k)) : undefined;
+            }}
             onIzaberi={dodaj}
           />
         </div>
@@ -288,6 +341,7 @@ export function Plocice({
   opis,
   onIzaberi,
   onemoguceno,
+  upozorenje,
   pretraga = false,
   najvise = 18,
 }: {
@@ -296,6 +350,8 @@ export function Plocice({
   onIzaberi: (p: Product) => void;
   /** Pločica se vidi, ali se ne može izabrati (npr. ne stane u korpicu). */
   onemoguceno?: (p: Product) => boolean;
+  /** Crveni red na pločici (npr. „marža pada na 21%") — pločica se i dalje može izabrati. */
+  upozorenje?: (p: Product) => string | undefined;
   pretraga?: boolean;
   najvise?: number;
 }) {
@@ -325,13 +381,18 @@ export function Plocice({
         <p className="text-sm text-muted">{q ? `Ništa za „${upit}“.` : "Nema slobodnih artikala u sezoni."}</p>
       ) : (
         <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-          {prikaz.map((p) => (
+          {prikaz.map((p) => {
+            const upozori = upozorenje?.(p);
+            return (
             <button
               key={p.id}
               type="button"
               onClick={() => onIzaberi(p)}
               disabled={onemoguceno?.(p)}
-              className="flex items-center gap-2 rounded-lg border border-line bg-white p-1.5 text-left transition hover:border-brand-500 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-line disabled:hover:shadow-none"
+              className={cn(
+                "flex items-center gap-2 rounded-lg border bg-white p-1.5 text-left transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-line disabled:hover:shadow-none",
+                upozori ? "border-red-200 hover:border-red-400" : "border-line hover:border-brand-500",
+              )}
             >
               <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md" style={{ backgroundColor: p.boja ?? "var(--color-sand)" }}>
                 <SmartImage src={p.imageUrl} alt={p.name} sizes="32px" />
@@ -342,9 +403,11 @@ export function Plocice({
                   {opis ? opis(p) : `${formatPrice(p.price)}${unitSuffix(p.unit)}`}
                   {p.marza != null && <span className={cn("ml-1", TON[tonMarze(p.marza, minimalnaMarza)])}>{formatMarza(p.marza)}</span>}
                 </span>
+                {upozori && <span className="block truncate text-[11px] font-medium text-red-700">⚠ {upozori}</span>}
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
       {!q && !sve && filtrirano.length > prikaz.length && (

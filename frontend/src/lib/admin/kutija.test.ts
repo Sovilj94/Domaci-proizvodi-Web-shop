@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { Product } from "@/types/domain";
 import {
   type KutijaRed,
+  ekonomicnost,
   granicaKutije,
   kolicinaZaDodavanje,
   kolicinaZaVrijednost,
@@ -97,4 +98,29 @@ test("zamjena po cijeni: 2 kg krompira (4 KM) → batat od 5 KM/kg = 0,8 kg, i k
   const n = zamijeni(red({ naziv: "Krompir", kolicina: 2, cijena: 2 }), batat, 0)!;
   assert.equal(n.kolicina, 0.8);
   assert.equal(n.kolicina * n.cijena, 4);
+});
+
+test("ekonomičnost: marža ispod minimuma javlja koliko je nabavno preko budžeta", () => {
+  // Korpica 20 KM, minimum 25 % → nabavno smije najviše 15 KM; ovdje je 16 KM (marža 20 %).
+  const redovi = [red({ productId: "a", kolicina: 2, cijena: 5, nabavna: 4 }), red({ productId: "b", kolicina: 4, cijena: 3, nabavna: 2 })];
+  const e = ekonomicnost(redovi, { cijenaKorpice: 20, minimalnaMarza: 0.25 });
+  assert.equal(e.uRedu, false);
+  assert.deepEqual(e.marza, { marza: 0.2, minimum: 0.25, nabavno: 16, budzet: 15, preko: 1 });
+});
+
+test("ekonomičnost: marža tačno na minimumu je u redu, a bez nabavnih cijena se ne provjerava", () => {
+  const naMinimumu = [red({ kolicina: 3, cijena: 6, nabavna: 5 })];
+  assert.equal(ekonomicnost(naMinimumu, { cijenaKorpice: 20, minimalnaMarza: 0.25 }).uRedu, true);
+  assert.equal(ekonomicnost([red({ kolicina: 9, cijena: 9 })], { cijenaKorpice: 20, minimalnaMarza: 0.25 }).uRedu, true);
+  // Minimum još nije stigao sa servera: nema na šta da se upozori.
+  assert.equal(ekonomicnost([red({ kolicina: 5, cijena: 5, nabavna: 5 })], { cijenaKorpice: 20 }).uRedu, true);
+});
+
+test("ekonomičnost: premalo kultura i vrijednost ispod donje granice", () => {
+  const e = ekonomicnost([red({ kolicina: 2, cijena: 4 })], { cijenaKorpice: 20, minimalnoArtikala: 3, najmanjaVrijednost: 9.5 });
+  assert.equal(e.faliArtikala, 2);
+  assert.equal(e.faliVrijednosti, 1.5);
+  assert.equal(e.uRedu, false);
+  // Pola feninga tolerancije, kao na serveru.
+  assert.equal(ekonomicnost([red({ kolicina: 1, cijena: 9.496 })], { cijenaKorpice: 20, najmanjaVrijednost: 9.5 }).faliVrijednosti, 0);
 });

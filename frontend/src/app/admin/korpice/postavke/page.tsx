@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Search, Sparkles } from "lucide-react";
+import { SadrzajVrste } from "@/components/admin/sadrzaj-vrste";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { SmartImage } from "@/components/ui/smart-image";
@@ -38,8 +39,9 @@ function poruka(err: unknown, rezerva: string): string {
 /**
  * Postavke korpica na jednom mjestu: pravila za sve korpice, pa po vrsti — cijene i ponuda
  * veličina, koje kategorije ulaze, i za svaki artikal da li ide u korpicu, prioritet i koliko
- * ga ide u malu / srednju / veliku. Sve se čita iz baze i upisuje u nju; generator, editori i
- * „Šta dobijaš u korpici" rade po ovome.
+ * ga ide u malu / srednju / veliku — i šta je u korpici ove sedmice (`SadrzajVrste`: sistem
+ * sastavi, admin zamijeni artikle uz upozorenje o ekonomičnosti). Sve se čita iz baze i upisuje
+ * u nju; generator, editori i „Šta dobijaš u korpici" rade po ovome.
  */
 export default function PostavkeKorpicaPage() {
   const [tip, setTip] = useState<TipKorpice>("povrce");
@@ -374,6 +376,8 @@ function Vrsta({
           </Button>
         </div>
       </section>
+
+      <SadrzajVrste tip={tip} podesavanja={podesavanja} />
 
       <Artikli
         proizvodi={proizvodi.filter((p) => izabrane.has(p.categoryId) && !korpiceIds.has(p.id))}

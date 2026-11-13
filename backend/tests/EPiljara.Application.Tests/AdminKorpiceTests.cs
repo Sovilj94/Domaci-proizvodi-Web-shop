@@ -149,17 +149,203 @@ public class AdminKorpiceTests
     }
 
     [Fact]
-    public async Task Objavljen_sadrzaj_se_ne_moze_mijenjati()
+    public async Task Zakljucan_sadrzaj_se_ne_moze_mijenjati()
     {
         using var t = new TestDb();
         var p = Postavi(t);
-        var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Objavljen);
+        var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Zakljucan);
 
         var ex = await Assert.ThrowsAsync<ConflictException>(() =>
-            new IzmijeniNacrtHandler(t.Db, Microsoft.Extensions.Options.Options.Create(TestOpcije.Korpice())).Handle(
-                new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 5m)]), default));
+            new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+                new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m)]), default));
 
-        Assert.Equal("sadrzaj_nije_nacrt", ex.Code);
+        Assert.Equal("sadrzaj_zakljucan", ex.Code);
+    }
+
+    /* ---------- izmjena OBJAVLJENOG sadržaja ---------- */
+
+    /// <summary>Paradajz 2 kg × 4 + Krompir 1 kg × 2 = 10 KM, objavljeno sa tim budžetom.</summary>
+    private static SedmicniSadrzaj Objavljen(TestDb t, Postavka p)
+    {
+        var s = new SedmicniSadrzaj
+        {
+            KorpicaId = p.Korpica1.Id, Godina = 2026, Sedmica = 41,
+            Status = StatusSadrzaja.Objavljen, CiljnaVrijednost = 10m,
+        };
+        s.Stavke.Add(new StavkaSadrzaja { ProductId = p.Artikal.Id, Kolicina = 2m, JedinicnaCijena = 4m });
+        s.Stavke.Add(new StavkaSadrzaja { ProductId = p.Artikal2.Id, Kolicina = 1m, JedinicnaCijena = 2m });
+        t.Db.SedmicniSadrzaji.Add(s);
+        t.Db.SaveChanges();
+        return s;
+    }
+
+    [Fact]
+    public async Task Objavljen_zamjena_iste_vrijednosti_prolazi_a_budzet_i_snimljena_cijena_ostaju()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Objavljen(t, p);
+        // Katalog je poskupio poslije objave: red koji ostaje mora zadržati snimljenih 4 KM,
+        // inače bi zbir skočio na 11,95 i izmjena pala a da admin paradajz nije ni takao.
+        p.Artikal.Price = 5m;
+        t.Db.SaveChanges();
+
+        // Krompir 1 kg (2 KM) → Luk 1,3 kg × 1,5 = 1,95 KM; ukupno 9,95 KM (99,5 % budžeta).
+        await new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(p.Artikal3.Id, 1.3m)]), default);
+
+        t.Db.ChangeTracker.Clear();
+        var poslije = await t.Db.SedmicniSadrzaji.Include(x => x.Stavke).SingleAsync(x => x.Id == s.Id);
+        Assert.Equal(StatusSadrzaja.Objavljen, poslije.Status);
+        Assert.Equal(10m, poslije.CiljnaVrijednost);
+        Assert.Equal(4m, poslije.Stavke.Single(x => x.ProductId == p.Artikal.Id).JedinicnaCijena);
+        Assert.Equal(1.5m, poslije.Stavke.Single(x => x.ProductId == p.Artikal3.Id).JedinicnaCijena);
+        Assert.DoesNotContain(poslije.Stavke, x => x.ProductId == p.Artikal2.Id);
+    }
+
+    [Fact]
+    public async Task Objavljen_ne_smije_preci_budzet_sa_kojim_je_objavljen()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Objavljen(t, p);
+
+        // 8 + Luk 2 kg × 1,5 = 11 KM > 10 KM.
+        var ex = await Assert.ThrowsAsync<DomainException>(() => new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(p.Artikal3.Id, 2m)]), default));
+
+        Assert.Equal("korpica_preko_cilja", ex.Code);
+    }
+
+    [Fact]
+    public async Task Objavljen_ne_smije_pasti_ispod_95_posto_budzeta()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Objavljen(t, p);
+
+        // 8 + Luk 0,5 kg × 1,5 = 8,75 KM < 9,50 KM.
+        var ex = await Assert.ThrowsAsync<DomainException>(() => new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(p.Artikal3.Id, 0.5m)]), default));
+
+        Assert.Equal("korpica_ispod_cilja", ex.Code);
+    }
+
+    [Fact]
+    public async Task Objavljen_ne_smije_ostati_sa_manje_kultura_nego_sto_ima()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Objavljen(t, p);
+
+        // Vrijednost ostaje 10 KM (2,5 kg paradajza), ali od dvije kulture ostaje jedna.
+        var ex = await Assert.ThrowsAsync<DomainException>(() => new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2.5m)]), default));
+
+        Assert.Equal("sadrzaj_krsi_pravila", ex.Code);
+    }
+
+    /// <summary>Korpica 10 KM; nabavno prije 2×2 + 1×1 = 5 KM (marža 50 %), minimum je 25 %.</summary>
+    private static void PostaviNabavne(TestDb t, Postavka p, decimal nabavnaLuka)
+    {
+        p.Korpica1.Price = 10m;
+        p.Artikal.NabavnaCijena = 2m;
+        p.Artikal2.NabavnaCijena = 1m;
+        p.Artikal3.NabavnaCijena = nabavnaLuka;
+        t.Db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task Objavljen_odbija_zamjenu_koja_obara_marzu_ispod_minimuma()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Objavljen(t, p);
+        PostaviNabavne(t, p, nabavnaLuka: 3m);
+
+        // Nabavno poslije: 4 + 1,3 × 3 = 7,9 KM → marža 21 %.
+        var ex = await Assert.ThrowsAsync<DomainException>(() => new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(p.Artikal3.Id, 1.3m)]), default));
+
+        Assert.Equal("sadrzaj_krsi_pravila", ex.Code);
+        Assert.Contains("21 %", ex.Message);
+    }
+
+    [Fact]
+    public async Task Objavljen_vec_ispod_minimuma_smije_da_se_popravlja()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Objavljen(t, p);
+        // Krompir je poslije objave poskupio u nabavci: 4 + 4,5 = 8,5 KM → marža 15 %.
+        PostaviNabavne(t, p, nabavnaLuka: 3m);
+        p.Artikal2.NabavnaCijena = 4.5m;
+        t.Db.SaveChanges();
+
+        // Luk umjesto krompira: 4 + 1,3 × 3 = 7,9 KM → 21 %. I dalje ispod 25 %, ali bolje nego
+        // 15 % — zabrana bi admina zaključala u lošije stanje.
+        var dto = await new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(p.Artikal3.Id, 1.3m)]), default);
+
+        Assert.Equal(0.21m, dto.Marza);
+    }
+
+    [Fact]
+    public async Task Nacrt_se_cuva_i_kad_je_marza_ispod_minimuma()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Sadrzaj(t, p.Korpica1, p.Artikal, 2m, StatusSadrzaja.Nacrt);
+        PostaviNabavne(t, p, nabavnaLuka: 3m);
+
+        // Isti sadržaj koji objavljenom ne prolazi: nacrtu samo editor upozorava, a objava ga zaustavlja.
+        var dto = await new IzmijeniNacrtHandler(t.Db, Opcije).Handle(
+            new IzmijeniNacrtCommand(s.Id, [new StavkaUnos(p.Artikal.Id, 2m), new StavkaUnos(p.Artikal3.Id, 1.3m)]), default);
+
+        Assert.True(dto.Marza < dto.MinimalnaMarza);
+        Assert.Equal(11.5m, dto.CiljGenerisanja);
+        Assert.Equal(8, dto.MinimalanBrojArtikala);
+    }
+
+    [Fact]
+    public async Task Admin_sadrzaj_javlja_koliko_je_kutija_vec_naruceno()
+    {
+        using var t = new TestDb();
+        var p = Postavi(t);
+        var s = Objavljen(t, p);
+
+        var zona = new DeliveryZone { Name = "Centar", MinOrderAmount = 0m, DeliveryFee = 3m, IsActive = true };
+        var slot = new DeliverySlot { DayOfWeek = (int)DayOfWeek.Thursday, TimeFrom = "16:00", TimeTo = "20:00", CutoffHours = 48 };
+        t.Db.DeliveryZones.Add(zona);
+        t.Db.DeliverySlots.Add(slot);
+
+        Order Narudzba(string kod, OrderStatus status, int sedmica, int komada)
+        {
+            var o = new Order
+            {
+                Code = kod, PublicToken = Guid.NewGuid().ToString("N"),
+                CustomerName = "Marko", CustomerPhone = "065", DeliveryAddress = "Ulica 1",
+                DeliverySlotId = slot.Id, DeliveryZoneId = zona.Id,
+                Status = status, Godina = 2026, Sedmica = sedmica,
+            };
+            o.Items.Add(new OrderItem
+            {
+                ProductId = p.Korpica1.Id, ProductName = p.Korpica1.Name, Unit = Unit.Kom,
+                UnitPrice = p.Korpica1.Price, Quantity = komada,
+            });
+            return o;
+        }
+        t.Db.Orders.AddRange(
+            Narudzba("EP-1", OrderStatus.Confirmed, 41, 2),
+            Narudzba("EP-2", OrderStatus.Pending, 41, 1),
+            Narudzba("EP-3", OrderStatus.Cancelled, 41, 5),
+            Narudzba("EP-4", OrderStatus.Confirmed, 42, 7));
+        t.Db.SaveChanges();
+        t.Db.ChangeTracker.Clear();
+
+        var dto = await new GetSadrzajZaIzmjenuHandler(t.Db, Opcije).Handle(new GetSadrzajZaIzmjenuQuery(s.Id), default);
+
+        Assert.Equal(3, dto.NaruceneKutije);
     }
 
     [Fact]
