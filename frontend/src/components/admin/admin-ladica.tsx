@@ -15,12 +15,15 @@ export function AdminLadica({
   podnaslov,
   onClose,
   sirina = "max-w-lg",
+  sredina = false,
   children,
 }: {
   naslov: React.ReactNode;
   podnaslov?: React.ReactNode;
   onClose: () => void;
   sirina?: string;
+  /** Prozor na sredini ekrana umjesto ladice uz desnu ivicu — za široke editore u dvije kolone. */
+  sredina?: boolean;
   children: React.ReactNode;
 }) {
   const naslovId = useId();
@@ -63,7 +66,8 @@ export function AdminLadica({
         aria-labelledby={naslovId}
         tabIndex={-1}
         className={cn(
-          "absolute right-0 top-0 flex h-full w-full flex-col bg-cream shadow-xl focus:outline-none",
+          "absolute flex w-full flex-col bg-cream shadow-xl focus:outline-none",
+          sredina ? "inset-0 m-auto h-full overflow-hidden sm:h-[92vh] sm:rounded-2xl" : "right-0 top-0 h-full",
           sirina,
         )}
       >

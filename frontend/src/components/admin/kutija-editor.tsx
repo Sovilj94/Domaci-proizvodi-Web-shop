@@ -302,7 +302,7 @@ export function KutijaEditor({
   );
 }
 
-function Stepper({ red, najvise, onPromijeni }: { red: KutijaRed; najvise: number; onPromijeni: (k: number) => void }) {
+export function Stepper({ red, najvise, onPromijeni }: { red: KutijaRed; najvise: number; onPromijeni: (k: number) => void }) {
   const k = korak(red.jedinica);
   const puno = red.kolicina + k > najvise + 1e-9;
   return (
