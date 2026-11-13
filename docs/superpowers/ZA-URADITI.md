@@ -65,6 +65,22 @@ Veličina: **S** = do sat-dva, **M** = pola dana, **L** = dan i više / treba sp
 | G6 | Generator može malo povećati količine (dopuna do cilja) ili smanjiti (zaliha, marža) u odnosu na prikazane okvirne količine. | Prihvaćeno — količine su „okvirne". | — |
 | G7 | Voće nema sezonski kalendar po uzoru (farmit ga nema). | Po potrebi ručno u Sezonskom kalendaru. | S |
 
+## H. Sadržaj korpice — editor u Postavkama (otvoreno 13.11.2026, grana `sadrzaj-u-postavkama`, NIJE spojena u main)
+
+Urađeno je u `STANJE.md` („Sadržaj korpice u Postavkama…"). Ostalo:
+
+| # | Šta | Gdje | Prijedlog | Vel. |
+|---|---|---|---|---|
+| H1 | **Grana nije spojena ni pushovana** — 7 commita, zadnji `5c7efa9`. Poslije zadnje izmjene (nabavne cijene u editoru) nije rađen `npm run build` ni pregled od strane vlasnika. | grana `sadrzaj-u-postavkama` | Vlasnik pogleda editor → `npm run build` → merge u main + push. | S |
+| H2 | **Nabavne cijene u editoru — vlasnik još nije vidio.** Prikaz je prebačen na nabavne (uz artikal, zbir „Nabavna cijena korpice", marža na fiksnu prodajnu cijenu), ali se količina pri zamjeni i „popunjenost %" i dalje računaju po PRODAJNOJ vrijednosti (server: `GranicaKutije`, budžet kupca 95–100 %). | `sadrzaj-nacrt-editor.tsx`, `AdminKorpice.cs` | Ako vlasnik hoće da i pravila idu po nabavnoj (zamjena „koliko nabavno izađe, toliko uđe", granica = nabavni budžet), to je izmjena servera i kupčevog budžeta — treba odluka. | M |
+| H3 | **Najmanja smislena količina važi samo u ovom editoru** (pola zadate količine za veličinu). Server je ne provjerava; editor korpice kupca u narudžbi i kupčeva zamjena na sajtu rade po starom (korak 0,1 kg). | `lib/admin/kutija.ts` (`najmanjaKolicina`) | Isto pravilo na server i u ostala dva editora; po želji krupniji korak (0,5 kg). | M |
+| H4 | **Predložene zamjene su često prazne**: generator ih bira samo iz kategorija korpice I samo one koje ne obaraju maržu; uz najmanju maržu 35 % malo koje povrće prolazi (sedmica 47: pet od šest korpica bez ijedne). | `GenerisiSedmicniSadrzaj.DodajZamjene` | Ili popustiti uslov marže za zamjene (test `Zamjene_su_van_kutije_i_bez_artikala_koji_bi_oborili_marzu` ga čuva), ili admin dodaje zvjezdicom. Odluka vlasnika. | S |
+| H5 | **Kupac na sajtu i dalje može u korpicu povrća izabrati bilo šta iz sezonske ponude** (i mliječno) — odluka P2b; admin i generator više ne mogu. | `MojaKorpica.cs` (ponuda), `KorpicaPodobnost` | Ako treba: suziti kupčevu ponudu na kategorije korpice. | S |
+| H6 | **Dodatak u narudžbi ide na račun vrijednosti korpice**: admin u korpicu kupca može dodati zimnicu/med (ponuda iz Špajza), ali prvo mora nešto izvaditi. Dodatak preko korpice koji se posebno naplaćuje ne postoji. Ovaj dio nije kliknut u pregledaču. | `korpica-kupca-editor.tsx`, `AdminKorpicaNarudzbe.cs` | Nova stavka narudžbe iz admina (naplata, zalihe, fiskalni račun) — treba spec. | L |
+| H7 | **Generator ne gleda prodaju** („najtraženije"): bira po sezoni, prioritetu i marži. | `GenerisiSedmicniSadrzaj.cs` | Signal iz narudžbi (šta kupci ostavljaju / izbacuju) kao dodatni kriterij. | M |
+| H8 | **Suhomesnato**: u dev bazi je 7 artikala kategorije „Meso i suhomesnato" nedostupno; na produkciji (Neon) nije dirano. Vrsta korpice „Suhomesnata" i dalje postoji kao tab (van ponude). | podaci | Vlasnik isključi artikle u Proizvodima na produkciji; po želji sakriti vrstu. | S |
+| H9 | Za pravilo „zamjene samo iz kategorija korpice" u generatoru nema posebnog testa; editor korpice kupca je ostao bočna ladica (sedmični je prozor na sredini). | `GeneratorSadrzajaTests`, `korpica-kupca-editor.tsx` | Test + po želji isti izgled. | S |
+
 ## F. Okruženje i repozitorijumi
 
 | # | Šta |

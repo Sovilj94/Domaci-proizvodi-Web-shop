@@ -1142,3 +1142,9 @@ a sistem ga obavještava kad korpica prestane biti ekonomična.
 - **Suhomesnato van ponude**: u dev bazi je svih 7 artikala kategorije „Meso i suhomesnato" označeno nedostupnim
   (podatak, ne kod; na produkciji to radi vlasnik u Proizvodima).
 - Testovi: backend 852, admin 147.
+
+**Još istog dana:** editor je prozor na sredini u dvije kolone („U korpici" / „Predložene zamjene" + ostala sezonska
+ponuda; `AdminLadica sredina`); predložene zamjene samo iz kategorija korpice (generator, server, editor — dev baza
+očišćena za sedmicu 47); najmanja smislena količina (`najmanjaKolicina`, pola zadate za veličinu); editor prikazuje
+NABAVNE cijene i nabavnu cijenu korpice, marža na fiksnu prodajnu cijenu. Testovi: backend 852, admin 148.
+Grana `sadrzaj-u-postavkama` (zadnji `5c7efa9` + ovaj zapis) **nije spojena** — otvoreno je u `ZA-URADITI.md` → H.
