@@ -103,6 +103,8 @@ public record AdminSadrzajDto : SadrzajDto
     public int MinimalanBrojArtikala { get; init; }
     /// <summary>Kutije ove korpice već naručene za tu sedmicu — nose svoj snimak, izmjena ih ne dira.</summary>
     public int NaruceneKutije { get; init; }
+    /// <summary>mala / srednja / velika — editor po njoj čita zadatu količinu artikla.</summary>
+    public string Velicina { get; init; } = "mala";
     /// <summary>Kategorije koje pune ovu vrstu korpice (Postavke korpica). Prazno = nije ograničeno.</summary>
     public IReadOnlyList<Guid> KategorijeIds { get; init; } = [];
     public IReadOnlyList<CijenaStavkeDto> Cijene { get; init; } = [];

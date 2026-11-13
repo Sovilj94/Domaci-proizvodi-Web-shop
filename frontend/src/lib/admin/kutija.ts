@@ -179,3 +179,19 @@ export function ekonomicnost(redovi: KutijaRed[], p: PravilaKutije): Ekonomicnos
       : 0;
   return { marza, faliArtikala, faliVrijednosti, uRedu: !marza && faliArtikala === 0 && faliVrijednosti === 0 };
 }
+
+/**
+ * Najmanja smislena količina artikla u korpici: pola onoga što ga inače ide u tu veličinu
+ * (`zadata` — Product.KolicinaMala/Srednja/Velika). Bez zadate količine osnov je vrijednost
+ * jedne kulture (cilj / broj kultura) podijeljena cijenom. Da se u korpicu ne bi moglo staviti
+ * 0,1 kg mrkve samo zato što je toliko KM ostalo slobodno. Nikad manje od jednog koraka.
+ */
+export function najmanjaKolicina(
+  zadata: number | null | undefined,
+  vrijednostPoKulturi: number,
+  cijena: number,
+  jedinica: string,
+): number {
+  const osnov = zadata != null && zadata > 0 ? zadata : cijena > 0 ? vrijednostPoKulturi / cijena : 0;
+  return Math.max(korak(jedinica), naKorakDolje(osnov / 2, jedinica));
+}

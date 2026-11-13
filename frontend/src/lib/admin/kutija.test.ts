@@ -8,6 +8,7 @@ import {
   kolicinaZaDodavanje,
   kolicinaZaVrijednost,
   mjesecSedmice,
+  najmanjaKolicina,
   najvecaKolicina,
   naKorak,
   sezonskaPonuda,
@@ -123,4 +124,12 @@ test("ekonomičnost: premalo kultura i vrijednost ispod donje granice", () => {
   assert.equal(e.uRedu, false);
   // Pola feninga tolerancije, kao na serveru.
   assert.equal(ekonomicnost([red({ kolicina: 1, cijena: 9.496 })], { cijenaKorpice: 20, najmanjaVrijednost: 9.5 }).faliVrijednosti, 0);
+});
+
+test("najmanja količina: pola zadate, a bez zadate pola vrijednosti jedne kulture", () => {
+  assert.equal(najmanjaKolicina(1.5, 4, 2, "kg"), 0.7); // 0,75 naniže na korak
+  assert.equal(najmanjaKolicina(0.3, 4, 12, "kg"), 0.1); // bijeli luk: nikad ispod koraka
+  assert.equal(najmanjaKolicina(null, 4, 2, "kg"), 1); // 4 KM / 2 KM = 2 kg → 1 kg
+  assert.equal(najmanjaKolicina(1, 4, 3, "kom"), 1); // komad je cio
+  assert.equal(najmanjaKolicina(6, 4, 0.5, "kom"), 3);
 });

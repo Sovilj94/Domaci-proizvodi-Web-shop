@@ -18,6 +18,7 @@ import {
   granicaKutije,
   kolicinaZaDodavanje,
   mjesecSedmice,
+  najmanjaKolicina,
   najvecaKolicina,
   sezonskaPonuda,
   slobodnoZaDodavanje,
@@ -74,8 +75,6 @@ export function SadrzajNacrtEditor({
   /** Vrijednost sa kojom je kutija otvorena — granica je cilj ili ona, šta je veće. */
   const [pocetna, setPocetna] = useState(0);
   const [upit, setUpit] = useState("");
-  /** Koliko je zatečenih zamjena van kategorija korpice izbačeno pri otvaranju (stari sadržaji). */
-  const [izbaceno, setIzbaceno] = useState(0);
 
   const sadrzajKljuc = ["admin", "korpice", "sadrzaj", sadrzajId] as const;
   const { data: sadrzaj, isLoading, isError } = useQuery({
@@ -123,7 +122,6 @@ export function SadrzajNacrtEditor({
             const p = poId.get(id);
             return !p || kategorije.has(p.categoryId);
           });
-    setIzbaceno(sve.length - dobre.length);
     setZamjene(dobre);
   }, [sadrzaj, sviArtikli, redovi, poId]);
 
@@ -195,6 +193,14 @@ export function SadrzajNacrtEditor({
     .filter((p) => !uKutiji.has(p.id) && !zamjene.includes(p.id))
     .filter((p) => !q || bezKvacica(`${p.name} ${p.categoryName}`).includes(q));
 
+  // Najmanja smislena količina: pola zadate količine za ovu veličinu korpice (Postavke korpica →
+  // Artikli i količine), a bez nje pola vrijednosti jedne kulture. Sve iz baze.
+  const poKulturi = sadrzaj.minimalanBrojArtikala > 0 ? sadrzaj.ciljGenerisanja / sadrzaj.minimalanBrojArtikala : 0;
+  const poljeKolicine = ({ mala: "kolicinaMala", srednja: "kolicinaSrednja", velika: "kolicinaVelika" } as const)[sadrzaj.velicina];
+  const najmanje = (productId: string, cijena: number, jedinica: string) =>
+    najmanjaKolicina(poId.get(productId)?.[poljeKolicine], poKulturi, cijena, jedinica);
+  const tekstNajmanje = (p: Product) => `najmanje ${broj(najmanje(p.id, p.price, p.unit))} ${p.unit}`;
+
   const redOd = (p: Product, kolicina: number): KutijaRed => ({
     productId: p.id,
     naziv: p.name,
@@ -219,7 +225,12 @@ export function SadrzajNacrtEditor({
   /* ---------- izmjene ---------- */
   function promijeni(productId: string, kolicina: number) {
     setRedovi(
-      redovi!.map((r) => (r.productId === productId ? { ...r, kolicina: Math.max(0, Math.min(kolicina, najvecaKolicina(r, slobodnoKM))) } : r)),
+      redovi!.map((r) => {
+        if (r.productId !== productId) return r;
+        // Ne ispod smislene najmanje količine (ni upisom u polje); red koji je već ispod nje smije ostati gdje je.
+        const dno = Math.min(r.kolicina, najmanje(r.productId, r.cijena, r.jedinica));
+        return { ...r, kolicina: Math.max(dno, Math.min(kolicina, najvecaKolicina(r, slobodnoKM))) };
+      }),
     );
   }
 
@@ -232,7 +243,7 @@ export function SadrzajNacrtEditor({
   function zamijeniSa(nov: Product, saSpiska: boolean) {
     if (!redIzabran) return;
     const n = zamijeni(redIzabran, nov, slobodnoKM);
-    if (!n) return;
+    if (!n || n.kolicina < najmanje(nov.id, nov.price, nov.unit)) return;
     setRedovi(redovi!.map((r) => (r.productId === redIzabran.productId ? n : r)));
     setZamjene([...zamjene!.filter((id) => id !== nov.id), ...(saSpiska ? [redIzabran.productId] : [])]);
     setIzabran(null);
@@ -240,7 +251,7 @@ export function SadrzajNacrtEditor({
 
   function dodaj(p: Product) {
     const k = kolicinaZaDodavanje(slobodnoKM, p.price, p.unit);
-    if (k <= 0) return;
+    if (k < najmanje(p.id, p.price, p.unit)) return;
     setRedovi([...redovi!, redOd(p, k)]);
     setZamjene(zamjene!.filter((id) => id !== p.id));
   }
@@ -248,8 +259,11 @@ export function SadrzajNacrtEditor({
   /** Jedan red desne kolone: u načinu zamjene nudi „Zamijeni", inače „U korpicu". */
   function redPonude(p: Product, saSpiska: boolean) {
     const smije = smijeUKorpicu(p);
-    const n = redIzabran && smije ? zamijeni(redIzabran, p, slobodnoKM) : null;
-    const k = !redIzabran && smije ? kolicinaZaDodavanje(slobodnoKM, p.price, p.unit) : 0;
+    const min = najmanje(p.id, p.price, p.unit);
+    const nSvaka = redIzabran && smije ? zamijeni(redIzabran, p, slobodnoKM) : null;
+    const n = nSvaka && nSvaka.kolicina >= min ? nSvaka : null;
+    const kSvaka = !redIzabran && smije ? kolicinaZaDodavanje(slobodnoKM, p.price, p.unit) : 0;
+    const k = kSvaka >= min ? kSvaka : 0;
     const upozori = redIzabran ? obaraMarzu(n, redIzabran.productId) : k > 0 ? obaraMarzu(redOd(p, k)) : undefined;
     return (
       <li
@@ -264,14 +278,20 @@ export function SadrzajNacrtEditor({
           <p className="truncate text-xs text-muted">
             {redIzabran && n
               ? `ulazi ${broj(n.kolicina)} ${n.jedinica} = ${formatPrice(n.kolicina * n.cijena)}`
-              : `${formatPrice(p.price)}${unitSuffix(p.unit)}`}
+              : !redIzabran && k > 0
+                ? `+${broj(k)} ${p.unit} = ${formatPrice(k * p.price)}`
+                : `${formatPrice(p.price)}${unitSuffix(p.unit)} · ${tekstNajmanje(p)}`}
             {p.marza != null && <span className={cn("ml-1.5", TON[tonMarze(p.marza, minMarza)])}>marža {formatMarza(p.marza)}</span>}
           </p>
           {upozori && <p className="truncate text-xs font-medium text-red-700">⚠ {upozori}</p>}
-          {!smije && <p className="truncate text-xs text-muted">nije za ovu vrstu korpice — samo kao izbor kupca</p>}
         </div>
         {!samoPregled && smije && redIzabran && (
-          <Button size="sm" onClick={() => zamijeniSa(p, saSpiska)} disabled={!n} title={n ? undefined : "Ne stane u vrijednost korpice"}>
+          <Button
+            size="sm"
+            onClick={() => zamijeniSa(p, saSpiska)}
+            disabled={!n}
+            title={n ? undefined : `Ne stane smislena količina (${tekstNajmanje(p)})`}
+          >
             <ArrowLeftRight className="h-4 w-4" /> Zamijeni
           </Button>
         )}
@@ -281,7 +301,11 @@ export function SadrzajNacrtEditor({
             variant="secondary"
             onClick={() => dodaj(p)}
             disabled={k <= 0}
-            title={k > 0 ? `Dodaj ${broj(k)} ${p.unit} = ${formatPrice(k * p.price)}` : "Korpica je puna — prvo izvadi ili smanji neki artikal"}
+            title={
+              k > 0
+                ? `Dodaj ${broj(k)} ${p.unit} = ${formatPrice(k * p.price)}`
+                : `Nema mjesta za smislenu količinu (${tekstNajmanje(p)} = ${formatPrice(min * p.price)}) — prvo izvadi ili smanji neki artikal`
+            }
           >
             <Plus className="h-4 w-4" /> U korpicu
           </Button>
@@ -423,7 +447,12 @@ export function SadrzajNacrtEditor({
                       </span>
                     ) : (
                       <>
-                        <Stepper red={r} najvise={najvecaKolicina(r, slobodnoKM)} onPromijeni={(k) => promijeni(r.productId, k)} />
+                        <Stepper
+                          red={r}
+                          najvise={najvecaKolicina(r, slobodnoKM)}
+                          najmanje={najmanje(r.productId, r.cijena, r.jedinica)}
+                          onPromijeni={(k) => promijeni(r.productId, k)}
+                        />
                         <button
                           type="button"
                           onClick={() => ukloni(r.productId)}
@@ -471,12 +500,6 @@ export function SadrzajNacrtEditor({
           <p className="mb-2 text-xs text-muted">
             Kupac koji neće neki artikal bira jedan od ovih. {!samoPregled && "Odavde ih možeš i ubaciti u korpicu."}
           </p>
-          {izbaceno > 0 && !samoPregled && (
-            <p className="mb-2 rounded-lg bg-honey-100 p-2 text-xs text-honey-700">
-              {izbaceno} {izbaceno === 1 ? "zamjena nije" : "zamjena nisu"} za ovu vrstu korpice (npr. mliječno u korpici povrća), pa{" "}
-              {izbaceno === 1 ? "je skinuta" : "su skinute"} sa spiska — klikni „Sačuvaj“ da tako i ostane.
-            </p>
-          )}
           <ul className="flex flex-col gap-1.5">
             {predlozene.length === 0 && (
               <li className="rounded-xl border border-dashed border-line p-3 text-center text-sm text-muted">

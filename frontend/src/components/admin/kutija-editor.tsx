@@ -302,15 +302,28 @@ export function KutijaEditor({
   );
 }
 
-export function Stepper({ red, najvise, onPromijeni }: { red: KutijaRed; najvise: number; onPromijeni: (k: number) => void }) {
+export function Stepper({
+  red,
+  najvise,
+  najmanje,
+  onPromijeni,
+}: {
+  red: KutijaRed;
+  najvise: number;
+  /** Ispod ove količine se ne ide (smislena najmanja količina); bez nje je granica jedan korak. */
+  najmanje?: number;
+  onPromijeni: (k: number) => void;
+}) {
   const k = korak(red.jedinica);
+  const dno = Math.max(k, najmanje ?? k);
   const puno = red.kolicina + k > najvise + 1e-9;
   return (
     <div className="flex shrink-0 items-center rounded-full bg-sand">
       <button
         type="button"
         aria-label={`Manje ${red.naziv}`}
-        disabled={red.kolicina <= k}
+        disabled={red.kolicina <= dno + 1e-9}
+        title={red.kolicina <= dno + 1e-9 && najmanje != null ? `Najmanje ${dno.toLocaleString("sr-Latn-BA")} ${red.jedinica} — manje nema smisla, izvadi artikal` : undefined}
         onClick={() => onPromijeni(naKorak(red.kolicina - k, red.jedinica))}
         className="grid h-8 w-8 place-items-center rounded-full transition hover:bg-white disabled:opacity-30"
       >
