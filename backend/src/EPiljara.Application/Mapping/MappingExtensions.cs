@@ -135,6 +135,7 @@ public static class MappingExtensions
         DeliveryZoneName = o.DeliveryZone?.Name,
         DeliveryAddress = o.DeliveryAddress,
         Note = o.Note,
+        RazlogNeuspjeha = o.RazlogNeuspjeha?.ToString(),
         CreatedAt = o.CreatedAt,
         Ocjena = o.Ocjena?.ToDto(),
         MozeSeOcijeniti = o.Status == OrderStatus.Delivered && o.Ocjena is null,
@@ -190,6 +191,9 @@ public static class MappingExtensions
         Longitude = s.Order?.Longitude,
         TotalAmount = s.Order?.TotalAmount ?? 0m,
         ZatvorenaU = s.Order?.ZatvorenaU,
+        Napomena = string.IsNullOrWhiteSpace(s.Order?.Note) ? null : s.Order!.Note!.Trim(),
+        Stavke = s.Order?.Items.Select(i => new StavkaStaniceDto(i.ProductName, i.Quantity, i.Unit.ToString())).ToList() ?? [],
+        RazlogNeuspjeha = s.Order?.RazlogNeuspjeha?.ToString(),
     };
 
     public static RouteHistoryEntryDto ToHistoryDto(this DeliveryRoute r)

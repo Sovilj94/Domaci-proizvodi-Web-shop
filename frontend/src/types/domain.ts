@@ -166,6 +166,8 @@ export interface Order {
   deliveryZoneName?: string;
   deliveryAddress: string;
   note?: string;
+  /** Razlog neuspjele dostave (vozač); null kad nije neuspjela ili ga stara aplikacija nije poslala. */
+  razlogNeuspjeha?: string | null;
   createdAt: string;
   ocjena?: OcjenaIsporuke;
   mozeSeOcijeniti: boolean;
@@ -192,6 +194,9 @@ export interface RouteStop {
   totalAmount?: number;
   /** Kad je vozač zatvorio stanicu (ISO, UTC); null dok je otvorena. */
   zatvorenaU?: string | null;
+  /** Napomena kupca sa narudžbe. */
+  napomena?: string | null;
+  razlogNeuspjeha?: string | null;
 }
 
 export interface DeliveryRoute {

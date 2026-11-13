@@ -36,6 +36,10 @@ public class FiskalniRacun : Entity
 
     /// <summary>Za refundaciju: prometni račun koji se poništava.</summary>
     public Guid? RefundiraniRacunId { get; set; }
+    /// <summary>Za prometni: poništen refundacijom (admin vratio novac, ili vozač ispravio isporuku u
+    /// neuspjelu). Narudžba smije imati samo jedan NErefundiran prometni račun; ponovna isporuka
+    /// poslije ispravke dobija novi.</summary>
+    public bool Refundiran { get; set; }
 
     public DateTime Kreiran { get; set; } = DateTime.UtcNow;
 

@@ -38,6 +38,7 @@ public class GetDriverRouteHandler(IAppDbContext db, ICurrentUser current)
             .Include(r => r.Driver)
             .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
+            .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.Items)
             .Where(r => r.DriverId == driver.Id && r.Date == date)
             .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
             .FirstOrDefaultAsync(ct);
@@ -70,6 +71,7 @@ public class GetDriverRoutesHandler(IAppDbContext db, ICurrentUser current)
             .Include(r => r.Driver)
             .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
+            .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.Items)
             .Where(r => r.DriverId == driver.Id && r.Date == date)
             .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
             .ToListAsync(ct);
@@ -80,8 +82,18 @@ public class GetDriverRoutesHandler(IAppDbContext db, ICurrentUser current)
 
 /* ---------- Driver marks a stop Delivered / FailedDelivery ---------- */
 
-public record UpdateStopStatusCommand(Guid OrderId, string Status) : IRequest<OrderDto>;
+/// <summary>
+/// Razlog je naziv vrijednosti <see cref="RazlogNeuspjeleDostave"/> i važi samo za FailedDelivery;
+/// nije obavezan, jer ga aplikacija prije verzije 1.2 ne šalje.
+/// </summary>
+public record UpdateStopStatusCommand(Guid OrderId, string Status, string? Razlog = null) : IRequest<OrderDto>;
 
+/// <summary>
+/// Zatvara stanicu, a na DANAŠNJOJ ruti i ispravlja već zatvorenu: isporučena ↔ neuspjela
+/// (vozač greškom kucne pogrešno dugme). Ispravka isporuke poništava njene posljedice
+/// (<see cref="IspravkaIsporuke"/>); stare rute se ne ispravljaju iz aplikacije — tada je novac
+/// možda već razdužen, pa to radi admin.
+/// </summary>
 public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOptions<PoeniOpcije> poeni, IEmailService email)
     : IRequestHandler<UpdateStopStatusCommand, OrderDto>
 {
@@ -92,12 +104,23 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         if (!Enum.TryParse<OrderStatus>(cmd.Status, ignoreCase: true, out var status) || !Allowed.Contains(status))
             throw new DomainException("Vozač može označiti samo Delivered ili FailedDelivery.", "invalid_status");
 
+        RazlogNeuspjeleDostave? razlog = null;
+        if (!string.IsNullOrWhiteSpace(cmd.Razlog))
+        {
+            if (!Enum.TryParse<RazlogNeuspjeleDostave>(cmd.Razlog, ignoreCase: true, out var r)
+                || !Enum.IsDefined(r) || int.TryParse(cmd.Razlog, out _))
+                throw new DomainException("Nepoznat razlog neuspjele dostave.", "invalid_razlog");
+            razlog = r;
+        }
+
         var driver = await db.Drivers.FirstOrDefaultAsync(d => d.UserId == current.Id, ct)
             ?? throw new ForbiddenException("Niste registrovani kao vozač.");
 
-        var assigned = await db.RouteStops
-            .AnyAsync(s => s.OrderId == cmd.OrderId && s.Route!.DriverId == driver.Id, ct);
-        if (!assigned)
+        var datumiRuta = await db.RouteStops
+            .Where(s => s.OrderId == cmd.OrderId && s.Route!.DriverId == driver.Id)
+            .Select(s => s.Route!.Date)
+            .ToListAsync(ct);
+        if (datumiRuta.Count == 0)
             throw new ForbiddenException("Ova narudžba nije na tvojoj ruti.");
 
         var order = await db.Orders
@@ -106,6 +129,33 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
             .Include(o => o.DeliveryZone)
             .FirstOrDefaultAsync(o => o.Id == cmd.OrderId, ct)
             ?? throw new NotFoundException("Narudžba nije pronađena.");
+
+        var stari = order.Status;
+        if (stari == status)
+        {
+            // Isti status ponovo (dvostruki dodir, ili vozač mijenja razlog): ništa se ne broji.
+            if (status == OrderStatus.FailedDelivery && razlog is not null)
+            {
+                order.RazlogNeuspjeha = razlog;
+                await IstovremenaPromjena.SacuvajAsync(db, ct);
+            }
+            return order.ToDto();
+        }
+
+        if (stari is OrderStatus.Delivered or OrderStatus.FailedDelivery)
+        {
+            var danas = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (!datumiRuta.Contains(danas))
+                throw new DomainException(
+                    "Status se može ispraviti samo na današnjoj ruti. Za stariju javi se dispečeru.",
+                    "ispravka_nije_danas");
+        }
+
+        if (stari == OrderStatus.Delivered)
+        {
+            await IspravkaIsporuke.PonistiAsync(db, order, ct);
+            order.PonistiIsporuku();
+        }
 
         // Prije prelaza, jer pomoćnik gleda i STARI status da isporuku ne bi brojao dvaput —
         // a ispod se status mijenja i po tri puta. Drugo mjesto koje postavlja Delivered je
@@ -118,10 +168,12 @@ public class UpdateStopStatusHandler(IAppDbContext db, ICurrentUser current, IOp
         // Ruta se može dodijeliti narudžbi koja je još Confirmed/Packing (vidi ASSIGNABLE
         // u admin panelu). Mašina stanja dozvoljava Delivered samo iz OutForDelivery, pa je
         // ovdje prevodimo kroz međukorake — svaki pojedinačni prelaz je dozvoljen.
-        var stari = order.Status;
+        // Neuspjela → isporučena ide kroz OutForDelivery, isto kao kad dispečer pošalje ponovo.
         if (order.Status is OrderStatus.Confirmed) order.TransitionTo(OrderStatus.Packing);
         if (order.Status is OrderStatus.Packing) order.TransitionTo(OrderStatus.OutForDelivery);
+        if (order.Status is OrderStatus.FailedDelivery) order.TransitionTo(OrderStatus.OutForDelivery);
         order.TransitionTo(status);
+        order.RazlogNeuspjeha = status == OrderStatus.FailedDelivery ? razlog : null;
         order.ZatvorenaU = DateTime.UtcNow;
         await IstovremenaPromjena.SacuvajAsync(db, ct);
         await Mejlovi.ObavjestenjaPravila.StatusNarudzbeAsync(db, email, order, stari, false, ct);

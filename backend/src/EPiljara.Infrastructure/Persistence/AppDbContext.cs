@@ -329,6 +329,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.DeliveryAddress).HasMaxLength(400).IsRequired();
             e.Property(x => x.Note).HasMaxLength(1000);
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.RazlogNeuspjeha).HasConversion<string>().HasMaxLength(20);
             e.Property(x => x.PublicToken).HasMaxLength(32).IsRequired();
             e.HasIndex(x => x.Code).IsUnique();
             e.HasIndex(x => x.PublicToken).IsUnique();
@@ -623,8 +624,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.QrSadrzaj).HasMaxLength(2000);
             e.Property(x => x.VerifikacijaUrl).HasMaxLength(1000);
             e.Property(x => x.ZadnjaGreska).HasMaxLength(1000);
-            // Jedan prometni i najviše jedan refundacioni račun po narudžbi.
-            e.HasIndex(x => new { x.OrderId, x.Vrsta }).IsUnique();
+            // Jedan važeći (nerefundiran) prometni račun po narudžbi i najviše jedna refundacija po
+            // prometnom. Ispravka vozača (isporučena → neuspjela → isporučena) pravi drugi par.
+            e.HasIndex(x => x.OrderId).IsUnique()
+                .HasFilter("\"Vrsta\" = 'Promet' AND NOT \"Refundiran\"")
+                .HasDatabaseName("IX_FiskalniRacuni_OrderId_VazeciPromet");
+            e.HasIndex(x => x.RefundiraniRacunId).IsUnique().HasFilter("\"RefundiraniRacunId\" IS NOT NULL");
             e.HasIndex(x => x.Status);
             e.HasOne(x => x.Order).WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
         });

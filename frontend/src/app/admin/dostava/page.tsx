@@ -12,7 +12,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { adminApi } from "@/lib/api/endpoints";
-import { narudzbeRijec } from "@/lib/orders";
+import { narudzbeRijec, razlogNeuspjeha } from "@/lib/orders";
 import type { Driver, Voznja } from "@/lib/api/contracts";
 import type { DeliveryRoute, Order, PodjelaStavka, RouteStop } from "@/types/domain";
 import { cn, formatPrice } from "@/lib/utils";
@@ -555,10 +555,18 @@ function StaniceLista({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-bold tabular-nums text-ink">{s.orderCode}</span>
                   <span className="text-sm text-ink">{s.customerName}</span>
-                  {zatvorena && s.zatvorenaU && (
-                    <span className="text-xs text-muted">
-                      isporučeno u {vrijeme(s.zatvorenaU)}
+                  {zatvorena && s.status === "FailedDelivery" ? (
+                    <span className="text-xs font-medium text-red-700">
+                      neuspjelo{s.zatvorenaU && ` u ${vrijeme(s.zatvorenaU)}`}
+                      {s.razlogNeuspjeha && ` · ${razlogNeuspjeha(s.razlogNeuspjeha)}`}
                     </span>
+                  ) : (
+                    zatvorena &&
+                    s.zatvorenaU && (
+                      <span className="text-xs text-muted">
+                        {s.status === "Cancelled" ? "otkazano" : "isporučeno u"} {vrijeme(s.zatvorenaU)}
+                      </span>
+                    )
                   )}
                 </div>
                 <p className="mt-0.5 truncate text-sm text-muted">

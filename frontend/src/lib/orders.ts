@@ -29,6 +29,21 @@ export const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   Cancelled: [],
 };
 
+/** Razlog neuspjele dostave koji vozač bira u aplikaciji (RazlogNeuspjeleDostave na backendu). */
+export const RAZLOZI_NEUSPJEHA: Record<string, string> = {
+  NijeKodKuce: "Kupac nije kod kuće",
+  NeJavljaSe: "Ne javlja se na telefon",
+  PogresnaAdresa: "Pogrešna adresa",
+  OdbioPrijem: "Odbio prijem",
+  Ostalo: "Ostalo",
+};
+
+/** Čitljiv razlog; nepoznata vrijednost (novija aplikacija) se prikazuje kakva jeste. */
+export function razlogNeuspjeha(kod: string | null | undefined): string | null {
+  if (!kod) return null;
+  return RAZLOZI_NEUSPJEHA[kod] ?? kod;
+}
+
 /**
  * Srpska deklinacija uz broj narudžbi: 1 narudžba, 2–4 narudžbe, 5+ narudžbi.
  * Izuzeci na 11–14 idu po pravilu za 5+ („11 narudžbi", ne „11 narudžba").

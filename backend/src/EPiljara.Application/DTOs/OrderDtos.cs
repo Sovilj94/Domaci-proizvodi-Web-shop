@@ -39,6 +39,8 @@ public record OrderDto
     public string? DeliveryZoneName { get; init; }
     public string DeliveryAddress { get; init; } = string.Empty;
     public string? Note { get; init; }
+    /// <summary>Razlog neuspjele dostave (naziv RazlogNeuspjeleDostave); null inače.</summary>
+    public string? RazlogNeuspjeha { get; init; }
     public DateTime CreatedAt { get; init; }
     /// <summary>Odsutno dok narudžba nije ocijenjena.</summary>
     public OcjenaDto? Ocjena { get; init; }

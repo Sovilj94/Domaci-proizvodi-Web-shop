@@ -3,6 +3,9 @@ namespace EPiljara.API.Controllers;
 /// <summary>Small request bodies for endpoints where part of the command comes from the route.</summary>
 public record UpdateStatusRequest(string Status);
 
+/// <summary>Vozač zatvara stanicu; Razlog (RazlogNeuspjeleDostave) samo uz FailedDelivery.</summary>
+public record DriverStatusRequest(string Status, string? Razlog = null);
+
 public record SetAvailabilityRequest(bool IsAvailable);
 
 /// <summary>

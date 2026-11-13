@@ -33,6 +33,7 @@ public class SljedecaRutaHandler(IAppDbContext db, ICurrentUser current, IRouteO
             .Include(r => r.Driver)
             .Include(r => r.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
+            .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.Items)
             .Where(r => r.DriverId == driver.Id && r.Date == danas)
             .ToListAsync(ct);
 

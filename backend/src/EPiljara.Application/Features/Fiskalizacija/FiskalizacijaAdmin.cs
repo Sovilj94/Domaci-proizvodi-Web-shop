@@ -72,8 +72,7 @@ internal static class FiskalnaMapa
             Vrsta = r.Vrsta.ToString(), Status = r.Status.ToString(), Iznos = r.Iznos, Kreiran = r.Kreiran, Izdat = r.Izdat,
             Broj = r.Broj, Pokusaja = r.Pokusaja, ZadnjaGreska = r.ZadnjaGreska, TrajnaGreska = r.TrajnaGreska,
             SljedeciPokusaj = r.SljedeciPokusaj,
-            Refundiran = r.Vrsta == VrstaFiskalnogRacuna.Promet
-                         && db.FiskalniRacuni.Any(x => x.OrderId == r.OrderId && x.Vrsta == VrstaFiskalnogRacuna.Refundacija),
+            Refundiran = r.Vrsta == VrstaFiskalnogRacuna.Promet && r.Refundiran,
         });
 }
 
