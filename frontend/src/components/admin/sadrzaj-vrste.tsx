@@ -226,16 +226,14 @@ function Kartica({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{NAZIV_VELICINE[r.velicina]}</p>
-          <p className="truncate text-xs text-muted">
-            {r.korpicaNaziv} · {formatPrice(r.cijenaKorpice)}
-          </p>
+          <p className="truncate text-xs text-muted">{r.korpicaNaziv}</p>
         </div>
         <StatusPregledaBadge status={r.status} />
       </div>
 
       {ima && (
         <p className="mt-2 text-xs text-muted">
-          Vrijedi <b className="text-ink">{formatPrice(r.vrijednost)}</b> / {formatPrice(r.ciljGenerisanja)} · marža{" "}
+          Nabavno <b className="text-ink">{formatPrice(r.nabavnaVrijednost)}</b> · prodajna {formatPrice(r.cijenaKorpice)} · marža{" "}
           <b className={TON[tonMarze(r.marza, minimalnaMarza)]}>{formatMarza(r.marza)}</b>
           {r.bezNabavneCijene > 0 && ` · ${r.bezNabavneCijene} bez nabavne`}
         </p>

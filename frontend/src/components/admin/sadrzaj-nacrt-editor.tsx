@@ -46,7 +46,13 @@ const broj = (n: number) => n.toLocaleString("sr-Latn-BA");
  * ostala sezonska ponuda te vrste korpice. Zamjena ide u dva klika: „Zamijeni" na artiklu
  * lijevo, pa „Zamijeni" na artiklu desno — novi ulazi u istoj vrijednosti (KM), a kad dolazi
  * sa spiska predloženih zamjena, izbačeni artikal zauzima njegovo mjesto na spisku.
- * Na vrhu stalno stoje vrijednost, marža i upozorenje kad korpica prestane biti ekonomična.
+ * Na vrhu stalno stoje nabavna cijena korpice, marža i upozorenje kad korpica prestane biti
+ * ekonomična.
+ *
+ * **Sve cijene na ekranu su NABAVNE** (odluka vlasnika, 13.11.2026): prodajna cijena korpice je
+ * fiksna, pa admina zanima koliko ga sadržaj košta i kolika mu marža ostaje. Prodajna vrijednost
+ * artikala se i dalje koristi ispod haube — po njoj se računa količina pri zamjeni i popunjenost
+ * korpice (server: GranicaKutije, budžet kupca) — ali se prikazuje samo kao procenat.
  *
  * Šta se smije zavisi od statusa koji vrati server:
  * - **Nacrt** — do cilja generisanja; na pravila editor upozorava, zaustavlja ih tek objava.
@@ -201,6 +207,13 @@ export function SadrzajNacrtEditor({
     najmanjaKolicina(poId.get(productId)?.[poljeKolicine], poKulturi, cijena, jedinica);
   const tekstNajmanje = (p: Product) => `najmanje ${broj(najmanje(p.id, p.price, p.unit))} ${p.unit}`;
 
+  /** „nabavno 2,16 KM" za količinu, ili napomena kad nabavna cijena nije unesena. */
+  const nabavno = (kolicina: number, nabavna: number | null | undefined) =>
+    nabavna != null && nabavna > 0 ? `nabavno ${formatPrice(Math.round(kolicina * nabavna * 100) / 100)}` : "nabavna cijena nije unesena";
+  const nabavnaPoJedinici = (nabavna: number | null | undefined, jedinica: string) =>
+    nabavna != null && nabavna > 0 ? `nabavna ${formatPrice(nabavna)}${unitSuffix(jedinica)}` : "nabavna cijena nije unesena";
+  const pctNabavno = sadrzaj.nabavniBudzet > 0 ? Math.round((z.nabavno / sadrzaj.nabavniBudzet) * 100) : 0;
+
   const redOd = (p: Product, kolicina: number): KutijaRed => ({
     productId: p.id,
     naziv: p.name,
@@ -275,12 +288,12 @@ export function SadrzajNacrtEditor({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{p.name}</p>
-          <p className="truncate text-xs text-muted">
+          <p className="text-xs text-muted">
             {redIzabran && n
-              ? `ulazi ${broj(n.kolicina)} ${n.jedinica} = ${formatPrice(n.kolicina * n.cijena)}`
+              ? `ulazi ${broj(n.kolicina)} ${n.jedinica} · ${nabavno(n.kolicina, p.nabavnaCijena)}`
               : !redIzabran && k > 0
-                ? `+${broj(k)} ${p.unit} = ${formatPrice(k * p.price)}`
-                : `${formatPrice(p.price)}${unitSuffix(p.unit)} · ${tekstNajmanje(p)}`}
+                ? `+${broj(k)} ${p.unit} · ${nabavno(k, p.nabavnaCijena)}`
+                : `${nabavnaPoJedinici(p.nabavnaCijena, p.unit)} · ${tekstNajmanje(p)}`}
             {p.marza != null && <span className={cn("ml-1.5", TON[tonMarze(p.marza, minMarza)])}>marža {formatMarza(p.marza)}</span>}
           </p>
           {upozori && <p className="truncate text-xs font-medium text-red-700">⚠ {upozori}</p>}
@@ -303,8 +316,8 @@ export function SadrzajNacrtEditor({
             disabled={k <= 0}
             title={
               k > 0
-                ? `Dodaj ${broj(k)} ${p.unit} = ${formatPrice(k * p.price)}`
-                : `Nema mjesta za smislenu količinu (${tekstNajmanje(p)} = ${formatPrice(min * p.price)}) — prvo izvadi ili smanji neki artikal`
+                ? `Dodaj ${broj(k)} ${p.unit} · ${nabavno(k, p.nabavnaCijena)}`
+                : `Nema mjesta za smislenu količinu (${tekstNajmanje(p)}) — prvo izvadi ili smanji neki artikal`
             }
           >
             <Plus className="h-4 w-4" /> U korpicu
@@ -345,32 +358,32 @@ export function SadrzajNacrtEditor({
         <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
           <div>
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-muted">Vrijednost sadržaja</span>
-              <span className={cn("font-semibold tabular-nums", pct < 95 ? "text-honey-700" : pct > 100 ? "text-red-700" : "text-brand-700")}>
-                {formatPrice(z.vrijednost)}
-                <span className="font-normal text-muted"> / najviše {formatPrice(cilj)}</span>
+              <span className="text-muted">Nabavna cijena korpice</span>
+              <span className={cn("font-semibold tabular-nums", pctNabavno > 100 ? "text-red-700" : "text-ink")}>
+                {formatPrice(z.nabavno)}
+                <span className="font-normal text-muted"> / najviše {formatPrice(sadrzaj.nabavniBudzet)}</span>
               </span>
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white">
               <div
-                className={cn("h-full rounded-full transition-all", pct < 95 ? "bg-honey-500" : pct > 100 ? "bg-red-500" : "bg-brand-500")}
-                style={{ width: `${Math.min(100, pct)}%` }}
+                className={cn("h-full rounded-full transition-all", pctNabavno > 100 ? "bg-red-500" : "bg-brand-500")}
+                style={{ width: `${Math.min(100, pctNabavno)}%` }}
               />
             </div>
             {!samoPregled && (
               <p className="mt-1 text-xs text-muted">
-                {slobodnoKM > 0 ? `Slobodno za dodavanje: ${formatPrice(slobodnoKM)}` : "Korpica je puna — za novo prvo izvadi ili smanji nešto."}
+                Korpica je popunjena {pct} %{slobodnoKM > 0 ? "" : " — za novo prvo izvadi ili smanji nešto"}.
+                {z.bezNabavne > 0 && <span className="text-honey-700"> {z.bezNabavne} bez nabavne cijene — nisu uračunati.</span>}
               </p>
             )}
           </div>
           <div>
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-muted">Marža (cijena korpice {formatPrice(cijenaKorpice)})</span>
+              <span className="text-muted">Marža na prodajnu cijenu {formatPrice(cijenaKorpice)}</span>
               <span className={cn("font-semibold", TON[tonMarze(z.marza, minMarza)])}>{formatMarza(z.marza)}</span>
             </div>
             <p className="mt-1 text-xs text-muted">
-              Nabavno {formatPrice(z.nabavno)} od najviše {formatPrice(sadrzaj.nabavniBudzet)} · najmanja marža {formatMarza(minMarza)}
-              {z.bezNabavne > 0 && <span className="text-honey-700"> · {z.bezNabavne} bez nabavne cijene</span>}
+              Ostaje {formatPrice(Math.round((cijenaKorpice - z.nabavno) * 100) / 100)} po korpici · najmanja marža {formatMarza(minMarza)}
             </p>
           </div>
         </div>
@@ -395,7 +408,7 @@ export function SadrzajNacrtEditor({
               )}
               {eko.faliVrijednosti > 0 && najmanjaVrijednost != null && (
                 <p>
-                  Vrijednost je ispod najmanje {formatPrice(najmanjaVrijednost)} — fali još {formatPrice(eko.faliVrijednosti)}.
+                  Korpica je premalo popunjena ({pct} %, a najmanje je {Math.round(DONJA_GRANICA_OBJAVLJENOG * 100)} %) — dodaj ili povećaj neki artikal.
                 </p>
               )}
             </div>
@@ -437,8 +450,13 @@ export function SadrzajNacrtEditor({
                         {r.izmijenjeno && <span className="ml-1.5 rounded bg-brand-100 px-1 text-[10px] font-semibold text-brand-700">novo</span>}
                       </p>
                       <p className="text-xs text-muted">
-                        {formatPrice(r.cijena)}
-                        {unitSuffix(r.jedinica)} · {formatPrice(Math.round(r.kolicina * r.cijena * 100) / 100)}
+                        {r.nabavna != null && r.nabavna > 0 ? (
+                          <>
+                            {nabavnaPoJedinici(r.nabavna, r.jedinica)} · <b className="font-semibold text-ink">{formatPrice(Math.round(r.kolicina * r.nabavna * 100) / 100)}</b>
+                          </>
+                        ) : (
+                          <span className="text-honey-700">nabavna cijena nije unesena</span>
+                        )}
                       </p>
                     </div>
                     {samoPregled ? (
@@ -489,8 +507,9 @@ export function SadrzajNacrtEditor({
         <div className="border-t border-line p-4 sm:p-5 lg:overflow-y-auto lg:border-l lg:border-t-0">
           {redIzabran && (
             <p className="mb-3 rounded-xl bg-brand-100 p-3 text-sm text-brand-700">
-              Izlazi <b>{redIzabran.naziv}</b> {broj(redIzabran.kolicina)} {redIzabran.jedinica} ={" "}
-              <b>{formatPrice(redIzabran.kolicina * redIzabran.cijena)}</b>. Izaberi šta ulazi umjesto njega — u istoj vrijednosti.
+              Izlazi <b>{redIzabran.naziv}</b> {broj(redIzabran.kolicina)} {redIzabran.jedinica} (
+              <b>{nabavno(redIzabran.kolicina, redIzabran.nabavna)}</b>). Izaberi šta ulazi umjesto njega — uz svaki artikal piše koliko
+              ga ulazi i koliko košta u nabavci.
             </p>
           )}
 
