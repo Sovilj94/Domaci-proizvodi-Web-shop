@@ -32,6 +32,8 @@ export function OvaSedmica() {
     queryFn: () => korpiceApi.sadrzaj(korpica!.slug),
     enabled: !!korpica,
     retry: false,
+    // Sadržaj se objavljuje dok kupac ima otvoren sajt — po povratku na tab povuci novi.
+    refetchOnWindowFocus: true,
   });
 
   const krug = sedmica ? aktivniKrug(sedmica) : null;

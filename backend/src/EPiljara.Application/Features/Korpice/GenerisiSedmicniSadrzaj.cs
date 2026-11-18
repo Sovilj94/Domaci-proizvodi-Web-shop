@@ -41,10 +41,36 @@ public record RezultatGenerisanjaDto
 public record GenerisiSedmicniSadrzajCommand(int Godina, int Sedmica, Guid? KorpicaId, bool Ponovo = false)
     : IRequest<IReadOnlyList<RezultatGenerisanjaDto>>;
 
+/// <summary>
+/// Kako se sastavlja korpica (pravila, redom):
+/// <list type="number">
+/// <item>Bazen: artikli iz kategorija te vrste korpice, u sezoni, smiju u korpicu, na stanju, nisu opcioni.</item>
+/// <item>Redoslijed (šta je ljudima najpotrebnije): glavne kulture mjeseca, pa prioritet u korpici
+///   (0 = osnovna namirnica za trpezu — krompir, luk, mrkva…; admin ga postavlja u Postavkama korpica),
+///   pa stvarna potražnja iz narudžbi zadnjih 12 sedmica (kupljeno samo i dodato u korpicu, minus
+///   kupci koji artikal izbjegavaju), pa ono čega nije bilo prošle sedmice, pa marža, pa nasumično.</item>
+/// <item>Raznolikost: druga vrsta iste namirnice (crveni pored domaćeg krompira) ide tek kad drugih nema.</item>
+/// <item>Izbor: prvo se bira tačno <c>MinimalanBrojArtikala</c> kultura sa NAJMANJOM smislenom količinom
+///   (pola zadate, kao u adminovom editoru), i artikal ulazi samo ako iza njega u cilju vrijednosti i
+///   nabavnom budžetu ostaje mjesta za preostale kulture. Bez ove rezerve su prvi (skuplji) artikli
+///   pojeli budžet i korpica je ostajala na 6 kultura umjesto 8.</item>
+/// <item>Količine: tek kad je broj kultura siguran, količine se dižu do zadate, redom po važnosti, u
+///   granicama cilja vrijednosti, nabavnog budžeta (najmanja marža) i zalihe. Ako je i dalje ispod
+///   95 % cilja, dodaje se još koja kultura, a artikli bez zadate količine smiju i preko nje.</item>
+/// </list>
+/// </summary>
 public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
     : IRequestHandler<GenerisiSedmicniSadrzajCommand, IReadOnlyList<RezultatGenerisanjaDto>>
 {
     private readonly KorpiceOpcije _o = opcije.Value;
+
+    /// <summary>Koliko sedmica unazad se gleda potražnja.</summary>
+    private const int SedmicaPotraznje = 12;
+
+    /// <summary>Najviše koliko kultura preko minimuma generator dodaje da bi dosegao cilj vrijednosti.</summary>
+    private const int NajviseDodatnih = 2;
+
+    private const decimal Tolerancija = 0.005m;
 
     public async Task<IReadOnlyList<RezultatGenerisanjaDto>> Handle(
         GenerisiSedmicniSadrzajCommand c, CancellationToken ct)
@@ -81,9 +107,12 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
         var mjesec = MjesecSedmice(c.Godina, c.Sedmica);
         var rezultati = new List<RezultatGenerisanjaDto>();
 
-        // Cijela sezonska ponuda — rezerva za zamjene kad kategorije korpice sve potroše u kutiju.
+        // Mjeseci su CSV u bazi, pa se sezona filtrira u memoriji nakon učitavanja (KorpicaPodobnost).
         var sezonskaPonuda = KorpicaPodobnost.USezoni(
             await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec).ToList();
+
+        var potraznja = await PotraznjaAsync(c.Godina, c.Sedmica, ct);
+        var proslaSedmica = await ProslaSedmicaAsync(c.Godina, c.Sedmica, ct);
 
         foreach (var korpica in korpice.Where(k => !vecPostoje.Contains(k.Id)))
         {
@@ -92,23 +121,15 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                 .Select(v => v.CategoryId)
                 .ToHashSet();
 
-            // Mjeseci su CSV u bazi, pa se sezona filtrira u memoriji nakon učitavanja.
-            // Uslov podobnosti dijeli sa kupčevim editorom — vidi KorpicaPodobnost.
             // Ograničenje na kategorije te korpice ostaje SAMO ovdje: generator puni povrćnu
             // korpicu povrćem, a kupac po odluci iz P2b bira iz cijele ponude.
-            //
-            // Unutar istog prioriteta prednost imaju artikli sa boljom maržom (u razredima od
-            // 10%, pa unutar razreda nasumično — da se sadržaj mijenja iz sedmice u sedmicu).
-            // Artikal bez nabavne cijene ide iza onih sa njom.
-            var bazen = KorpicaPodobnost.USezoni(
-                    await KorpicaPodobnost.UpitPodobnih(db.Products)
-                        .Where(p => kategorije.Contains(p.CategoryId))
-                        .ToListAsync(ct),
-                    mjesec)
-                // Glavne kulture mjeseca (bundeva u oktobru) idu prve — one su razlog korpice tog
-                // mjeseca; tek onda prioritet i marža.
+            var bila = proslaSedmica.GetValueOrDefault(korpica.Id) ?? [];
+            var bazen = sezonskaPonuda
+                .Where(p => kategorije.Contains(p.CategoryId))
                 .OrderByDescending(p => p.GlavnoU(mjesec))
                 .ThenBy(p => p.PrioritetUKorpici)
+                .ThenByDescending(p => RazredPotraznje(potraznja.GetValueOrDefault(p.Id)))
+                .ThenBy(p => bila.Contains(p.Id))
                 .ThenByDescending(RazredMarze)
                 .ThenBy(_ => Guid.NewGuid())
                 .ToList();
@@ -121,9 +142,7 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
             // Važi samo za artikle sa unesenom nabavnom cijenom; ostali se javljaju adminu.
             var nabavniBudzet = korpica.Price * (1 - _o.MinimalnaMarza);
 
-            // Budžet po stavci dok se ne ispuni minimum. Bez ovoga prvi artikal
-            // pojede cio cilj i korpica ispadne sa jednom stavkom.
-            var poStavci = cilj / Math.Max(minimum, 1);
+            var sastav = Sastavi(bazen, korpica.Velicina, minimum, cilj, nabavniBudzet);
 
             var sadrzaj = new SedmicniSadrzaj
             {
@@ -132,121 +151,20 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
                 Sedmica = c.Sedmica,
                 Status = StatusSadrzaja.Nacrt,
             };
-
-            var vrijednost = 0m;
-            var nabavno = 0m;
-            var nabavnoOgranicilo = false;
-            var bezNabavne = new List<string>();
-
-            foreach (var artikal in bazen)
-            {
-                if (vrijednost >= cilj * 0.95m && sadrzaj.Stavke.Count >= minimum) break;
-                if (artikal.Price <= 0) continue;
-                // Opciona kultura (kopriva) se samo nudi kao zamjena, ne stavlja se u kutiju.
-                if (artikal.Opciono) continue;
-
-                var preostalo = cilj - vrijednost;
-                if (preostalo <= 0) break;
-
-                var budzet = sadrzaj.Stavke.Count < minimum
-                    ? Math.Min(poStavci, preostalo)
-                    : preostalo;
-
-                var nab = artikal.NabavnaCijena is > 0 ? artikal.NabavnaCijena.Value : (decimal?)null;
-
-                // Zadata količina za ovu veličinu korpice ide cijela ili nikako — ne smije
-                // preći cilj, zalihu ni nabavni budžet.
-                if (artikal.KolicinaUKorpici(korpica.Velicina) is decimal zadato)
-                {
-                    if (nab is not null && nabavno + zadato * nab.Value > nabavniBudzet)
-                    {
-                        nabavnoOgranicilo = true;
-                        continue;
-                    }
-                    if (zadato * artikal.Price > preostalo + 0.005m || zadato > artikal.Stock)
-                        continue;
-
-                    sadrzaj.Stavke.Add(new StavkaSadrzaja
-                    {
-                        ProductId = artikal.Id,
-                        Kolicina = zadato,
-                        JedinicnaCijena = artikal.Price,
-                    });
-                    vrijednost += zadato * artikal.Price;
-                    if (nab is null) bezNabavne.Add(artikal.Name);
-                    else nabavno += zadato * nab.Value;
-                    continue;
-                }
-
-                var kolicina = Zaokruzi(budzet / artikal.Price, artikal.Unit);
-                if (nab is not null)
-                {
-                    // Dok minimum artikala nije popunjen, artikal smije uzeti samo svoj dio PREOSTALOG
-                    // nabavnog budžeta. Bez ovoga je pri visokoj marži (mali budžet) prvih nekoliko
-                    // artikala pojelo cio budžet, a korpica ostala ispod minimuma; višak se ionako
-                    // raspoređuje u drugom prolazu.
-                    var slobodno = Math.Max(nabavniBudzet - nabavno, 0);
-                    if (sadrzaj.Stavke.Count < minimum)
-                        slobodno /= minimum - sadrzaj.Stavke.Count;
-                    var poNabavci = Zaokruzi(slobodno / nab.Value, artikal.Unit);
-                    if (poNabavci < kolicina)
-                    {
-                        kolicina = poNabavci;
-                        nabavnoOgranicilo = true;
-                    }
-                }
-                if (kolicina > artikal.Stock) kolicina = Zaokruzi(artikal.Stock, artikal.Unit);
-
-                if (kolicina <= 0)
-                {
-                    // Budžet po stavci je zaokružen na 0 — tipično skup artikal po komadu
-                    // (suhomesnato, mliječno) naspram malog poStavci. Umjesto da ga trajno
-                    // preskočimo, probamo tačno jednu minimalnu jedinicu, ali samo ako staje
-                    // u preostatak cilja, u zalihu i u nabavni budžet; inače ostaje preskočen.
-                    var minimalnaKolicina = KoracZaokruzivanja(artikal.Unit);
-                    if (minimalnaKolicina * artikal.Price <= preostalo
-                        && minimalnaKolicina <= artikal.Stock
-                        && (nab is null || nabavno + minimalnaKolicina * nab.Value <= nabavniBudzet))
-                        kolicina = minimalnaKolicina;
-                    else
-                        continue;
-                }
-
+            foreach (var s in sastav.Stavke)
                 sadrzaj.Stavke.Add(new StavkaSadrzaja
                 {
-                    ProductId = artikal.Id,
-                    Kolicina = kolicina,
-                    JedinicnaCijena = artikal.Price,
+                    ProductId = s.Artikal.Id,
+                    Kolicina = s.Kolicina,
+                    JedinicnaCijena = s.Artikal.Price,
                 });
-                vrijednost += kolicina * artikal.Price;
-                if (nab is null) bezNabavne.Add(artikal.Name);
-                else nabavno += kolicina * nab.Value;
-            }
 
-            // Drugi prolaz: bazen je potrošen, a vrijednost još ispod cilja (tipično zimi, kad u
-            // bazenu ima tek koji artikal preko minimuma, pa budžet po stavci i zaokruživanje
-            // komada ostave rupu). Količine onoga što je već u kutiji se povećaju istim redom,
-            // u granicama zalihe i nabavnog budžeta.
-            foreach (var stavka in sadrzaj.Stavke)
-            {
-                if (vrijednost >= cilj * 0.95m) break;
-                var artikal = bazen.First(p => p.Id == stavka.ProductId);
-                // Zadata količina je pakovanje — ne povećava se da bi se popunio cilj.
-                if (artikal.KolicinaUKorpici(korpica.Velicina) is not null) continue;
-                var dodatak = Zaokruzi((cilj - vrijednost) / artikal.Price, artikal.Unit);
-                dodatak = Math.Min(dodatak, Zaokruzi(artikal.Stock - stavka.Kolicina, artikal.Unit));
-                var nab = artikal.NabavnaCijena is > 0 ? artikal.NabavnaCijena.Value : (decimal?)null;
-                if (nab is not null)
-                    dodatak = Math.Min(dodatak, Zaokruzi(Math.Max(nabavniBudzet - nabavno, 0) / nab.Value, artikal.Unit));
-                if (dodatak <= 0) continue;
-
-                stavka.Kolicina += dodatak;
-                vrijednost += dodatak * artikal.Price;
-                if (nab is not null) nabavno += dodatak * nab.Value;
-            }
-
-            DodajZamjene(sadrzaj, bazen, sezonskaPonuda, cilj, nabavniBudzet);
+            DodajZamjene(sadrzaj, bazen, cilj, nabavniBudzet);
             db.SedmicniSadrzaji.Add(sadrzaj);
+
+            var vrijednost = sastav.Vrijednost;
+            var nabavno = sastav.Nabavno;
+            var bezNabavne = sastav.Stavke.Where(s => s.Nabavna is null).Select(s => s.Artikal.Name).ToList();
 
             var upozorenja = new List<string>();
             var glavneVan = bazen.Where(p => p.GlavnoU(mjesec) && sadrzaj.Stavke.All(s => s.ProductId != p.Id))
@@ -256,14 +174,18 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
             // Kriv je ili mali bazen (zima, malo zalihe) ili budžet marže — admin mora znati koji, jer su
             // rješenja različita.
             var podobnih = bazen.Count(p => !p.Opciono && p.Price > 0);
-            if (sadrzaj.Stavke.Count < minimum && podobnih >= minimum && nabavnoOgranicilo)
+            if (sadrzaj.Stavke.Count < minimum && podobnih >= minimum && sastav.NabavnoOgranicilo)
                 upozorenja.Add(
                     $"Nabavni budžet ({nabavniBudzet:0.##} KM uz maržu {_o.MinimalnaMarza * 100:0.#} %) je dovoljan za samo " +
                     $"{sadrzaj.Stavke.Count} od {minimum} artikala. Podigni cijenu korpice, smanji zadate količine za ovu " +
                     "veličinu ili spusti maržu ili minimum artikala u postavkama.");
+            else if (sadrzaj.Stavke.Count < minimum && podobnih >= minimum)
+                upozorenja.Add(
+                    $"Vrijednost korpice ({cilj:0.##} KM) je dovoljna za samo {sadrzaj.Stavke.Count} od {minimum} artikala. " +
+                    "Smanji zadate količine za ovu veličinu ili podigni cijenu korpice.");
             else if (sadrzaj.Stavke.Count < minimum)
                 upozorenja.Add($"U bazenu je premalo artikala: {sadrzaj.Stavke.Count} od {minimum}. Dopuni sadržaj ručno.");
-            else if (nabavnoOgranicilo && vrijednost < cilj * 0.95m)
+            else if (sastav.NabavnoOgranicilo && vrijednost < cilj * 0.95m)
                 upozorenja.Add(
                     $"Nabavni budžet ({nabavniBudzet:0.##} KM za maržu {_o.MinimalnaMarza * 100:0.#}%) ograničio je sadržaj " +
                     $"na {vrijednost:0.##} KM od cilja {cilj:0.##} KM. Dodaj artikle sa boljom maržom ili podigni cijenu korpice.");
@@ -291,6 +213,245 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
         return rezultati;
     }
 
+    /* ---------------- sastavljanje ---------------- */
+
+    internal sealed class Izabrani(Product artikal, decimal najmanje, decimal standardno, bool zadato)
+    {
+        public Product Artikal { get; } = artikal;
+        public decimal Najmanje { get; } = najmanje;
+        public decimal Standardno { get; } = standardno;
+        public bool Zadato { get; } = zadato;
+        public decimal Kolicina { get; set; } = najmanje;
+        public decimal? Nabavna => Artikal.NabavnaCijena is > 0 ? Artikal.NabavnaCijena.Value : null;
+        public decimal Vrijednost => Kolicina * Artikal.Price;
+        public decimal NabavnaVrijednost => Kolicina * (Nabavna ?? 0m);
+    }
+
+    internal sealed record Sastav(List<Izabrani> Stavke, bool NabavnoOgranicilo)
+    {
+        public decimal Vrijednost => Stavke.Sum(s => s.Vrijednost);
+        public decimal Nabavno => Stavke.Sum(s => s.NabavnaVrijednost);
+    }
+
+    /// <summary>Sastavlja kutiju iz bazena koji je već poredan po važnosti. Bez baze.</summary>
+    internal static Sastav Sastavi(
+        IReadOnlyList<Product> bazen, VelicinaKorpice? velicina, int minimum, decimal cilj, decimal nabavniBudzet)
+    {
+        var poKulturi = cilj / Math.Max(minimum, 1);
+        var kandidati = bazen
+            .Where(p => p.Price > 0 && !p.Opciono)
+            .Select(p => Kandidat(p, velicina, poKulturi))
+            .OfType<Izabrani>()
+            .ToList();
+
+        var izabrani = new List<Izabrani>();
+        var nabavnoOgranicilo = false;
+        decimal V() => izabrani.Sum(s => s.Vrijednost);
+        decimal N() => izabrani.Sum(s => s.NabavnaVrijednost);
+
+        // Prvi prolaz preskače drugu vrstu iste namirnice; drugi je dozvoljava.
+        IEnumerable<Izabrani> Redom() =>
+            new[] { false, true }.SelectMany(istaVrsta => kandidati.Where(k =>
+                !izabrani.Contains(k) && (istaVrsta || !izabrani.Any(i => IstaVrsta(i.Artikal, k.Artikal)))));
+
+        // Koliko kultura uopšte može stati (najjeftinije, sa najmanjim količinama). Kad je to manje od
+        // minimuma, rezerva se drži za taj broj — inače ne bi ušao nijedan artikal.
+        var dostizno = Dostizno(kandidati, Math.Min(minimum, kandidati.Count), cilj, nabavniBudzet);
+        if (dostizno < Math.Min(minimum, kandidati.Count)
+            && Dostizno(kandidati, Math.Min(minimum, kandidati.Count), cilj, decimal.MaxValue) > dostizno)
+            nabavnoOgranicilo = true;
+
+        // 1) Izbor kultura sa najmanjim količinama, uz rezervu za one koje tek trebaju doći.
+        foreach (var k in Redom())
+        {
+            if (izabrani.Count >= minimum) break;
+            if (izabrani.Contains(k)) continue;
+
+            var v = V() + k.Vrijednost;
+            var n = N() + k.NabavnaVrijednost;
+            if (v > cilj + Tolerancija) continue;
+            if (n > nabavniBudzet + Tolerancija) { nabavnoOgranicilo = true; continue; }
+
+            // Rezerva: najjeftinije preostale kulture moraju i dalje stati.
+            var treba = dostizno - izabrani.Count - 1;
+            var ostali = kandidati.Where(o => o != k && !izabrani.Contains(o)).ToList();
+            if (treba > 0)
+            {
+                var rezervaV = ostali.Select(o => o.Vrijednost).OrderBy(x => x).Take(treba).Sum();
+                var rezervaN = ostali.Select(o => o.NabavnaVrijednost).OrderBy(x => x).Take(treba).Sum();
+                if (v + rezervaV > cilj + Tolerancija) continue;
+                if (n + rezervaN > nabavniBudzet + Tolerancija) { nabavnoOgranicilo = true; continue; }
+            }
+
+            izabrani.Add(k);
+        }
+
+        // 2) Količine do zadate (standardne), redom po važnosti.
+        foreach (var s in izabrani)
+            nabavnoOgranicilo |= Povecaj(s, s.Standardno, izabrani, cilj, nabavniBudzet);
+
+        // 3) Još ispod 95 % cilja: dodatna kultura ili dvije, pa veće količine artikala bez zadate.
+        var dodatnih = 0;
+        foreach (var k in Redom())
+        {
+            if (V() >= cilj * 0.95m || dodatnih >= NajviseDodatnih) break;
+            if (izabrani.Contains(k)) continue;
+            // Kultura preko minimuma ulazi samo cijela (zadata/standardna količina), ne kao ostatak.
+            if (V() + k.Standardno * k.Artikal.Price > cilj + Tolerancija) continue;
+            if (N() + k.Standardno * (k.Nabavna ?? 0m) > nabavniBudzet + Tolerancija) { nabavnoOgranicilo = true; continue; }
+
+            k.Kolicina = k.Standardno;
+            izabrani.Add(k);
+            dodatnih++;
+        }
+
+        foreach (var s in izabrani.Where(s => !s.Zadato))
+        {
+            if (V() >= cilj * 0.95m) break;
+            nabavnoOgranicilo |= Povecaj(s, Zaokruzi(s.Artikal.Stock, s.Artikal.Unit), izabrani, cilj, nabavniBudzet);
+        }
+
+        return new Sastav(izabrani, nabavnoOgranicilo);
+    }
+
+    /// <summary>Najviše koliko kultura (do <paramref name="najvise"/>) staje sa najmanjim količinama najjeftinijih.</summary>
+    private static int Dostizno(List<Izabrani> kandidati, int najvise, decimal cilj, decimal nabavniBudzet)
+    {
+        var v = kandidati.Select(k => k.Vrijednost).OrderBy(x => x).ToList();
+        var n = kandidati.Select(k => k.NabavnaVrijednost).OrderBy(x => x).ToList();
+        decimal sv = 0, sn = 0;
+        var broj = 0;
+        while (broj < najvise)
+        {
+            sv += v[broj];
+            sn += n[broj];
+            if (sv > cilj + Tolerancija || sn > nabavniBudzet + Tolerancija) break;
+            broj++;
+        }
+        return broj;
+    }
+
+    /// <summary>
+    /// Najmanja i standardna količina artikla za ovu veličinu. Standardna je zadata količina, a bez nje
+    /// dio cilja po kulturi; najmanja je pola standardne (isto pravilo kao u adminovom editoru,
+    /// <c>najmanjaKolicina</c>). Null kad ni najmanja ne staje u zalihu.
+    /// </summary>
+    private static Izabrani? Kandidat(Product p, VelicinaKorpice? velicina, decimal poKulturi)
+    {
+        var korak = KoracZaokruzivanja(p.Unit);
+        var zadato = p.KolicinaUKorpici(velicina);
+        var standardno = zadato is decimal z ? z : Math.Max(korak, Zaokruzi(poKulturi / p.Price, p.Unit));
+        var najmanje = Math.Max(korak, Zaokruzi(standardno / 2, p.Unit));
+
+        var zaliha = Zaokruzi(p.Stock, p.Unit);
+        if (zaliha < najmanje) return null;
+        return new Izabrani(p, najmanje, Math.Min(standardno, zaliha), zadato is not null);
+    }
+
+    /// <summary>
+    /// Diže količinu prema <paramref name="doKolicine"/> koliko puštaju cilj vrijednosti i nabavni budžet.
+    /// True kad je budžet zaustavio povećanje.
+    /// </summary>
+    private static bool Povecaj(Izabrani s, decimal doKolicine, List<Izabrani> izabrani, decimal cilj, decimal nabavniBudzet)
+    {
+        var zelja = Math.Max(0m, doKolicine - s.Kolicina);
+        if (zelja <= 0) return false;
+
+        var slobodnoV = Math.Max(0m, cilj - izabrani.Sum(i => i.Vrijednost) + Tolerancija);
+        var dodatak = Math.Min(zelja, Zaokruzi(slobodnoV / s.Artikal.Price, s.Artikal.Unit));
+        var budzetStao = false;
+        if (s.Nabavna is decimal nab)
+        {
+            var slobodnoN = Math.Max(0m, nabavniBudzet - izabrani.Sum(i => i.NabavnaVrijednost) + Tolerancija);
+            var poN = Zaokruzi(slobodnoN / nab, s.Artikal.Unit);
+            if (poN < dodatak) { dodatak = poN; budzetStao = true; }
+        }
+        dodatak = Zaokruzi(dodatak, s.Artikal.Unit);
+        if (dodatak > 0) s.Kolicina += dodatak;
+        return budzetStao;
+    }
+
+    /// <summary>
+    /// Dvije vrste iste namirnice (crveni i domaći krompir, crni i mladi luk, jabuka idared i kožara)?
+    /// Poredi osnove riječi naziva; pridjev ispred imenice (mladi, crvena, žuta, sušene…) se ne broji.
+    /// </summary>
+    internal static bool IstaVrsta(Product a, Product b)
+    {
+        var x = Osnove(a.Name);
+        return Osnove(b.Name).Any(x.Contains);
+    }
+
+    private static HashSet<string> Osnove(string naziv)
+    {
+        var rijeci = naziv.ToLowerInvariant()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+        var osnove = new HashSet<string>();
+        for (var i = 0; i < rijeci.Count; i++)
+        {
+            var r = rijeci[i];
+            if (r.Length < 3 || !r.All(char.IsLetter)) continue;
+            if (i < rijeci.Count - 1 && Pridjev(r)) continue;
+            osnove.Add(r.Length > 4 ? r[..4] : r);
+        }
+        return osnove;
+    }
+
+    /// <summary>
+    /// Riječ ispred imenice koja je pridjev: muški i množina na -i/-e (mladi, crveni, sušene), ženski na -a
+    /// (crvena, žuta, ljetna). Imenice na -a koje stoje ispred sorte (jabuka idared, paprika roga,
+    /// salata kristalka, bundeva hokaido, babura paprika) završavaju drugačije pa se broje.
+    /// </summary>
+    private static bool Pridjev(string r) =>
+        r.EndsWith('i') || r.EndsWith('e')
+        || (r.EndsWith('a') && !new[] { "ika", "uka", "ška", "ata", "iva", "eva", "ura", "ija", "nja" }.Any(r.EndsWith));
+
+    /* ---------------- podaci iz baze ---------------- */
+
+    /// <summary>
+    /// Potražnja po artiklu zadnjih <see cref="SedmicaPotraznje"/> sedmica: koliko puta je kupljen sam
+    /// (Špajz) ili ga je kupac sam dodao u korpicu, minus kupci koji ga izbjegavaju (dvostruko).
+    /// </summary>
+    private async Task<Dictionary<Guid, int>> PotraznjaAsync(int godina, int sedmica, CancellationToken ct)
+    {
+        var od = DateTime.SpecifyKind(
+            ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Monday).AddDays(-7 * SedmicaPotraznje), DateTimeKind.Utc);
+
+        var kupljeno = await db.OrderItems
+            .Where(i => i.Order!.CreatedAt >= od && i.Order.Status != OrderStatus.Cancelled)
+            .GroupBy(i => i.ProductId)
+            .Select(g => new { g.Key, Broj = g.Count() })
+            .ToListAsync(ct);
+        var dodato = await db.StavkeKorpiceNarudzbe
+            .Where(s => s.DodaoKupac && s.OrderItem!.Order!.CreatedAt >= od && s.OrderItem.Order.Status != OrderStatus.Cancelled)
+            .GroupBy(s => s.ProductId)
+            .Select(g => new { g.Key, Broj = g.Count() })
+            .ToListAsync(ct);
+        var izbjegnuto = await db.IzbjegnutiArtikli
+            .GroupBy(i => i.ProductId)
+            .Select(g => new { g.Key, Broj = g.Count() })
+            .ToListAsync(ct);
+
+        var rez = new Dictionary<Guid, int>();
+        foreach (var x in kupljeno) rez[x.Key] = rez.GetValueOrDefault(x.Key) + x.Broj;
+        foreach (var x in dodato) rez[x.Key] = rez.GetValueOrDefault(x.Key) + x.Broj;
+        foreach (var x in izbjegnuto) rez[x.Key] = rez.GetValueOrDefault(x.Key) - 2 * x.Broj;
+        return rez;
+    }
+
+    /// <summary>Artikli koji su bili u sadržaju svake korpice prethodne sedmice.</summary>
+    private async Task<Dictionary<Guid, HashSet<Guid>>> ProslaSedmicaAsync(int godina, int sedmica, CancellationToken ct)
+    {
+        var prije = ISOWeek.ToDateTime(godina, sedmica, DayOfWeek.Thursday).AddDays(-7);
+        var (g, s) = (ISOWeek.GetYear(prije), ISOWeek.GetWeekOfYear(prije));
+        var stavke = await db.StavkeSadrzaja
+            .Where(st => st.SedmicniSadrzaj!.Godina == g && st.SedmicniSadrzaj.Sedmica == s)
+            .Select(st => new { st.SedmicniSadrzaj!.KorpicaId, st.ProductId })
+            .ToListAsync(ct);
+        return stavke.GroupBy(x => x.KorpicaId)
+            .ToDictionary(x => x.Key, x => x.Select(y => y.ProductId).ToHashSet());
+    }
+
     /// <summary>
     /// Bira predložene zamjene: artikle iz bazena koji nisu u kutiji. Kupac jedan artikal
     /// mijenja za drugi iste vrijednosti, pa zamjena ne smije imati lošiji odnos nabavne i
@@ -299,13 +460,9 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
     /// dozvoljava (ne zna se), ali ide na kraj.
     ///
     /// Biraju se SAMO artikli iz kategorija korpice (bazen): u korpicu povrća ne ide pavlaka,
-    /// sir ni med, ni kao predložena zamjena (odluka vlasnika, 13.11.2026). Kad kutija potroši
-    /// cijeli sezonski bazen, zamjena je manje od <c>BrojZamjena</c> ili nijedna — ranije se
-    /// tada dopunjavalo iz ostale sezonske ponude.
+    /// sir ni med, ni kao predložena zamjena (odluka vlasnika, 13.11.2026).
     /// </summary>
-    private void DodajZamjene(
-        SedmicniSadrzaj sadrzaj, List<Product> bazen, List<Product> sezonskaPonuda,
-        decimal cilj, decimal nabavniBudzet)
+    private void DodajZamjene(SedmicniSadrzaj sadrzaj, List<Product> bazen, decimal cilj, decimal nabavniBudzet)
     {
         if (_o.BrojZamjena <= 0 || cilj <= 0) return;
 
@@ -324,6 +481,10 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
         foreach (var p in izbor)
             sadrzaj.Zamjene.Add(new ZamjenaSadrzaja { ProductId = p.Id, JedinicnaCijena = p.Price });
     }
+
+    /// <summary>Potražnja u grubim razredima (0, 1, 2–3, 4–7…) da unutar razreda ostane nasumičnosti; −1 = izbjegavaju ga.</summary>
+    private static int RazredPotraznje(int broj) =>
+        broj < 0 ? -1 : (int)Math.Floor(Math.Log2(1 + broj));
 
     /// <summary>Marža u razredima od 10% (0–10); −1 kad nabavna cijena nije unesena.</summary>
     private static int RazredMarze(Product p) =>

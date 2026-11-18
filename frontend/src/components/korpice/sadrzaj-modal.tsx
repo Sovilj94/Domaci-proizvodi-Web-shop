@@ -36,6 +36,8 @@ export function SadrzajModal({ slug, onClose }: { slug: string; onClose: () => v
     queryKey: ["korpice", "sadrzaj", slug],
     queryFn: () => korpiceApi.sadrzaj(slug),
     retry: false,
+    // Sadržaj se objavljuje dok kupac ima otvoren sajt — po povratku na tab povuci novi.
+    refetchOnWindowFocus: true,
   });
 
   // Backend baca NotFoundException("sadrzaj_nije_objavljen") — NotFoundException

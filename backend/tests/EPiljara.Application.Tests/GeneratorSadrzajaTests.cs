@@ -32,7 +32,7 @@ public class GeneratorSadrzajaTests
         for (var i = 0; i < brojArtikala; i++)
             t.Db.Products.Add(new Product
             {
-                Name = $"Artikal {i}", Slug = $"artikal-{i}", Price = 4m, Unit = Unit.Kg,
+                Name = $"Povrće {i}", Slug = $"artikal-{i}", Price = 4m, Unit = Unit.Kg,
                 CategoryId = kat.Id, ProducerId = proiz.Id, Stock = stock,
                 MozeUKorpicu = true, Mjeseci = mjeseciArtikala,
             });
@@ -191,8 +191,9 @@ public class GeneratorSadrzajaTests
         Postavi(t, mjeseciArtikala: []);
         foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica))
         {
-            p.NabavnaCijena = 2.4m;
-            p.KolicinaMala = 1m; // 1 kg × 2,40 = 2,40 KM nabavno po artiklu; budžet 13,75 → 5 artikala
+            p.NabavnaCijena = 3.2m;
+            // Zadato 2 kg, najmanje pola = 1 kg × 3,20 = 3,20 KM nabavno po artiklu; budžet 13,75 → 4 artikla.
+            p.KolicinaMala = 2m;
         }
         await t.Db.SaveChangesAsync();
         var o = TestOpcije.Korpice();
@@ -201,9 +202,9 @@ public class GeneratorSadrzajaTests
         var r = Assert.Single(await new GenerisiSedmicniSadrzajHandler(t.Db, Options.Create(o))
             .Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
 
-        Assert.Equal(5, r.BrojArtikala);
+        Assert.Equal(4, r.BrojArtikala);
         Assert.Contains("Nabavni budžet", r.Upozorenje);
-        Assert.Contains("5 od 8", r.Upozorenje);
+        Assert.Contains("4 od 8", r.Upozorenje);
         Assert.DoesNotContain("premalo artikala", r.Upozorenje);
     }
 
@@ -296,5 +297,77 @@ public class GeneratorSadrzajaTests
         var r = Assert.Single(rez);
         Assert.Equal(0, r.BrojArtikala);
         Assert.Contains("premalo", r.Upozorenje!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Prijavljena greška (18.11.2026): zadata količina je išla „cijela ili nikako", pa je nabavni
+    /// budžet stao poslije šest kultura. Korpica 25 KM, marža 35 % → nabavno najviše 16,25 KM;
+    /// osam cijelih zadatih količina bi koštalo 19,20 KM. Generator sad uzme manje od nekih, ali osam kultura.
+    /// </summary>
+    [Fact]
+    public async Task Daje_minimum_kultura_i_kad_cijele_zadate_kolicine_ne_staju_u_budzet()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: []);
+        foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica))
+        {
+            p.NabavnaCijena = 2.4m;
+            p.KolicinaMala = 1m;
+        }
+        await t.Db.SaveChangesAsync();
+        var o = TestOpcije.Korpice();
+        o.MinimalnaMarza = 0.35m;
+
+        var r = Assert.Single(await new GenerisiSedmicniSadrzajHandler(t.Db, Options.Create(o))
+            .Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        Assert.Equal(8, r.BrojArtikala);
+        Assert.True(r.NabavnaVrijednost <= korpica.Price * 0.65m + 0.01m, $"nabavno {r.NabavnaVrijednost}");
+        Assert.True(r.Vrijednost <= korpica.Price * o.KoeficijentVrijednosti + 0.01m);
+        var stavke = await t.Db.StavkeSadrzaja.ToListAsync();
+        Assert.All(stavke, s => Assert.InRange(s.Kolicina, 0.5m, 1m));   // između pola zadate i zadate
+    }
+
+    [Fact]
+    public async Task Osnovne_namirnice_po_prioritetu_idu_prije_dopune()
+    {
+        using var t = new TestDb();
+        Postavi(t, mjeseciArtikala: [], brojArtikala: 12);
+        foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica)) p.PrioritetUKorpici = 3;
+        await t.Db.SaveChangesAsync();
+        var krompir = Dodaj(t, "Krompir", p => { p.PrioritetUKorpici = 0; p.Price = 1.2m; });
+        var luk = Dodaj(t, "Crni luk", p => { p.PrioritetUKorpici = 0; p.Price = 1.5m; });
+
+        for (var i = 0; i < 5; i++)
+        {
+            var rez = await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null, Ponovo: true), default);
+            var idjevi = await t.Db.StavkeSadrzaja.Where(s => s.SedmicniSadrzajId == rez[0].SadrzajId)
+                .Select(s => s.ProductId).ToListAsync();
+            Assert.Contains(krompir.Id, idjevi);
+            Assert.Contains(luk.Id, idjevi);
+        }
+    }
+
+    [Fact]
+    public async Task Ne_stavlja_dvije_vrste_iste_namirnice_dok_ima_drugih()
+    {
+        using var t = new TestDb();
+        Postavi(t, mjeseciArtikala: [], brojArtikala: 1);
+        string[] razne = ["Mrkva", "Cvekla", "Praziluk", "Karfiol", "Brokula", "Zelena salata", "Paprika roga", "Kupus"];
+        foreach (var n in razne) Dodaj(t, n, _ => { });
+        Dodaj(t, "Crveni krompir", _ => { });
+        Dodaj(t, "Domaći krompir", _ => { });
+        Dodaj(t, "Mladi krompirići", _ => { });
+        Dodaj(t, "Crvena salata", _ => { });
+        Dodaj(t, "Ljuta paprika", _ => { });
+
+        var rez = await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default);
+
+        var nazivi = await t.Db.StavkeSadrzaja.Where(s => s.SedmicniSadrzajId == rez[0].SadrzajId)
+            .Select(s => s.Product!.Name).ToListAsync();
+        Assert.True(nazivi.Count >= 8);
+        Assert.True(nazivi.Count(n => n.Contains("krompir", StringComparison.OrdinalIgnoreCase)) <= 1, string.Join(", ", nazivi));
+        Assert.True(nazivi.Count(n => n.Contains("salata")) <= 1, string.Join(", ", nazivi));
+        Assert.True(nazivi.Count(n => n.Contains("aprika")) <= 1, string.Join(", ", nazivi));
     }
 }

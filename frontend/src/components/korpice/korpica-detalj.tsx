@@ -52,6 +52,8 @@ export function KorpicaDetalj({ vrsta, velicina }: { vrsta: "povrce" | "voce"; v
     queryFn: () => korpiceApi.sadrzaj(korpica!.slug),
     enabled: !!korpica,
     retry: false,
+    // Sadržaj se objavljuje dok kupac ima otvoren sajt — po povratku na tab povuci novi.
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) return <LoadingBlock />;

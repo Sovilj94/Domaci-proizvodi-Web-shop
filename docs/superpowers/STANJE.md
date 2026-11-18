@@ -1148,3 +1148,39 @@ ponuda; `AdminLadica sredina`); predložene zamjene samo iz kategorija korpice (
 očišćena za sedmicu 47); najmanja smislena količina (`najmanjaKolicina`, pola zadate za veličinu); editor prikazuje
 NABAVNE cijene i nabavnu cijenu korpice, marža na fiksnu prodajnu cijenu. Testovi: backend 852, admin 148.
 Grana `sadrzaj-u-postavkama` (zadnji `5c7efa9` + ovaj zapis) **nije spojena** — otvoreno je u `ZA-URADITI.md` → H.
+
+## Generator sedmičnog sadržaja: 8 kultura i osnovne namirnice prve (2026-11-18, grana `generator-korpica`)
+
+Prijava vlasnika: generator je sastavljao korpice sa 6 artikala umjesto 8 (`MinimalanBrojArtikala` = 8).
+**Uzrok:** zadata količina je išla „cijela ili nikako", a artikli su se birali redom (glavne kulture, pa nasumično):
+prvih nekoliko je potrošilo nabavni budžet (marža 35 %) prije nego što se popunio minimum, pa za 7. i 8. nije
+ostalo mjesta. Redoslijed nije znao šta je ljudima najpotrebnije — skoro svi artikli su imali prioritet 0.
+
+`GenerisiSedmicniSadrzaj.cs` sada sastavlja u tri koraka (`Sastavi`, bez baze):
+1. **Izbor kultura** sa NAJMANJOM smislenom količinom (pola zadate, isto pravilo kao `najmanjaKolicina` u editoru).
+   Artikal ulazi samo ako iza njega u cilju vrijednosti i nabavnom budžetu ostaje mjesta za preostale kulture
+   (rezerva = najjeftinije preostale). Kad minimum ionako nije dostižan, rezerva se drži za dostižan broj.
+2. **Količine** se dižu do zadate, redom po važnosti, u granicama cilja, budžeta i zalihe.
+3. Ispod 95 % cilja: do 2 kulture više (samo cijela zadata količina), pa veće količine artikala bez zadate.
+
+**Redoslijed** (šta ide prvo): glavna kultura mjeseca → `PrioritetUKorpici` → potražnja iz narudžbi zadnjih 12
+sedmica (kupljeno samo + kupac dodao u korpicu − 2 × kupci koji ga izbjegavaju, u grubim razredima) → ono čega nije
+bilo prošle sedmice → marža → nasumično. **Raznolikost:** druga vrsta iste namirnice (crveni pored domaćeg krompira,
+dvije salate) ide tek kad drugih nema — prepoznaje se po osnovi riječi naziva, pridjev ispred imenice se ne broji.
+Nova upozorenja: „Vrijednost korpice je dovoljna za samo X od 8" kad smeta cilj, a ne budžet.
+
+**Prioriteti (podatak u bazi, ne kod):** 90 artikala povrća i voća dobilo je `PrioritetUKorpici` — 0 osnova trpeze
+(krompir, luk, mrkva, bijeli luk, paradajz, paprika, kupus, salata, krastavac, tikvica, peršun; jabuke, kruška,
+šljiva, breskva, grožđe…), 1 česte (cvekla, praziluk, karfiol, brokula, blitva…; dunja, orah, bobičasto), 2 dopuna
+(rukola, pak čoj, batat, prokelj…; suho voće i lješnik). Skripta `Desktop\epiljara-backupi\prioriteti-korpica\`
+(`prioriteti-korpica.ps1 -Lokalno` urađeno na dev bazi; bez prekidača radi Neon uz backup — pokreće vlasnik).
+Mijenja se u Postavkama korpica, kolona Prioritet.
+
+Sajt: javni sadržaj korpice (`ova-sedmica`, `korpica-detalj`, `sadrzaj-modal`) se osvježi po povratku na tab
+(`refetchOnWindowFocus`) — kupac koji je sajt otvorio prije objave ne ostaje na „objavljujemo uskoro".
+
+Provjera na dev podacima (sedmice 48–50 i ljeto 27/33, generisano pa poništeno): sve korpice 8–9 kultura, marža
+≥ 35 %, krompir/luk/mrkva redovno unutra. Vrijednost je i dalje ~5–15 % ispod cilja 1,15 × cijena jer uz maržu
+35 % i nabavne na 60 % prodajne matematički ne može više (generator to javlja upozorenjem). Testovi: backend 856
+(+3, jedan prilagođen novom pravilu pola zadate); `tsc` i eslint ✓, `npm run build` nije pušten (`:3000` je
+korisnikov `next start` iz istog `.next`).
