@@ -1717,6 +1717,18 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<decimal?>("TezinaDo")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<decimal?>("TezinaKomada")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<decimal?>("TezinaOd")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
                     b.Property<string>("TipKorpice")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");

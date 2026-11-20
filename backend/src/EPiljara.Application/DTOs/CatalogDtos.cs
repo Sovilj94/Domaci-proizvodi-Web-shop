@@ -84,6 +84,9 @@ public record AdminProductDto : ProductDto
     /// <summary>Trošak ambalaže po jedinici prodaje; null = nije unesen.</summary>
     public decimal? AmbalazaCijena { get; init; }
 
+    /// <summary>Kilograma po komadu, za težinu korpice (samo artikli na komad; null = nije unesena).</summary>
+    public decimal? TezinaKomada { get; init; }
+
     /// <summary>Zadate količine po veličini korpice (null = računa se iz vrijednosti).</summary>
     public decimal? KolicinaMala { get; init; }
     public decimal? KolicinaSrednja { get; init; }

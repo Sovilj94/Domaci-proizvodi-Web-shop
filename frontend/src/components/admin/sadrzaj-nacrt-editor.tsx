@@ -14,15 +14,17 @@ import { adminApi, adminKorpiceApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import {
   type KutijaRed,
+  type Slobodno,
   ekonomicnost,
   granicaKutije,
-  kolicinaZaDodavanje,
+  kgPoJedinici,
+  kolicinaKojaStaje,
   mjesecSedmice,
   najmanjaKolicina,
-  najvecaKolicina,
   sezonskaPonuda,
   slobodnoZaDodavanje,
-  zamijeni,
+  tezinaKutije,
+  zamijeniPoNabavnoj,
   zbir,
 } from "@/lib/admin/kutija";
 import { bezKvacica } from "@/lib/admin/proizvodi-tabela";
@@ -80,6 +82,12 @@ export function SadrzajNacrtEditor({
   const [izabran, setIzabran] = useState<string | null>(null);
   /** Vrijednost sa kojom je kutija otvorena — granica je cilj ili ona, šta je veće. */
   const [pocetna, setPocetna] = useState(0);
+  /** Nabavna vrijednost sa kojom je kutija otvorena — novo ulazi samo iz onoga što se oslobodi. */
+  const [pocetnoNabavno, setPocetnoNabavno] = useState(0);
+  /** Zadnji izbačeni artikal — traka iznad ponude kaže koliko je oslobođeno. */
+  const [izaslo, setIzaslo] = useState<{ naziv: string; kolicina: number; jedinica: string; vrijednost: number; nabavno: number } | null>(
+    null,
+  );
   const [upit, setUpit] = useState("");
 
   const sadrzajKljuc = ["admin", "korpice", "sadrzaj", sadrzajId] as const;
@@ -115,7 +123,9 @@ export function SadrzajNacrtEditor({
         boja: p?.boja,
       };
     });
-    setPocetna(zbir(novi, sadrzaj.cijenaKorpice).vrijednost);
+    const z0 = zbir(novi, sadrzaj.cijenaKorpice);
+    setPocetna(z0.vrijednost);
+    setPocetnoNabavno(z0.nabavno);
     setRedovi(novi);
     // Zamjena van kategorija korpice (pavlaka u korpici povrća — ostatak starog generatora) se
     // ne prikazuje: izbacuje se odmah, a čuvanje je briše i iz baze. Zaključan se ne dira.
@@ -188,7 +198,25 @@ export function SadrzajNacrtEditor({
   const najmanjaVrijednost =
     objavljen && sadrzaj.ciljnaVrijednost > 0 ? Math.round(sadrzaj.ciljnaVrijednost * DONJA_GRANICA_OBJAVLJENOG * 100) / 100 : undefined;
   const z = zbir(redovi, cijenaKorpice);
+  const tez = tezinaKutije(redovi, (id) => poId.get(id)?.tezinaKomada);
+  const tezOd = sadrzaj.tezinaOd ?? null;
+  const tezDo = sadrzaj.tezinaDo ?? null;
+  const vanTezine = (tezOd != null && tez.kg < tezOd) || (tezDo != null && tez.kg > tezDo);
   const slobodnoKM = slobodnoZaDodavanje(granicaKutije(cilj, pocetna), z.vrijednost);
+  // Nabavna granica: nabavna cijena kutije kad je otvorena (prazna kutija: nabavni budžet). Ono što
+  // izađe oslobađa svoju nabavnu vrijednost, a novo ulazi po svojoj nabavnoj cijeni.
+  const granicaNabavno = pocetnoNabavno > 0 ? pocetnoNabavno : sadrzaj.nabavniBudzet;
+  const slobodno: Slobodno = {
+    km: slobodnoKM,
+    nabavno: granicaNabavno > 0 ? Math.max(0, Math.round((granicaNabavno - z.nabavno) * 100) / 100) : Infinity,
+    kg: tezDo != null ? Math.max(0, Math.round((tezDo - tez.kg) * 100) / 100) : Infinity,
+  };
+  const kgOd = (productId: string, unit: string) => kgPoJedinici(unit, poId.get(productId)?.tezinaKomada);
+  const mjera = (p: Product) => ({ price: p.price, nabavna: p.nabavnaCijena, unit: p.unit, kgPoJedinici: kgOd(p.id, p.unit) });
+  const imaMjesta = slobodno.km > 0.005 && slobodno.nabavno > 0.005 && slobodno.kg > 0.0005;
+  /** Najviše koliko reda smije stajati: ono što već stoji plus ono što staje u slobodno. */
+  const najviseReda = (r: KutijaRed) =>
+    Math.round((r.kolicina + kolicinaKojaStaje({ price: r.cijena, nabavna: r.nabavna, unit: r.jedinica, kgPoJedinici: kgOd(r.productId, r.jedinica) }, slobodno)) * 10) / 10;
   const eko = ekonomicnost(redovi, { cijenaKorpice, minimalnaMarza: minMarza, minimalnoArtikala: sadrzaj.minimalanBrojArtikala, najmanjaVrijednost });
   const pct = cilj > 0 ? Math.round((z.vrijednost / cilj) * 100) : 0;
   const uKutiji = new Set(redovi.map((r) => r.productId));
@@ -242,40 +270,55 @@ export function SadrzajNacrtEditor({
         if (r.productId !== productId) return r;
         // Ne ispod smislene najmanje količine (ni upisom u polje); red koji je već ispod nje smije ostati gdje je.
         const dno = Math.min(r.kolicina, najmanje(r.productId, r.cijena, r.jedinica));
-        return { ...r, kolicina: Math.max(dno, Math.min(kolicina, najvecaKolicina(r, slobodnoKM))) };
+        return { ...r, kolicina: Math.max(dno, Math.min(kolicina, najviseReda(r))) };
       }),
     );
   }
 
   function ukloni(productId: string) {
-    setRedovi(redovi!.filter((r) => r.productId !== productId));
+    const r = redovi!.find((x) => x.productId === productId);
+    setRedovi(redovi!.filter((x) => x.productId !== productId));
+    if (r)
+      setIzaslo({
+        naziv: r.naziv,
+        kolicina: r.kolicina,
+        jedinica: r.jedinica,
+        vrijednost: Math.round(r.kolicina * r.cijena * 100) / 100,
+        nabavno: Math.round(r.kolicina * (r.nabavna ?? 0) * 100) / 100,
+      });
     if (izabran === productId) setIzabran(null);
   }
 
-  /** `nov` ulazi umjesto izabranog reda, po vrijednosti. Sa spiska zamjena: izbačeni zauzima njegovo mjesto. */
+  /** Šta ulazi umjesto izabranog reda — po nabavnoj cijeni (vidi `zamijeniPoNabavnoj`). */
+  const zamjenaZa = (red: KutijaRed, nov: Product) =>
+    zamijeniPoNabavnoj(red, kgOd(red.productId, red.jedinica), nov, kgOd(nov.id, nov.unit), slobodno);
+
+  /** `nov` ulazi umjesto izabranog reda. Sa spiska zamjena: izbačeni zauzima njegovo mjesto. */
   function zamijeniSa(nov: Product, saSpiska: boolean) {
     if (!redIzabran) return;
-    const n = zamijeni(redIzabran, nov, slobodnoKM);
+    const n = zamjenaZa(redIzabran, nov);
     if (!n || n.kolicina < najmanje(nov.id, nov.price, nov.unit)) return;
     setRedovi(redovi!.map((r) => (r.productId === redIzabran.productId ? n : r)));
     setZamjene([...zamjene!.filter((id) => id !== nov.id), ...(saSpiska ? [redIzabran.productId] : [])]);
     setIzabran(null);
+    setIzaslo(null);
   }
 
   function dodaj(p: Product) {
-    const k = kolicinaZaDodavanje(slobodnoKM, p.price, p.unit);
+    const k = kolicinaKojaStaje(mjera(p), slobodno);
     if (k < najmanje(p.id, p.price, p.unit)) return;
     setRedovi([...redovi!, redOd(p, k)]);
     setZamjene(zamjene!.filter((id) => id !== p.id));
+    setIzaslo(null);
   }
 
   /** Jedan red desne kolone: u načinu zamjene nudi „Zamijeni", inače „U korpicu". */
   function redPonude(p: Product, saSpiska: boolean) {
     const smije = smijeUKorpicu(p);
     const min = najmanje(p.id, p.price, p.unit);
-    const nSvaka = redIzabran && smije ? zamijeni(redIzabran, p, slobodnoKM) : null;
+    const nSvaka = redIzabran && smije ? zamjenaZa(redIzabran, p) : null;
     const n = nSvaka && nSvaka.kolicina >= min ? nSvaka : null;
-    const kSvaka = !redIzabran && smije ? kolicinaZaDodavanje(slobodnoKM, p.price, p.unit) : 0;
+    const kSvaka = !redIzabran && smije ? kolicinaKojaStaje(mjera(p), slobodno) : 0;
     const k = kSvaka >= min ? kSvaka : 0;
     const upozori = redIzabran ? obaraMarzu(n, redIzabran.productId) : k > 0 ? obaraMarzu(redOd(p, k)) : undefined;
     return (
@@ -372,7 +415,7 @@ export function SadrzajNacrtEditor({
             </div>
             {!samoPregled && (
               <p className="mt-1 text-xs text-muted">
-                Korpica je popunjena {pct} %{slobodnoKM > 0 ? "" : " — za novo prvo izvadi ili smanji nešto"}.
+                Korpica je popunjena {pct} %{imaMjesta ? "" : " — za novo prvo izvadi ili smanji nešto"}.
                 {z.bezNabavne > 0 && <span className="text-honey-700"> {z.bezNabavne} bez nabavne cijene — nisu uračunati.</span>}
               </p>
             )}
@@ -386,6 +429,26 @@ export function SadrzajNacrtEditor({
               Ostaje {formatPrice(Math.round((cijenaKorpice - z.nabavno) * 100) / 100)} po korpici · najmanja marža {formatMarza(minMarza)}
             </p>
           </div>
+          {(tezOd != null || tezDo != null) && (
+            <div className="sm:col-span-2">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-muted">Težina korpice</span>
+                <span className={cn("font-semibold tabular-nums", vanTezine ? "text-red-700" : "text-ink")}>
+                  {tez.kg.toLocaleString("sr-Latn-BA")} kg
+                  <span className="font-normal text-muted">
+                    {" "}
+                    / {tezOd != null && tezDo != null ? `${tezOd}–${tezDo}` : tezOd != null ? `najmanje ${tezOd}` : `najviše ${tezDo}`} kg
+                  </span>
+                </span>
+              </div>
+              {(vanTezine || tez.bezTezine.length > 0) && (
+                <p className="mt-1 text-xs text-honey-700">
+                  {vanTezine && (tezOd != null && tez.kg < tezOd ? "Korpica je prelaka. " : "Korpica je preteška. ")}
+                  {tez.bezTezine.length > 0 && `Bez težine komada (nisu uračunati): ${tez.bezTezine.join(", ")}.`}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {!eko.uRedu && (
@@ -467,7 +530,7 @@ export function SadrzajNacrtEditor({
                       <>
                         <Stepper
                           red={r}
-                          najvise={najvecaKolicina(r, slobodnoKM)}
+                          najvise={najviseReda(r)}
                           najmanje={najmanje(r.productId, r.cijena, r.jedinica)}
                           onPromijeni={(k) => promijeni(r.productId, k)}
                         />
@@ -508,9 +571,27 @@ export function SadrzajNacrtEditor({
           {redIzabran && (
             <p className="mb-3 rounded-xl bg-brand-100 p-3 text-sm text-brand-700">
               Izlazi <b>{redIzabran.naziv}</b> {broj(redIzabran.kolicina)} {redIzabran.jedinica} (
-              <b>{nabavno(redIzabran.kolicina, redIzabran.nabavna)}</b>). Izaberi šta ulazi umjesto njega — uz svaki artikal piše koliko
-              ga ulazi i koliko košta u nabavci.
+              <b>{nabavno(redIzabran.kolicina, redIzabran.nabavna)}</b>). Izaberi šta ulazi umjesto njega — količina se računa po
+              nabavnoj cijeni: ulazi onoliko koliko za istu nabavnu vrijednost.
             </p>
+          )}
+          {!redIzabran && !samoPregled && (izaslo || imaMjesta) && (
+            <div className="mb-3 rounded-xl bg-brand-100 p-3 text-sm text-brand-700">
+              {izaslo && (
+                <p>
+                  Izašlo: <b>{izaslo.naziv}</b> {broj(izaslo.kolicina)} {izaslo.jedinica} —{" "}
+                  {izaslo.nabavno > 0 ? <>nabavno <b>{formatPrice(izaslo.nabavno)}</b>, </> : null}prodajno {formatPrice(izaslo.vrijednost)}.
+                </p>
+              )}
+              <p>
+                Slobodno za ubacivanje:{" "}
+                <b>
+                  {Number.isFinite(slobodno.nabavno) ? `${formatPrice(slobodno.nabavno)} nabavno` : `${formatPrice(slobodnoKM)}`}
+                </b>
+                {Number.isFinite(slobodno.kg) && <> · {broj(slobodno.kg)} kg</>}. Uz svaki artikal ispod piše koliko ga staje po njegovoj
+                nabavnoj cijeni.
+              </p>
+            </div>
           )}
 
           <h3 className="text-sm font-semibold">

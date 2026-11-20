@@ -130,24 +130,165 @@ public class GeneratorSadrzajaTests
         return p;
     }
 
-    /// <summary>Sedmica 41/2026 je u oktobru. Bundeva je glavna u oktobru — mora u kutiju, i to prva, bez obzira na nasumičnost.</summary>
+    /// <summary>
+    /// Sedmica 41/2026 je u oktobru. Bundeva je glavna u oktobru — među kulturama istog prioriteta ide
+    /// prva, bez obzira na nasumičnost.
+    /// </summary>
     [Fact]
-    public async Task Glavna_kultura_mjeseca_uvijek_ulazi_u_pocetni_sadrzaj()
+    public async Task Glavna_kultura_mjeseca_ide_prva_medju_kulturama_istog_prioriteta()
     {
         for (var pokusaj = 0; pokusaj < 5; pokusaj++)
         {
             using var t = new TestDb();
             Postavi(t, mjeseciArtikala: [], brojArtikala: 14);
+            foreach (var p in t.Db.Products.Where(p => p.Vrsta == VrstaProizvoda.Obican)) p.PrioritetUKorpici = 3;
+            t.Db.SaveChanges();
             var bundeva = Dodaj(t, "Bundeva", p => { p.Mjeseci = [9, 10, 11]; p.MjeseciGlavni = [10]; p.PrioritetUKorpici = 3; });
-            var tikva = Dodaj(t, "Tikva", p => { p.Mjeseci = [9, 10, 11]; p.MjeseciGlavni = [9]; p.PrioritetUKorpici = 3; });
+            var tikva = Dodaj(t, "Tikva", p => { p.Mjeseci = [9, 10, 11]; p.MjeseciGlavni = [9]; p.PrioritetUKorpici = 4; });
 
             var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
 
             var stavke = await t.Db.StavkeSadrzaja.Where(s => s.SedmicniSadrzajId == r.SadrzajId).Select(s => s.ProductId).ToListAsync();
             Assert.Contains(bundeva.Id, stavke);
-            // Tikva je glavna u septembru, ne u oktobru — u oktobru je obična dopuna (prioritet 3), ne forsira se.
+            // Tikva je glavna u septembru, ne u oktobru — u oktobru je obična dopuna, ne forsira se.
             Assert.DoesNotContain(tikva.Id, stavke);
         }
+    }
+
+    /// <summary>
+    /// Osnova trpeze (prioritet 0: krompir, luk, mrkva) ide prije glavne kulture mjeseca — inače je cvekla
+    /// istiskivala krompir iz male korpice.
+    /// </summary>
+    [Fact]
+    public async Task Osnovna_namirnica_ide_prije_glavne_kulture_mjeseca()
+    {
+        for (var pokusaj = 0; pokusaj < 5; pokusaj++)
+        {
+            using var t = new TestDb();
+            Postavi(t, mjeseciArtikala: [], brojArtikala: 10); // prioritet 0
+            var cvekla = Dodaj(t, "Cvekla", p => { p.Mjeseci = [10, 11]; p.MjeseciGlavni = [10]; p.PrioritetUKorpici = 1; });
+
+            var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+            var stavke = await t.Db.StavkeSadrzaja.Where(s => s.SedmicniSadrzajId == r.SadrzajId).Select(s => s.ProductId).ToListAsync();
+            Assert.Equal(8, stavke.Count);
+            Assert.DoesNotContain(cvekla.Id, stavke);
+        }
+    }
+
+    /* ---------------- težina korpice ---------------- */
+
+    private static async Task<List<(Product Artikal, decimal Kolicina)>> StavkeSa(TestDb t, Guid sadrzajId) =>
+        (await t.Db.StavkeSadrzaja.Where(s => s.SedmicniSadrzajId == sadrzajId).Include(s => s.Product).ToListAsync())
+        .Select(s => (s.Product!, s.Kolicina)).ToList();
+
+    private static decimal Tezina(IEnumerable<(Product Artikal, decimal Kolicina)> stavke) =>
+        stavke.Sum(s => s.Kolicina * (s.Artikal.KgPoJedinici ?? 0m));
+
+    [Fact]
+    public async Task Sadrzaj_ne_prelazi_najvecu_tezinu_korpice_i_ipak_ima_minimum_kultura()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: [], brojArtikala: 12); // 4 KM/kg → standardno 0,8 kg × 8 = 6,4 kg
+        korpica.TezinaOd = 3m;
+        korpica.TezinaDo = 5m;
+        t.Db.SaveChanges();
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        var stavke = await StavkeSa(t, r.SadrzajId);
+        Assert.Equal(8, stavke.Count);
+        Assert.InRange(Tezina(stavke), 3m, 5m);
+    }
+
+    [Fact]
+    public async Task Sezonska_kultura_ne_zauzima_vise_od_cetvrtine_najvece_tezine()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: [], brojArtikala: 7);
+        korpica.TezinaOd = 3m;
+        korpica.TezinaDo = 4m;
+        // Zadate 2 kg cvekle u maloj korpici — upravo slučaj koji je vlasnik prijavio.
+        var cvekla = Dodaj(t, "Cvekla", p => { p.Price = 2m; p.KolicinaMala = 2m; p.PrioritetUKorpici = 1; });
+        t.Db.SaveChanges();
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        var stavka = Assert.Single(await StavkeSa(t, r.SadrzajId), s => s.Artikal.Id == cvekla.Id);
+        Assert.True(stavka.Kolicina <= 1m, $"cvekla {stavka.Kolicina} kg"); // ¼ od 4 kg
+    }
+
+    [Fact]
+    public async Task Komad_tezi_od_udjela_kulture_ne_ulazi_a_lakši_ulazi_po_tezini_komada()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: [], brojArtikala: 7);
+        korpica.TezinaDo = 5m;
+        var bundeva = Dodaj(t, "Bundeva", p => { p.Unit = Unit.Kom; p.TezinaKomada = 3m; p.PrioritetUKorpici = 1; });
+        var karfiol = Dodaj(t, "Karfiol", p => { p.Unit = Unit.Kom; p.TezinaKomada = 1m; p.PrioritetUKorpici = 1; });
+        t.Db.SaveChanges();
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        var stavke = await StavkeSa(t, r.SadrzajId);
+        Assert.DoesNotContain(stavke, s => s.Artikal.Id == bundeva.Id); // 3 kg > ¼ od 5 kg
+        var k = Assert.Single(stavke, s => s.Artikal.Id == karfiol.Id);
+        Assert.Equal(1m, k.Kolicina);
+        Assert.True(Tezina(stavke) <= 5m, $"{Tezina(stavke)} kg");
+    }
+
+    [Fact]
+    public async Task Laksa_korpica_od_najmanje_tezine_se_dopunjava_osnovnom_namirnicom()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: [], brojArtikala: 8);
+        korpica.TezinaOd = 8m;
+        korpica.TezinaDo = 10m;
+        // Jeftino po kilogramu, ali zadato samo 0,5 kg po kulturi → 8 kultura = 4 kg.
+        foreach (var p in t.Db.Products.Where(p => p.Vrsta == VrstaProizvoda.Obican))
+        {
+            p.Price = 1m;
+            p.KolicinaMala = 0.5m;
+        }
+        t.Db.SaveChanges();
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        var stavke = await StavkeSa(t, r.SadrzajId);
+        Assert.Equal(8, stavke.Count);
+        Assert.InRange(Tezina(stavke), 8m, 10m);
+        Assert.All(stavke, s => Assert.True(s.Kolicina <= 5m)); // osnovna namirnica do pola od 10 kg
+        Assert.Null(r.Upozorenje);
+    }
+
+    [Fact]
+    public async Task Puna_tezina_sa_vrijednoscu_daleko_ispod_cilja_se_javlja()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: [], brojArtikala: 12);
+        korpica.TezinaDo = 5m;
+        // 1 KM/kg: 5 kg vrijedi 5 KM, a korpica od 25 KM cilja 28,75 KM.
+        foreach (var p in t.Db.Products.Where(p => p.Vrsta == VrstaProizvoda.Obican)) p.Price = 1m;
+        t.Db.SaveChanges();
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        Assert.Contains("Najveća težina (5 kg) je popunjena", r.Upozorenje);
+    }
+
+    [Fact]
+    public async Task Komad_bez_unesene_tezine_se_javlja_u_upozorenju()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: [], brojArtikala: 1);
+        korpica.TezinaDo = 5m;
+        for (var i = 0; i < 8; i++)
+            Dodaj(t, $"Komad{i}", p => { p.Unit = Unit.Kom; p.Price = 1.5m; });
+        t.Db.SaveChanges();
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        Assert.Contains("Težina komada nije unesena", r.Upozorenje);
     }
 
     [Fact]

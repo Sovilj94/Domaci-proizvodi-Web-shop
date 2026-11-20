@@ -50,6 +50,31 @@ export function zbir(redovi: KutijaRed[], cijenaKorpice: number): Zbir {
   return { vrijednost, nabavno, bezNabavne, marza };
 }
 
+export interface TezinaKutije {
+  /** Ukupno kg; komadi bez unesene težine nisu uračunati. */
+  kg: number;
+  /** Nazivi artikala na komad bez unesene težine komada. */
+  bezTezine: string[];
+}
+
+/**
+ * Težina kutije — isto pravilo kao generator (Product.KgPoJedinici): kg i litar su sami težina,
+ * komad se množi težinom komada iz Postavki korpica.
+ */
+export function tezinaKutije(redovi: KutijaRed[], tezinaKomada: (productId: string) => number | null | undefined): TezinaKutije {
+  let kg = 0;
+  const bezTezine: string[] = [];
+  for (const r of redovi) {
+    if (r.jedinica !== "kom") kg += r.kolicina;
+    else {
+      const t = tezinaKomada(r.productId);
+      if (t != null && t > 0) kg += r.kolicina * t;
+      else bezTezine.push(r.naziv);
+    }
+  }
+  return { kg: Math.round(kg * 100) / 100, bezTezine };
+}
+
 /**
  * Koliko artikla stane u `slobodno` KM, zaokruženo naniže (0 kad ne stane ni jedan korak —
  * prvo treba nešto izvaditi). Bez granice (cilj nepoznat): jedan korak.
@@ -77,6 +102,77 @@ export function granicaKutije(cilj: number, pocetnaVrijednost: number): number |
 /** Koliko KM se još smije dodati: ono što je oslobođeno vađenjem ili smanjivanjem. */
 export function slobodnoZaDodavanje(granica: number | null, vrijednost: number): number {
   return granica === null ? Infinity : Math.max(0, Math.round((granica - vrijednost) * 100) / 100);
+}
+
+/**
+ * Šta je slobodno u kutiji — po prodajnoj vrijednosti (KM), po nabavnoj vrijednosti (KM) i po
+ * težini (kg). `Infinity` = ta granica ne važi.
+ */
+export interface Slobodno {
+  km: number;
+  nabavno: number;
+  kg: number;
+}
+
+/** Artikal kako ga mjere granice kutije. `kgPoJedinici` null = komad bez unesene težine (ne mjeri se). */
+export interface MjeraArtikla {
+  price: number;
+  nabavna: number | null | undefined;
+  unit: string;
+  kgPoJedinici: number | null | undefined;
+}
+
+/** Kg po jedinici artikla — kao Product.KgPoJedinici na serveru: kg i l su sami težina, komad po težini komada. */
+export function kgPoJedinici(unit: string, tezinaKomada: number | null | undefined): number | null {
+  if (unit !== "kom") return 1;
+  return tezinaKomada != null && tezinaKomada > 0 ? tezinaKomada : null;
+}
+
+/**
+ * Koliko artikla staje u slobodno, zaokruženo naniže na korak: PRVO po nabavnoj cijeni (oslobođena
+ * nabavna vrijednost / nabavna cijena artikla — nabavna cijena korpice, a time i marža, ostaje ista),
+ * a uz to ni preko prodajne vrijednosti (server ne pušta kutiju preko cilja) ni preko težine.
+ * Artikal bez nabavne cijene mjeri se samo prodajnom vrijednošću i težinom.
+ */
+export function kolicinaKojaStaje(a: MjeraArtikla, s: Slobodno): number {
+  const granice: number[] = [];
+  if (Number.isFinite(s.km) && a.price > 0) granice.push((s.km + 0.005) / a.price);
+  if (Number.isFinite(s.nabavno) && a.nabavna != null && a.nabavna > 0) granice.push((s.nabavno + 0.005) / a.nabavna);
+  if (Number.isFinite(s.kg) && a.kgPoJedinici != null && a.kgPoJedinici > 0) granice.push((s.kg + 0.0005) / a.kgPoJedinici);
+  if (granice.length === 0) return korak(a.unit);
+  return Math.max(0, naKorakDolje(Math.min(...granice), a.unit));
+}
+
+/**
+ * Zamjena reda drugim artiklom po NABAVNOJ cijeni: nabavna vrijednost koja izađe (plus ono što je
+ * već bilo slobodno) određuje koliko novog ulazi — 1 kg cvekle po 1,20 nabavno = 1,20 KM → krompir po
+ * 0,84 = 1,4 kg. `null` kad ne stane ni jedan korak.
+ */
+export function zamijeniPoNabavnoj(
+  red: KutijaRed,
+  kgReda: number | null | undefined,
+  nov: Product,
+  kgNovog: number | null | undefined,
+  s: Slobodno,
+): KutijaRed | null {
+  const oslobodjeno: Slobodno = {
+    km: s.km + red.kolicina * red.cijena,
+    nabavno: s.nabavno + red.kolicina * (red.nabavna ?? 0),
+    kg: s.kg + red.kolicina * (kgReda ?? 0),
+  };
+  const kolicina = kolicinaKojaStaje({ price: nov.price, nabavna: nov.nabavnaCijena, unit: nov.unit, kgPoJedinici: kgNovog }, oslobodjeno);
+  if (kolicina <= 0) return null;
+  return {
+    productId: nov.id,
+    naziv: nov.name,
+    jedinica: nov.unit,
+    kolicina,
+    cijena: nov.price,
+    nabavna: nov.nabavnaCijena ?? null,
+    imageUrl: nov.imageUrl,
+    boja: nov.boja,
+    izmijenjeno: true,
+  };
 }
 
 /** Najveća količina reda da kutija ne pređe granicu — nikad manja od one koja već stoji. */

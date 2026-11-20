@@ -145,6 +145,8 @@ public static class AdminSadrzajMapiranje
             MinimalanBrojArtikala = o.MinimalanBrojArtikala.GetValueOrDefault(s.Korpica?.Velicina ?? VelicinaKorpice.Mala, 1),
             NaruceneKutije = naruceneKutije,
             Velicina = (s.Korpica?.Velicina ?? VelicinaKorpice.Mala).ToString().ToLowerInvariant(),
+            TezinaOd = s.Korpica?.TezinaOd,
+            TezinaDo = s.Korpica?.TezinaDo,
             Cijene = s.Stavke.Select(st => new CijenaStavkeDto
             {
                 ProductId = st.ProductId,

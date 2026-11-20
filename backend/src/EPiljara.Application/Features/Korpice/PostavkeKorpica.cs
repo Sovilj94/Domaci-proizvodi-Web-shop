@@ -17,7 +17,10 @@ namespace EPiljara.Application.Features.Korpice;
  */
 
 /// <param name="Ambalaza">Cijena kutije (Product.AmbalazaCijena); null = nije unesena.</param>
-public record KorpicaPostavkeDto(Guid Id, string Naziv, string Velicina, decimal Cijena, bool UProdaji, string? ImageUrl, decimal? Ambalaza = null);
+/// <param name="TezinaOd">Najmanja težina sadržaja u kg; null = bez granice.</param>
+/// <param name="TezinaDo">Najveća težina sadržaja u kg; null = bez granice.</param>
+public record KorpicaPostavkeDto(Guid Id, string Naziv, string Velicina, decimal Cijena, bool UProdaji, string? ImageUrl,
+    decimal? Ambalaza = null, decimal? TezinaOd = null, decimal? TezinaDo = null);
 
 public record TipPostavkeDto(string Tip, IReadOnlyList<KorpicaPostavkeDto> Korpice, IReadOnlyList<Guid> KategorijeIds);
 
@@ -52,7 +55,7 @@ public static class PostavkeKorpicaMapa
                     .OrderBy(k => k.Velicina)
                     .Select(k => new KorpicaPostavkeDto(
                         k.Id, k.Name, (k.Velicina ?? VelicinaKorpice.Mala).ToString().ToLowerInvariant(),
-                        k.Price, k.IsAvailable, k.ImageUrl, k.AmbalazaCijena))
+                        k.Price, k.IsAvailable, k.ImageUrl, k.AmbalazaCijena, k.TezinaOd, k.TezinaDo))
                     .ToList(),
                 veze.Where(v => v.TipKorpice == t).Select(v => v.CategoryId).ToList())).ToList(),
             kategorije);
@@ -72,7 +75,9 @@ public class GetPostavkeKorpicaHandler(IAppDbContext db) : IRequestHandler<GetPo
 /* ---------- jedna vrsta: kategorije, cijene, ponuda ---------- */
 
 /// <param name="Ambalaza">Cijena kutije: null = ne mijenjaj, 0 ili manje = ukloni.</param>
-public record KorpicaUnos(Guid Id, decimal Cijena, bool UProdaji, decimal? Ambalaza = null);
+/// <param name="TezinaOd">Raspon težine sadržaja u kg. Šalje se uvijek par; null ili 0 = bez te granice.</param>
+public record KorpicaUnos(Guid Id, decimal Cijena, bool UProdaji, decimal? Ambalaza = null,
+    decimal? TezinaOd = null, decimal? TezinaDo = null);
 
 public record SacuvajTipKorpiceCommand(string Tip, IReadOnlyList<Guid> KategorijeIds, IReadOnlyList<KorpicaUnos> Korpice)
     : IRequest<PostavkeKorpicaDto>;
@@ -83,6 +88,10 @@ public class SacuvajTipKorpiceValidator : AbstractValidator<SacuvajTipKorpiceCom
     {
         RuleForEach(x => x.Korpice).Must(k => k.Cijena > 0).WithMessage("Cijena korpice mora biti veća od 0.");
         RuleFor(x => x.KategorijeIds).Must(l => l.Distinct().Count() == l.Count).WithMessage("Kategorija je navedena dvaput.");
+        RuleForEach(x => x.Korpice).Must(k => k.TezinaOd is null or (>= 0 and <= 100) && k.TezinaDo is null or (>= 0 and <= 100))
+            .WithMessage("Težina korpice mora biti od 0 do 100 kg.");
+        RuleForEach(x => x.Korpice).Must(k => k.TezinaOd is not > 0 || k.TezinaDo is not > 0 || k.TezinaOd <= k.TezinaDo)
+            .WithMessage("Najmanja težina korpice ne može biti veća od najveće.");
     }
 }
 
@@ -111,6 +120,8 @@ public class SacuvajTipKorpiceHandler(IAppDbContext db) : IRequestHandler<Sacuva
             k.Price = unos.Cijena;
             k.IsAvailable = unos.UProdaji;
             if (unos.Ambalaza is decimal a) k.AmbalazaCijena = a > 0 ? Math.Round(a, 2) : null;
+            k.TezinaOd = unos.TezinaOd is > 0 and var od ? Math.Round(od, 3) : null;
+            k.TezinaDo = unos.TezinaDo is > 0 and var @do ? Math.Round(@do, 3) : null;
             k.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -122,9 +133,11 @@ public class SacuvajTipKorpiceHandler(IAppDbContext db) : IRequestHandler<Sacuva
 /* ---------- artikli: u korpici, prioritet, zadate količine ---------- */
 
 /// <param name="CijenaPiljara">Cijena u piljari po jedinici; null = nije unesena (red se šalje cio).</param>
+/// <param name="TezinaKomada">Kg po komadu, samo za artikle na komad; null = nije unesena (red se šalje cio).</param>
 public record ArtikalKorpiceUnos(
     Guid Id, bool MozeUKorpicu, int PrioritetUKorpici,
-    decimal? KolicinaMala, decimal? KolicinaSrednja, decimal? KolicinaVelika, decimal? CijenaPiljara = null);
+    decimal? KolicinaMala, decimal? KolicinaSrednja, decimal? KolicinaVelika, decimal? CijenaPiljara = null,
+    decimal? TezinaKomada = null);
 
 public record SacuvajArtikleKorpicaCommand(IReadOnlyList<ArtikalKorpiceUnos> Artikli) : IRequest<int>;
 
@@ -138,6 +151,8 @@ public class SacuvajArtikleKorpicaValidator : AbstractValidator<SacuvajArtikleKo
             .WithMessage("Količina u korpici mora biti veća od 0 (ili prazna).");
         RuleForEach(x => x.Artikli).Must(a => a.CijenaPiljara is null or (> 0 and <= 10000))
             .WithMessage("Cijena u piljari mora biti veća od 0 (ili prazna).");
+        RuleForEach(x => x.Artikli).Must(a => a.TezinaKomada is null or (> 0 and <= 50))
+            .WithMessage("Težina komada mora biti od 0 do 50 kg (ili prazna).");
     }
 }
 
@@ -160,6 +175,8 @@ public class SacuvajArtikleKorpicaHandler(IAppDbContext db) : IRequestHandler<Sa
             p.PrioritetUKorpici = a.PrioritetUKorpici;
             (p.KolicinaMala, p.KolicinaSrednja, p.KolicinaVelika) = (a.KolicinaMala, a.KolicinaSrednja, a.KolicinaVelika);
             p.CijenaPiljara = a.CijenaPiljara is decimal pc ? Math.Round(pc, 2) : null;
+            // Težina komada ima smisla samo za komad; kod kg i litre jedinica je sama težina.
+            p.TezinaKomada = p.Unit == Unit.Kom && a.TezinaKomada is decimal tk ? Math.Round(tk, 3) : null;
             p.UpdatedAt = DateTime.UtcNow;
         }
 

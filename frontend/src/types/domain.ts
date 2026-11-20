@@ -90,6 +90,8 @@ export interface Product {
   nabavnaCijena?: number | null;
   /** Samo sa admin API-ja: trošak ambalaže po jedinici prodaje; odsutna = nije unesena. */
   ambalazaCijena?: number | null;
+  /** Samo sa admin API-ja: kilograma po komadu, za težinu korpice (samo artikli na komad; null = nije unesena). */
+  tezinaKomada?: number | null;
   /** Samo sa admin API-ja: zadata količina u maloj / srednjoj / velikoj korpici (null = računa se iz vrijednosti). */
   kolicinaMala?: number | null;
   kolicinaSrednja?: number | null;
@@ -474,6 +476,9 @@ export interface AdminSadrzajKorpice extends SadrzajKorpice {
   /** Kutije već naručene za tu sedmicu — nose svoj snimak sadržaja, izmjena ih ne dira. */
   naruceneKutije: number;
   velicina: VelicinaKorpice;
+  /** Raspon težine sadržaja u kg (Postavke korpica); null = bez te granice. */
+  tezinaOd?: number | null;
+  tezinaDo?: number | null;
   /** Kategorije koje pune ovu vrstu korpice; prazno = nije ograničeno. */
   kategorijeIds: string[];
   cijene: { productId: string; jedinicnaCijena: number; nabavnaCijena?: number | null }[];

@@ -105,6 +105,9 @@ public record AdminSadrzajDto : SadrzajDto
     public int NaruceneKutije { get; init; }
     /// <summary>mala / srednja / velika — editor po njoj čita zadatu količinu artikla.</summary>
     public string Velicina { get; init; } = "mala";
+    /// <summary>Raspon težine sadržaja u kg (Postavke korpica); null = bez te granice.</summary>
+    public decimal? TezinaOd { get; init; }
+    public decimal? TezinaDo { get; init; }
     /// <summary>Kategorije koje pune ovu vrstu korpice (Postavke korpica). Prazno = nije ograničeno.</summary>
     public IReadOnlyList<Guid> KategorijeIds { get; init; } = [];
     public IReadOnlyList<CijenaStavkeDto> Cijene { get; init; } = [];

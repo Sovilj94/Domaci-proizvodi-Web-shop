@@ -14,8 +14,48 @@ import {
   sezonskaPonuda,
   slobodnoZaDodavanje,
   zamijeni,
+  tezinaKutije,
+  kolicinaKojaStaje,
+  zamijeniPoNabavnoj,
   zbir,
 } from "./kutija.ts";
+
+test("koliko staje: po nabavnoj cijeni, ali ni preko prodajne vrijednosti ni preko težine", () => {
+  const krompir = { price: 1.2, nabavna: 0.84, unit: "kg", kgPoJedinici: 1 };
+  // Oslobođeno 1,20 KM nabavno (1 kg cvekle) → 1,4 kg krompira po 0,84.
+  assert.equal(kolicinaKojaStaje(krompir, { km: 10, nabavno: 1.2, kg: 5 }), 1.4);
+  // Prodajna vrijednost ne pušta više: 1 KM / 1,20 = 0,8 kg.
+  assert.equal(kolicinaKojaStaje(krompir, { km: 1, nabavno: 1.2, kg: 5 }), 0.8);
+  // Težina ne pušta više: 0,5 kg.
+  assert.equal(kolicinaKojaStaje(krompir, { km: 10, nabavno: 1.2, kg: 0.5 }), 0.5);
+  // Komad: karfiol 1 kg, nabavno 1,80 → za 2 KM nabavno staje 1 komad.
+  assert.equal(kolicinaKojaStaje({ price: 3, nabavna: 1.8, unit: "kom", kgPoJedinici: 1 }, { km: 10, nabavno: 2, kg: 5 }), 1);
+  // Bez nabavne cijene mjeri se samo prodajna vrijednost.
+  assert.equal(kolicinaKojaStaje({ price: 2, nabavna: null, unit: "kg", kgPoJedinici: 1 }, { km: 3, nabavno: 0, kg: Infinity }), 1.5);
+});
+
+test("zamjena po nabavnoj: nabavna vrijednost koja izađe određuje koliko novog ulazi", () => {
+  const cvekla = red({ productId: "cvekla", naziv: "Cvekla", kolicina: 1, cijena: 2, nabavna: 1.2 });
+  const krompir = proizvod({ id: "krompir", name: "Krompir", price: 1.2, nabavnaCijena: 0.84 });
+  const n = zamijeniPoNabavnoj(cvekla, 1, krompir, 1, { km: 0, nabavno: 0, kg: 0 });
+  // Nabavno 1,20 / 0,84 = 1,43 → ali prodajno samo 2 KM / 1,20 = 1,6 i težina 1 kg → 1 kg.
+  assert.equal(n?.kolicina, 1);
+  const n2 = zamijeniPoNabavnoj(cvekla, 1, krompir, 1, { km: 0, nabavno: 0, kg: 2 });
+  assert.equal(n2?.kolicina, 1.4);
+});
+
+test("težina kutije: kg je težina, komad po težini komada, komad bez težine se javlja", () => {
+  const t = tezinaKutije(
+    [
+      red({ productId: "krompir", jedinica: "kg", kolicina: 1.5 }),
+      red({ productId: "karfiol", jedinica: "kom", kolicina: 2 }),
+      red({ productId: "salata", naziv: "Salata", jedinica: "kom", kolicina: 1 }),
+    ],
+    (id) => ({ karfiol: 0.8 })[id as "karfiol"],
+  );
+  assert.equal(t.kg, 3.1);
+  assert.deepEqual(t.bezTezine, ["Salata"]);
+});
 
 const red = (r: Partial<KutijaRed>): KutijaRed => ({
   productId: "x", naziv: "X", jedinica: "kg", kolicina: 1, cijena: 1, nabavna: null, ...r,

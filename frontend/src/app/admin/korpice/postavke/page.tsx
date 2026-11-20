@@ -214,8 +214,16 @@ function Vrsta({
   const { show } = useToast();
   const [izabrane, setIzabrane] = useState(() => new Set(vrsta.kategorijeIds));
   const [korpice, setKorpice] = useState(() =>
-    vrsta.korpice.map((k) => ({ ...k, cijenaTekst: String(k.cijena), ambalazaTekst: k.ambalaza != null ? String(k.ambalaza) : "" })),
+    vrsta.korpice.map((k) => ({
+      ...k,
+      cijenaTekst: String(k.cijena),
+      ambalazaTekst: k.ambalaza != null ? String(k.ambalaza) : "",
+      tezinaOdTekst: k.tezinaOd != null ? String(k.tezinaOd) : "",
+      tezinaDoTekst: k.tezinaDo != null ? String(k.tezinaDo) : "",
+    })),
   );
+  /** Prazno ili 0 = bez te granice težine. */
+  const kg = (t: string) => (t.trim() && Number(t) > 0 ? Number(t) : null);
 
   const izmijenjeno =
     izabrane.size !== vrsta.kategorijeIds.length ||
@@ -224,7 +232,9 @@ function Vrsta({
       (k, i) =>
         Number(k.cijenaTekst) !== vrsta.korpice[i].cijena ||
         k.uProdaji !== vrsta.korpice[i].uProdaji ||
-        (k.ambalazaTekst.trim() ? Number(k.ambalazaTekst) : null) !== (vrsta.korpice[i].ambalaza ?? null),
+        (k.ambalazaTekst.trim() ? Number(k.ambalazaTekst) : null) !== (vrsta.korpice[i].ambalaza ?? null) ||
+        kg(k.tezinaOdTekst) !== (vrsta.korpice[i].tezinaOd ?? null) ||
+        kg(k.tezinaDoTekst) !== (vrsta.korpice[i].tezinaDo ?? null),
     );
 
   const sacuvaj = useMutation({
@@ -237,6 +247,8 @@ function Vrsta({
           cijena: Number(k.cijenaTekst),
           uProdaji: k.uProdaji,
           ambalaza: k.ambalazaTekst.trim() ? Number(k.ambalazaTekst) : 0,
+          tezinaOd: kg(k.tezinaOdTekst),
+          tezinaDo: kg(k.tezinaDoTekst),
         })),
       }),
     onSuccess: (novo) => {
@@ -267,12 +279,15 @@ function Vrsta({
           <p className="text-sm text-muted">Ova vrsta još nema korpica. Dodaj ih kao proizvod vrste „korpica“.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[46rem] text-sm">
+            <table className="w-full min-w-[54rem] text-sm">
               <thead className="text-left text-xs text-muted">
                 <tr className="border-b border-line">
                   <th className="py-2 pr-3 font-medium">Korpica</th>
                   <th className="py-2 pr-3 font-medium">Cijena (KM)</th>
                   <th className="py-2 pr-3 font-medium">Kutija (KM)</th>
+                  <th className="py-2 pr-3 font-medium" title="Raspon težine sadržaja; prazno = bez granice">
+                    Težina (kg)
+                  </th>
                   <th className="py-2 pr-3 font-medium">U ponudi</th>
                   <th className="py-2 pr-3 text-right font-medium">Sadržaj vrijedi</th>
                   <th className="py-2 pr-3 text-right font-medium">Kultura</th>
@@ -318,6 +333,33 @@ function Vrsta({
                           onChange={(e) => setKorpice(korpice.map((x, j) => (j === i ? { ...x, ambalazaTekst: e.target.value } : x)))}
                           className="w-20"
                         />
+                      </td>
+                      <td className="py-2 pr-3">
+                        <span className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.5"
+                            min="0"
+                            aria-label={`Najmanja težina (kg) — ${k.naziv}`}
+                            placeholder="od"
+                            value={k.tezinaOdTekst}
+                            onChange={(e) => setKorpice(korpice.map((x, j) => (j === i ? { ...x, tezinaOdTekst: e.target.value } : x)))}
+                            className="w-16"
+                          />
+                          <span className="text-muted">–</span>
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.5"
+                            min="0"
+                            aria-label={`Najveća težina (kg) — ${k.naziv}`}
+                            placeholder="do"
+                            value={k.tezinaDoTekst}
+                            onChange={(e) => setKorpice(korpice.map((x, j) => (j === i ? { ...x, tezinaDoTekst: e.target.value } : x)))}
+                            className="w-16"
+                          />
+                        </span>
                       </td>
                       <td className="py-2 pr-3">
                         <label className="inline-flex items-center gap-2">
@@ -415,6 +457,7 @@ function Artikli({
       kolicinaSrednja: p.kolicinaSrednja ?? null,
       kolicinaVelika: p.kolicinaVelika ?? null,
       cijenaPiljara: p.cijenaPiljara ?? null,
+      tezinaKomada: p.tezinaKomada ?? null,
     };
   const promijeni = (p: Product, izmjena: Partial<ArtikalKorpiceUnos>) =>
     setIzmjene((s) => ({ ...s, [p.id]: { ...red(p), ...izmjena } }));
@@ -497,7 +540,7 @@ function Artikli({
         <p className="text-sm text-muted">Nijedna kategorija nije izabrana, ili u njima nema artikala.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[46rem] text-sm">
+          <table className="w-full min-w-[52rem] text-sm">
             <thead className="text-left text-xs text-muted">
               <tr className="border-b border-line">
                 <th className="py-2 pr-2 font-medium">U korpici</th>
@@ -506,6 +549,9 @@ function Artikli({
                 <th className="py-2 pr-3 font-medium" title="0 = osnovni artikal, veći broj = dopuna">Prioritet</th>
                 <th className="py-2 pr-3 font-medium" title="Koliko isti artikal košta u piljari, po jedinici — za obračun cijene korpice">
                   Piljara
+                </th>
+                <th className="py-2 pr-3 font-medium" title="Koliko teži jedan komad — za težinu korpice. Samo artikli na komad.">
+                  Kg po komadu
                 </th>
                 {velicine.map((v) => (
                   <th key={v} className="py-2 pr-3 font-medium">
@@ -602,6 +648,29 @@ function Artikli({
                           mi {p.price <= r.cijenaPiljara ? "−" : "+"}
                           {Math.abs(Math.round((1 - p.price / r.cijenaPiljara) * 100))} %
                         </span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3">
+                      {p.unit === "kom" ? (
+                        <span className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            inputMode="decimal"
+                            placeholder="—"
+                            aria-label={`Težina jednog komada (kg) — ${p.name}`}
+                            value={r.tezinaKomada ?? ""}
+                            onChange={(e) => {
+                              const t = e.target.value.replace(",", ".");
+                              promijeni(p, { tezinaKomada: t.trim() === "" || Number(t) <= 0 ? null : Number(t) });
+                            }}
+                            className={cn("w-20", r.mozeUKorpicu && r.tezinaKomada == null && "border-honey-500")}
+                          />
+                          <span className="text-xs text-muted">kg</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
                       )}
                     </td>
                     {velicine.map((v) => {

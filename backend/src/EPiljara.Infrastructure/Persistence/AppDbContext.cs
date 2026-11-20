@@ -157,6 +157,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.KolicinaMala).HasPrecision(10, 3);
             e.Property(x => x.KolicinaSrednja).HasPrecision(10, 3);
             e.Property(x => x.KolicinaVelika).HasPrecision(10, 3);
+            e.Property(x => x.TezinaKomada).HasPrecision(10, 3);
+            e.Property(x => x.TezinaOd).HasPrecision(10, 3);
+            e.Property(x => x.TezinaDo).HasPrecision(10, 3);
+            e.Ignore(x => x.KgPoJedinici);
             e.Property(x => x.Vrsta).HasConversion<string>().HasMaxLength(16)
                 .HasDefaultValue(VrstaProizvoda.Obican);
             e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);

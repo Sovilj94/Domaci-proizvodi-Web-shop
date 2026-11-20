@@ -43,7 +43,18 @@ import { apiFetch } from "./client";
 export interface PostavkeKorpica {
   tipovi: {
     tip: string;
-    korpice: { id: string; naziv: string; velicina: string; cijena: number; uProdaji: boolean; imageUrl?: string | null; ambalaza?: number | null }[];
+    korpice: {
+      id: string;
+      naziv: string;
+      velicina: string;
+      cijena: number;
+      uProdaji: boolean;
+      imageUrl?: string | null;
+      ambalaza?: number | null;
+      /** Raspon težine sadržaja u kg; null = bez te granice. */
+      tezinaOd?: number | null;
+      tezinaDo?: number | null;
+    }[];
     kategorijeIds: string[];
   }[];
   kategorije: { id: string; naziv: string }[];
@@ -58,6 +69,8 @@ export interface ArtikalKorpiceUnos {
   kolicinaVelika: number | null;
   /** Cijena istog artikla u piljari, po jedinici; null = nije unesena. */
   cijenaPiljara: number | null;
+  /** Kg po komadu, samo za artikle na komad; null = nije unesena. */
+  tezinaKomada: number | null;
 }
 
 export interface ObracunMjeseca {
@@ -316,7 +329,10 @@ export const adminKorpiceApi = {
 
   sacuvajVrstu: (
     tip: string,
-    body: { kategorijeIds: string[]; korpice: { id: string; cijena: number; uProdaji: boolean; ambalaza?: number }[] },
+    body: {
+      kategorijeIds: string[];
+      korpice: { id: string; cijena: number; uProdaji: boolean; ambalaza?: number; tezinaOd?: number | null; tezinaDo?: number | null }[];
+    },
   ) => apiFetch<PostavkeKorpica>(`/admin/korpice/postavke/${tip}`, { method: "PUT", body }).then((r) => r.data),
 
   /** Artikli u korpicama — smije li u korpicu, prioritet i zadate količine, više odjednom. */

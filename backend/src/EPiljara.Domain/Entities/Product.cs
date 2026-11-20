@@ -46,6 +46,27 @@ public class Product : Entity
     public decimal? KolicinaSrednja { get; set; }
     public decimal? KolicinaVelika { get; set; }
 
+    /// <summary>
+    /// Koliko kilograma teži jedan komad (bundeva, karfiol, veza peršuna). Samo za artikle na komad:
+    /// bez nje generator ne zna koliko komad doprinosi težini korpice. Null = nije unesena.
+    /// </summary>
+    public decimal? TezinaKomada { get; set; }
+
+    /// <summary>
+    /// Raspon težine sadržaja u kg — samo za korpice. Generator ne pušta sadržaj preko gornje
+    /// granice i dopunjava ga do donje. Null = bez te granice (mliječnoj korpici težina ne znači ništa).
+    /// </summary>
+    public decimal? TezinaOd { get; set; }
+    public decimal? TezinaDo { get; set; }
+
+    /// <summary>
+    /// Kilograma po jedinici artikla: kg i litar = 1, komad = <see cref="TezinaKomada"/>.
+    /// Null kad je artikal na komad, a težina komada nije unesena.
+    /// </summary>
+    public decimal? KgPoJedinici => Unit == Unit.Kom
+        ? (TezinaKomada is > 0 ? TezinaKomada : null)
+        : 1m;
+
     /// <summary>Zadata količina za veličinu korpice, ili null.</summary>
     public decimal? KolicinaUKorpici(VelicinaKorpice? velicina) => velicina switch
     {
