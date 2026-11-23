@@ -1035,6 +1035,14 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("PretplataId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("PrimalacIme")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("PrimalacTelefon")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<string>("PromoKod")
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");

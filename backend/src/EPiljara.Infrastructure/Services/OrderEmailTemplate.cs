@@ -64,6 +64,11 @@ public static class OrderEmailTemplate
             ? ""
             : $"""<p style="margin:6px 0 0;font:400 13px Arial,sans-serif;color:{Muted}">Napomena: {Enc(order.Note)}</p>""";
 
+        // Naručeno za nekog drugog: naručilac (primalac mejla) vidi kome se nosi.
+        var primalacRow = string.IsNullOrWhiteSpace(order.PrimalacIme)
+            ? ""
+            : $"""<p style="margin:2px 0 0;font:400 13px Arial,sans-serif;color:{Muted}">Prima: {Enc(order.PrimalacIme)}{(string.IsNullOrWhiteSpace(order.PrimalacTelefon) ? "" : " · " + Enc(order.PrimalacTelefon))}</p>""";
+
         var deliveryWindow = DeliveryWindow(order.DeliverySlot);
 
         // Red popusta samo kad ga ima — bez koda mejl ostaje isti kao prije.
@@ -140,6 +145,7 @@ public static class OrderEmailTemplate
                       <div style="font:700 13px Arial,sans-serif;color:{{Muted}};text-transform:uppercase;letter-spacing:.04em">Detalji dostave</div>
                       <p style="margin:10px 0 0;font:600 15px Arial,sans-serif;color:{{Ink}}">{{Enc(order.DeliveryAddress)}}</p>
                       <p style="margin:2px 0 0;font:400 13px Arial,sans-serif;color:{{Muted}}">Kupac: {{Enc(order.CustomerName)}}{{(string.IsNullOrWhiteSpace(order.CustomerPhone) ? "" : " · " + Enc(order.CustomerPhone))}}</p>
+                      {{primalacRow}}
                       {{noteRow}}
                       <p style="margin:12px 0 0;padding-top:12px;border-top:1px solid {{Line}};font:600 14px Arial,sans-serif;color:{{Green}}">Plaćanje pouzećem pri dostavi</p>
                     </td></tr>

@@ -121,6 +121,8 @@ public static class MappingExtensions
         CustomerName = o.CustomerName,
         CustomerPhone = o.CustomerPhone,
         CustomerEmail = o.CustomerEmail,
+        PrimalacIme = o.PrimalacIme,
+        PrimalacTelefon = o.PrimalacTelefon,
         Status = o.Status.ToString(),
         Items = o.Items.Select(x => x.ToDto()).ToList(),
         Subtotal = o.Subtotal,
@@ -182,11 +184,12 @@ public static class MappingExtensions
     {
         OrderId = s.OrderId,
         OrderCode = s.Order?.Code ?? string.Empty,
-        CustomerName = s.Order?.CustomerName ?? string.Empty,
+        // Vozač zove onoga kome se nosi: primaoca kad je naručeno za nekog drugog.
+        CustomerName = s.Order?.PrimalacIme ?? s.Order?.CustomerName ?? string.Empty,
         Address = s.Order?.DeliveryAddress ?? string.Empty,
         ZoneName = s.Order?.DeliveryZone?.Name ?? string.Empty,
         Sequence = s.Sequence,
-        CustomerPhone = s.Order?.CustomerPhone,
+        CustomerPhone = s.Order?.PrimalacTelefon ?? s.Order?.CustomerPhone,
         Status = s.Order?.Status.ToString() ?? "Confirmed",
         Latitude = s.Order?.Latitude,
         Longitude = s.Order?.Longitude,

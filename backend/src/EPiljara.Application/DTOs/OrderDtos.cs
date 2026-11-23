@@ -22,6 +22,8 @@ public record OrderDto
     public string? CustomerPhone { get; init; }
     /// <summary>Adresa na koju je poslana potvrda. Ekran zahvale je ispisuje.</summary>
     public string? CustomerEmail { get; init; }
+    public string? PrimalacIme { get; init; }
+    public string? PrimalacTelefon { get; init; }
     public string Status { get; init; } = "Pending";
     public IReadOnlyList<OrderItemDto> Items { get; init; } = [];
     public decimal Subtotal { get; init; }

@@ -20,6 +20,12 @@ namespace EPiljara.Application.Features.Orders;
 
 public record CustomerInput(string Name, string? Email, string Phone);
 
+/// <summary>
+/// Osoba kojoj se narudžba nosi kad prijavljeni kupac naručuje za nekog drugog. Vozač zove
+/// nju; potvrda i dalje ide naručiocu (Customer). Gost je nema (guest-request je ne prima).
+/// </summary>
+public record PrimalacInput(string Ime, string Telefon);
+
 public record OrderItemInput(Guid ProductId, decimal Quantity);
 
 /// <summary>
@@ -44,7 +50,8 @@ public record CreateOrderCommand(
     Guid? CustomerId = null,
     Guid? PretplataId = null,
     string? PromoKod = null,
-    bool IskoristiPoene = false) : IRequest<OrderDto>;
+    bool IskoristiPoene = false,
+    PrimalacInput? Primalac = null) : IRequest<OrderDto>;
 
 /// <summary>
 /// Tijelo <c>POST /orders</c>. Namjerno bez <c>CustomerId</c> i <c>PretplataId</c>: dok je
@@ -56,11 +63,11 @@ public record CreateOrderRequest(
     CustomerInput Customer, Guid? DeliveryZoneId, Guid DeliverySlotId, string DeliveryAddress,
     string? Note, IReadOnlyList<OrderItemInput> Items,
     double? Latitude = null, double? Longitude = null, string? PromoKod = null,
-    bool IskoristiPoene = false)
+    bool IskoristiPoene = false, PrimalacInput? Primalac = null)
 {
     public CreateOrderCommand ToCommand() => new(
         Customer, DeliveryZoneId, DeliverySlotId, DeliveryAddress, Note, Items,
-        Latitude, Longitude, PromoKod: PromoKod, IskoristiPoene: IskoristiPoene);
+        Latitude, Longitude, PromoKod: PromoKod, IskoristiPoene: IskoristiPoene, Primalac: Primalac);
 }
 
 public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
@@ -79,6 +86,14 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
             RuleFor(x => x.Customer.Email).MaximumLength(256)
                 .When(x => !string.IsNullOrWhiteSpace(x.Customer.Email))
                 .WithMessage("E-mail je predugačak.");
+        });
+        // Primalac je opcion, ali kad postoji — ime i telefon oba, jer vozač zove njega.
+        When(x => x.Primalac is not null, () =>
+        {
+            RuleFor(x => x.Primalac!.Ime).NotEmpty().WithMessage("Ime primaoca je obavezno.");
+            RuleFor(x => x.Primalac!.Ime).MaximumLength(160).WithMessage("Ime primaoca je predugačko.");
+            RuleFor(x => x.Primalac!.Telefon).NotEmpty().WithMessage("Telefon primaoca je obavezan.");
+            RuleFor(x => x.Primalac!.Telefon).MaximumLength(40).WithMessage("Telefon primaoca je predugačak.");
         });
         RuleFor(x => x.DeliverySlotId).NotEmpty().WithMessage("Odaberi termin dostave.");
         RuleFor(x => x.DeliveryAddress).NotEmpty().WithMessage("Adresa je obavezna.");
@@ -285,6 +300,8 @@ public class CreateOrderHandler(
             CustomerName = cmd.Customer.Name,
             CustomerPhone = cmd.Customer.Phone,
             CustomerEmail = cmd.Customer.Email,
+            PrimalacIme = cmd.Primalac?.Ime.Trim(),
+            PrimalacTelefon = cmd.Primalac?.Telefon.Trim(),
             Status = OrderStatus.Pending,
             Items = items,
             Subtotal = subtotal,

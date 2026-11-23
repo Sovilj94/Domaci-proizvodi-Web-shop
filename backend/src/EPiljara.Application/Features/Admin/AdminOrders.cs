@@ -60,7 +60,9 @@ public class GetAdminOrdersHandler(IAppDbContext db)
         var t = q.Pretraga?.Trim().ToLower();
         if (!string.IsNullOrEmpty(t))
             query = query.Where(o => o.Code.ToLower().Contains(t) || o.CustomerName.ToLower().Contains(t)
-                || (o.CustomerPhone != null && o.CustomerPhone.Contains(t)) || o.DeliveryAddress.ToLower().Contains(t));
+                || (o.CustomerPhone != null && o.CustomerPhone.Contains(t)) || o.DeliveryAddress.ToLower().Contains(t)
+                || (o.PrimalacIme != null && o.PrimalacIme.ToLower().Contains(t))
+                || (o.PrimalacTelefon != null && o.PrimalacTelefon.Contains(t)));
 
         if (q.Unassigned)
         {

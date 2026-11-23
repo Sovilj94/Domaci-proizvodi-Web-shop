@@ -331,6 +331,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Pismo).HasConversion<string>().HasMaxLength(16).HasDefaultValue(Pismo.Latinica);
             e.Property(x => x.CustomerName).HasMaxLength(160).IsRequired();
             e.Property(x => x.CustomerPhone).HasMaxLength(40);
+            e.Property(x => x.PrimalacIme).HasMaxLength(160);
+            e.Property(x => x.PrimalacTelefon).HasMaxLength(40);
             e.Property(x => x.CustomerEmail).HasMaxLength(256);
             e.Property(x => x.DeliveryAddress).HasMaxLength(400).IsRequired();
             e.Property(x => x.Note).HasMaxLength(1000);

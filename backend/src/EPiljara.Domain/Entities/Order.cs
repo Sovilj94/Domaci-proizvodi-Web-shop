@@ -20,6 +20,13 @@ public class Order : Entity
     public string? CustomerPhone { get; set; }
     public string? CustomerEmail { get; set; }
 
+    /// <summary>
+    /// Primalac kad je kupac naručio za nekog drugog (oba ili nijedno). Customer* ostaje
+    /// naručilac — njemu ide potvrda; vozač i pakovanje koriste primaoca kad postoji.
+    /// </summary>
+    public string? PrimalacIme { get; set; }
+    public string? PrimalacTelefon { get; set; }
+
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
     public decimal Subtotal { get; set; }
