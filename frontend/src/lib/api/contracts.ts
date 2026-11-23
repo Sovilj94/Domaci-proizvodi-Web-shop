@@ -41,6 +41,8 @@ export interface CreateOrderRequest {
   longitude?: number;
   promoKod?: string;
   iskoristiPoene?: boolean;
+  /** Samo prijavljeni kupac: osoba kojoj se nosi (narudžba za nekog drugog). */
+  primalac?: { ime: string; telefon: string };
 }
 
 export interface RegisterRequest {
@@ -71,6 +73,9 @@ export interface AddressInput {
   latitude?: number;
   longitude?: number;
   deliveryZoneId?: string;
+  /** Prazan string briše primaoca. */
+  primalacIme?: string;
+  primalacTelefon?: string;
 }
 
 /** Tijelo za PUT `/account/profile` — srpski ključevi, jer dolazi iz `AzurirajProfilCommand`. */

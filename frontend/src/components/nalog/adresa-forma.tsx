@@ -20,6 +20,10 @@ function pocetnoStanje(adresa?: Address | null) {
     fullAddress: adresa?.fullAddress ?? "",
     latitude: adresa?.latitude,
     longitude: adresa?.longitude,
+    zaDrugog: !!adresa?.primalacIme,
+    primalacIme: adresa?.primalacIme ?? "",
+    // Polje drži samo lokalni broj; prefiks +387 je fiksni dio forme (kao u checkoutu).
+    primalacTelefon: (adresa?.primalacTelefon ?? "").replace(/^\+387\s*/, ""),
   };
 }
 
@@ -104,6 +108,10 @@ function Forma({
       fullAddress: form.fullAddress,
       latitude: form.latitude,
       longitude: form.longitude,
+      // Bez oznake „za nekog drugog" šalju se prazni stringovi — server tada briše primaoca.
+      primalacIme: form.zaDrugog ? form.primalacIme.trim() : "",
+      primalacTelefon:
+        form.zaDrugog && form.primalacTelefon.trim() ? `+387 ${form.primalacTelefon.trim()}` : "",
     });
   }
 
@@ -150,6 +158,46 @@ function Forma({
 
           <NaseljeOznaka naselje={naselje} imaTacku={imaTacku} />
 
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.zaDrugog}
+              onChange={(e) => setForm((f) => ({ ...f, zaDrugog: e.target.checked }))}
+              className="h-4 w-4 accent-brand-600"
+            />
+            Ova adresa je za nekog drugog (roditelji, rodbina, prijatelj)
+          </label>
+
+          {form.zaDrugog && (
+            <div className="space-y-4 rounded-xl bg-beige p-4">
+              <p className="text-xs text-ink/80">
+                Vozač zove primaoca, a on plaća pouzećem. Potvrda narudžbe stiže tebi.
+              </p>
+              <Field label="Ime i prezime primaoca" required error={errors.primalac?.[0] ?? errors.primalacIme?.[0]}>
+                <Input
+                  value={form.primalacIme}
+                  onChange={(e) => setForm((f) => ({ ...f, primalacIme: e.target.value }))}
+                  placeholder="npr. Petar Petrović"
+                />
+              </Field>
+              <Field label="Telefon primaoca" htmlFor="adresa-primalac-telefon" required error={errors.primalacTelefon?.[0]}>
+                <div className="flex items-stretch">
+                  <span className="flex shrink-0 items-center rounded-l-xl border border-r-0 border-line bg-sand px-3.5 text-sm font-medium text-muted">
+                    +387
+                  </span>
+                  <Input
+                    id="adresa-primalac-telefon"
+                    type="tel"
+                    value={form.primalacTelefon}
+                    onChange={(e) => setForm((f) => ({ ...f, primalacTelefon: e.target.value }))}
+                    placeholder="6x xxx xxx"
+                    className="min-w-0 flex-1 rounded-l-none"
+                  />
+                </div>
+              </Field>
+            </div>
+          )}
+
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
               {error}
@@ -161,7 +209,12 @@ function Forma({
           <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
             Otkaži
           </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja || !naselje.data}>
+          <Button className="flex-1" onClick={submit} disabled={
+              mutation.isPending ||
+              vanPodrucja ||
+              !naselje.data ||
+              (form.zaDrugog && (!form.primalacIme.trim() || !form.primalacTelefon.trim()))
+            }>
             {mutation.isPending ? "Spremam…" : "Spremi"}
           </Button>
         </div>

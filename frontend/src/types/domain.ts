@@ -153,6 +153,9 @@ export interface Order {
   customerName: string;
   customerPhone?: string;
   customerEmail?: string;
+  /** Primalac kad je naručeno za nekog drugog — vozač zove njega; potvrda ide kupcu. */
+  primalacIme?: string;
+  primalacTelefon?: string;
   status: OrderStatus;
   items: OrderItem[];
   subtotal: number;
@@ -293,6 +296,9 @@ export interface Address {
   /** Zona se može ugasiti nakon što je adresa sačuvana — klijent to mora znati. */
   deliveryZoneActive: boolean;
   isDefault: boolean;
+  /** Adresa „za nekog drugog": ime i telefon primaoca (oba ili nijedno). */
+  primalacIme?: string;
+  primalacTelefon?: string;
 }
 
 /**

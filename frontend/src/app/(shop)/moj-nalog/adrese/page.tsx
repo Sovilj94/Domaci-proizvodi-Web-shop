@@ -181,6 +181,13 @@ function AdresaKartica({
 
       <p className="text-sm text-ink">{adresa.fullAddress}</p>
 
+      {adresa.primalacIme && (
+        <p className="text-xs text-ink/80">
+          Prima: <span className="font-medium">{adresa.primalacIme}</span>
+          {adresa.primalacTelefon && <> · <span translate="no">{adresa.primalacTelefon}</span></>}
+        </p>
+      )}
+
       {adresa.deliveryZoneName && <p className="text-xs text-muted">Zona: {adresa.deliveryZoneName}</p>}
 
       {/*
