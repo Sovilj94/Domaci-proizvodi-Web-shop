@@ -97,6 +97,20 @@ export function OrderReceipt({ order, mode }: { order: Order; mode: "zahvala" | 
                   <dd className="text-right font-medium">{order.customerPhone}</dd>
                 </div>
               )}
+              {order.primalacIme && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted">Prima</dt>
+                  <dd className="text-right font-medium">
+                    {order.primalacIme}
+                    {order.primalacTelefon && (
+                      <>
+                        {" · "}
+                        <span translate="no">{order.primalacTelefon}</span>
+                      </>
+                    )}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="text-muted">Adresa</dt>
                 <dd className="max-w-[65%] text-right font-medium">{order.deliveryAddress}</dd>

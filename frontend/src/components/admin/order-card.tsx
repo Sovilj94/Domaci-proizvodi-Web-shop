@@ -63,6 +63,7 @@ export function OrderCard({
         <div className="space-y-5 border-t border-line p-4 sm:p-5">
           <section className="space-y-1">
             <p className="text-sm">
+              {order.primalacIme && <span className="text-muted">Naručio: </span>}
               <span className="font-medium">{order.customerName}</span>
               {order.customerPhone && (
                 <a
@@ -73,6 +74,20 @@ export function OrderCard({
                 </a>
               )}
             </p>
+            {order.primalacIme && (
+              <p className="text-sm">
+                <span className="text-muted">Prima: </span>
+                <span className="font-medium">{order.primalacIme}</span>
+                {order.primalacTelefon && (
+                  <a
+                    href={`tel:${order.primalacTelefon}`}
+                    className="ml-2 inline-flex items-center gap-1 text-brand-700 hover:underline"
+                  >
+                    <Phone className="h-3.5 w-3.5" /> {order.primalacTelefon}
+                  </a>
+                )}
+              </p>
+            )}
             <p className="text-sm text-muted">
               {order.deliveryZoneName} · {order.deliveryAddress}
               {order.deliverySlot?.label ? ` · ${order.deliverySlot.label}` : ""}

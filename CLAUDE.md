@@ -464,6 +464,22 @@ source text — there is no message catalog and no Cyrillic column anywhere.
   both test suites read. Change a rule → change both files and add a vector.
 - Body font on Cyrillic is Onest (DM Sans has no Cyrillic glyphs).
 
+## Primalac — narudžba za nekog drugog (2026-11-23)
+
+- **`Customer*` je naručilac, `Primalac*` je osoba kojoj se nosi.** `Order.PrimalacIme/PrimalacTelefon`
+  (nullable, snimak) postoje samo kad je prijavljeni kupac naručio za nekog drugog (`primalac` u
+  `CreateOrderRequest`). Potvrda (mejl/Viber) ide **samo naručiocu**; mejl dobija red „Prima: …".
+- **Sve što služi isporuci bira primaoca kad postoji:** `RouteStop.ToDto()` (`CustomerName/CustomerPhone`
+  — vozačka aplikacija zato zove primaoca bez ikakve izmjene) i lista pakovanja (`Pakovanje.cs`). Novi
+  ekran za vozača ili pakovanje mora uraditi isto (`PrimalacIme ?? CustomerName`).
+- **Gost ga namjerno nema:** `guest-request`/`GuestOrderRequests.cs` (drugo mjesto koje pravi `Order`)
+  ne prima primaoca. Ako se to ikad promijeni, oba mjesta.
+- **Adresar pamti primaoca uz adresu** (`Address.PrimalacIme/PrimalacTelefon`, par: oba ili nijedno —
+  `AddressRules`, ključ greške `primalac`). Checkout („Naruči za nekog drugog" u `AddressChooser`) poslije
+  uspješne narudžbe sam čuva adresu u adresar (`lib/checkout-adrese.ts` → `sacuvajPrimaoca`, nikad ne
+  baca). Adresa sa primaocem se **nikad ne bira sama** (`podrazumijevanaAdresa`) — kupac koji naručuje
+  za sebe ne smije slučajno poslati korpicu nekom drugom.
+
 ## Backend (Clean Architecture + CQRS)
 
 Dependencies point inward, enforced by project references: **API → Infrastructure → Application → Domain**.
