@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapPin, Plus } from "lucide-react";
 import { AddressPicker } from "@/components/shop/address-picker";
+import { geocodeApi } from "@/lib/api/endpoints";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,6 +40,42 @@ export function AddressChooser({
 }) {
   const [addingNew, setAddingNew] = useState(false);
   const showMap = addingNew || savedAddresses.length === 0;
+
+  // Sačuvana adresa je samo tekst, bez tačke — a checkout bez tačke ne zna naselje i ne
+  // pušta dalje. Zato se izabrana sačuvana adresa (i ona koju roditelj unaprijed izabere)
+  // geokodira preko našeg `/geocode`. Tačka je njena vlastita, ne pozajmljena od druge adrese.
+  // Ako je geokoder ne nađe, kupac je potvrđuje na mapi.
+  const [lokacija, setLokacija] = useState<"trazim" | "nadjena" | "nema">("trazim");
+  const onCoordinatesRef = useRef(onCoordinates);
+  const onVanPodrucjaRef = useRef(onVanPodrucja);
+  useEffect(() => {
+    onCoordinatesRef.current = onCoordinates;
+    onVanPodrucjaRef.current = onVanPodrucja;
+  });
+  const sacuvanaIzabrana = !showMap && savedAddresses.includes(value);
+  useEffect(() => {
+    if (!sacuvanaIzabrana) return;
+    let ponisteno = false;
+    setLokacija("trazim");
+    onVanPodrucjaRef.current?.(false);
+    geocodeApi
+      .search(value)
+      .catch(() => null)
+      .then((hit) => {
+        if (ponisteno) return;
+        if (hit) {
+          onCoordinatesRef.current?.({ lat: hit.latitude, lon: hit.longitude });
+          onVanPodrucjaRef.current?.(hit.uPodrucjuDostave === false);
+          setLokacija("nadjena");
+        } else {
+          onCoordinatesRef.current?.(null);
+          setLokacija("nema");
+        }
+      });
+    return () => {
+      ponisteno = true;
+    };
+  }, [sacuvanaIzabrana, value]);
 
   if (showMap) {
     return (
@@ -97,6 +134,22 @@ export function AddressChooser({
           </span>
         </label>
       ))}
+      {sacuvanaIzabrana && lokacija === "trazim" && (
+        <p className="text-xs text-muted">Tražim lokaciju adrese na mapi…</p>
+      )}
+      {sacuvanaIzabrana && lokacija === "nema" && (
+        <div className="rounded-lg bg-honey-100 px-3 py-2 text-xs text-ink">
+          Ovu adresu ne možemo sami da pronađemo na mapi.{" "}
+          <button
+            type="button"
+            // Tekst adrese ostaje — kupac samo potvrđuje tačku na mapi.
+            onClick={() => setAddingNew(true)}
+            className="font-semibold text-brand-700 underline"
+          >
+            Potvrdi lokaciju na mapi
+          </button>
+        </div>
+      )}
       <button
         type="button"
         onClick={() => {

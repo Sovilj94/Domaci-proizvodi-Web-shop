@@ -112,6 +112,8 @@ export function AddressPicker({
   const mapRef = useRef<LType.Map | null>(null);
   const markerRef = useRef<LType.Marker | null>(null);
   const [mapaSpremna, setMapaSpremna] = useState(false);
+  // Raste svaki put kad se skrivena mapa ponovo pokaže — vidi ResizeObserver u efektu mape.
+  const [ponovoVidljiva, setPonovoVidljiva] = useState(0);
 
   // Žive reference, da handleri mape i odgođeni pozivi nikad ne zastare.
   const onChangeRef = useRef(onChange);
@@ -245,6 +247,7 @@ export function AddressPicker({
   // ---------- Mapa: pravi se jednom, na klijentu ----------
   useEffect(() => {
     let cancelled = false;
+    let posmatrac: ResizeObserver | null = null;
     (async () => {
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current || mapRef.current) return;
@@ -269,10 +272,22 @@ export function AddressPicker({
       markerRef.current = L.marker(BANJA_LUKA, { icon, interactive: false });
       mapRef.current = map;
       setMapaSpremna(true);
+
+      // Roditelj može sakriti polje bez demontiranja (checkout drži korak 1 montiran, skriven).
+      // Leaflet tada ima kontejner 0×0; kad se ponovo pokaže, efekat ispod mora ponovo
+      // izmjeriti mapu i centrirati pin, inače su pločice pomjerene.
+      let bioSkriven = false;
+      posmatrac = new ResizeObserver(([e]) => {
+        const skriven = e.contentRect.width === 0 || e.contentRect.height === 0;
+        if (bioSkriven && !skriven) setPonovoVidljiva((n) => n + 1);
+        bioSkriven = skriven;
+      });
+      posmatrac.observe(containerRef.current);
     })();
 
     return () => {
       cancelled = true;
+      posmatrac?.disconnect();
       mapRef.current?.remove();
       mapRef.current = null;
       markerRef.current = null;
@@ -311,7 +326,7 @@ export function AddressPicker({
       marker.setLatLng([tacka.lat, tacka.lon]).addTo(map);
       map.setView([tacka.lat, tacka.lon], 16);
     }
-  }, [mapaSpremna, tacka, izmjena]);
+  }, [mapaSpremna, tacka, izmjena, ponovoVidljiva]);
 
   // ---------- Kucanje: prijedlozi ----------
   useEffect(() => {

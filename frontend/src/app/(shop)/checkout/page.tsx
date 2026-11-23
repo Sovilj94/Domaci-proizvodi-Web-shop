@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,7 +17,6 @@ import { AddressChooser } from "@/components/shop/address-chooser";
 import { CheckEmail } from "@/components/shop/check-email";
 import { OrderReceipt } from "@/components/shop/order-receipt";
 import { OrderSummaryPanel } from "@/components/shop/order-summary-panel";
-import { PromoKodPolje } from "@/components/shop/promo-kod-polje";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import {
@@ -30,7 +29,7 @@ import {
   useProducts,
   queryKeys,
 } from "@/lib/api/hooks";
-import { orderApi, promoApi } from "@/lib/api/endpoints";
+import { orderApi } from "@/lib/api/endpoints";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import { cijenaDostave, imaKorpicu } from "@/lib/dostava";
 import { NaseljeOznaka } from "@/components/shop/naselje-oznaka";
@@ -131,7 +130,6 @@ export default function CheckoutPage() {
   }, [products.data, korpice.isSuccess, korpice.data, items, reconcile, show]);
 
   const [step, setStep] = useState(1);
-  const [promoKod, setPromoKod] = useState<string | null>(null);
   const [koristiPoene, setKoristiPoene] = useState(false);
   const [form, setForm] = useState({
     ime: "",
@@ -201,42 +199,23 @@ export default function CheckoutPage() {
     imaKorpicu(items.map((i) => i.productId), korpicaIds),
     pravilaDostave.data,
   );
-  // Popust računa server (provjera koda) — klijent ga samo prikazuje.
-  // Provjera ide tek na koraku 3 (e-mail je tada gotov, ne po svakom tasteru); prijavljenom
-  // se e-mail ne šalje jer server koristi nalog. Keš i bez refetch-a na fokus štede
-  // dijeljeni "auth" limit (10/min).
-  const promoEmail = user ? undefined : form.email.trim() || undefined;
-  const promo = useQuery({
-    queryKey: ["promo", promoKod, promoEmail, items.map((i) => [i.productId, i.quantity])],
-    queryFn: () =>
-      promoApi.provjeri({
-        kod: promoKod!,
-        email: promoEmail,
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-      }),
-    enabled: !!promoKod && items.length > 0 && step === 3,
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-  const popust = promo.data?.popust ?? 0;
-  // B7: kad je kod provjeren, server je već sabrao robu po svojim cijenama — pregled koristi taj
-  // zbir, pa ne može pokazati drugi iznos nego što će narudžba imati (npr. zastarjela cijena u korpi).
-  const cijenaRobe = promo.data?.subtotal ?? subtotal;
+  // Promo kodovi su za sada isključeni iz checkouta (backend ih i dalje podržava, polje
+  // `PromoKodPolje` je ostalo u components/shop) — roba se računa samo iz korpe.
+  const cijenaRobe = subtotal;
   // Poeni (samo prijavljeni). Ista formula kao server (`PoeniPravila.ZaTrosenje`): bez poena ili
-  // robe nema popusta; popust je cijeli broj KM, najviše koliko poeni vrijede, a ne više od robe
-  // (subtotal − promo popust). Poena se troši tačno koliko pokriva taj popust.
+  // robe nema popusta; popust je cijeli broj KM, najviše koliko poeni vrijede, a ne više od robe.
+  // Poena se troši tačno koliko pokriva taj popust.
   const poeni = useMojiPoeni(!!user);
   const stanjePoena = poeni.data?.stanje ?? 0;
   const vrijednostPoena = poeni.data?.vrijednostPoenaKM ?? 0;
-  const roba = cijenaRobe - popust;
+  const roba = cijenaRobe;
   const popustPoena =
     stanjePoena > 0 && roba > 0 && vrijednostPoena > 0
       ? Math.floor(Math.min(stanjePoena * vrijednostPoena, roba))
       : 0;
   const poenaZaTrosenje = vrijednostPoena > 0 ? Math.round(popustPoena / vrijednostPoena) : 0;
   const poeniPopust = koristiPoene ? popustPoena : 0;
-  const total = Math.round((cijenaRobe - popust - poeniPopust + (deliveryFee ?? 0)) * 100) / 100;
+  const total = Math.round((cijenaRobe - poeniPopust +(deliveryFee ?? 0)) * 100) / 100;
   const minimum = pravilaDostave.data?.minimalnaNarudzba ?? 0;
   const belowMin = cijenaRobe < minimum;
 
@@ -278,10 +257,6 @@ export default function CheckoutPage() {
     },
     onError: (err) => {
       if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
-      // Server je odbio kod: skini ga, da zastareli popust nestane i kod se ne šalje ponovo.
-      if (err instanceof ApiRequestError && err.apiError.code === "promo_kod_nevazeci") {
-        setPromoKod(null);
-      }
     },
   });
 
@@ -297,10 +272,6 @@ export default function CheckoutPage() {
     },
     onError: (err) => {
       if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
-      // Server je odbio kod: skini ga, da zastareli popust nestane i kod se ne šalje ponovo.
-      if (err instanceof ApiRequestError && err.apiError.code === "promo_kod_nevazeci") {
-        setPromoKod(null);
-      }
     },
   });
 
@@ -317,8 +288,6 @@ export default function CheckoutPage() {
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       latitude: coords?.lat,
       longitude: coords?.lon,
-      // Kod koji je server odbio (promo.isError) se ne šalje i ne blokira narudžbu.
-      promoKod: promo.data ? promoKod ?? undefined : undefined,
     };
     if (gost) {
       guestMutation.mutate(body);
@@ -385,9 +354,12 @@ export default function CheckoutPage() {
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8">
         <form onSubmit={submit} className="space-y-6">
-          {/* Step 1 — address & delivery */}
-          {step === 1 && (
-            <section className="space-y-5 rounded-card bg-surface p-5 shadow-card">
+          {/* Step 1 — address & delivery.
+              Ostaje montiran i na koracima 2 i 3 (samo skriven): `AddressPicker` pri
+              demontiranju javlja `onCoordinates(null)`, pa je „Nastavi" brisao potvrđenu
+              tačku — naselje se gubilo, `step1Valid` padao, a „Naruči" ostajao siv bez
+              ikakve poruke. Skriven, birač čuva i tačku i svoje stanje za povratak „Nazad". */}
+          <section hidden={step !== 1} className="space-y-5 rounded-card bg-surface p-5 shadow-card">
               <div>
                 <h2 className="font-display text-lg font-semibold">Gdje da dostavimo?</h2>
                 <p className="text-sm text-muted">
@@ -450,7 +422,6 @@ export default function CheckoutPage() {
                 </p>
               )}
             </section>
-          )}
 
           {/* Step 2 — contact */}
           {step === 2 && (
@@ -538,25 +509,6 @@ export default function CheckoutPage() {
                 </p>
               </div>
 
-              <PromoKodPolje
-                primijenjen={promoKod}
-                provjera={promo}
-                onPrimijeni={(kod) => {
-                  activeMutation.reset();
-                  setPromoKod(kod);
-                }}
-                onUkloni={() => {
-                  activeMutation.reset();
-                  setPromoKod(null);
-                }}
-                greskaSlanja={
-                  activeMutation.error instanceof ApiRequestError &&
-                  activeMutation.error.apiError.code === "promo_kod_nevazeci"
-                    ? activeMutation.error.message
-                    : undefined
-                }
-              />
-
               {user && stanjePoena > 0 && (
                 popustPoena > 0 ? (
                   <label className="flex items-center gap-2 text-sm">
@@ -588,7 +540,6 @@ export default function CheckoutPage() {
               )}
               {activeMutation.isError &&
                 activeMutation.error instanceof ApiRequestError &&
-                activeMutation.error.apiError.code !== "promo_kod_nevazeci" &&
                 Object.keys(activeMutation.error.fieldErrors).length === 0 && (
                   <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                     {activeMutation.error.message}
@@ -606,8 +557,6 @@ export default function CheckoutPage() {
               deliveryFee={deliveryFee}
               total={total}
               zoneName={selectedZone?.name}
-              popust={popust}
-              promoKod={promo.data?.kod}
               poeniPopust={poeniPopust}
               iskoristeniPoeni={poenaZaTrosenje}
             />
@@ -644,7 +593,7 @@ export default function CheckoutPage() {
                   Nastavi <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button key="naruci" type="submit" disabled={!canOrder || activeMutation.isPending || (!!promoKod && promo.isFetching)}>
+                <Button key="naruci" type="submit" disabled={!canOrder || activeMutation.isPending}>
                   {activeMutation.isPending ? "Šaljem…" : "Naruči"}
                 </Button>
               )}
@@ -659,8 +608,6 @@ export default function CheckoutPage() {
             deliveryFee={deliveryFee}
             total={total}
             zoneName={selectedZone?.name}
-            popust={popust}
-            promoKod={promo.data?.kod}
             poeniPopust={poeniPopust}
             iskoristeniPoeni={poenaZaTrosenje}
           />

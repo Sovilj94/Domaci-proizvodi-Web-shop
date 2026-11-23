@@ -165,8 +165,10 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   to the map picker for a guest or a customer with no history. `GET|POST|PUT|DELETE /account/addresses`
   (`Features/Account`) is the real **Adresar**: an `Address` entity per row, with label, pin, zone and a
   default flag. Both are `[Authorize]`, both are about "where this customer lives", and they share nothing.
-  A saved checkout string carries **no coordinates** — `AddressChooser` explicitly pushes `null` upward when
-  one is picked, so the order is geocoded later rather than inheriting some other address's pin.
+  A saved checkout string carries **no coordinates of its own**. When one is picked, `AddressChooser` first
+  pushes `null`, so it never inherits some other address's pin. It then geocodes that string through
+  `/geocode`, because checkout needs a point to find the naselje and refuses step 1 without one. A miss
+  offers "Potvrdi lokaciju na mapi", which opens the picker with the saved text.
 - **The Adresar's only frontend is `/moj-nalog/adrese`,** added in P2a — before that the backend had been
   complete and unreachable from any screen since September. `accountApi` in `endpoints.ts` is its single
   surface; nothing else under `frontend/src/` calls `/account/addresses`. The screen **reflects** the three
@@ -842,7 +844,11 @@ using OSM tiles.
   number puts the street into the field and the number into checkout's own *Kućni broj* field — and only
   when there is a number, so a street-level hit never wipes one the customer typed.
   Picking a saved address pushes `onCoordinates(null)` — a history string has no pin of its own, and the
-  abandoned one must not travel with it.
+  abandoned one must not travel with it — and then the chooser geocodes the string itself (see above).
+  **Checkout keeps step 1 mounted (hidden) on steps 2 and 3.** `AddressPicker` reports `null` on unmount,
+  so unmounting it on "Nastavi" wiped the point, lost the naselje and greyed out "Naruči" with no message.
+  The picker re-measures Leaflet through a `ResizeObserver` when a hidden map is shown again.
+  Promo codes are currently switched off in checkout (UI only; the backend and `PromoKodPolje` remain).
 - **A point the picker was *given* is not a point the picker *owns*.** `AddressPicker` has two rules around
   `initialCoordinates` (the Adresar's saved pin, the warehouse in *Magacin*) and both exist because breaking
   either silently deletes a pin nobody touched: while the text is still the one the point arrived with
