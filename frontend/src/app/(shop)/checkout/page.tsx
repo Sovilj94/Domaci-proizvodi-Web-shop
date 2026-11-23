@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { AddressChooser } from "@/components/shop/address-chooser";
+import { AddressChooser, type Primalac, type ZaDrugogUnos } from "@/components/shop/address-chooser";
 import { CheckEmail } from "@/components/shop/check-email";
 import { OrderReceipt } from "@/components/shop/order-receipt";
 import { OrderSummaryPanel } from "@/components/shop/order-summary-panel";
@@ -29,7 +29,8 @@ import {
   useProducts,
   queryKeys,
 } from "@/lib/api/hooks";
-import { orderApi } from "@/lib/api/endpoints";
+import { accountApi, orderApi } from "@/lib/api/endpoints";
+import { podrazumijevanaAdresa, sacuvajPrimaoca } from "@/lib/checkout-adrese";
 import type { CreateOrderRequest } from "@/lib/api/contracts";
 import { cijenaDostave, imaKorpicu } from "@/lib/dostava";
 import { NaseljeOznaka } from "@/components/shop/naselje-oznaka";
@@ -94,6 +95,13 @@ export default function CheckoutPage() {
   const korpice = useKorpiceList();
   const addresses = useMyAddresses(!!user);
   const savedAddresses = useMemo(() => addresses.data ?? [], [addresses.data]);
+  // Adresar (sa nazivom, tačkom i možda primaocem) — samo za prijavljenog kupca.
+  const adresarUpit = useQuery({
+    queryKey: queryKeys.adrese(),
+    queryFn: () => accountApi.adrese(),
+    enabled: !!user,
+  });
+  const adresar = useMemo(() => adresarUpit.data ?? [], [adresarUpit.data]);
 
   // Drop cart items whose product no longer exists / isn't available (e.g. after a
   // catalog change) so checkout can't fail with "proizvod nije dostupan".
@@ -148,6 +156,13 @@ export default function CheckoutPage() {
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   // Adresa van grada dostave (birač prikazuje upozorenje) — dok važi, korak 1 ne ide dalje.
   const [vanPodrucja, setVanPodrucja] = useState(false);
+  // Narudžba za nekog drugog: primalac izabrane adrese iz adresara, ili ono što kupac kuca
+  // u režimu „Naruči za nekog drugog" (tada se adresa poslije narudžbe pamti u adresar).
+  const [primalacAdrese, setPrimalacAdrese] = useState<Primalac | null>(null);
+  const [zaDrugog, setZaDrugog] = useState<ZaDrugogUnos | null>(null);
+  const primalac: Primalac | null = zaDrugog
+    ? { ime: zaDrugog.ime.trim(), telefon: zaDrugog.telefon.trim() ? `+387 ${zaDrugog.telefon.trim()}` : "" }
+    : primalacAdrese;
 
   // Prefill from the logged-in customer's profile. `user.name` is one string on the
   // backend, so it's split on the first space — the rest (middle/last names) all goes
@@ -164,13 +179,18 @@ export default function CheckoutPage() {
     }));
   }, [user]);
 
-  // Default the address to the most-recent delivered address (fallback: profile address).
-  // These are historical full strings (house number already baked in), so they land
-  // whole in `ulica` — see `adresaVecPotpuna` below for why that's still valid.
+  // Unaprijed izabrana adresa: moja iz adresara, pa posljednja isporučena, pa adresa sa
+  // profila — nikad adresa sa primaocem (`podrazumijevanaAdresa`). Čeka da adresar stigne,
+  // da ga ranija adresa ne pretekne. To su pune adrese (broj već unutra), pa idu cijele u
+  // `ulica` — vidi `adresaVecPotpuna` ispod.
   useEffect(() => {
-    const def = savedAddresses[0] ?? user?.address ?? "";
+    if (user && adresarUpit.isPending) return;
+    const izbor = podrazumijevanaAdresa(adresar, savedAddresses);
+    const def = (typeof izbor === "string" ? izbor : izbor?.fullAddress) ?? user?.address ?? "";
     if (def) setForm((f) => (f.ulica ? f : { ...f, ulica: def }));
-  }, [savedAddresses, user]);
+  }, [adresar, adresarUpit.isPending, savedAddresses, user]);
+
+  const uAdresaru = (s: string) => adresar.some((a) => a.fullAddress.trim().toLowerCase() === s.trim().toLowerCase());
 
   const set = (key: keyof typeof form) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -182,7 +202,7 @@ export default function CheckoutPage() {
   // left over from before must not survive — either would silently graft an old house
   // number onto whatever comes next.
   const handleUlicaChange = (value: string) => {
-    if (savedAddresses.includes(value) || value === "") {
+    if (savedAddresses.includes(value) || uAdresaru(value) || value === "") {
       setForm((f) => ({ ...f, ulica: value, broj: "", stan: "" }));
     } else {
       set("ulica")(value);
@@ -234,14 +254,18 @@ export default function CheckoutPage() {
   // ("required" na registraciji), ne da sadrži broj — zato ovdje dodatno provjeravamo da
   // tekst ima bar jednu cifru; bez toga bi adresa bez broja (npr. samo naziv ulice sa
   // profila) prošla korak 1 a da broj kuće nikad nije prikupljen.
+  // Adresa iz adresara je potvrđena na mapi pri čuvanju — ne traži se ponovo broj.
   const adresaVecPotpuna =
     !!form.ulica &&
-    (savedAddresses.includes(form.ulica) || form.ulica === user?.address) &&
-    /\d/.test(form.ulica);
+    (uAdresaru(form.ulica) ||
+      ((savedAddresses.includes(form.ulica) || form.ulica === user?.address) && /\d/.test(form.ulica)));
 
   const gost = !user;
+  // U režimu „za nekog drugog" ime i telefon primaoca su obavezni — vozač zove njega.
+  const primalacPotpun = !zaDrugog || (!!zaDrugog.ime.trim() && !!zaDrugog.telefon.trim());
   const step1Valid =
-    !!form.ulica && (adresaVecPotpuna || !!form.broj) && !!naselje.data && !!form.slotId && !vanPodrucja;
+    !!form.ulica && (adresaVecPotpuna || !!form.broj) && !!naselje.data && !!form.slotId && !vanPodrucja &&
+    primalacPotpun;
   const step2Valid =
     !!form.ime && !!form.prezime && !!form.phone && (!gost || !!form.email);
   const canOrder = step1Valid && step2Valid && !belowMin && items.length > 0;
@@ -254,6 +278,25 @@ export default function CheckoutPage() {
       qc.invalidateQueries({ queryKey: queryKeys.mojiPoeni() });
       setPlaced(order);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      // „Naruči za nekog drugog": adresa i primalac se pamte u adresar za sljedeći put.
+      // Narudžba je već napravljena — `sacuvajPrimaoca` ne baca, a neuspjeh je samo poruka.
+      if (zaDrugog && primalac) {
+        void sacuvajPrimaoca(
+          adresar,
+          {
+            label: zaDrugog.naziv.trim() || undefined,
+            fullAddress: punaAdresa,
+            latitude: coords?.lat,
+            longitude: coords?.lon,
+            primalacIme: primalac.ime,
+            primalacTelefon: primalac.telefon,
+          },
+          accountApi.dodajAdresu,
+        ).then((ishod) => {
+          if (ishod === "pun" || ishod === "greska") show("Adresa nije sačuvana u adresar.");
+          qc.invalidateQueries({ queryKey: queryKeys.adrese() });
+        });
+      }
     },
     onError: (err) => {
       if (err instanceof ApiRequestError) setErrors(err.fieldErrors);
@@ -292,7 +335,11 @@ export default function CheckoutPage() {
     if (gost) {
       guestMutation.mutate(body);
     } else {
-      mutation.mutate({ ...body, iskoristiPoene: koristiPoene && popustPoena > 0 });
+      mutation.mutate({
+        ...body,
+        iskoristiPoene: koristiPoene && popustPoena > 0,
+        primalac: primalac ?? undefined,
+      });
     }
   }
 
@@ -373,6 +420,10 @@ export default function CheckoutPage() {
                   value={form.ulica}
                   onChange={handleUlicaChange}
                   savedAddresses={savedAddresses}
+                  adresar={adresar}
+                  mozeZaDrugog={!!user}
+                  onPrimalac={setPrimalacAdrese}
+                  onZaDrugog={setZaDrugog}
                   onCoordinates={setCoords}
                   querySuffix={form.broj}
                   onBroj={set("broj")}
@@ -502,8 +553,22 @@ export default function CheckoutPage() {
                       {selectedZone?.name} ·{" "}
                       {slots.data?.find((s) => s.id === form.slotId)?.label ?? "termin"}
                     </span>
+                    {primalac && (
+                      <>
+                        <br />
+                        <span className="text-ink">
+                          Prima: <span className="font-medium">{primalac.ime}</span> ·{" "}
+                          <span translate="no">{primalac.telefon}</span>
+                        </span>
+                      </>
+                    )}
                   </span>
                 </p>
+                {(errors["primalac.ime"]?.[0] || errors["primalac.telefon"]?.[0]) && (
+                  <p className="mt-2 text-xs font-medium text-red-600">
+                    {errors["primalac.ime"]?.[0] ?? errors["primalac.telefon"]?.[0]}
+                  </p>
+                )}
                 <p className="mt-2 border-t border-line pt-2 font-medium text-brand-700">
                   Plaćanje pouzećem pri dostavi
                 </p>
