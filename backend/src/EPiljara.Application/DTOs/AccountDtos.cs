@@ -18,6 +18,9 @@ public class AddressDto
     public bool DeliveryZoneActive { get; init; }
 
     public bool IsDefault { get; init; }
+
+    public string? PrimalacIme { get; init; }
+    public string? PrimalacTelefon { get; init; }
 }
 
 /// <summary>

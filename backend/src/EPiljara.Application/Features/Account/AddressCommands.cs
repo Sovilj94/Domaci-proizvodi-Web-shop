@@ -21,6 +21,9 @@ public interface IAddressFields
     string FullAddress { get; }
     double? Latitude { get; }
     double? Longitude { get; }
+    // Samo adresar nosi primaoca; pretplate (MojePretplate) ga nemaju, pa ostaju na null.
+    string? PrimalacIme => null;
+    string? PrimalacTelefon => null;
 }
 
 public record CreateAddressCommand(
@@ -28,7 +31,9 @@ public record CreateAddressCommand(
     string FullAddress,
     double? Latitude,
     double? Longitude,
-    Guid? DeliveryZoneId) : IRequest<AddressDto>, IAddressFields;
+    Guid? DeliveryZoneId,
+    string? PrimalacIme = null,
+    string? PrimalacTelefon = null) : IRequest<AddressDto>, IAddressFields;
 
 public record UpdateAddressCommand(
     Guid Id,
@@ -36,7 +41,15 @@ public record UpdateAddressCommand(
     string FullAddress,
     double? Latitude,
     double? Longitude,
-    Guid? DeliveryZoneId) : IRequest<AddressDto>, IAddressFields;
+    Guid? DeliveryZoneId,
+    string? PrimalacIme = null,
+    string? PrimalacTelefon = null) : IRequest<AddressDto>, IAddressFields;
+
+/// <summary>Prazan ili samo razmak znači „nema" — primalac se čuva kao null.</summary>
+internal static class PrimalacPolje
+{
+    public static string? Ocisti(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}
 
 public record DeleteAddressCommand(Guid Id) : IRequest<Unit>;
 
@@ -63,6 +76,15 @@ public static class AddressRules
     {
         v.RuleFor(x => x.FullAddress).NotEmpty().WithMessage("Adresa je obavezna.");
         v.RuleFor(x => x.FullAddress).MaximumLength(400).WithMessage("Adresa je predugačka.");
+
+        // Primalac (adresa „za nekog drugog"): ime i telefon idu u paru — vozač bez
+        // telefona ne može zvati, a telefon bez imena ne zna koga traži.
+        v.RuleFor(x => x)
+            .Must(x => string.IsNullOrWhiteSpace(x.PrimalacIme) == string.IsNullOrWhiteSpace(x.PrimalacTelefon))
+            .OverridePropertyName("primalac")
+            .WithMessage("Unesi i ime i telefon primaoca.");
+        v.RuleFor(x => x.PrimalacIme).MaximumLength(160).WithMessage("Ime primaoca je predugačko.");
+        v.RuleFor(x => x.PrimalacTelefon).MaximumLength(40).WithMessage("Telefon primaoca je predugačak.");
 
         v.RuleFor(x => x.Latitude).InclusiveBetween(-90, 90)
             .When(x => x.Latitude.HasValue)
@@ -125,6 +147,8 @@ public class CreateAddressHandler(IAppDbContext db, ICurrentUser current)
             Latitude = cmd.Latitude,
             Longitude = cmd.Longitude,
             DeliveryZoneId = naselje.Id,
+            PrimalacIme = PrimalacPolje.Ocisti(cmd.PrimalacIme),
+            PrimalacTelefon = PrimalacPolje.Ocisti(cmd.PrimalacTelefon),
             // Prva adresa je glavna sama od sebe — inače bi kupac imao adresar
             // bez glavne adrese i checkout bi se ponašao kao za gosta.
             IsDefault = moje.Count == 0,
@@ -160,6 +184,8 @@ public class UpdateAddressHandler(IAppDbContext db, ICurrentUser current)
         address.Latitude = cmd.Latitude;
         address.Longitude = cmd.Longitude;
         address.DeliveryZoneId = naselje.Id;
+        address.PrimalacIme = PrimalacPolje.Ocisti(cmd.PrimalacIme);
+        address.PrimalacTelefon = PrimalacPolje.Ocisti(cmd.PrimalacTelefon);
 
         await db.SaveChangesAsync(ct);
         // Include gore je učitao staru zonu (ili null); FK iznad se promijenio, pa EF-ova

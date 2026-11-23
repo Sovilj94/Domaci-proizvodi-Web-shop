@@ -245,5 +245,7 @@ public static class MappingExtensions
         DeliveryZoneName = a.DeliveryZone?.Name,
         DeliveryZoneActive = a.DeliveryZone?.IsActive ?? false,
         IsDefault = a.IsDefault,
+        PrimalacIme = a.PrimalacIme,
+        PrimalacTelefon = a.PrimalacTelefon,
     };
 }

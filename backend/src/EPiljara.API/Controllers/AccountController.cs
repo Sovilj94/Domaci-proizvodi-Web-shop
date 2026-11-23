@@ -73,7 +73,8 @@ public class AccountController : ApiControllerBase
     [HttpPut("account/addresses/{id:guid}")]
     public async Task<IActionResult> UpdateAddress(Guid id, [FromBody] UpdateAddressBody body) =>
         Envelope(await Mediator.Send(new UpdateAddressCommand(
-            id, body.Label, body.FullAddress, body.Latitude, body.Longitude, body.DeliveryZoneId)));
+            id, body.Label, body.FullAddress, body.Latitude, body.Longitude, body.DeliveryZoneId,
+            body.PrimalacIme, body.PrimalacTelefon)));
 
     [HttpDelete("account/addresses/{id:guid}")]
     public async Task<IActionResult> DeleteAddress(Guid id)
@@ -123,7 +124,9 @@ public record UpdateAddressBody(
     string FullAddress,
     double? Latitude,
     double? Longitude,
-    Guid? DeliveryZoneId);
+    Guid? DeliveryZoneId,
+    string? PrimalacIme = null,
+    string? PrimalacTelefon = null);
 
 /// <summary>Tijelo bez Id-a — Id dolazi iz putanje. Količine i cijene određuje server.</summary>
 public record IzmijeniKorpicuBody(IReadOnlyList<Guid> ProductIds);

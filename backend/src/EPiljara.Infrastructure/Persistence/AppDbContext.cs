@@ -294,6 +294,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         b.Entity<Address>(e =>
         {
             e.Property(x => x.Label).HasMaxLength(60);
+            e.Property(x => x.PrimalacIme).HasMaxLength(160);
+            e.Property(x => x.PrimalacTelefon).HasMaxLength(40);
             // 400 je isto kao Order.DeliveryAddress — adresa putuje odavde u narudžbu,
             // pa kraće polje ovdje bi značilo da se nešto što je stalo u narudžbu
             // ne može sačuvati u adresar.

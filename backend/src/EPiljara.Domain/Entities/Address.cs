@@ -33,5 +33,12 @@ public class Address : Entity
     /// <summary>Tačno jedna glavna po korisniku; održava se u handlerima.</summary>
     public bool IsDefault { get; set; }
 
+    /// <summary>
+    /// Primalac kad je adresa „za nekog drugog" (roditelji, rodbina). Oba ili nijedno;
+    /// null = adresa je kupčeva. Prenosi se u narudžbu kao Order.Primalac*.
+    /// </summary>
+    public string? PrimalacIme { get; set; }
+    public string? PrimalacTelefon { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
