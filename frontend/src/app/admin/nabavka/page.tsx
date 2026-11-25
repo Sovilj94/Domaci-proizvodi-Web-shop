@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Banknote, ClipboardList, Printer, ShoppingBag } from "lucide-react";
@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { spisakRobe } from "@/lib/admin/nabavka";
 import { PdfNabavkeDugme, SpisakNabavke } from "@/components/admin/spisak-nabavke";
+import { NabavkaGazdinstva } from "@/components/admin/nabavka-gazdinstva";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { cn, formatDateTime, formatPrice } from "@/lib/utils";
 
@@ -18,9 +19,9 @@ const datumIsporuke = (iso: string) =>
   new Date(iso).toLocaleDateString("sr-Latn", { weekday: "long", day: "numeric", month: "numeric", timeZone: "Europe/Sarajevo" });
 
 /**
- * Nabavka sedmice: kad prođe rok, korpice su zaključane i sve je naručeno — ovdje stoji koliko
- * robe treba kupiti, jedan red po artiklu (gazdinstva se ovdje ne vide), uz PDF za nabavljača ili
- * dobavljača. Bez ?datum= otvara sedmicu kojoj je rok upravo prošao (server zna rok); strelicama
+ * Nabavka sedmice: kad prođe rok, narudžbe su zaključane — ovdje stoji šta treba kupiti i od
+ * koga. Podrazumijevano po gazdinstvu (uz otkupne listove za potpis), a „Po vrsti robe" je jedan
+ * red po artiklu, uz PDF za nabavljača. Bez ?datum= otvara sedmicu kojoj je rok upravo prošao (server zna rok); strelicama
  * se ide na ostale, pa i na otvorenu sedmicu kao predračun.
  */
 export default function AdminNabavkaPage() {
@@ -37,6 +38,7 @@ function Nabavka() {
   const pathname = usePathname();
   const izbor = useIzabranaSedmica();
   const izabrana = params.has("datum");
+  const [pogled, setPogled] = useState<"gazdinstva" | "roba">("gazdinstva");
 
   const q = useQuery({
     queryKey: izabrana ? ["admin", "korpice", "pakerska", izbor.godina, izbor.sedmica] : ["admin", "korpice", "pakerska", "nabavka"],
@@ -94,8 +96,8 @@ function Nabavka() {
             )}
           >
             {d.zakljucena
-              ? `Sedmica je zaključena (${formatDateTime(d.rok)}) — korpice su zaključane i sve je naručeno. Ovo je konačan spisak.`
-              : `Ovo još nije konačno: narudžbe se primaju do ${formatDateTime(d.rok)}, a kupci do tada mijenjaju korpice.`}
+              ? `Narudžbe su zaključane (${formatDateTime(d.rok)}) — ovo je konačan spisak, a otkupni listovi su spremni za štampu.`
+              : `Predračun — narudžbe su otvorene do ${formatDateTime(d.rok)}, kupci ih do tada još mijenjaju. Otkupni listovi nastaju kad se narudžbe zaključaju.`}
           </p>
 
           {d.stavke.length === 0 ? (
@@ -122,7 +124,27 @@ function Nabavka() {
                 />
               </div>
 
-              <SpisakNabavke redovi={redovi} />
+              <div className="flex rounded-full bg-white p-0.5 ring-1 ring-black/10 w-fit print:hidden" role="group" aria-label="Prikaz nabavke">
+                {([
+                  ["gazdinstva", "Po gazdinstvu"],
+                  ["roba", "Po vrsti robe"],
+                ] as const).map(([k, naziv]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={pogled === k}
+                    onClick={() => setPogled(k)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-sm font-medium transition",
+                      pogled === k ? "bg-ink text-white" : "text-muted hover:text-ink",
+                    )}
+                  >
+                    {naziv}
+                  </button>
+                ))}
+              </div>
+
+              {pogled === "gazdinstva" ? <NabavkaGazdinstva lista={d} /> : <SpisakNabavke redovi={redovi} />}
             </>
           )}
         </>

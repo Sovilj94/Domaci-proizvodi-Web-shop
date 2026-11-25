@@ -68,3 +68,46 @@ export function grupeNabavke(redovi: RedNabavke[]): GrupaNabavke[] {
     .sort((a, b) => a.red - b.red || a.naziv.localeCompare(b.naziv, "sr-Latn"))
     .map(({ naziv, redovi, trosak }) => ({ naziv, redovi, trosak }));
 }
+
+/** Nabavka jednog gazdinstva: šta se kod njega uzima, sa zbirom nabavne vrijednosti. */
+export interface GrupaGazdinstva {
+  /** Id gazdinstva; prazan string za stavke bez gazdinstva (obrisan artikal). */
+  proizvodjacId: string;
+  naziv: string;
+  selo: string;
+  telefon?: string;
+  redovi: RedNabavke[];
+  /** Zbir nabavne vrijednosti; null kad nijedan red nema nabavnu cijenu. */
+  trosak: number | null;
+}
+
+export const BEZ_GAZDINSTVA = "Bez gazdinstva";
+
+/**
+ * Spisak nabavke po gazdinstvu — zna se šta koje gazdinstvo proizvodi, pa se zna po šta se
+ * ide kod koga. Gazdinstva po nazivu, artikli u gazdinstvu po nazivu; stavke bez gazdinstva
+ * (artikal više nije u katalogu) idu u grupu „Bez gazdinstva" na kraju.
+ */
+export function poGazdinstvu(stavke: StavkaPakerske[]): GrupaGazdinstva[] {
+  const grupe = new Map<string, { glava: StavkaPakerske; stavke: StavkaPakerske[] }>();
+  for (const s of stavke) {
+    const kljuc = s.proizvodjacId ?? "";
+    const g = grupe.get(kljuc) ?? { glava: s, stavke: [] };
+    g.stavke.push(s);
+    grupe.set(kljuc, g);
+  }
+  return [...grupe.entries()]
+    .map(([id, { glava, stavke: st }]) => {
+      const redovi = spisakRobe(st);
+      const sCijenom = redovi.filter((r) => r.trosak !== null);
+      return {
+        proizvodjacId: id,
+        naziv: id ? glava.proizvodjac : BEZ_GAZDINSTVA,
+        selo: id ? glava.selo : "",
+        telefon: id ? (glava.telefon ?? undefined) : undefined,
+        redovi,
+        trosak: sCijenom.length ? zaokruzi(sCijenom.reduce((a, r) => a + (r.trosak ?? 0), 0), 2) : null,
+      };
+    })
+    .sort((a, b) => Number(!a.proizvodjacId) - Number(!b.proizvodjacId) || a.naziv.localeCompare(b.naziv, "sr-Latn"));
+}

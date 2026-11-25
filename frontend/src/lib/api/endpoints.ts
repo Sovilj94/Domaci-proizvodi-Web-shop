@@ -170,7 +170,9 @@ import type {
   PakerskaLista,
   PretplataInput,
   ProvjeraPromoKoda,
+  OtkupniList,
   ProducerInput,
+  UnesiPrimljenoRequest,
   ProductInput,
   ProfileInput,
   RegisterRequest,
@@ -732,6 +734,22 @@ export const adminApi = {
 
   deleteProducer: (id: string) =>
     apiFetch<string>(`/admin/producers/${id}`, { method: "DELETE" }).then(() => id),
+
+  /** Otkupni listovi sedmice — po jedan za svako gazdinstvo, nastaju pri zaključavanju. */
+  otkupniListovi: (godina: number, sedmica: number) =>
+    apiFetch<OtkupniList[]>("/admin/otkupni-listovi", { query: { godina, sedmica } }).then((r) => r.data),
+
+  /** Pravi listove koji nedostaju (posao to radi sam); 409 dok sedmica nije zaključana. */
+  napraviOtkupneListove: (godina: number, sedmica: number) =>
+    apiFetch<{ napravljeno: number }>("/admin/otkupni-listovi", { method: "POST", body: { godina, sedmica } }).then(
+      (r) => r.data,
+    ),
+
+  osvjeziOtkupniList: (id: string) =>
+    apiFetch<OtkupniList>(`/admin/otkupni-listovi/${id}/osvjezi`, { method: "POST" }).then((r) => r.data),
+
+  unesiPrimljeno: (id: string, body: UnesiPrimljenoRequest) =>
+    apiFetch<OtkupniList>(`/admin/otkupni-listovi/${id}/primljeno`, { method: "PUT", body }).then((r) => r.data),
 
   /* Utisci */
   utisci: () => apiFetch<Utisak[]>("/admin/utisci").then((r) => r.data),

@@ -858,3 +858,49 @@ export interface PredajaUnos {
   datum: string;
   iznos: number | null;
 }
+
+/** Gazdinstvo kao prodavac na otkupnom listu (admin — sadrži JMBG i račun). */
+export interface OtkupniListProdavac {
+  id: string;
+  naziv: string;
+  selo: string;
+  telefon?: string;
+  nosilacIme?: string;
+  bpg?: string;
+  jmbg?: string;
+  adresa?: string;
+  ziroRacun?: string;
+  banka?: string;
+}
+
+export interface OtkupniListStavka {
+  id: string;
+  productId: string;
+  naziv: string;
+  jedinica: string;
+  naruceno: number;
+  /** Otkupna cijena po jedinici; izostavljena kad proizvod nema nabavnu cijenu. */
+  cijena?: number;
+  /** Stvarno primljeno; izostavljeno dok se ne unese. */
+  primljeno?: number;
+}
+
+/** Otkupni list jednog gazdinstva za sedmicu — dokument koji gazdinstvo potpisuje. */
+export interface OtkupniList {
+  id: string;
+  broj: string;
+  godina: number;
+  sedmica: number;
+  datum: string;
+  /** Admin je poslije zaključavanja mijenjao narudžbe — količine možda više ne važe. */
+  zastario: boolean;
+  napomena?: string;
+  prodavac: OtkupniListProdavac;
+  stavke: OtkupniListStavka[];
+  iznos?: number;
+  iznosPrimljeno?: number;
+}
+
+export interface UnesiPrimljenoRequest {
+  stavke: { stavkaId: string; primljeno?: number }[];
+}

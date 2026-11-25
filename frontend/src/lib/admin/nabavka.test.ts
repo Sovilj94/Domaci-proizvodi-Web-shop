@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { StavkaPakerske } from "@/lib/api/contracts";
-import { grupeNabavke, spisakRobe } from "./nabavka.ts";
+import { grupeNabavke, poGazdinstvu, spisakRobe } from "./nabavka.ts";
 
 const s = (artikal: string, proizvodjac: string, kolicina: number, nabavnaCijena: number | null = null, jedinica = "kg") =>
   ({
@@ -65,4 +65,25 @@ test("bez grupe sa servera (stariji API) sve ide u jednu grupu „Ostalo\"", () 
     grupe.map((g) => [g.naziv, g.redovi.length]),
     [["Ostalo", 2]],
   );
+});
+
+const g = (artikal: string, kolicina: number, proizvodjacId?: string, proizvodjac = "", nabavnaCijena?: number) =>
+  ({ ...s(artikal, proizvodjac, kolicina, nabavnaCijena ?? null), productId: artikal, proizvodjacId }) as StavkaPakerske;
+
+test("poGazdinstvu: artikli istog gazdinstva u jednoj grupi, sa zbirom troška", () => {
+  const grupe = poGazdinstvu([
+    g("Krompir", 5, "p1", "Petković", 1),
+    g("Luk", 2, "p1", "Petković", 2),
+    g("Jabuka", 3, "p2", "Đurić", 1.5),
+  ]);
+  assert.deepEqual(grupe.map((x) => x.naziv), ["Đurić", "Petković"]);
+  const petkovic = grupe.find((x) => x.proizvodjacId === "p1")!;
+  assert.deepEqual(petkovic.redovi.map((r) => r.artikal), ["Krompir", "Luk"]);
+  assert.equal(petkovic.trosak, 9);
+});
+
+test("poGazdinstvu: stavka bez gazdinstva ide u „Bez gazdinstva\" na kraju", () => {
+  const grupe = poGazdinstvu([g("Nepoznato", 1), g("Krompir", 1, "p1", "Ažić")]);
+  assert.deepEqual(grupe.map((x) => x.naziv), ["Ažić", "Bez gazdinstva"]);
+  assert.equal(grupe[1].trosak, null);
 });
