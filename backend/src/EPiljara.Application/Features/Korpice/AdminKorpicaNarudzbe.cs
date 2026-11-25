@@ -169,6 +169,9 @@ public class IzmijeniKorpicuNarudzbeHandler(IAppDbContext db)
 
         db.StavkeKorpiceNarudzbe.RemoveRange(red.KorpicaStavke);
         db.StavkeKorpiceNarudzbe.AddRange(nove);
+        // Izmjena zaključane korpice mijenja nabavku — otkupni listovi te sedmice zastarijevaju.
+        if (order.ZakljucanaU is not null)
+            await Nabavka.OtkupniListPravila.OznaciZastaroAsync(db, order.Godina, order.Sedmica, ct);
         await db.SaveChangesAsync(ct);
 
         return await AdminKorpicaNarudzbePravila.SastaviAsync(db, red.Id, ct);

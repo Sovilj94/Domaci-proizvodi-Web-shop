@@ -521,6 +521,7 @@ public class GetPakerskaListaHandler(IAppDbContext db, IOptions<KorpiceOpcije> o
                     NaStanju = naStanju,
                     Fali = porediSaStanjem ? Math.Max(0m, korpice - naStanju) : 0m,
                     Jedinica = (p?.Unit ?? prvi.Unit).ToApi(),
+                    ProductId = id,
                     ProizvodjacId = p?.ProducerId,
                     Proizvodjac = p?.Producer?.Name ?? string.Empty,
                     Selo = p?.Producer?.Village ?? string.Empty,

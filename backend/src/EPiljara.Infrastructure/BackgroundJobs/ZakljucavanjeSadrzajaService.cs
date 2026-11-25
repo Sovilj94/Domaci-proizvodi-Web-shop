@@ -1,3 +1,4 @@
+using EPiljara.Application.Features.Nabavka;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Application.Features.Orders;
 using MediatR;
@@ -32,6 +33,12 @@ public class ZakljucavanjeSadrzajaService(
                 if (broj > 0) log.LogInformation("Zaključano sadržaja korpica: {Broj}", broj);
                 var sedmice = await mediator.Send(new ZakljucajNarudzbeCommand(), stoppingToken);
                 if (sedmice.Count > 0) log.LogInformation("Zaključane narudžbe sedmica: {Sedmice}", string.Join(", ", sedmice.Select(s => $"{s.Sedmica}/{s.Godina}")));
+                // Otkupni listovi nastaju čim se sedmica zaključa — po jedan za svako gazdinstvo.
+                foreach (var s in sedmice)
+                {
+                    var listova = await mediator.Send(new NapraviOtkupneListoveCommand(s.Godina, s.Sedmica), stoppingToken);
+                    if (listova > 0) log.LogInformation("Otkupnih listova za sedmicu {Sedmica}/{Godina}: {Broj}", s.Sedmica, s.Godina, listova);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

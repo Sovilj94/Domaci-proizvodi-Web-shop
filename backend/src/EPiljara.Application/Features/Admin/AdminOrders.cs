@@ -131,6 +131,10 @@ public class UpdateOrderStatusHandler(IAppDbContext db, IOptions<PoeniOpcije> po
         // Fiskalni račun nastaje uz isporuku, u istom upisu (vidi Fiskalizacija).
         await Fiskalizacija.FiskalizacijaPravila.ZabiljeziPromjenuStatusaAsync(db, order, status, ct);
 
+        // Otkaz zaključane narudžbe mijenja količine nabavke — otkupni listovi te sedmice zastarijevaju.
+        if (status == OrderStatus.Cancelled && order.Status != OrderStatus.Cancelled && order.ZakljucanaU is not null)
+            await Nabavka.OtkupniListPravila.OznaciZastaroAsync(db, order.Godina, order.Sedmica, ct);
+
         var stari = order.Status;
         order.TransitionTo(status);
         await IstovremenaPromjena.SacuvajAsync(db, ct);

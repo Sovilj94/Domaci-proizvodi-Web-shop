@@ -211,6 +211,7 @@ public record StavkaPakerskeDto
     public string Grupa { get; init; } = string.Empty;
     /// <summary>Redoslijed grupe: najmanji tip korpice koji kategorija puni; Špajz posljednji.</summary>
     public int RedGrupe { get; init; }
+    public Guid ProductId { get; init; }
     /// <summary>Gazdinstvo od kog se artikal nabavlja; null kad artikla više nema u katalogu.</summary>
     public Guid? ProizvodjacId { get; init; }
     public string Proizvodjac { get; init; } = string.Empty;
