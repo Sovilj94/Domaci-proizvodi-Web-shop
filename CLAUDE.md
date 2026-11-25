@@ -523,6 +523,22 @@ Spec: `docs/superpowers/specs/2026-11-25-narudzbe-bez-odobravanja-nabavka-design
   Gazdinstvo sa otkupnim listom se ne briše (`producer_in_use`). PDF (`lib/admin/otkupni-list-pdf.ts`)
   štampa prazno polje kao liniju za upis rukom; JIB otkupljivača nema polje u bazi.
 - `Podesavanja.ObavRadnikOdbijene` i labela `odbijene_narudzbe` su ostali bez pošiljaoca (mrtva postavka).
+- **Sedmice rada** (`GET /admin/sedmice-rada`, `GetSedmiceRadaQuery`): `pakovanje` = `SedmicaHelper.ZaNabavku`
+  (posljednja zaključana), `otvorena` = `SedmicaZaNarudzbu`. Ekran Narudžbe se podrazumijevano otvara na
+  sedmici pakovanja (kartice Pakuje se / Otvorena / Prošle; pretraga ide kroz sve sedmice), a Dostava
+  prikazuje samo nedodijeljene narudžbe sedmice pakovanja.
+- **Automatska neuspjela dostava** (`OznaciNeisporuceneCommand`, isti posao svakih 15 min): poslije kraja
+  ZADNJEG termina sedmice (najveći `DayOfWeek` + `TimeTo` iz `DeliverySlot`) svaka narudžba u
+  Pending/Confirmed/Packing/OutForDelivery postaje `FailedDelivery` preko `Order.OznaciNeisporucenu()` —
+  jedini put iz Confirmed/Packing u FailedDelivery; ručni prelazi u mašini stanja se ne mijenjaju. Kupcu se
+  ne šalje mejl. Na tabli neuspjele stoje u koloni „Završene" sa oznakom, bez posebne trake.
+- **Raspodjela po kombijima** (`RasporedPoKombijima`, `GET /admin/dostava/prijedlog`): čista funkcija,
+  „lepeza" oko magacina — naselja po uglu, počev poslije najveće praznine, pune se kombiji; najmanje kombija
+  koliko stane u slobodne kapacitete (`MaxStanicaPoDanu` − već dodijeljeno), naselje se ne dijeli, u kombiju
+  od najbližeg magacinu, vazdušne udaljenosti. Prijedlog uzima samo narudžbe čiji je termin taj dan.
+  Ništa ne upisuje; frontend potvrđuje grupnom dodjelom po vozaču (`assign-bulk`), koja sama optimizuje rute.
+- **`POST /driver/route/reoptimize` prima opcioni `routeId`** — vozačka aplikacija ga šalje sa dugmeta
+  „Navigacija" (preračun od trenutne lokacije prije otvaranja Google Maps); bez njega prva ruta dana.
 
 ## Primalac — narudžba za nekog drugog (2026-11-23)
 
