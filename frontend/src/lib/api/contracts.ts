@@ -904,3 +904,17 @@ export interface OtkupniList {
 export interface UnesiPrimljenoRequest {
   stavke: { stavkaId: string; primljeno?: number }[];
 }
+
+/** Jedna sedmica rada: ISO godina/sedmica, prvi dan isporuke i rok (UTC, ISO). */
+export interface SedmicaRada {
+  godina: number;
+  sedmica: number;
+  isporuka: string;
+  rok: string;
+}
+
+/** Sedmica koja se pakuje (posljednja zaključana) i otvorena sedmica — `GET /admin/sedmice-rada`. */
+export interface SedmiceRada {
+  pakovanje: SedmicaRada;
+  otvorena: SedmicaRada;
+}

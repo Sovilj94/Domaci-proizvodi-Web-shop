@@ -13,6 +13,7 @@ import { OrderCard } from "@/components/admin/order-card";
 import { NarudzbeTabla } from "@/components/admin/narudzbe-tabla";
 import { RobaZaSedmicu } from "@/components/admin/roba-za-sedmicu";
 import { TrakaRoka } from "@/components/admin/traka-roka";
+import { useSedmiceRada } from "@/lib/admin/sedmice-rada";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { Input } from "@/components/ui/field";
 import { ApiRequestError } from "@/lib/api/client";
@@ -20,6 +21,8 @@ import { adminApi } from "@/lib/api/endpoints";
 import { STATUS_META } from "@/lib/orders";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "@/types/domain";
 import { cn } from "@/lib/utils";
+
+type Pogled = "pakovanje" | "otvorena" | "prosle";
 
 export default function AdminOrdersPage() {
   return (
@@ -42,12 +45,25 @@ function AdminOrders() {
   // Pretraga dolazi i iz linka (npr. sa ekrana kupca: ?pretraga=EP-2610-0063).
   const [unos, setUnos] = useState(params.get("pretraga") ?? "");
   const [pretraga, setPretraga] = useState(unos.trim());
-  const [poSedmici, setPoSedmici] = useState(params.has("datum"));
   useEffect(() => {
     const t = setTimeout(() => setPretraga(unos.trim()), 300);
     return () => clearTimeout(t);
   }, [unos]);
-  const sedmica = poSedmici ? { godina: izbor.godina, sedmica: izbor.sedmica } : {};
+
+  // Sedmica: podrazumijevano ona koja se pakuje (posljednja zaključana); pored nje otvorena i
+  // prošle (birač sedmice, ?datum=). Pretraga traži kroz sve sedmice.
+  const sr = useSedmiceRada();
+  const [pogled, setPogledStanje] = useState<Pogled>(() => {
+    const p = params.get("pogled");
+    return p === "otvorena" || p === "prosle" ? p : "pakovanje";
+  });
+  const aktivna =
+    pogled === "prosle"
+      ? { godina: izbor.godina, sedmica: izbor.sedmica }
+      : sr.data
+        ? { godina: sr.data[pogled].godina, sedmica: sr.data[pogled].sedmica }
+        : null;
+  const sedmica = pretraga ? {} : (aktivna ?? {});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
   const { show } = useToast();
@@ -64,6 +80,18 @@ function AdminOrders() {
     setPrikazStanje(p);
     const next = new URLSearchParams(params.toString());
     next.set("prikaz", p);
+    router.replace(`${pathname}?${next}`, { scroll: false });
+  }
+  function setPogled(p: Pogled) {
+    setPogledStanje(p);
+    const next = new URLSearchParams(params.toString());
+    next.set("pogled", p);
+    // Prošle sedmice počinju od sedmice prije one koja se pakuje.
+    if (p === "prosle" && sr.data) {
+      const d = new Date(sr.data.pakovanje.isporuka);
+      d.setUTCDate(d.getUTCDate() - 7);
+      next.set("datum", d.toISOString().slice(0, 10));
+    }
     router.replace(`${pathname}?${next}`, { scroll: false });
   }
   const status = prikaz === "tabla" ? null : filter;
@@ -85,6 +113,8 @@ function AdminOrders() {
   const kljuc = ["admin", "orders", { status, pretraga, ...sedmica }] as const;
   const orders = useQuery({
     queryKey: kljuc,
+    // Bez sedmice (dok se sedmice rada učitavaju) se ne traži — inače bi stigle sve narudžbe.
+    enabled: Boolean(pretraga) || aktivna !== null,
     queryFn: () => adminApi.orders({ status: status ?? undefined, pretraga: pretraga || undefined, ...sedmica }),
     // Nove narudžbe stižu same; pauzira se kad je tab u pozadini.
     refetchInterval: 30_000,
@@ -104,11 +134,7 @@ function AdminOrders() {
     vidjene.current = new Set([...(vidjene.current ?? []), ...otvorene.map((o) => o.id)]);
   }, [orders.data, show]);
 
-  // Otvorene (rok još nije prošao) / zaključene (u nabavci) — iz ZakljucanaU sa servera.
-  const [rok, setRok] = useState<"sve" | "otvorene" | "zakljucene">("sve");
-  const prikazane = (orders.data ?? []).filter((o) =>
-    rok === "sve" ? true : rok === "zakljucene" ? Boolean(o.zakljucanaU) : !o.zakljucanaU,
-  );
+  const prikazane = orders.data ?? [];
 
   /** Optimistično pomjeri narudžbu u svim keširanim listama narudžbi. */
   function pomjeri(id: string, status: OrderStatus) {
@@ -187,16 +213,18 @@ function AdminOrders() {
         </div>
       </div>
 
-      <details ref={nabavka} open className="group rounded-card border border-line bg-surface">
-        <summary className="cursor-pointer list-none px-4 py-3 font-display text-base font-bold text-ink sm:px-5 sm:text-lg">
-          Nabavka za sedmicu {izbor.sedmica}. — koliko robe treba
-          <span className="ml-2 text-sm font-normal text-muted group-open:hidden">(otvori)</span>
-        </summary>
-        <div className="space-y-3 border-t border-line px-4 py-4 sm:px-5">
-          <IzborSedmice s={izbor} />
-          <RobaZaSedmicu godina={izbor.godina} sedmica={izbor.sedmica} />
-        </div>
-      </details>
+      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Sedmica">
+        {(
+          [
+            ["pakovanje", sr.data ? `Pakuje se · sedmica ${sr.data.pakovanje.sedmica}.` : "Pakuje se"],
+            ["otvorena", sr.data ? `Otvorena · sedmica ${sr.data.otvorena.sedmica}.` : "Otvorena"],
+            ["prosle", "Prošle sedmice"],
+          ] as const
+        ).map(([k, naziv]) => (
+          <FilterChip key={k} label={naziv} active={pogled === k} onClick={() => setPogled(k)} />
+        ))}
+        {pogled === "prosle" && <IzborSedmice s={izbor} />}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full max-w-xs">
@@ -205,26 +233,28 @@ function AdminOrders() {
             aria-label="Pretraga narudžbi"
             value={unos}
             onChange={(e) => setUnos(e.target.value)}
-            placeholder="Šifra, kupac, telefon ili adresa"
+            placeholder="Pretraga kroz sve sedmice: šifra, kupac, telefon, adresa"
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input type="checkbox" checked={poSedmici} onChange={(e) => setPoSedmici(e.target.checked)} className="h-4 w-4 accent-brand-600" />
-          Samo sedmica isporuke
-        </label>
-        {poSedmici && <IzborSedmice s={izbor} />}
         <Link href="/admin/pakovanje" className="text-sm font-medium text-brand-700 hover:underline">
           Pakovanje sedmice →
         </Link>
       </div>
 
-      <TrakaRoka godina={izbor.godina} sedmica={izbor.sedmica} datum={izbor.datumParam} />
-
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1" role="group" aria-label="Rok za izmjene">
-        <FilterChip label="Sve" active={rok === "sve"} onClick={() => setRok("sve")} />
-        <FilterChip label="Otvorene" active={rok === "otvorene"} onClick={() => setRok("otvorene")} />
-        <FilterChip label="Zaključene" active={rok === "zakljucene"} onClick={() => setRok("zakljucene")} />
-      </div>
+      {aktivna && !pretraga && (
+        <>
+          <TrakaRoka godina={aktivna.godina} sedmica={aktivna.sedmica} datum={izbor.datumParam} />
+          <details ref={nabavka} className="group rounded-card border border-line bg-surface">
+            <summary className="cursor-pointer list-none px-4 py-3 font-display text-base font-bold text-ink sm:px-5 sm:text-lg">
+              Roba za sedmicu {aktivna.sedmica}. — koliko treba
+              <span className="ml-2 text-sm font-normal text-muted group-open:hidden">(otvori)</span>
+            </summary>
+            <div className="space-y-3 border-t border-line px-4 py-4 sm:px-5">
+              <RobaZaSedmicu godina={aktivna.godina} sedmica={aktivna.sedmica} />
+            </div>
+          </details>
+        </>
+      )}
 
       {prikaz === "lista" && (
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">

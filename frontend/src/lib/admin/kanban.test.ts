@@ -30,7 +30,7 @@ test("stara narudžba na čekanju ide među prihvaćene", () => {
   assert.deepEqual(t.kolone.Confirmed.map((o) => o.code), ["B", "A"]);
 });
 
-test("raspored: red čekanja najstariji prvi, dostavljene najnovije prve, problemi i otkazane odvojeno", () => {
+test("raspored: red čekanja najstariji prvi, završene (i neuspjele) najnovije prve, otkazane se broje", () => {
   const t = rasporedi([
     n("A", "Confirmed", "2026-10-21T10:00"),
     n("B", "Confirmed", "2026-10-20T10:00"),
@@ -40,7 +40,7 @@ test("raspored: red čekanja najstariji prvi, dostavljene najnovije prve, proble
     n("F", "Cancelled", "2026-10-21T08:00"),
   ]);
   assert.deepEqual(t.kolone.Confirmed.map((o) => o.code), ["B", "A"]);
-  assert.deepEqual(t.kolone.Delivered.map((o) => o.code), ["D", "C"]);
-  assert.deepEqual(t.problemi.map((o) => o.code), ["E"]);
+  // Neuspjela dostava nije posebna traka — samo je označena među završenima.
+  assert.deepEqual(t.kolone.Delivered.map((o) => o.code), ["D", "E", "C"]);
   assert.equal(t.otkazane, 1);
 });

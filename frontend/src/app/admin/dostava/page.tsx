@@ -16,6 +16,7 @@ import { narudzbeRijec, razlogNeuspjeha } from "@/lib/orders";
 import type { Driver, Voznja } from "@/lib/api/contracts";
 import type { DeliveryRoute, Order, PodjelaStavka, RouteStop } from "@/types/domain";
 import { cn, formatPrice } from "@/lib/utils";
+import { useSedmiceRada } from "@/lib/admin/sedmice-rada";
 
 const NEDODIJELJENO = "nedodijeljeno";
 
@@ -53,7 +54,10 @@ function AdminDostavaContent() {
 
   const driversKey = ["admin", "drivers"] as const;
   const routesKey = ["admin", "routes", date] as const;
-  const unassignedKey = ["admin", "orders", "unassigned", date] as const;
+  // Raspoređuju se samo narudžbe sedmice koja se pakuje (posljednja zaključana).
+  const sr = useSedmiceRada();
+  const pakovanje = sr.data?.pakovanje;
+  const unassignedKey = ["admin", "orders", "unassigned", date, pakovanje?.godina, pakovanje?.sedmica] as const;
   const voznjeKey = ["admin", "voznje", date] as const;
 
   const drivers = useQuery({ queryKey: driversKey, queryFn: () => adminApi.drivers() });
@@ -62,7 +66,9 @@ function AdminDostavaContent() {
   const voznje = useQuery({ queryKey: voznjeKey, queryFn: () => adminApi.voznjeDana(date) });
   const nedodijeljene = useQuery({
     queryKey: unassignedKey,
-    queryFn: () => adminApi.orders({ unassigned: true, date }),
+    queryFn: () =>
+      adminApi.orders({ unassigned: true, date, godina: pakovanje?.godina, sedmica: pakovanje?.sedmica }),
+    enabled: Boolean(pakovanje),
   });
 
   /** Stanice po vozaču, spojene iz svih njegovih ruta tog dana. */
@@ -279,7 +285,8 @@ function AdminDostavaContent() {
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">Dostava</h1>
           <p className="mt-1 text-sm text-muted">
-            Izaberi vozača i rasporedi mu narudžbe za dan.
+            Izaberi vozača i rasporedi mu narudžbe za dan
+            {pakovanje ? ` — narudžbe sedmice ${pakovanje.sedmica}. (zaključena, pakuje se)` : ""}.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">

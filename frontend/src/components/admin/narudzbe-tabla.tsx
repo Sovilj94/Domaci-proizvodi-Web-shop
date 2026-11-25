@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowRight, GripVertical, XCircle } from "lucide-react";
+import { ArrowRight, GripVertical, XCircle } from "lucide-react";
 import { AdminLadica } from "@/components/admin/admin-ladica";
 import { OrderCard } from "@/components/admin/order-card";
 import { KOLONE, NAJVISE_U_ZAVRSENOJ, mozePreci, rasporedi, sljedeci } from "@/lib/admin/kanban";
@@ -62,28 +62,6 @@ export function NarudzbeTabla({
 
   return (
     <div className="space-y-3">
-      {t.problemi.length > 0 && (
-        <div className="rounded-card border border-red-200 bg-red-50 p-3">
-          <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-700">
-            <AlertTriangle className="h-4 w-4" />
-            Neuspješna dostava — vrati u dostavu ili otkaži
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {t.problemi.map((o) => (
-              <Kartica
-                key={o.id}
-                o={o}
-                pending={pending}
-                onOtvori={() => setOtvorena(o)}
-                onNaprijed={(s) => onPromijeni(o, s)}
-                onVuci={setVuce}
-                kompaktna
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {otkazati && (
         <div role="alertdialog" className="flex flex-wrap items-center gap-3 rounded-card bg-ink p-3 text-sm text-white">
           <XCircle className="h-4 w-4 text-red-300" />
@@ -127,7 +105,9 @@ export function NarudzbeTabla({
             >
               <header className="mb-2 flex items-center gap-2 px-1.5 pt-1">
                 <span className={cn("h-2 w-2 rounded-full", STATUS_META[k].dot)} />
-                <h2 className="whitespace-nowrap text-sm font-semibold">{STATUS_META[k].label}</h2>
+                <h2 className="whitespace-nowrap text-sm font-semibold">
+                  {k === "Delivered" ? "Završene" : STATUS_META[k].label}
+                </h2>
                 <span className="rounded-full bg-white px-1.5 text-xs font-semibold text-muted">{sve.length}</span>
               </header>
               <div className="flex min-h-24 flex-col gap-2">
@@ -236,8 +216,10 @@ function Kartica({
               {o.deliverySlot?.label ? ` · ${o.deliverySlot.label}` : ""}
             </p>
             {o.note && <p className="mt-1 line-clamp-2 rounded bg-honey-100/60 px-1.5 py-0.5 text-[11px] text-honey-700">{o.note}</p>}
-            {o.status === "FailedDelivery" && o.razlogNeuspjeha && (
-              <p className="mt-1 text-[11px] font-medium text-red-700">{razlogNeuspjeha(o.razlogNeuspjeha)}</p>
+            {o.status === "FailedDelivery" && (
+              <p className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                Neuspješna dostava{o.razlogNeuspjeha ? ` · ${razlogNeuspjeha(o.razlogNeuspjeha)}` : ""}
+              </p>
             )}
           </div>
         </div>

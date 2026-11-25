@@ -22,18 +22,16 @@ export function sljedeci(od: OrderStatus): OrderStatus | null {
 
 export interface Tabla {
   kolone: Record<OrderStatus, Order[]>;
-  /** Neuspješne dostave traže odluku (ponovo u dostavu ili otkaži) — idu u traku iznad table. */
-  problemi: Order[];
   otkazane: number;
 }
 
 /** Narudžbe po kolonama; unutar kolone najstarije prve (red čekanja), završene najnovije prve. */
 export function rasporedi(narudzbe: Order[]): Tabla {
   const kolone = Object.fromEntries(KOLONE.map((k) => [k, [] as Order[]])) as unknown as Record<OrderStatus, Order[]>;
-  const problemi: Order[] = [];
   let otkazane = 0;
   for (const o of narudzbe) {
-    if (o.status === "FailedDelivery") problemi.push(o);
+    // Neuspjela dostava nije posebna traka: samo je označena i stoji među završenima.
+    if (o.status === "FailedDelivery") kolone.Delivered.push(o);
     else if (o.status === "Cancelled") otkazane++;
     // Stare narudžbe na čekanju (iz vremena odobravanja) su prihvaćene — backend ih prebacuje.
     else kolone[o.status === "Pending" ? "Confirmed" : o.status].push(o);
@@ -43,5 +41,5 @@ export function rasporedi(narudzbe: Order[]): Tabla {
       k === "Delivered" ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt),
     );
   }
-  return { kolone, problemi, otkazane };
+  return { kolone, otkazane };
 }
