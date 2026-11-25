@@ -160,6 +160,25 @@ public class ZakljucavanjeNarudzbiTests
     }
 
     /// <summary>
+    /// Prvi prolaz poslije uvođenja zaključavanja nađe svu istoriju otvorenu. Stare sedmice se
+    /// zaključaju, ali se ne vraćaju — inače bi posao napravio otkupne listove za svaku prošlu
+    /// sedmicu. Nabavka ima smisla samo dok isporuka tek dolazi.
+    /// </summary>
+    [Fact]
+    public async Task Sedmica_cija_je_isporuka_prosla_se_zakljucava_ali_ne_vraca()
+    {
+        var o = Napravi();
+        using var _ = o.T;
+        var stara = Narudzba(o, OrderStatus.Delivered, sedmica: 30);
+        Narudzba(o);
+
+        var sedmice = await ZakljucajAsync(o, PoslijeRoka);
+
+        Assert.Equal([new SedmicaKljuc(2026, 41)], sedmice);
+        Assert.NotNull((await UcitajAsync(o, stara.Id)).ZakljucanaU);
+    }
+
+    /// <summary>
     /// Zaključana narudžba se ne mijenja ni kad sat (u testu) još nije stigao do roka — posao je
     /// odlučio, a editor to poštuje istim kodom greške kao za istekao rok.
     /// </summary>

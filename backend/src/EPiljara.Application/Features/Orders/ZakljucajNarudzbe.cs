@@ -46,9 +46,13 @@ public class ZakljucajNarudzbeHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
 
         await db.SaveChangesAsync(ct);
 
+        // Vraćaju se samo sedmice čija isporuka tek dolazi — za njih se nabavlja. Prvi prolaz
+        // poslije uvođenja zaključavanja nađe svu istoriju otvorenu; nju zaključa, ali bez
+        // otkupnih listova za svaku prošlu sedmicu.
         return istekle
             .Select(o => new SedmicaKljuc(o.Godina, o.Sedmica))
             .Distinct()
+            .Where(s => SedmicaHelper.DatumIsporuke(s.Godina, s.Sedmica, dan, vrijemeOd) >= sada)
             .OrderBy(s => s.Godina).ThenBy(s => s.Sedmica)
             .ToList();
     }
