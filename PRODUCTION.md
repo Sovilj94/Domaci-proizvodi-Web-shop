@@ -147,9 +147,11 @@ registered and running rather than inferring it from the absence of complaints.
 
 The same service **locks orders** at that cutoff (`Order.ZakljucanaU`) and then creates one **otkupni list**
 per farm for the locked week. Orders are accepted on creation (no manual approval) and are never cancelled
-automatically any more. If the service is not running, orders stay editable past the deadline and no
-otkupni list appears — `/admin/nabavka` has a „Napravi otkupne listove" button for a week that is locked
-but has none.
+automatically any more. If the service is not running, customers still cannot edit after the deadline
+(the editor checks the deadline itself), but orders are never marked locked and no otkupni list appears —
+and the „Napravi otkupne listove" button on `/admin/nabavka` refuses (409 `sedmica_nije_zakljucana`)
+because nothing is locked. So confirm the service runs. A locked upcoming week without lists is retried
+on every pass, and the button covers a single failed pass.
 
 **Farm personal data.** A producer's JMBG, bank account and bank (for the otkupni list) are personal data.
 They are returned only by admin endpoints (`GET /admin/producers`, `/admin/otkupni-listovi`), never by the

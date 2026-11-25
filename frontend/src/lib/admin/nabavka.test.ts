@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { StavkaPakerske } from "@/lib/api/contracts";
-import { grupeNabavke, poGazdinstvu, spisakRobe } from "./nabavka.ts";
+import { grupeNabavke, karticeGazdinstava, poGazdinstvu, spisakRobe, zaStampu } from "./nabavka.ts";
+import type { OtkupniList } from "@/lib/api/contracts";
 
 const s = (artikal: string, proizvodjac: string, kolicina: number, nabavnaCijena: number | null = null, jedinica = "kg") =>
   ({
@@ -86,4 +87,23 @@ test("poGazdinstvu: stavka bez gazdinstva ide u „Bez gazdinstva\" na kraju", (
   const grupe = poGazdinstvu([g("Nepoznato", 1), g("Krompir", 1, "p1", "Ažić")]);
   assert.deepEqual(grupe.map((x) => x.naziv), ["Ažić", "Bez gazdinstva"]);
   assert.equal(grupe[1].trosak, null);
+});
+
+const list = (id: string, naziv: string, stavki: number) =>
+  ({
+    id: `l-${id}`,
+    broj: `OL-2026-${id}`,
+    prodavac: { id, naziv, selo: "Selo" },
+    stavke: Array.from({ length: stavki }, (_, i) => ({ id: `${id}-${i}`, naziv: "X", jedinica: "kg", naruceno: 1 })),
+    zastario: false,
+  }) as unknown as OtkupniList;
+
+test("karticeGazdinstava: list gazdinstva koje je ispalo iz nabavke i dalje ima karticu", () => {
+  const kartice = karticeGazdinstava(poGazdinstvu([g("Krompir", 1, "p1", "Petković")]), [list("p1", "Petković", 1), list("p2", "Đurić", 1)]);
+  assert.deepEqual(kartice.map((k) => k.naziv), ["Đurić", "Petković"]);
+  assert.deepEqual(kartice.find((k) => k.proizvodjacId === "p2")!.redovi, []);
+});
+
+test("zaStampu: prazan otkupni list se ne štampa", () => {
+  assert.deepEqual(zaStampu([list("p1", "A", 2), list("p2", "B", 0)]).map((l) => l.prodavac.id), ["p1"]);
 });

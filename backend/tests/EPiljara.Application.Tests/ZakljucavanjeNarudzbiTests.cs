@@ -113,9 +113,8 @@ public class ZakljucavanjeNarudzbiTests
         var n = Narudzba(o);
 
         await ZakljucajAsync(o, PoslijeRoka);
-        var drugi = await ZakljucajAsync(o, PoslijeRoka.AddHours(1));
+        await ZakljucajAsync(o, PoslijeRoka.AddHours(1));
 
-        Assert.Empty(drugi);
         Assert.Equal(PoslijeRoka, (await UcitajAsync(o, n.Id)).ZakljucanaU);
     }
 
@@ -176,6 +175,47 @@ public class ZakljucavanjeNarudzbiTests
 
         Assert.Equal([new SedmicaKljuc(2026, 41)], sedmice);
         Assert.NotNull((await UcitajAsync(o, stara.Id)).ZakljucanaU);
+    }
+
+    /// <summary>
+    /// Narudžba zaključana poslije nastanka otkupnih listova (zakasnila u trku sa prolazom)
+    /// mijenja nabavku — listovi te sedmice moraju postati zastarjeli, ne ćutati.
+    /// </summary>
+    [Fact]
+    public async Task Kasno_zakljucana_narudzba_oznacava_postojece_listove_zastarjelim()
+    {
+        var o = Napravi();
+        using var _ = o.T;
+        Narudzba(o);
+        await ZakljucajAsync(o, PoslijeRoka);
+        o.T.Db.OtkupniListovi.Add(new OtkupniList
+        {
+            Broj = "OL-2026-0001", ProducerId = o.Artikal.ProducerId, Godina = 2026, Sedmica = 41,
+        });
+        await o.T.Db.SaveChangesAsync();
+        Narudzba(o);
+
+        await ZakljucajAsync(o, PoslijeRoka.AddMinutes(15));
+
+        o.T.Db.ChangeTracker.Clear();
+        Assert.True((await o.T.Db.OtkupniListovi.SingleAsync()).Zastario);
+    }
+
+    /// <summary>
+    /// Zaključana sedmica čija isporuka tek dolazi, a nema nijedan otkupni list (prethodni prolaz
+    /// pao ili ih nije napravio), vraća se ponovo — posao sam popravlja, ne samo dugme admina.
+    /// </summary>
+    [Fact]
+    public async Task Zakljucana_sedmica_bez_listova_se_vraca_ponovo()
+    {
+        var o = Napravi();
+        using var _ = o.T;
+        Narudzba(o);
+        await ZakljucajAsync(o, PoslijeRoka);
+
+        var drugi = await ZakljucajAsync(o, PoslijeRoka.AddMinutes(15));
+
+        Assert.Equal([new SedmicaKljuc(2026, 41)], drugi);
     }
 
     /// <summary>

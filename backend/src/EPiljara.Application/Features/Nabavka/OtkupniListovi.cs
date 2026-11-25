@@ -163,7 +163,17 @@ public class NapraviOtkupneListoveHandler(IAppDbContext db, IOptions<KorpiceOpci
             db.OtkupniListovi.Add(list);
         }
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Unique Broj / (gazdinstvo, sedmica): drugi upis (posao ili admin) je istovremeno
+            // pravio listove. Ništa nije upisano (jedan SaveChanges); sljedeći poziv vidi njegove.
+            throw new ConflictException(
+                "Otkupni listovi se upravo prave — osvježi stranicu za koji trenutak.", "otkupni_listovi_u_izradi");
+        }
         return nova.Count;
     }
 }

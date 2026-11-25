@@ -6,7 +6,7 @@ import { AlertTriangle, FileDown, FilePlus2, Phone, RefreshCw } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { OtkupniListUnos } from "@/components/admin/otkupni-list";
-import { poGazdinstvu, type GrupaGazdinstva } from "@/lib/admin/nabavka";
+import { karticeGazdinstava, poGazdinstvu, zaStampu, type GrupaGazdinstva } from "@/lib/admin/nabavka";
 import { adminApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import { useSadrzajSajta } from "@/lib/api/hooks";
@@ -24,7 +24,6 @@ export function NabavkaGazdinstva({ lista }: { lista: PakerskaLista }) {
   const qc = useQueryClient();
   const { show } = useToast();
   const sadrzaj = useSadrzajSajta();
-  const grupe = poGazdinstvu(lista.stavke);
   const kljuc = ["admin", "otkupni-listovi", lista.godina, lista.sedmica] as const;
 
   const listovi = useQuery({
@@ -32,6 +31,7 @@ export function NabavkaGazdinstva({ lista }: { lista: PakerskaLista }) {
     queryFn: () => adminApi.otkupniListovi(lista.godina, lista.sedmica),
     enabled: lista.zakljucena,
   });
+  const grupe = karticeGazdinstava(poGazdinstvu(lista.stavke), listovi.data ?? []);
   const poProdavcu = new Map((listovi.data ?? []).map((l) => [l.prodavac.id, l]));
 
   const napravi = useMutation({
@@ -60,8 +60,9 @@ export function NabavkaGazdinstva({ lista }: { lista: PakerskaLista }) {
     }
   }
 
-  const svi = listovi.data ?? [];
-  const nedostaje = lista.zakljucena && listovi.isSuccess && grupe.some((g) => g.proizvodjacId && !poProdavcu.has(g.proizvodjacId));
+  const svi = zaStampu(listovi.data ?? []);
+  const nedostaje =
+    lista.zakljucena && listovi.isSuccess && grupe.some((g) => g.proizvodjacId && g.redovi.length > 0 && !poProdavcu.has(g.proizvodjacId));
 
   return (
     <div className="space-y-4">
@@ -145,9 +146,11 @@ function KarticaGazdinstva({
               <Button size="sm" variant="secondary" onClick={() => setUnos((u) => !u)}>
                 {unos ? "Zatvori unos" : "Unesi primljeno"}
               </Button>
-              <Button size="sm" onClick={() => onPdf(list)} disabled={pdfRadi}>
-                <FileDown className="h-4 w-4" /> {pdfRadi ? "Pravim PDF…" : "Otkupni list (PDF)"}
-              </Button>
+              {list.stavke.length > 0 && (
+                <Button size="sm" onClick={() => onPdf(list)} disabled={pdfRadi}>
+                  <FileDown className="h-4 w-4" /> {pdfRadi ? "Pravim PDF…" : "Otkupni list (PDF)"}
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -163,6 +166,13 @@ function KarticaGazdinstva({
             </Button>
           )}
         </div>
+      )}
+
+      {g.redovi.length === 0 && list && (
+        <p className="border-b border-line px-3 py-2 text-sm text-muted">
+          Gazdinstvo više nema robe u nabavci ove sedmice
+          {list.stavke.length > 0 ? " — osvježi količine prije štampe." : " — otkupni list se ne nosi u nabavku."}
+        </p>
       )}
 
       {unos && list ? (

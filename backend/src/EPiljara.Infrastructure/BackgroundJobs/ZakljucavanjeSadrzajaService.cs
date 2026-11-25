@@ -32,12 +32,20 @@ public class ZakljucavanjeSadrzajaService(
                 var broj = await mediator.Send(new ZakljucajSadrzajeCommand(), stoppingToken);
                 if (broj > 0) log.LogInformation("Zaključano sadržaja korpica: {Broj}", broj);
                 var sedmice = await mediator.Send(new ZakljucajNarudzbeCommand(), stoppingToken);
-                if (sedmice.Count > 0) log.LogInformation("Zaključane narudžbe sedmica: {Sedmice}", string.Join(", ", sedmice.Select(s => $"{s.Sedmica}/{s.Godina}")));
                 // Otkupni listovi nastaju čim se sedmica zaključa — po jedan za svako gazdinstvo.
+                // Sedmica bez listova se vraća u svakom prolazu dok ih ne dobije, pa pad jedne
+                // sedmice ne prekida ostale i sljedeći prolaz pokušava ponovo.
                 foreach (var s in sedmice)
                 {
-                    var listova = await mediator.Send(new NapraviOtkupneListoveCommand(s.Godina, s.Sedmica), stoppingToken);
-                    if (listova > 0) log.LogInformation("Otkupnih listova za sedmicu {Sedmica}/{Godina}: {Broj}", s.Sedmica, s.Godina, listova);
+                    try
+                    {
+                        var listova = await mediator.Send(new NapraviOtkupneListoveCommand(s.Godina, s.Sedmica), stoppingToken);
+                        if (listova > 0) log.LogInformation("Otkupnih listova za sedmicu {Sedmica}/{Godina}: {Broj}", s.Sedmica, s.Godina, listova);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        log.LogError(ex, "Otkupni listovi za sedmicu {Sedmica}/{Godina} nisu napravljeni.", s.Sedmica, s.Godina);
+                    }
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

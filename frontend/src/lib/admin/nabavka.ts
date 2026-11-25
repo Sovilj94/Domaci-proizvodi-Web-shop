@@ -1,4 +1,4 @@
-import type { StavkaPakerske } from "@/lib/api/contracts";
+import type { OtkupniList, StavkaPakerske } from "@/lib/api/contracts";
 
 /** Jedan red spiska za nabavku: koliko čega treba, bez obzira od koga se kupuje. */
 export interface RedNabavke {
@@ -110,4 +110,31 @@ export function poGazdinstvu(stavke: StavkaPakerske[]): GrupaGazdinstva[] {
       };
     })
     .sort((a, b) => Number(!a.proizvodjacId) - Number(!b.proizvodjacId) || a.naziv.localeCompare(b.naziv, "sr-Latn"));
+}
+
+/**
+ * Kartice ekrana nabavke: svako gazdinstvo iz nabavke plus svako koje ima otkupni list a više
+ * nema robe (admin je poslije zaključavanja otkazao njegovu narudžbu). Bez ovoga bi takav list
+ * ostao nevidljiv na ekranu — bez upozorenja i osvježavanja — a štampao bi se u „Svi listovi".
+ */
+export function karticeGazdinstava(grupe: GrupaGazdinstva[], listovi: OtkupniList[]): GrupaGazdinstva[] {
+  const ima = new Set(grupe.map((g) => g.proizvodjacId));
+  const bezRobe = listovi
+    .filter((l) => !ima.has(l.prodavac.id))
+    .map((l) => ({
+      proizvodjacId: l.prodavac.id,
+      naziv: l.prodavac.naziv,
+      selo: l.prodavac.selo,
+      telefon: l.prodavac.telefon,
+      redovi: [] as RedNabavke[],
+      trosak: null,
+    }));
+  return [...grupe, ...bezRobe].sort(
+    (a, b) => Number(!a.proizvodjacId) - Number(!b.proizvodjacId) || a.naziv.localeCompare(b.naziv, "sr-Latn"),
+  );
+}
+
+/** Otkupni listovi za štampu: prazan list (gazdinstvo bez robe) se ne nosi u nabavku. */
+export function zaStampu(listovi: OtkupniList[]): OtkupniList[] {
+  return listovi.filter((l) => l.stavke.length > 0);
 }

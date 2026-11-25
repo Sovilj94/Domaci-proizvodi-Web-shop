@@ -37,7 +37,10 @@ function strana(l: OtkupniList, kupac: Otkupljivac, prva: boolean): Content[] {
       ...(prva ? {} : { pageBreak: "before" as const }),
     },
     { text: `OTKUPNI LIST br. ${l.broj}`, fontSize: 18, bold: true, margin: [0, 4, 0, 2] },
-    { text: `Datum otkupa: ${datum(l.datum)}`, fontSize: 10, color: "#555555", margin: [0, 0, 0, 10] },
+    { text: `Datum otkupa: ${datum(l.datum)}`, fontSize: 10, color: "#555555", margin: [0, 0, 0, l.zastario ? 4 : 10] },
+    ...(l.zastario
+      ? [{ text: "ZASTARIO — narudžbe su mijenjane poslije zaključavanja, količine možda nisu ažurne.", fontSize: 9, bold: true, color: "#b42318", margin: [0, 0, 0, 10] as [number, number, number, number] }]
+      : []),
     {
       columns: [
         [

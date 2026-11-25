@@ -125,6 +125,30 @@ public class OtkupniListoviTests
         Assert.Equal([$"OL-{o.T.Godina}-0001", $"OL-{o.T.Godina}-0002"], brojevi);
     }
 
+    /// <summary>
+    /// Sudar broja (dva upisa istovremeno — posao i dugme admina) mora biti 409 sa kodom, ne 500.
+    /// Ovdje se sudar namješta: list druge sedmice već nosi broj koji bi sljedeći dobio.
+    /// </summary>
+    [Fact]
+    public async Task Sudar_broja_vraca_409_umjesto_500()
+    {
+        var o = await NapraviAsync();
+        using var _ = o.T;
+        await o.T.PosaljiArtikalAsync(o.T.KrompirId, 1m);
+        await ZakljucajSveAsync(o.T);
+        o.T.Db.OtkupniListovi.Add(new OtkupniList
+        {
+            Broj = $"OL-{o.T.Godina}-0001", ProducerId = o.Jelena.Id, Godina = o.T.Godina - 1, Sedmica = 1,
+        });
+        await o.T.Db.SaveChangesAsync();
+        await o.T.Db.OtkupniListovi.ExecuteUpdateAsync(s => s.SetProperty(l => l.Godina, o.T.Godina + 1));
+        o.T.Db.ChangeTracker.Clear();
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => NapraviListoveAsync(o.T));
+
+        Assert.Equal("otkupni_listovi_u_izradi", ex.Code);
+    }
+
     [Fact]
     public async Task Nezakljucana_sedmica_vraca_sedmica_nije_zakljucana()
     {

@@ -44,14 +44,30 @@ public class ZakljucajNarudzbeHandler(IAppDbContext db, IOptions<KorpiceOpcije> 
             .ToList();
         foreach (var o in istekle) o.ZakljucanaU = sada;
 
+        // Narudžba zaključana tek kad listovi njene sedmice već postoje (zakasnila u trku sa
+        // prolazom) mijenja nabavku — listovi te sedmice postaju zastarjeli, ne ćute.
+        foreach (var s in istekle.Select(o => (o.Godina, o.Sedmica)).Distinct())
+            if (await db.OtkupniListovi.AnyAsync(l => l.Godina == s.Godina && l.Sedmica == s.Sedmica, ct))
+                await Nabavka.OtkupniListPravila.OznaciZastaroAsync(db, s.Godina, s.Sedmica, ct);
+
         await db.SaveChangesAsync(ct);
 
-        // Vraćaju se samo sedmice čija isporuka tek dolazi — za njih se nabavlja. Prvi prolaz
-        // poslije uvođenja zaključavanja nađe svu istoriju otvorenu; nju zaključa, ali bez
-        // otkupnih listova za svaku prošlu sedmicu.
-        return istekle
-            .Select(o => new SedmicaKljuc(o.Godina, o.Sedmica))
+        // Za otkupne listove se vraćaju zaključane sedmice čija isporuka tek dolazi i koje još
+        // nemaju nijedan list — i novo zaključane i one iz ranijeg prolaza koji ih nije napravio
+        // (pad, trka sa adminom), pa posao sam popravlja. Prvi prolaz poslije uvođenja
+        // zaključavanja nađe svu istoriju otvorenu; nju zaključa, ali bez listova za prošle sedmice.
+        var zakljucane = await db.Orders
+            .Where(o => o.Status != OrderStatus.Cancelled && o.ZakljucanaU != null)
+            .Select(o => new { o.Godina, o.Sedmica })
             .Distinct()
+            .ToListAsync(ct);
+        var saListovima = await db.OtkupniListovi
+            .Select(l => new { l.Godina, l.Sedmica })
+            .Distinct()
+            .ToListAsync(ct);
+        return zakljucane
+            .Where(s => !saListovima.Contains(s))
+            .Select(s => new SedmicaKljuc(s.Godina, s.Sedmica))
             .Where(s => SedmicaHelper.DatumIsporuke(s.Godina, s.Sedmica, dan, vrijemeOd) >= sada)
             .OrderBy(s => s.Godina).ThenBy(s => s.Sedmica)
             .ToList();
