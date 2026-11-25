@@ -24,24 +24,24 @@ public class AdminZadaciTests
     private static Task<EPiljara.Application.DTOs.AdminZadaciDto> Zadaci(Scenario t) =>
         new GetAdminZadaciHandler(t.Db, Options.Create(TestOpcije.Korpice())).Handle(new GetAdminZadaciQuery(), default);
 
+    /// <summary>Nema potvrđivanja: nova narudžba nije zadatak, a korpica bez sadržaja jeste.</summary>
     [Fact]
-    public async Task Narudzba_na_cekanju_i_korpica_bez_sadrzaja_su_zadaci()
+    public async Task Korpica_bez_sadrzaja_je_zadatak_a_nova_narudzba_nije()
     {
         using var t = await NapraviAsync(objaviSadrzaj: false);
         await t.PosaljiObicanArtikalAsync();
 
         var r = await Zadaci(t);
 
-        r.Zadaci.Should().Contain(z => z.Kljuc == "narudzbe_na_cekanju" && z.Broj == 1 && z.Nivo == "hitno");
+        r.Zadaci.Should().NotContain(z => z.Kljuc == "narudzbe_na_cekanju");
         r.Zadaci.Should().Contain(z => z.Kljuc == "sadrzaj_korpica" && z.Broj == 1 && z.Akcija == "Generiši");
-        r.Zadaci.Single(z => z.Kljuc == "narudzbe_na_cekanju").Naslov.Should().Be("1 narudžba čeka potvrdu");
-        r.Meni["narudzbe"].Should().Be(1);
+        r.Meni.Should().NotContainKey("narudzbe");
         r.Meni["korpice"].Should().Be(1);
         r.Zadaci.Should().NotContain(z => z.Kljuc == "bez_nabavne");
     }
 
     [Fact]
-    public async Task Objavljen_sadrzaj_i_potvrdjena_narudzba_skidaju_zadatke()
+    public async Task Objavljen_sadrzaj_skida_zadatak()
     {
         using var t = await NapraviAsync(objaviSadrzaj: true);
         await t.PosaljiObicanArtikalAsync();
@@ -50,12 +50,26 @@ public class AdminZadaciTests
         (await Zadaci(t)).Zadaci.Single(z => z.Kljuc == "sadrzaj_korpica").Akcija.Should().Be("Pregledaj i objavi");
 
         await t.Db.SedmicniSadrzaji.ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, StatusSadrzaja.Objavljen));
-        await t.Db.Orders.Where(o => o.Status == OrderStatus.Pending)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, OrderStatus.Confirmed));
 
         var r = await Zadaci(t);
-        r.Zadaci.Should().NotContain(z => z.Kljuc == "sadrzaj_korpica" || z.Kljuc == "narudzbe_na_cekanju");
+        r.Zadaci.Should().NotContain(z => z.Kljuc == "sadrzaj_korpica");
         r.Meni["korpice"].Should().Be(0);
+    }
+
+    /// <summary>Pakuje se tek zaključena narudžba — otvorena se još mijenja.</summary>
+    [Fact]
+    public async Task Za_pakovanje_broji_samo_zakljucane()
+    {
+        using var t = await NapraviAsync(objaviSadrzaj: true);
+        await t.PosaljiObicanArtikalAsync();
+        var zakljucana = await t.PosaljiObicanArtikalAsync();
+
+        (await Zadaci(t)).Zadaci.Should().NotContain(z => z.Kljuc == "za_pakovanje");
+
+        await t.Db.Orders.Where(o => o.Id == zakljucana.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.ZakljucanaU, DateTime.UtcNow));
+
+        (await Zadaci(t)).Zadaci.Single(z => z.Kljuc == "za_pakovanje").Broj.Should().Be(1);
     }
 
     [Fact]

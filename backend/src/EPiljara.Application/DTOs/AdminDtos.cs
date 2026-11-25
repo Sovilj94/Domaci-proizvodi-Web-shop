@@ -141,7 +141,8 @@ public record DashboardDto
     public DateTime Date { get; init; }
     public int OrdersToday { get; init; }
     public decimal RevenueToday { get; init; }
-    public int PendingOrders { get; init; }
+    /// <summary>Prihvaćene narudžbe kojima rok još nije prošao — kupci ih još mogu mijenjati.</summary>
+    public int OpenOrders { get; init; }
     public int OutForDelivery { get; init; }
     public IReadOnlyList<StatusCountDto> StatusBreakdown { get; init; } = [];
 }

@@ -53,36 +53,34 @@ public class PakerskaListaTests
     }
 
     /// <summary>
-    /// Nabavlja se samo za potvrđene narudžbe: narudžba na čekanju nije u spisku (samo se
-    /// broji u NaCekanju), a čim je admin potvrdi, njena roba i nabavna vrijednost ulaze.
+    /// Nema više potvrđivanja: narudžba je prihvaćena čim nastane, pa njena roba odmah ulazi u
+    /// nabavku (prije roka kao predračun), bez ikakvog koraka admina.
     /// </summary>
     [Fact]
-    public async Task Narudzba_na_cekanju_ulazi_u_nabavku_tek_kad_se_potvrdi()
+    public async Task Prihvacena_narudzba_odmah_ulazi_u_nabavku()
     {
         using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
         await t.PosaljiKorpicuAsync(kolicina: 1m);
-        var naCekanju = await t.PosaljiKorpicuAsync(kolicina: 1m);
-        var prva = await t.Db.Orders.FirstAsync(x => x.Id != naCekanju.Id);
-        prva.Status = OrderStatus.Confirmed;
-        await t.Db.SaveChangesAsync();
         t.Db.ChangeTracker.Clear();
 
-        var prije = await t.PakerskaListaAsync(potvrdiNaCekanju: false);
+        var lista = await t.PakerskaListaAsync();
 
-        Assert.Equal(1, prije.BrojNarudzbi);
-        Assert.Equal(1, prije.NaCekanju);
-        Assert.Equal(2m, prije.Stavke.Single(s => s.Artikal == "Krompir").Kolicina);
+        Assert.Equal(1, lista.BrojNarudzbi);
+        Assert.Equal(2m, lista.Stavke.Single(s => s.Artikal == "Krompir").Kolicina);
+    }
 
-        var o = await t.Db.Orders.FirstAsync(x => x.Id == naCekanju.Id);
-        o.Status = OrderStatus.Confirmed;
-        await t.Db.SaveChangesAsync();
+    /// <summary>Nabavka se radi po gazdinstvu — svaki red nosi Id svog proizvođača.</summary>
+    [Fact]
+    public async Task Stavka_nosi_ProizvodjacId()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        await t.PosaljiKorpicuAsync(kolicina: 1m);
+        var proizvodjacId = (await t.Db.Products.SingleAsync(p => p.Id == t.KrompirId)).ProducerId;
         t.Db.ChangeTracker.Clear();
 
-        var poslije = await t.PakerskaListaAsync(potvrdiNaCekanju: false);
+        var lista = await t.PakerskaListaAsync();
 
-        Assert.Equal(2, poslije.BrojNarudzbi);
-        Assert.Equal(0, poslije.NaCekanju);
-        Assert.Equal(4m, poslije.Stavke.Single(s => s.Artikal == "Krompir").Kolicina);
+        Assert.Equal(proizvodjacId, lista.Stavke.Single(s => s.Artikal == "Krompir").ProizvodjacId);
     }
 
     [Fact]

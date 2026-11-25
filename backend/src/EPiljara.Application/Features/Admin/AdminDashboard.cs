@@ -34,7 +34,8 @@ public class GetDashboardHandler(IAppDbContext db) : IRequestHandler<GetDashboar
             Date = day,
             OrdersToday = todays.Count,
             RevenueToday = revenueToday,
-            PendingOrders = await db.Orders.CountAsync(o => o.Status == OrderStatus.Pending, ct),
+            OpenOrders = await db.Orders.CountAsync(
+                o => (o.Status == OrderStatus.Confirmed || o.Status == OrderStatus.Pending) && o.ZakljucanaU == null, ct),
             OutForDelivery = await db.Orders.CountAsync(o => o.Status == OrderStatus.OutForDelivery, ct),
             StatusBreakdown = breakdown,
         };

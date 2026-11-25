@@ -178,10 +178,8 @@ public record PakerskaListaDto
 {
     public int Godina { get; init; }
     public int Sedmica { get; init; }
-    /// <summary>Potvrđene narudžbe u listi — samo za njih se nabavlja.</summary>
+    /// <summary>Neotkazane narudžbe te sedmice — sve su prihvaćene, za sve se nabavlja.</summary>
     public int BrojNarudzbi { get; init; }
-    /// <summary>Narudžbe te sedmice koje čekaju potvrdu — nisu u listi dok se ne potvrde.</summary>
-    public int NaCekanju { get; init; }
     /// <summary>Rok naručivanja te sedmice (UTC); poslije njega kupci korpice više ne mijenjaju.</summary>
     public DateTime Rok { get; init; }
     /// <summary>Prvi dan isporuke te sedmice (UTC) — do tada roba mora biti nabavljena.</summary>
@@ -213,6 +211,8 @@ public record StavkaPakerskeDto
     public string Grupa { get; init; } = string.Empty;
     /// <summary>Redoslijed grupe: najmanji tip korpice koji kategorija puni; Špajz posljednji.</summary>
     public int RedGrupe { get; init; }
+    /// <summary>Gazdinstvo od kog se artikal nabavlja; null kad artikla više nema u katalogu.</summary>
+    public Guid? ProizvodjacId { get; init; }
     public string Proizvodjac { get; init; } = string.Empty;
     public string Selo { get; init; } = string.Empty;
     /// <summary>Telefon proizvođača, da se iz nabavke odmah zove.</summary>
@@ -223,26 +223,6 @@ public record StavkaPakerskeDto
     /// procurement istina i ne smije praviti prazne redove — ali ga operater mora
     /// posebno provjeriti umjesto da naruči "nepoznato".</summary>
     public bool ArtikalObrisan { get; init; }
-}
-
-/// <summary>Korpice na čekanju za jednu sedmicu i koliko ih stanje dozvoljava da se potvrdi.</summary>
-public record PotvrdjivanjeSedmiceDto
-{
-    public int Godina { get; init; }
-    public int Sedmica { get; init; }
-    public IReadOnlyList<PotvrdjivanjeKorpiceDto> Korpice { get; init; } = [];
-}
-
-public record PotvrdjivanjeKorpiceDto
-{
-    public Guid KorpicaId { get; init; }
-    public string Naziv { get; init; } = string.Empty;
-    /// <summary>Kutija na čekanju (zbir količina redova).</summary>
-    public int NaCekanju { get; init; }
-    /// <summary>Koliko od njih stanje pokriva, kad se potvrđuju redom kojim su stigle.</summary>
-    public int MozeSePotvrditi { get; init; }
-    /// <summary>Artikal kojeg je prvog nestalo, kad ne mogu sve.</summary>
-    public string? Nedostaje { get; init; }
 }
 
 /// <summary>Jedna korpica koju kupac trenutno može mijenjati.</summary>

@@ -22,16 +22,7 @@ public class GetAdminZadaciHandler(IAppDbContext db, IOptions<KorpiceOpcije> opc
     {
         var zadaci = new List<ZadatakDto>();
 
-        var naCekanju = await db.Orders.CountAsync(o => o.Status == OrderStatus.Pending, ct);
-        if (naCekanju > 0)
-            zadaci.Add(new ZadatakDto
-            {
-                Kljuc = "narudzbe_na_cekanju", Nivo = "hitno", Broj = naCekanju,
-                Naslov = Mnozina(naCekanju, "narudžba čeka", "narudžbe čekaju", "narudžbi čeka") + " potvrdu",
-                Opis = "Kupac ne zna da je narudžba primljena dok je ne potvrdiš.",
-                Link = "/admin/orders?status=Pending", Akcija = "Potvrdi",
-            });
-
+        // Narudžbe se ne potvrđuju ručno (prihvaćene su čim nastanu), pa nisu zadatak.
         // Korpice: sedmica koju checkout upravo prodaje (poslije roka je to naredna).
         var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
         var (godina, sedmica) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijemeOd, cutoff);
@@ -82,12 +73,14 @@ public class GetAdminZadaciHandler(IAppDbContext db, IOptions<KorpiceOpcije> opc
             }
         }
 
-        var potvrdjene = await db.Orders.CountAsync(o => o.Status == OrderStatus.Confirmed, ct);
-        if (potvrdjene > 0)
+        // Pakuje se tek zaključena narudžba — otvorena se još mijenja.
+        var zaPakovanje = await db.Orders.CountAsync(
+            o => o.Status == OrderStatus.Confirmed && o.ZakljucanaU != null, ct);
+        if (zaPakovanje > 0)
             zadaci.Add(new ZadatakDto
             {
-                Kljuc = "za_pakovanje", Nivo = "info", Broj = potvrdjene,
-                Naslov = Mnozina(potvrdjene, "potvrđena narudžba", "potvrđene narudžbe", "potvrđenih narudžbi") + " za pakovanje",
+                Kljuc = "za_pakovanje", Nivo = "info", Broj = zaPakovanje,
+                Naslov = Mnozina(zaPakovanje, "zaključena narudžba", "zaključene narudžbe", "zaključenih narudžbi") + " za pakovanje",
                 Opis = "Pakerska lista i dodjela vozača.",
                 Link = "/admin/pakovanje", Akcija = "Pakovanje",
             });
@@ -137,7 +130,6 @@ public class GetAdminZadaciHandler(IAppDbContext db, IOptions<KorpiceOpcije> opc
             Zadaci = zadaci,
             Meni = new Dictionary<string, int>
             {
-                ["narudzbe"] = naCekanju,
                 ["nabavka"] = zadaci.FirstOrDefault(z => z.Kljuc == "nabavka")?.Broj ?? 0,
                 ["korpice"] = neobjavljeno,
                 ["proizvodi"] = bezZalihe.Count,
