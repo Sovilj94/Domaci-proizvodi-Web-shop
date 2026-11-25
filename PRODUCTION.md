@@ -145,6 +145,17 @@ running, a content stays editable past its deadline, so the packing list (`GET
 the failure mode is silent (nothing errors; the content just never locks), so confirm the service is
 registered and running rather than inferring it from the absence of complaints.
 
+The same service **locks orders** at that cutoff (`Order.ZakljucanaU`) and then creates one **otkupni list**
+per farm for the locked week. Orders are accepted on creation (no manual approval) and are never cancelled
+automatically any more. If the service is not running, orders stay editable past the deadline and no
+otkupni list appears — `/admin/nabavka` has a „Napravi otkupne listove" button for a week that is locked
+but has none.
+
+**Farm personal data.** A producer's JMBG, bank account and bank (for the otkupni list) are personal data.
+They are returned only by admin endpoints (`GET /admin/producers`, `/admin/otkupni-listovi`), never by the
+public `/producers`. Have the accountant confirm the otkupni list layout and any tax obligations before
+using it as an official document.
+
 ## Pretplate (recurring basket subscriptions)
 
 Subscription rules (discount per plan from the first delivery, commitment in deliveries, how many hours before

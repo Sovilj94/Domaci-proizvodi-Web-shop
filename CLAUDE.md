@@ -490,6 +490,40 @@ source text — there is no message catalog and no Cyrillic column anywhere.
   both test suites read. Change a rule → change both files and add a vector.
 - Body font on Cyrillic is Onest (DM Sans has no Cyrillic glyphs).
 
+## Prihvatanje, zaključavanje i nabavka (2026-11-25)
+
+Spec: `docs/superpowers/specs/2026-11-25-narudzbe-bez-odobravanja-nabavka-design.md`.
+
+- **Nema ručnog odobravanja.** Oba mjesta koja prave `Order` (`CreateOrder.cs`, `GuestOrderRequests.cs`)
+  postavljaju `Status = Confirmed`. Ekran/endpoint potvrđivanja (`/admin/korpice/potvrdjivanje`),
+  `OdbijNepotvrdjene` (automatsko otkazivanje na roku) i zadatak „narudžbe na čekanju" su obrisani.
+  `Pending` ostaje u enumu samo za istoriju; posao ga pri prolazu prebacuje u `Confirmed`.
+- **Zaključavanje je vremenska oznaka, ne status:** `Order.ZakljucanaU` (`null` = otvorena). Postavlja je
+  samo `ZakljucajNarudzbeCommand` iz `ZakljucavanjeSadrzajaService` (svakih 15 min), za neotkazane
+  narudžbe kojima je prošao rok sedmice (isti izraz kao za sadržaj korpica). Status mašina se ne dira, pa
+  vozačka aplikacija, mejlovi i tabla rade kao prije. Kupčev editor korpice odbija zaključanu narudžbu
+  **istim kodom** `rok_istekao` kao istekao rok — provjera stoji uz provjeru roka, ne uz status, jer je
+  redoslijed pravila editora load-bearing. Rok se i dalje provjerava sam (posao može kasniti do 15 min).
+- **Nabavka broji sve neotkazane narudžbe** (`GetPakerskaListaHandler`); prije roka je to predračun
+  (`zakljucena: false`). Svaki red nosi `ProductId` i `ProizvodjacId` — nabavka se radi po gazdinstvu
+  (`poGazdinstvu` u `lib/admin/nabavka.ts`). Proizvod ima tačno jedno gazdinstvo (`Product.ProducerId`), a
+  „koliko gazdinstvo može dati" je `Product.Stock`.
+- **Otkupni list (`OtkupniList` + `OtkupniListStavka`, `Features/Nabavka`) je snimak**, kao `OrderItem`:
+  naziv, jedinica, naručeno, cijena (nabavna), primljeno. Jedan po `(ProducerId, Godina, Sedmica)` (unique),
+  broj `OL-{godina}-{NNNN}`. Posao ga pravi odmah poslije zaključavanja sedmice (`NapraviOtkupneListoveCommand`,
+  idempotentno); admin ima i dugme za listove koji nedostaju. Stavke se uvijek uzimaju iz pakerske liste —
+  nikad iz posebnog upita — da nabavka, pakovanje i otkupni list ne mogu da se raziđu.
+- **Admin izmjena zaključane narudžbe** (otkaz u `UpdateOrderStatusHandler`, izmjena korpice u
+  `IzmijeniKorpicuNarudzbeHandler`) zove `OtkupniListPravila.OznaciZastaroAsync` → `Zastario = true`.
+  „Osvježi količine" je dozvoljeno samo dok nijedna stavka nema `Primljeno` (409 `otkupni_list_primljen`).
+  Unos primljenog je samo evidencija — ne mijenja stanje ni narudžbe. Novo mjesto koje mijenja zaključanu
+  narudžbu mora takođe označiti listove zastarjelim.
+- **Podaci gazdinstva za otkupni list** (`Producer.NosilacIme/Bpg/Jmbg/Adresa/ZiroRacun/Banka`) idu samo
+  kroz `AdminProducerDto` (`GET /admin/producers`); javni `ProducerDto` ih nema (test to provjerava).
+  Gazdinstvo sa otkupnim listom se ne briše (`producer_in_use`). PDF (`lib/admin/otkupni-list-pdf.ts`)
+  štampa prazno polje kao liniju za upis rukom; JIB otkupljivača nema polje u bazi.
+- `Podesavanja.ObavRadnikOdbijene` i labela `odbijene_narudzbe` su ostali bez pošiljaoca (mrtva postavka).
+
 ## Primalac — narudžba za nekog drugog (2026-11-23)
 
 - **`Customer*` je naručilac, `Primalac*` je osoba kojoj se nosi.** `Order.PrimalacIme/PrimalacTelefon`
@@ -933,8 +967,8 @@ using OSM tiles.
 - **Unassigned orders come from `GET /admin/orders?unassigned=true&date=`, and that flag changes what
   `date` means** — with it, `date` is the *delivery* day (is this order on any route that day), without it
   it is the order's creation day. An order placed yesterday is still driven today, so filtering the
-  dispatch list by `CreatedAt` would hide it. The unassigned set deliberately includes `Pending`: the shop
-  creates every order as `Pending`, and omitting it made new orders invisible to the dispatcher.
+  dispatch list by `CreatedAt` would hide it. The unassigned set still includes `Pending` for old rows; since
+  2026-11-25 the shop creates every order as `Confirmed` (see „Prihvatanje, zaključavanje i nabavka").
 - **Admin data mutations** follow a consistent pattern: a TanStack `useMutation` calling `adminApi.*`,
   then `queryClient.invalidateQueries` for the affected keys and a toast. Admin CRUD forms are drawer
   components in `src/components/admin/*-form.tsx`.
