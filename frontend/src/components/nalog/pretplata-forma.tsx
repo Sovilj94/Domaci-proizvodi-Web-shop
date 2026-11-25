@@ -98,6 +98,8 @@ function Forma({
         : accountApi.dodajPretplatu(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.pretplate() });
+      // Nova pretplata odmah pravi narudžbu za ovu sedmicu — „Moja korpica" je mora pokazati.
+      qc.invalidateQueries({ queryKey: queryKeys.mojeKorpice() });
       show(pretplata ? "Pretplata izmijenjena" : "Pretplata je aktivna");
       onClose();
     },
@@ -127,6 +129,16 @@ function Forma({
   }
 
   const izabrana = korpice.data?.find((k) => k.id === form.productId);
+
+  const zastoNeMoze = vanPodrucja
+    ? "Na ovu adresu ne dostavljamo — izaberi drugu adresu."
+    : !imaTacku
+      ? "Da bi sačuvao, izaberi adresu sa liste prijedloga ili označi lokaciju na mapi i klikni „Potvrdi lokaciju“."
+      : naselje.isPending
+        ? "Određujem naselje…"
+        : naselje.isError
+          ? "Za ovu lokaciju ne možemo odrediti naselje — pomjeri pin ili izaberi drugu adresu."
+          : null;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -220,11 +232,17 @@ function Forma({
           )}
         </form>
 
+        {/* „Spremi“ čeka tačku sa određenim naseljem — kaži zašto je sivo, ne ostavljaj kupca da pogađa. */}
+        {!mutation.isPending && zastoNeMoze && (
+          <p className="border-t border-line bg-honey-100 px-4 py-2 text-xs font-medium text-ink/80">
+            {zastoNeMoze}
+          </p>
+        )}
         <div className="flex gap-3 border-t border-line p-4">
           <Button variant="secondary" className="flex-1" onClick={onClose} type="button">
             Otkaži
           </Button>
-          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || vanPodrucja || !naselje.data}>
+          <Button className="flex-1" onClick={submit} disabled={mutation.isPending || !!zastoNeMoze}>
             {mutation.isPending ? "Spremam…" : "Spremi"}
           </Button>
         </div>

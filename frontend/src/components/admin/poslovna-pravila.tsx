@@ -41,11 +41,8 @@ const GRUPE: { naslov: string; polja: { k: Kljuc; naziv: string; procenat?: bool
     ],
   },
   {
-    naslov: "Poeni i prodavnica",
+    naslov: "Prodavnica",
     polja: [
-      { k: "poenaPoKM", naziv: "Poena po 1 KM" },
-      { k: "vrijednostPoenaKM", naziv: "Vrijednost poena (KM)", korak: "0.01" },
-      { k: "nagradaPreporuka", naziv: "Nagrada za preporuku (poena)" },
       { k: "pragPriKraju", naziv: "„Još samo X na stanju\" od", korak: "0.01" },
     ],
   },
@@ -114,7 +111,7 @@ export function PoslovnaPravila() {
     <div className="space-y-4">
       <div>
         <h2 className="font-display text-xl font-bold">Poslovna pravila</h2>
-        <p className="text-muted">Marža, popusti, obaveze, poeni. Izmjena važi odmah za sve nove obračune.</p>
+        <p className="text-muted">Marža, popusti, obaveze. Izmjena važi odmah za sve nove obračune.</p>
       </div>
       {q.isLoading ? (
         <LoadingBlock />

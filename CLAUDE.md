@@ -260,13 +260,35 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   the number out loud for that reason. Before P2b it summed `StavkeSadrzaja`, so forty orders and one gave
   identical quantities and procurement bought for a single box.
 - **`KorpicaPodobnost` is the single definition of "may go into a korpica".** The generator narrows it to the
-  korpica's own categories; the customer's editor does not, because P2b's spec lets the customer pick from
-  the whole seasonal catalogue. Its split into `UpitPodobnih` (SQL) and `USezoni` (in memory) is not
+  korpica's own categories. The customer's editor (offer list, `PUT`, swap, "izaberi umjesto mene") is
+  narrowed too, via `KorpicaPodobnost.ZaKorpicu`: the seasonal calendar of that korpica type (its
+  `KorpicaKategorije` + season) **plus that week's proposed substitutes** (`ZamjenaSadrzaja`, admin's call).
+  This reverses P2b's "whole seasonal catalogue" — a vegetable box no longer offers cheese. A korpica with no
+  type/categories falls back to no restriction. The customer's editor also shows **no per-item prices** —
+  only quantities and the box's total value. Its split into `UpitPodobnih` (SQL) and `USezoni` (in memory) is not
   stylistic: `Product.Mjeseci` is `int[]` in C# but CSV in the database, so the season filter cannot be
   translated and must run on an already-materialised list.
-- **`PUT /account/korpice/{orderItemId}` accepts only `productIds`.** The server decides every quantity — an
-  item in that week's template keeps the template's quantity, anything else gets 1 in its own unit — and
-  re-reads prices itself. Accepting quantities would let a client write itself ten kilos at the price of one.
+- **Korpica po budžetu (2026-11-23).** The customer's editor is a budget, not a swap list: −/+ per item,
+  "Dodaj namirnicu", a "Iskorišteno N %" bar, one "Sačuvaj" (95–100 %), and "Popuni umjesto mene"
+  (`POST /account/korpice/{id}/popuni` — returns a proposed draft, **saves nothing**). Spec:
+  `docs/superpowers/specs/2026-11-23-korpica-po-budzetu-design.md`.
+  - **Minimum quantity lives on `Product`:** `NajmanjeUKorpici` (admin, Postavke korpica → "Najmanje"),
+    resolved by `NajmanjaKolicinaUKorpici()` = field, else kom 1 / kg·l `min(0,5, KolicinaMala)` — the old default
+    (the whole `KolicinaMala`) left the customer unable to reduce anything. `KorakUKorpici()` is the
+    +/− step (kom 1; kg/l 0,5 but never more than the minimum). DTOs carry `najmanje`/`korak` so the frontend
+    never re-derives the rule. Generator, PUT, popuni and `AutoZamjena.Probaj` all refuse anything below it —
+    an item that doesn't fit at its minimum is **left out, never shrunk**.
+  - **`PUT /account/korpice/{orderItemId}` takes `stavke: [{productId, kolicina?}]`** (old `productIds` still
+    works = all quantities null). The server still re-reads every price, so quantities cannot buy ten kilos
+    at the price of one; it checks: eligibility → quantity (`kolicina_neispravna` for a non-multiple of the
+    rounding step or a fractional piece, `kolicina_premala` below the minimum; an untouched template/snapshot
+    row is exempt) → budget → item count → **margin** (`marza`: purchase cost ≤ price × (1 − MinimalnaMarza),
+    or not worse than before) → stock.
+  - **Generator:** priority-0 items go in at their full size quantity unless the admin set `NajmanjeUKorpici`;
+    every other item starts at `NajmanjaKolicinaUKorpici()`;
+    weight may exceed `TezinaDo` by
+    `DozvoljenoPrekoTezine` (10 %). Margin is never broken. Fewer cultures than `MinimalanBrojArtikala` is now
+    an accepted outcome when minimums don't fit — lowering "Najmanje" is the admin's lever.
 - **`CiljnaVrijednost` is frozen at publish; `TrenutnaVrijednost` is summed from the order's rows.** They are
   equal the moment the content is copied and diverge the moment the customer edits, which is the entire
   budget rule (95–100%). Computing both from the same source makes the ratio permanently 100% and the rule
@@ -290,6 +312,10 @@ Everything hinges on one shared HTTP contract, so understand this before touchin
   and the order plus that marker are written inside **one** transaction. Split them and a crash in between
   hands the customer two boxes and two cash-on-delivery bills next pass. A pass that finds an order whose
   marker is missing repairs the marker instead of ordering again.
+- **A new subscription gets its order immediately, not on the next pass.** `POST /account/pretplate` sends
+  `NapraviPretplatnuNarudzbuCommand` right after creating it — the same handler and the same rules as the
+  job (window, published content, idempotency), for that one subscription — so „Moja korpica" shows the box
+  at once instead of up to 15 minutes later. A failure there is logged and swallowed; the job retries.
 - **The job must survive one broken row.** Every subscription is processed in its own `try`, and the catch
   **reloads the entity** — a rolled-back transaction leaves the in-memory `Poslednja*` edits in the context,
   and the next subscription's `SaveChanges` would flush them, permanently skipping that week for a customer

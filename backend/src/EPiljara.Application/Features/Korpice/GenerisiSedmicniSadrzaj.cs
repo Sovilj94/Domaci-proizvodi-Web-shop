@@ -254,6 +254,9 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
     /// <summary>Isto za osnovnu namirnicu (prioritet 0): krompir i luk smiju više, ali ne pola korpice preko.</summary>
     internal const decimal UdioOsnovneKulture = 0.5m;
 
+    /// <summary>Koliko sadržaj smije preći gornju granicu težine korpice (0,10 = 10 %).</summary>
+    internal const decimal DozvoljenoPrekoTezine = 0.10m;
+
     internal sealed class Izabrani(Product artikal, decimal najmanje, decimal standardno, bool zadato, decimal najvise)
     {
         public Product Artikal { get; } = artikal;
@@ -284,8 +287,9 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
         decimal? tezinaOd = null, decimal? tezinaDo = null)
     {
         var poKulturi = cilj / Math.Max(minimum, 1);
-        // Bez gornje granice težina ne ograničava ništa — mliječna i suhomesnata korpica.
-        var najvecaTezina = tezinaDo is > 0 ? tezinaDo.Value : decimal.MaxValue;
+        // Bez gornje granice težina ne ograničava ništa — mliječna i suhomesnata korpica. Granica je
+        // okvirna: smije se preći za DozvoljenoPrekoTezine (mala 5 kg → do 5,5 kg), ali ne više.
+        var najvecaTezina = tezinaDo is > 0 ? tezinaDo.Value * (1 + DozvoljenoPrekoTezine) : decimal.MaxValue;
         var kandidati = bazen
             .Where(p => p.Price > 0 && !p.Opciono)
             .Select(p => Kandidat(p, velicina, poKulturi, tezinaDo))
@@ -418,18 +422,23 @@ public class GenerisiSedmicniSadrzajHandler(IAppDbContext db, IOptions<KorpiceOp
         var korak = KoracZaokruzivanja(p.Unit);
         var zadato = p.KolicinaUKorpici(velicina);
         var standardno = zadato is decimal z ? z : Math.Max(korak, Zaokruzi(poKulturi / p.Price, p.Unit));
-        var najmanje = Math.Max(korak, Zaokruzi(standardno / 2, p.Unit));
+        // Najmanja smislena količina (Product.NajmanjaKolicinaUKorpici) — nikad pola zadate: to je
+        // davalo 0,1 kg bijelog luka. Osnova (prioritet 0) ulazi samo u punoj zadatoj količini.
+        var najmanje = Math.Max(korak, p.NajmanjaKolicinaUKorpici());
+        // Osnova ide u punoj zadatoj — osim kad je admin izričito dozvolio manje (NajmanjeUKorpici).
+        if (p.PrioritetUKorpici <= 0 && p.NajmanjeUKorpici is not > 0 && zadato is decimal punaZadata)
+            najmanje = Math.Max(najmanje, punaZadata);
+        standardno = Math.Max(standardno, najmanje);
 
         var najvise = Zaokruzi(p.Stock, p.Unit);
-        if (najvise < najmanje) return null;
         if (tezinaDo is > 0 && p.KgPoJedinici is decimal kg)
         {
             var udio = p.PrioritetUKorpici <= 0 ? UdioOsnovneKulture : UdioSezonskeKulture;
-            najvise = Math.Min(najvise, Zaokruzi(tezinaDo.Value * udio / kg, p.Unit));
+            najvise = Math.Min(najvise, Zaokruzi(tezinaDo.Value * (1 + DozvoljenoPrekoTezine) * udio / kg, p.Unit));
         }
 
-        if (najvise < korak) return null;
-        najmanje = Math.Min(najmanje, najvise);
+        // Ne staje ni u najmanjoj količini (zaliha ili udio u težini) → kultura se izostavlja, ne smanjuje.
+        if (najvise < najmanje) return null;
         return new Izabrani(p, najmanje, Math.Min(standardno, najvise), zadato is not null, najvise);
     }
 

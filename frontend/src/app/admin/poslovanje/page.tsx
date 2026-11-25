@@ -172,7 +172,6 @@ function Poslovanje() {
                 { stavka: "Promet robe", iznos: formatPrice(d.prihod.prometRobe) },
                 { stavka: "Dostava naplaćena", iznos: formatPrice(d.prihod.dostava) },
                 { stavka: "Promo popusti", iznos: `− ${formatPrice(d.prihod.promoPopust)}` },
-                { stavka: "Popust od poena", iznos: `− ${formatPrice(d.prihod.poeniPopust)}` },
                 { stavka: "Neto prihod", iznos: formatPrice(d.prihod.neto) },
                 { stavka: "Nabavni trošak robe", iznos: formatPrice(d.prihod.nabavno) },
                 { stavka: "Zarada na robi", iznos: `${formatPrice(d.prihod.zarada)} (${procenat(d.prihod.marza)})` },

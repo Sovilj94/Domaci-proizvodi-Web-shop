@@ -1,3 +1,5 @@
+using EPiljara.Application.Common.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using EPiljara.Domain.Entities;
 using EPiljara.Domain.Enums;
 
@@ -25,4 +27,27 @@ public static class KorpicaPodobnost
     /// </summary>
     public static IEnumerable<Product> USezoni(IEnumerable<Product> ucitani, int mjesec) =>
         ucitani.Where(p => p.Mjeseci.Length == 0 || p.Mjeseci.Contains(mjesec));
+
+    /// <summary>
+    /// Kategorije vrste ove korpice (sezonski kalendar korpica). Prazno = korpica bez vrste ili
+    /// vrsta bez kategorija — tada nema ograničenja, da pogrešno podešena korpica ne ostane bez ponude.
+    /// </summary>
+    public static async Task<HashSet<Guid>> KategorijeAsync(IAppDbContext db, Product korpica, CancellationToken ct) =>
+        korpica.TipKorpice is null
+            ? []
+            : (await db.KorpicaKategorije
+                .Where(k => k.TipKorpice == korpica.TipKorpice)
+                .Select(k => k.CategoryId)
+                .ToListAsync(ct)).ToHashSet();
+
+    /// <summary>
+    /// Šta kupac smije staviti u SVOJU korpicu: artikli iz kategorija njene vrste (povrtna →
+    /// povrće iz kalendara), plus predložene zamjene koje je admin odredio za tu sedmicu.
+    /// Kupac više ne bira iz cijele ponude prodavnice (izmjena odluke P2b).
+    /// </summary>
+    public static IEnumerable<Product> ZaKorpicu(
+        IEnumerable<Product> ponuda, IReadOnlySet<Guid> kategorije, IReadOnlyCollection<Guid> preporucene) =>
+        kategorije.Count == 0
+            ? ponuda
+            : ponuda.Where(p => kategorije.Contains(p.CategoryId) || preporucene.Contains(p.Id));
 }

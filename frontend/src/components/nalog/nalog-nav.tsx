@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   MapPin,
-  Coins,
   RefreshCw,
   ShoppingBag,
   ShoppingBasket,
@@ -29,7 +28,6 @@ export const NALOG_STAVKE: NalogStavka[] = [
   { href: "/moj-nalog/narudzbe", label: "Narudžbe", icon: ShoppingBag },
   { href: "/moj-nalog/korpica", label: "Moja korpica", icon: ShoppingBasket },
   { href: "/moj-nalog/pretplate", label: "Pretplate", icon: RefreshCw },
-  { href: "/moj-nalog/poeni", label: "Poeni", icon: Coins },
 ];
 
 /**

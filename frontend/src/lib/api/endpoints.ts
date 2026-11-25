@@ -71,6 +71,8 @@ export interface ArtikalKorpiceUnos {
   cijenaPiljara: number | null;
   /** Kg po komadu, samo za artikle na komad; null = nije unesena. */
   tezinaKomada: number | null;
+  /** Najmanja količina u korpici; null = zadata za malu korpicu. */
+  najmanjeUKorpici: number | null;
 }
 
 export interface ObracunMjeseca {
@@ -510,10 +512,18 @@ export const accountApi = {
   mojaKorpica: (orderItemId: string) =>
     apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}`).then((r) => r.data),
 
-  izmijeniKorpicu: (orderItemId: string, productIds: string[]) =>
+  /** Čuva cijeli nacrt (korpica po budžetu). Cijene čita server; količine provjerava. */
+  izmijeniKorpicu: (orderItemId: string, stavke: { productId: string; kolicina: number }[]) =>
     apiFetch<MojaKorpicaDetalji>(`/account/korpice/${orderItemId}`, {
       method: "PUT",
-      body: { productIds },
+      body: { stavke },
+    }).then((r) => r.data),
+
+  /** „Popuni umjesto mene": predlog dopunjenog nacrta, ništa ne čuva. */
+  popuniKorpicu: (orderItemId: string, stavke: { productId: string; kolicina: number }[]) =>
+    apiFetch<{ productId: string; kolicina: number }[]>(`/account/korpice/${orderItemId}/popuni`, {
+      method: "POST",
+      body: { stavke },
     }).then((r) => r.data),
 
   /**

@@ -141,7 +141,7 @@ export default function PlanPoslovanjaPage() {
                   ["Korpice", d.prosjek.korpice],
                   ["Špajz", d.prosjek.spajz],
                   ["Dostava", d.prosjek.dostava],
-                  ["Popusti (promo, poeni)", -d.prosjek.popusti],
+                  ["Popusti", -d.prosjek.popusti],
                   ["Neto prihod", d.prosjek.neto, "zbir"],
                   ["Nabavno korpica", -d.prosjek.nabavnoKorpica],
                   ["Kutije korpica", -d.prosjek.kutijeKorpica],

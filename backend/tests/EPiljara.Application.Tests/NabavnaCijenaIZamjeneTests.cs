@@ -303,7 +303,9 @@ public class NabavnaCijenaIZamjeneTests
 
         Assert.Equal(tikvica.Id, d.Ponuda[0].ProductId);
         Assert.True(d.Ponuda[0].PreporucenaZamjena);
-        Assert.Single(d.Ponuda, p => p.PreporucenaZamjena);
+        // Scenario već predlaže Sir i Kajmak (Mliječni) — sve predložene idu ispred ostalih.
+        var prvaNepredlozena = d.Ponuda.ToList().FindIndex(p => !p.PreporucenaZamjena);
+        Assert.True(prvaNepredlozena < 0 || d.Ponuda.Skip(prvaNepredlozena).All(p => !p.PreporucenaZamjena));
     }
 
     [Theory]

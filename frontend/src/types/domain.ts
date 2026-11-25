@@ -96,6 +96,8 @@ export interface Product {
   kolicinaMala?: number | null;
   kolicinaSrednja?: number | null;
   kolicinaVelika?: number | null;
+  /** Samo sa admin API-ja: najmanja količina u korpici (null = zadata za malu). */
+  najmanjeUKorpici?: number | null;
   /** Samo sa admin API-ja: marža (0–1) prema prodajnoj cijeni. */
   marza?: number | null;
   /** Samo sa admin API-ja: cijena istog artikla u piljari, po jedinici (obračun cijene korpice). */
@@ -532,6 +534,12 @@ export interface StavkaMojeKorpice {
   jedinica: string;
   jedinicnaCijena: number;
   dodaoKupac: boolean;
+  /** Najmanja količina i korak za „+"/„−" — šalje server. */
+  najmanje: number;
+  korak: number;
+  /** Domaćin od kojeg namirnica dolazi; prazno ako ga katalog više nema. */
+  proizvodjacNaziv?: string;
+  proizvodjacSelo?: string;
 }
 
 /** Preslikava `PonudaArtiklaDto` — artikal koji kupac može dodati u svoju korpicu. */
@@ -544,6 +552,10 @@ export interface PonudaArtikla {
   izOveKorpice: boolean;
   /** Predložena zamjena iz sadržaja te sedmice — birač zamjene je nudi prvu. */
   preporucenaZamjena?: boolean;
+  najmanje: number;
+  korak: number;
+  proizvodjacNaziv?: string;
+  proizvodjacSelo?: string;
 }
 
 /** `StatusPretplate` sa backenda — isti nazivi, jer DTO šalje `.ToString()`. */

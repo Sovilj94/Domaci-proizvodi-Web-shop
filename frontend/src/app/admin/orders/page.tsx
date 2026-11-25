@@ -11,7 +11,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { OrderCard } from "@/components/admin/order-card";
 import { NarudzbeTabla } from "@/components/admin/narudzbe-tabla";
-import { StanjeZaliha } from "@/components/admin/stanje-zaliha";
 import { ZaPotvrdu } from "@/components/admin/za-potvrdu";
 import { RobaZaSedmicu } from "@/components/admin/roba-za-sedmicu";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
@@ -230,8 +229,6 @@ function AdminOrders() {
       </div>
 
       <ZaPotvrdu />
-
-      <StanjeZaliha />
 
       {prikaz === "lista" && (
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">

@@ -17,7 +17,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
-import type { CijenaGoriva, PonavljajuciTrosak, Trosak, TroskoviMjeseca, Voznja, VrstaTroska } from "@/lib/api/contracts";
+import type { PonavljajuciTrosak, Trosak, TroskoviMjeseca, Voznja, VrstaTroska } from "@/lib/api/contracts";
 import { MJESECI, susjedniMjesec } from "@/lib/admin/poslovanje";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -40,7 +40,7 @@ function poruka(err: unknown) {
 }
 
 /**
- * Unos troškova poslovanja: jednokratni (računi) za mjesec, ponavljajući, cijene goriva i vrste.
+ * Unos troškova poslovanja: jednokratni (računi) za mjesec, ponavljajući i vrste.
  * Ambalaža i gorivo po dnevnim turama računaju se sami — ovdje se vide u sažetku.
  */
 export default function TroskoviPage() {
@@ -136,7 +136,6 @@ function Troskovi() {
           <TroskoviMjesecaOdjeljak d={d} onUredi={(trosak) => setLadica({ trosak })} />
           <PonavljajuciOdjeljak d={d} />
           <VoznjeOdjeljak godina={godina} mjesec={mjesec} />
-          <GorivoOdjeljak d={d} />
           <VrsteOdjeljak d={d} />
 
           {ladica && (
@@ -627,85 +626,6 @@ function PonavljajuciOdjeljak({ d }: { d: TroskoviMjeseca }) {
       <p className="text-xs text-muted">
         „Obriši“ uklanja trošak iz svih mjeseci (za pogrešan unos); kad trošak prestane, koristi „Zaustavi“.
       </p>
-    </Odjeljak>
-  );
-}
-
-function GorivoOdjeljak({ d }: { d: TroskoviMjeseca }) {
-  const osvjezi = useOsvjezi();
-  const { show } = useToast();
-  const zadnja = d.cijeneGoriva[0];
-  const [form, setForm] = useState({
-    vaziOd: `${d.godina}-${pad(d.mjesec)}-01`,
-    cijena: "",
-    potrosnja: zadnja ? String(zadnja.potrosnjaL100km) : "",
-  });
-  const dodaj = useMutation({
-    mutationFn: () =>
-      adminApi.dodajCijenuGoriva({ vaziOd: form.vaziOd, cijenaPoLitru: broj(form.cijena)!, potrosnjaL100km: broj(form.potrosnja)! }),
-    onSuccess: () => {
-      osvjezi();
-      setForm({ ...form, cijena: "" });
-      show("Cijena goriva sačuvana");
-    },
-    onError: (e) => show(poruka(e), "error"),
-  });
-  const obrisi = useMutation({
-    mutationFn: adminApi.obrisiCijenuGoriva,
-    onSuccess: () => {
-      osvjezi();
-      show("Cijena goriva obrisana");
-    },
-    onError: (e) => show(poruka(e), "error"),
-  });
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.vaziOd) return show("Unesi datum od kad važi.", "error");
-    if (!broj(form.cijena)) return show("Unesi cijenu po litru.", "error");
-    if (!broj(form.potrosnja)) return show("Unesi potrošnju vozila (l/100 km).", "error");
-    dodaj.mutate();
-  }
-
-  return (
-    <Odjeljak
-      naslov="Cijena goriva"
-      opis="Procjena dana = kilometri dnevne ture (magacin → kupci → magacin) × potrošnja × cijena goriva na taj dan. Kad cijena promijeni, dodaj novu — stari mjeseci ostaju po staroj."
-    >
-      <Tabela<CijenaGoriva>
-        kljuc={(r) => r.id}
-        redovi={d.cijeneGoriva}
-        prazno="Cijena goriva nije unesena — procjena goriva po danima se ne računa."
-        kolone={[
-          { naslov: "Važi od", vrijednost: (r) => datum(r.vaziOd) },
-          { naslov: "Cijena po litru", vrijednost: (r) => formatPrice(r.cijenaPoLitru), desno: true },
-          { naslov: "Potrošnja", vrijednost: (r) => `${r.potrosnjaL100km.toLocaleString("sr-Latn")} l/100 km`, desno: true },
-          {
-            naslov: "Po km",
-            vrijednost: (r) => formatPrice((r.cijenaPoLitru * r.potrosnjaL100km) / 100),
-            desno: true,
-          },
-          {
-            naslov: "",
-            vrijednost: (r) => <ObrisiDugme oznaka={`Obriši cijenu od ${datum(r.vaziOd)}`} onObrisi={() => obrisi.mutate(r.id)} />,
-            desno: true,
-          },
-        ]}
-      />
-      <form onSubmit={submit} className="flex flex-wrap items-end gap-2 print:hidden">
-        <Field label="Važi od">
-          <Input type="date" value={form.vaziOd} onChange={(e) => setForm({ ...form, vaziOd: e.target.value })} />
-        </Field>
-        <Field label="KM po litru">
-          <Input inputMode="decimal" value={form.cijena} onChange={(e) => setForm({ ...form, cijena: e.target.value })} className="w-28" placeholder="2,65" />
-        </Field>
-        <Field label="Potrošnja l/100 km">
-          <Input inputMode="decimal" value={form.potrosnja} onChange={(e) => setForm({ ...form, potrosnja: e.target.value })} className="w-28" placeholder="9" />
-        </Field>
-        <Button type="submit" size="sm" disabled={dodaj.isPending} className="mb-1">
-          <Plus className="h-4 w-4" /> Dodaj cijenu
-        </Button>
-      </form>
     </Odjeljak>
   );
 }

@@ -13,7 +13,7 @@ import { PLAN_TEKST } from "@/lib/planovi";
 import { cn, formatDate, formatPrice } from "@/lib/utils";
 import type { AdminKupac } from "@/types/domain";
 
-/** Kupci: ko naručuje, koliko, sa kojom pretplatom i poenima. Klik otvara narudžbe, pretplate i adrese. */
+/** Kupci: ko naručuje, koliko i sa kojom pretplatom. Klik otvara narudžbe, pretplate i adrese. */
 export default function AdminKupciPage() {
   // useSearchParams traži Suspense iznad sebe, inače `next build` obara stranicu.
   return (
@@ -78,7 +78,7 @@ function AdminKupci() {
                   {!k.emailPotvrdjen && " · nepotvrđen"}
                 </span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  {k.brojNarudzbi} narudžbi · pretplate {k.aktivnePretplate || "—"} · {k.poeni} poena
+                  {k.brojNarudzbi} narudžbi · pretplate {k.aktivnePretplate || "—"}
                   {k.zadnjaNarudzba && ` · zadnja ${formatDate(k.zadnjaNarudzba)}`}
                 </span>
               </button>
@@ -93,7 +93,6 @@ function AdminKupci() {
                 <th className="px-4 py-2 font-medium">Narudžbe</th>
                 <th className="px-4 py-2 font-medium">Isporučeno</th>
                 <th className="px-4 py-2 font-medium">Pretplate</th>
-                <th className="px-4 py-2 font-medium">Poeni</th>
                 <th className="px-4 py-2 font-medium">Zadnja narudžba</th>
               </tr>
             </thead>
@@ -112,7 +111,6 @@ function AdminKupci() {
                   <td className="px-4 py-2.5 tabular-nums">{k.brojNarudzbi}</td>
                   <td className="px-4 py-2.5 tabular-nums">{formatPrice(k.isporuceno)}</td>
                   <td className="px-4 py-2.5 tabular-nums">{k.aktivnePretplate || "—"}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{k.poeni}</td>
                   <td className="px-4 py-2.5 text-muted">{k.zadnjaNarudzba ? formatDate(k.zadnjaNarudzba) : "—"}</td>
                 </tr>
               ))}
@@ -150,15 +148,6 @@ function Kupac({ kupac, onClose }: { kupac: AdminKupac; onClose: () => void }) {
               <div>
                 <dt className="text-muted">E-mail</dt>
                 <dd className="font-medium">{d.emailPotvrdjen ? "potvrđen" : "nije potvrđen"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted">Poeni</dt>
-                <dd className="font-medium">
-                  {d.poeni}{" "}
-                  <Link href="/admin/poeni" className="text-brand-700 hover:underline">
-                    korekcija →
-                  </Link>
-                </dd>
               </div>
             </dl>
 

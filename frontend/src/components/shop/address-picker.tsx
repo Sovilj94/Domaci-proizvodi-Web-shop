@@ -222,8 +222,12 @@ export function AddressPicker({
     [javiTacku, upisiIzPogotka, procijeniPodrucje],
   );
 
-  /** Geokodira upisani tekst (bez izbora prijedloga) i postavlja tačku ako je nađe. */
-  const geokodirajTekst = useCallback(async () => {
+  /**
+   * Geokodira upisani tekst (bez izbora prijedloga) i postavlja tačku ako je nađe.
+   * `otvoriMapu`: kad kupac napusti polje a adresa se ne nađe, mapa se odmah otvara za
+   * ručno označavanje — inače ostaje skrivena i forma čeka tačku koju nema kako da da.
+   */
+  const geokodirajTekst = useCallback(async (otvoriMapu = false) => {
     const q = [valueRef.current.trim(), suffixRef.current.trim()].filter(Boolean).join(" ");
     if (q.length < 4) return;
     const moja = ++radnja.current;
@@ -241,6 +245,7 @@ export function AddressPicker({
       javiTacku(null);
       setFound(null);
       setStatus("nijePronadjena");
+      if (otvoriMapu) setIzmjena(true);
     }
   }, [javiTacku, procijeniPodrucje]);
 
@@ -480,7 +485,7 @@ export function AddressPicker({
             // Upisan tekst bez izabranog prijedloga: tačka se traži za sam tekst.
             if (kucano.current && !tackaRef.current) {
               kucano.current = false;
-              void geokodirajTekst();
+              void geokodirajTekst(true);
             }
           }}
           placeholder={onBroj ? "Ime ulice" : "Ime ulice i broj"}
@@ -636,7 +641,9 @@ export function AddressPicker({
         {radi
           ? "Tražim lokaciju…"
           : izmjena
-            ? "Pomjeri mapu tako da pin pokazuje tačno mjesto dostave, pa potvrdi."
+            ? status === "nijePronadjena"
+              ? "Adresu nismo pronašli — pomjeri mapu tako da pin pokazuje mjesto dostave, pa klikni „Potvrdi lokaciju“."
+              : "Pomjeri mapu tako da pin pokazuje tačno mjesto dostave, pa klikni „Potvrdi lokaciju“."
             : status === "nijePronadjena"
               ? "Adresu nismo pronašli na mapi — izaberi je sa liste prijedloga ili je označi na mapi."
               : status === "lokacijaGreska"

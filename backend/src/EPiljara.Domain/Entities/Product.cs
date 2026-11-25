@@ -77,6 +77,39 @@ public class Product : Entity
     } is > 0 and var k ? k : null;
 
     /// <summary>
+    /// Najmanja smislena količina u korpici (u jedinici artikla): ispod nje se namirnica ne stavlja
+    /// nigdje — ni generator, ni kupčevo dodavanje/smanjivanje, ni „popuni umjesto mene". Ako ne staje,
+    /// izostavlja se. Null = <see cref="NajmanjaKolicinaUKorpici"/> pada na zadatu za malu korpicu.
+    /// </summary>
+    public decimal? NajmanjeUKorpici { get; set; }
+
+    /// <summary>Korak zaokruživanja količine: 1 za komad, 0,1 za kg i litar.</summary>
+    public static decimal KorakZaokruzivanja(Unit jedinica) => jedinica == Unit.Kom ? 1m : 0.1m;
+
+    /// <summary>Podrazumijevana najmanja količina na kg/l kad admin nije unio svoju: pola kile.</summary>
+    public const decimal PodrazumijevanoNajmanjeKg = 0.5m;
+
+    /// <summary>
+    /// `NajmanjeUKorpici` kad je unesen; inače komad 1, a kg/l pola kile — ili zadata za malu korpicu
+    /// kad je manja (bijeli luk 0,3 kg). Ranije je podrazumijevana bila cijela zadata, pa kupac
+    /// nije mogao smanjiti ništa (cvekla 1 kg, a najmanje 2 kg). Nikad ispod koraka zaokruživanja.
+    /// </summary>
+    public decimal NajmanjaKolicinaUKorpici()
+    {
+        var korak = KorakZaokruzivanja(Unit);
+        if (NajmanjeUKorpici is > 0) return Math.Max(korak, NajmanjeUKorpici.Value);
+        if (Unit == Unit.Kom) return korak;
+        return Math.Max(korak, Math.Min(PodrazumijevanoNajmanjeKg, KolicinaMala is > 0 ? KolicinaMala.Value : PodrazumijevanoNajmanjeKg));
+    }
+
+    /// <summary>
+    /// Za koliko kupčevo „+"/„−" mijenja količinu: komad 1; kg i litar 0,5 — ali ne više od najmanje
+    /// količine (bijeli luk 0,3 kg ide po 0,3).
+    /// </summary>
+    public decimal KorakUKorpici() =>
+        Unit == Unit.Kom ? 1m : Math.Max(0.1m, Math.Min(0.5m, NajmanjaKolicinaUKorpici()));
+
+    /// <summary>
     /// Mjeseci (1–12) u kojima je artikal dostupan. <b>Prazan niz znači cijele godine</b> —
     /// mliječno i suhomesnato nemaju sezonu. U bazi stoji kao CSV string, jer SQLite
     /// (testovi) nema tip niza; vidi AppDbContext.

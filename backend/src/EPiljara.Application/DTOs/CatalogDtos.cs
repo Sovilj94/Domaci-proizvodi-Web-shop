@@ -91,6 +91,8 @@ public record AdminProductDto : ProductDto
     public decimal? KolicinaMala { get; init; }
     public decimal? KolicinaSrednja { get; init; }
     public decimal? KolicinaVelika { get; init; }
+    /// <summary>Najmanja količina u korpici; null = zadata za malu (vidi Product.NajmanjaKolicinaUKorpici).</summary>
+    public decimal? NajmanjeUKorpici { get; init; }
 
     /// <summary>Udio marže u prodajnoj cijeni, 0–1 (0.35 = 35%). Null bez nabavne cijene.</summary>
     public decimal? Marza { get; init; }

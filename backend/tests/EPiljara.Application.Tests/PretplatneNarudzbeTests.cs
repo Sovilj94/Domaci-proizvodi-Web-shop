@@ -197,6 +197,42 @@ public class PretplatneNarudzbeTests
     }
 
     /// <summary>Posao se vrti svakih 15 minuta. Ovo je razlog zašto `Poslednja*` postoji.</summary>
+    /// <summary>
+    /// Kupac koji se upravo pretplatio odmah vidi svoju korpicu u „Moja korpica" — ne čeka
+    /// sljedeći prolaz posla (do 15 minuta). Ista pravila kao posao, samo za jednu pretplatu.
+    /// </summary>
+    [Fact]
+    public async Task Jedna_pretplata_odmah_dobija_narudzbu_i_drugi_prolaz_ne_duplira()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        Assert.True(await s.Handler().Handle(new NapraviPretplatnuNarudzbuCommand(s.Pretplata.Id), default));
+        Assert.Equal(1, await s.BrojNarudzbiAsync());
+
+        s.Db.ChangeTracker.Clear();
+        Assert.Equal(0, await s.ProlazAsync());
+        Assert.Equal(1, await s.BrojNarudzbiAsync());
+    }
+
+    [Fact]
+    public async Task Jedna_pretplata_van_prozora_ne_dobija_narudzbu()
+    {
+        using var s = await Scena.SpremiAsync();
+
+        Assert.False(await s.Handler(Opcije(satiUnaprijed: 0))
+            .Handle(new NapraviPretplatnuNarudzbuCommand(s.Pretplata.Id), default));
+        Assert.Equal(0, await s.BrojNarudzbiAsync());
+    }
+
+    [Fact]
+    public async Task Jedna_pretplata_bez_objavljenog_sadrzaja_ne_dobija_narudzbu()
+    {
+        using var s = await Scena.SpremiAsync(sadrzajObjavljen: false);
+
+        Assert.False(await s.Handler().Handle(new NapraviPretplatnuNarudzbuCommand(s.Pretplata.Id), default));
+        Assert.Equal(0, await s.BrojNarudzbiAsync());
+    }
+
     [Fact]
     public async Task Dva_prolaza_daju_jednu_narudzbu()
     {

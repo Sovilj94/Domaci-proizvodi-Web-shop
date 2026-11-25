@@ -20,6 +20,13 @@ namespace EPiljara.Application.Features.Pretplate;
 /// </summary>
 public record NapraviPretplatneNarudzbeCommand : IRequest<int>;
 
+/// <summary>
+/// Isto što i prolaz posla, ali samo za jednu pretplatu — šalje se odmah poslije pravljenja
+/// pretplate, da kupac svoju korpicu vidi u „Moja korpica" bez čekanja sljedećeg prolaza.
+/// Ista pravila (prozor, objavljen sadržaj, idempotentnost), pa posao poslije ništa ne duplira.
+/// </summary>
+public record NapraviPretplatnuNarudzbuCommand(Guid PretplataId) : IRequest<bool>;
+
 public class NapraviPretplatneNarudzbeHandler(
     IAppDbContext db,
     IMediator mediator,
@@ -27,8 +34,22 @@ public class NapraviPretplatneNarudzbeHandler(
     IOptions<KorpiceOpcije> korpiceOpcije,
     IOptions<PretplateOpcije> pretplateOpcije,
     ILogger<NapraviPretplatneNarudzbeHandler> log)
-    : IRequestHandler<NapraviPretplatneNarudzbeCommand, int>
+    : IRequestHandler<NapraviPretplatneNarudzbeCommand, int>,
+      IRequestHandler<NapraviPretplatnuNarudzbuCommand, bool>
 {
+    public async Task<bool> Handle(NapraviPretplatnuNarudzbuCommand cmd, CancellationToken ct)
+    {
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, korpiceOpcije.Value, ct);
+        var (godina, sedmica) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijemeOd, cutoff);
+        var rok = SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd).AddHours(-cutoff);
+        if (DateTime.UtcNow < rok.AddHours(-pretplateOpcije.Value.SatiUnaprijed)) return false;
+
+        var p = await db.Pretplate.FirstOrDefaultAsync(x => x.Id == cmd.PretplataId, ct);
+        if (p is null || p.Status == StatusPretplate.Otkazana) return false;
+
+        return await ObradiAsync(p, godina, sedmica, ct);
+    }
+
     public async Task<int> Handle(NapraviPretplatneNarudzbeCommand _, CancellationToken ct)
     {
         var o = pretplateOpcije.Value;

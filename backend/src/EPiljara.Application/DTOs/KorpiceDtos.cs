@@ -270,6 +270,12 @@ public record StavkaMojeKorpiceDto
     public string Jedinica { get; init; } = "kom";
     public decimal JedinicnaCijena { get; init; }
     public bool DodaoKupac { get; init; }
+    /// <summary>Najmanja količina (Product.NajmanjaKolicinaUKorpici) i korak za „+"/„−" — pravilo je na serveru.</summary>
+    public decimal Najmanje { get; init; }
+    public decimal Korak { get; init; }
+    /// <summary>Domaćin od kojeg namirnica dolazi; prazno ako ga katalog više nema.</summary>
+    public string ProizvodjacNaziv { get; init; } = string.Empty;
+    public string ProizvodjacSelo { get; init; } = string.Empty;
 }
 
 /// <summary>Artikal koji kupac može dodati u korpicu.</summary>
@@ -284,6 +290,10 @@ public record PonudaArtiklaDto
     public bool IzOveKorpice { get; init; }
     /// <summary>Predložena zamjena iz sedmičnog sadržaja — birač zamjene je nudi prvu.</summary>
     public bool PreporucenaZamjena { get; init; }
+    public decimal Najmanje { get; init; }
+    public decimal Korak { get; init; }
+    public string ProizvodjacNaziv { get; init; } = string.Empty;
+    public string ProizvodjacSelo { get; init; } = string.Empty;
 }
 
 public record MojaKorpicaDetaljiDto

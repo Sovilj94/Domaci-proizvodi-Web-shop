@@ -35,7 +35,13 @@ public class AccountController : ApiControllerBase
     public async Task<IActionResult> IzmijeniKorpicu(
         Guid orderItemId, [FromBody] IzmijeniKorpicuBody body) =>
         Envelope(await Mediator.Send(
-            new IzmijeniMojuKorpicuCommand(orderItemId, body.ProductIds)));
+            new IzmijeniMojuKorpicuCommand(orderItemId, body.ProductIds ?? [], body.Stavke)));
+
+    /// <summary>„Popuni umjesto mene": dopuna nacrta do 95–100 % cilja. Ne čuva — vraća predlog.</summary>
+    [HttpPost("account/korpice/{orderItemId:guid}/popuni")]
+    public async Task<IActionResult> PopuniKorpicu(
+        Guid orderItemId, [FromBody] PopuniKorpicuBody body) =>
+        EnvelopeList(await Mediator.Send(new PopuniMojuKorpicuCommand(orderItemId, body.Stavke ?? [])));
 
     /// <summary>Jedan artikal korpice za drugi; količinu novog određuje server.</summary>
     [HttpPost("account/korpice/{orderItemId:guid}/zamijeni")]
@@ -92,8 +98,26 @@ public class AccountController : ApiControllerBase
         EnvelopeList(await Mediator.Send(new GetMojePretplateQuery()));
 
     [HttpPost("account/pretplate")]
-    public async Task<IActionResult> NapraviPretplatu([FromBody] NapraviPretplatuCommand command) =>
-        EnvelopeCreated(await Mediator.Send(command));
+    public async Task<IActionResult> NapraviPretplatu(
+        [FromBody] NapraviPretplatuCommand command,
+        [FromServices] ILogger<AccountController> log)
+    {
+        var pretplata = await Mediator.Send(command);
+
+        // Narudžba za tekuću sedmicu odmah (ako je u prozoru i sadržaj objavljen), da kupac
+        // korpicu vidi u „Moja korpica" bez čekanja posla. Pad ovdje ne obara pretplatu —
+        // pozadinski posao svakih 15 minuta pokušava ponovo po istim pravilima.
+        try
+        {
+            await Mediator.Send(new NapraviPretplatnuNarudzbuCommand(pretplata.Id));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogError(ex, "Pretplata {Id}: narudžba odmah nije napravljena, posao pokušava kasnije.", pretplata.Id);
+        }
+
+        return EnvelopeCreated(pretplata);
+    }
 
     [HttpPut("account/pretplate/{id:guid}")]
     public async Task<IActionResult> IzmijeniPretplatu(
@@ -128,8 +152,15 @@ public record UpdateAddressBody(
     string? PrimalacIme = null,
     string? PrimalacTelefon = null);
 
-/// <summary>Tijelo bez Id-a — Id dolazi iz putanje. Količine i cijene određuje server.</summary>
-public record IzmijeniKorpicuBody(IReadOnlyList<Guid> ProductIds);
+/// <summary>
+/// Tijelo bez Id-a — Id dolazi iz putanje. Nacrt korpice: `stavke` sa količinama (korpica po
+/// budžetu) ili stari oblik `productIds`. Cijene određuje server, a količine on provjerava.
+/// </summary>
+public record IzmijeniKorpicuBody(IReadOnlyList<Guid>? ProductIds, IReadOnlyList<StavkaKorpiceUnos>? Stavke);
+
+/// <summary>Trenutni nacrt korpice za „Popuni umjesto mene“.</summary>
+public record PopuniKorpicuBody(IReadOnlyList<StavkaKorpiceUnos>? Stavke);
+
 /// <summary>Ubaci = null: „izaberi umjesto mene". Zapamti: izbačeni artikal ide na spisak „ne stavljaj mi".</summary>
 public record ZamijeniUKorpiciBody(Guid Izbaci, Guid? Ubaci, bool? Zapamti);
 

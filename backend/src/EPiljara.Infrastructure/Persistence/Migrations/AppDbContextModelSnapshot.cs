@@ -1700,6 +1700,10 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 
+                    b.Property<decimal?>("NajmanjeUKorpici")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)

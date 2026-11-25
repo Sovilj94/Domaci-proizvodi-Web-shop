@@ -198,7 +198,7 @@ public class GeneratorSadrzajaTests
 
         var stavke = await StavkeSa(t, r.SadrzajId);
         Assert.Equal(8, stavke.Count);
-        Assert.InRange(Tezina(stavke), 3m, 5m);
+        Assert.InRange(Tezina(stavke), 3m, 5.5m); // gornja granica je okvirna: +10 %
     }
 
     [Fact]
@@ -209,13 +209,15 @@ public class GeneratorSadrzajaTests
         korpica.TezinaOd = 3m;
         korpica.TezinaDo = 4m;
         // Zadate 2 kg cvekle u maloj korpici — upravo slučaj koji je vlasnik prijavio.
-        var cvekla = Dodaj(t, "Cvekla", p => { p.Price = 2m; p.KolicinaMala = 2m; p.PrioritetUKorpici = 1; });
+        // Najmanje 1 kg: inače bi zadatih 2 kg bilo i najmanje, pa cvekla ne bi ni ušla (preskače se, ne smanjuje).
+        var cvekla = Dodaj(t, "Cvekla", p => { p.Price = 2m; p.KolicinaMala = 2m; p.NajmanjeUKorpici = 1m; p.PrioritetUKorpici = 1; });
         t.Db.SaveChanges();
 
         var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
 
-        var stavka = Assert.Single(await StavkeSa(t, r.SadrzajId), s => s.Artikal.Id == cvekla.Id);
-        Assert.True(stavka.Kolicina <= 1m, $"cvekla {stavka.Kolicina} kg"); // ¼ od 4 kg
+        // Cvekla smije i izostati (preskače se kad ne staje); kad uđe, nikad preko svog udjela.
+        foreach (var stavka in (await StavkeSa(t, r.SadrzajId)).Where(s => s.Artikal.Id == cvekla.Id))
+            Assert.True(stavka.Kolicina <= 1.1m, $"cvekla {stavka.Kolicina} kg"); // ¼ od 4,4 kg (4 kg + 10 %)
     }
 
     [Fact]
@@ -234,7 +236,7 @@ public class GeneratorSadrzajaTests
         Assert.DoesNotContain(stavke, s => s.Artikal.Id == bundeva.Id); // 3 kg > ¼ od 5 kg
         var k = Assert.Single(stavke, s => s.Artikal.Id == karfiol.Id);
         Assert.Equal(1m, k.Kolicina);
-        Assert.True(Tezina(stavke) <= 5m, $"{Tezina(stavke)} kg");
+        Assert.True(Tezina(stavke) <= 5.5m, $"{Tezina(stavke)} kg"); // +10 % dozvoljeno
     }
 
     [Fact]
@@ -335,6 +337,7 @@ public class GeneratorSadrzajaTests
             p.NabavnaCijena = 3.2m;
             // Zadato 2 kg, najmanje pola = 1 kg × 3,20 = 3,20 KM nabavno po artiklu; budžet 13,75 → 4 artikla.
             p.KolicinaMala = 2m;
+            p.NajmanjeUKorpici = 1m;
         }
         await t.Db.SaveChangesAsync();
         var o = TestOpcije.Korpice();
@@ -454,6 +457,8 @@ public class GeneratorSadrzajaTests
         {
             p.NabavnaCijena = 2.4m;
             p.KolicinaMala = 1m;
+            // Korpica po budžetu: ispod zadate ide samo do najmanje koju admin dozvoli (ovdje 0,5 kg).
+            p.NajmanjeUKorpici = 0.5m;
         }
         await t.Db.SaveChangesAsync();
         var o = TestOpcije.Korpice();
@@ -510,5 +515,78 @@ public class GeneratorSadrzajaTests
         Assert.True(nazivi.Count(n => n.Contains("krompir", StringComparison.OrdinalIgnoreCase)) <= 1, string.Join(", ", nazivi));
         Assert.True(nazivi.Count(n => n.Contains("salata")) <= 1, string.Join(", ", nazivi));
         Assert.True(nazivi.Count(n => n.Contains("aprika")) <= 1, string.Join(", ", nazivi));
+    }
+
+    /* ---------- Bez mrvica (korpica po budžetu) ---------- */
+
+    /// <summary>Uska korpica: osnova (7 × 1 kg po 4 KM) pojede budžet, bijeli luk 12 KM/kg sa zadatih 0,3 kg
+    /// je ranije ostajao na pola (0,1 kg). Sad ili ulazi cijeli, ili ne ulazi.</summary>
+    [Fact]
+    public async Task Nijedna_stavka_nije_ispod_svoje_najmanje_kolicine()
+    {
+        for (var pokusaj = 0; pokusaj < 5; pokusaj++)
+        {
+            using var t = new TestDb();
+            Postavi(t, mjeseciArtikala: [], brojArtikala: 7);
+            foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica)) { p.KolicinaMala = 1m; p.PrioritetUKorpici = 0; }
+            t.Db.SaveChanges();
+            Dodaj(t, "Bijeli luk", p => { p.Price = 12m; p.KolicinaMala = 0.3m; p.PrioritetUKorpici = 1; });
+
+            var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+            Assert.All(await StavkeSa(t, r.SadrzajId), s =>
+                Assert.True(s.Kolicina >= s.Artikal.NajmanjaKolicinaUKorpici(),
+                    $"{s.Artikal.Name}: {s.Kolicina} < {s.Artikal.NajmanjaKolicinaUKorpici()}"));
+        }
+    }
+
+    /// <summary>Zaliha 0,9 kg, a najmanje 1 kg: kultura se izostavlja, ne stavlja se 0,8 kg.</summary>
+    [Fact]
+    public async Task Kultura_koja_ne_staje_u_najmanjoj_kolicini_se_izostavlja()
+    {
+        using var t = new TestDb();
+        Postavi(t, mjeseciArtikala: [], brojArtikala: 10);
+        var batat = Dodaj(t, "Batat", p => { p.Price = 2m; p.Stock = 0.9m; p.NajmanjeUKorpici = 1m; p.PrioritetUKorpici = 0; });
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        Assert.DoesNotContain(await StavkeSa(t, r.SadrzajId), s => s.Artikal.Id == batat.Id);
+    }
+
+    /// <summary>Osnova (prioritet 0) ulazi u punoj zadatoj količini, ne u polovini — i kad budžet nije
+    /// dovoljan da se sve osnovne namirnice podignu do zadate.</summary>
+    [Fact]
+    public async Task Osnova_ulazi_u_punoj_zadatoj_kolicini()
+    {
+        for (var pokusaj = 0; pokusaj < 5; pokusaj++)
+        {
+            using var t = new TestDb();
+            Postavi(t, mjeseciArtikala: [], brojArtikala: 7);
+            foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica)) { p.KolicinaMala = 1m; p.PrioritetUKorpici = 0; }
+            t.Db.SaveChanges();
+            var krompir = Dodaj(t, "Krompir", p => { p.Price = 1.2m; p.KolicinaMala = 3m; p.PrioritetUKorpici = 0; });
+
+            var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+            var stavke = await StavkeSa(t, r.SadrzajId);
+            Assert.All(stavke.Where(s => s.Artikal.PrioritetUKorpici == 0), s =>
+                Assert.True(s.Kolicina >= s.Artikal.KolicinaMala, $"{s.Artikal.Name} {s.Kolicina} < {s.Artikal.KolicinaMala}"));
+        }
+    }
+
+    /// <summary>Gornja granica težine je okvirna: do 10 % preko, ne više.</summary>
+    [Fact]
+    public async Task Tezina_ne_prelazi_gornju_granicu_za_vise_od_deset_posto()
+    {
+        using var t = new TestDb();
+        var korpica = Postavi(t, mjeseciArtikala: [], brojArtikala: 12);
+        korpica.TezinaOd = 3m;
+        korpica.TezinaDo = 5m;
+        foreach (var p in t.Db.Products.Where(p => p.Vrsta != VrstaProizvoda.Korpica)) { p.Price = 1m; p.KolicinaMala = 1m; }
+        t.Db.SaveChanges();
+
+        var r = Assert.Single(await Handler(t).Handle(new GenerisiSedmicniSadrzajCommand(2026, 41, null), default));
+
+        Assert.True(Tezina(await StavkeSa(t, r.SadrzajId)) <= 5.5m);
     }
 }

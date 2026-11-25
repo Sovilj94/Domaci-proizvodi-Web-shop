@@ -16,7 +16,6 @@ import {
   Search,
   Send,
   FileText,
-  Coins,
   FlaskConical,
   Handshake,
   LayoutDashboard,
@@ -107,7 +106,6 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
     naziv: "Kupci",
     stavke: [
       { href: "/admin/kupci", label: "Kupci", icon: UserRound },
-      { href: "/admin/poeni", label: "Poeni", icon: Coins },
       { href: "/admin/promo-kodovi", label: "Promo kodovi", icon: TicketPercent },
       { href: "/admin/ocjene", label: "Ocjene", icon: Star },
       { href: "/admin/novosti", label: "Novosti", icon: Mail },

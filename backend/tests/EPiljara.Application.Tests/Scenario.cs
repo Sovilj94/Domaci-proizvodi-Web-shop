@@ -47,6 +47,9 @@ internal sealed class Scenario : IDisposable
     public Guid Skup301Id { get; }
     public Guid VanSezoneId { get; }
 
+    /// <summary>Jogurt: Mliječni i nije predložena zamjena — van kalendara povrtne korpice.</summary>
+    public Guid VanKategorijeId { get; private init; }
+
     /// <summary>
     /// Luk, 2.65 KM. Dodat uz ispravke finalnog review-a: nijedna kombinacija postojećih
     /// artikala nije mogla sastaviti tačno donju granicu budžeta. [Krompir, Granica265] je
@@ -178,6 +181,14 @@ internal sealed class Scenario : IDisposable
             Vrsta = VrstaProizvoda.Obican, Mjeseci = [],
             Category = mlijecni, Producer = proizvodjac,
         };
+        var vanKategorije = new Product
+        {
+            // Mliječni i NIJE predložena zamjena — povrtna korpica ga ne smije ponuditi ni primiti.
+            Name = "Jogurt", Slug = "jogurt", Price = 3.00m, Unit = Unit.Kom,
+            Stock = 100, IsAvailable = true, MozeUKorpicu = true,
+            Vrsta = VrstaProizvoda.Obican, Mjeseci = [],
+            Category = mlijecni, Producer = proizvodjac,
+        };
         var granica265 = new Product
         {
             // Donja granica budžeta, tačno na njoj: [Krompir, Granica265] = 4.00 + 2.65 = 6.65,
@@ -208,7 +219,7 @@ internal sealed class Scenario : IDisposable
 
         t.Db.Products.AddRange(
             krompir, paprika, sir, skupiArtikal, jeftin264, skup301, granica265, vanSezone,
-            korpica);
+            vanKategorije, korpica);
         await t.Db.SaveChangesAsync();
 
         // Korpica se puni samo iz Povrća — Sir i Kajmak (Mliječni) ostaju van nje.
@@ -233,6 +244,10 @@ internal sealed class Scenario : IDisposable
             {
                 ProductId = paprika.Id, Kolicina = 1m, JedinicnaCijena = 3m,
             });
+            // Sir i Kajmak su Mliječni — van kategorija povrtne korpice — pa ih kupac smije uzeti
+            // samo zato što ih je admin predložio kao zamjene ove sedmice (KorpicaPodobnost.ZaKorpicu).
+            sadrzaj.Zamjene.Add(new ZamjenaSadrzaja { ProductId = sir.Id, JedinicnaCijena = sir.Price });
+            sadrzaj.Zamjene.Add(new ZamjenaSadrzaja { ProductId = skup301.Id, JedinicnaCijena = skup301.Price });
             t.Db.SedmicniSadrzaji.Add(sadrzaj);
             await t.Db.SaveChangesAsync();
         }
@@ -243,7 +258,7 @@ internal sealed class Scenario : IDisposable
             t, prijavljen, zona.Id, slot.Id, opcije, kupacId,
             korpica.Id, krompir.Id, paprika.Id, sir.Id, skupiArtikal.Id,
             jeftin264.Id, skup301.Id, vanSezone.Id, granica265.Id,
-            godina, sedmica, vanSezoneMjesec);
+            godina, sedmica, vanSezoneMjesec) { VanKategorijeId = vanKategorije.Id };
     }
 
     // ---------- Task 5 ----------
@@ -309,6 +324,15 @@ internal sealed class Scenario : IDisposable
 
     // ---------- Task 8 ----------
 
+    public Task<MojaKorpicaDetaljiDto> IzmijeniStavkeAsync(Guid orderItemId, params (Guid ProductId, decimal? Kolicina)[] stavke)
+    {
+        var korisnik = KorisnikZa(null);
+        var mediator = new FakeMediator(Db, korisnik, Options.Create(Opcije));
+        return new IzmijeniMojuKorpicuHandler(Db, korisnik, Options.Create(Opcije), mediator)
+            .Handle(new IzmijeniMojuKorpicuCommand(orderItemId, [],
+                stavke.Select(s => new StavkaKorpiceUnos(s.ProductId, s.Kolicina)).ToList()), default);
+    }
+
     public Task<MojaKorpicaDetaljiDto> IzmijeniAsync(
         Guid orderItemId, Guid[] productIds, Guid? kao = null)
     {
@@ -317,6 +341,12 @@ internal sealed class Scenario : IDisposable
         return new IzmijeniMojuKorpicuHandler(Db, korisnik, Options.Create(Opcije), mediator)
             .Handle(new IzmijeniMojuKorpicuCommand(orderItemId, productIds), default);
     }
+
+    /// <summary>„Popuni umjesto mene" nad nacrtom; ne čuva.</summary>
+    public Task<IReadOnlyList<StavkaKorpiceUnos>> PopuniAsync(Guid orderItemId, params (Guid ProductId, decimal Kolicina)[] nacrt) =>
+        new PopuniMojuKorpicuHandler(Db, KorisnikZa(null), Options.Create(Opcije))
+            .Handle(new PopuniMojuKorpicuCommand(orderItemId,
+                nacrt.Select(s => new StavkaKorpiceUnos(s.ProductId, s.Kolicina)).ToList()), default);
 
     /// <summary>Kupčeva zamjena jednog artikla drugim (server određuje količinu).</summary>
     public Task<MojaKorpicaDetaljiDto> ZamijeniAsync(Guid orderItemId, Guid izbaci, Guid ubaci)

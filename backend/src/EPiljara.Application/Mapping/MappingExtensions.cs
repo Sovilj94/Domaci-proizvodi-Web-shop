@@ -74,6 +74,7 @@ public static class MappingExtensions
         KolicinaMala = p.KolicinaMala,
         KolicinaSrednja = p.KolicinaSrednja,
         KolicinaVelika = p.KolicinaVelika,
+        NajmanjeUKorpici = p.NajmanjeUKorpici,
         TezinaKomada = p.TezinaKomada,
         Marza = Marza(p.Price, p.NabavnaCijena),
         CijenaPiljara = p.CijenaPiljara,

@@ -294,4 +294,118 @@ public class MojaKorpicaIzmjenaTests
         Assert.Equal("artikal_nije_podoban", ex.Code);
         Assert.Contains("Kupus", ex.Message);
     }
+
+    /* ---------- Korpica po budžetu: PUT sa količinama ---------- */
+
+    private static async Task<(Scenario t, Guid id)> Narucena(Action<Scenario>? prije = null)
+    {
+        var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        prije?.Invoke(t);
+        await t.Db.SaveChangesAsync();
+        var dto = await t.PosaljiKorpicuAsync(1m);
+        var id = await t.OrderItemIdAsync(dto.Id);
+        t.Db.ChangeTracker.Clear();
+        return (t, id);
+    }
+
+    [Fact]
+    public async Task Kupac_moze_povecati_jedno_a_smanjiti_drugo()
+    {
+        var (t, id) = await Narucena();
+        using var _ = t;
+
+        // Krompir 2,5 kg (5,00) + Paprika 0,6 kg (1,80) = 6,80 = 97 %
+        var r = await t.IzmijeniStavkeAsync(id, (t.KrompirId, 2.5m), (t.PaprikaId, 0.6m));
+
+        Assert.Equal(2.5m, r.Stavke.Single(s => s.Naziv == "Krompir").Kolicina);
+        Assert.Equal(0.6m, r.Stavke.Single(s => s.Naziv == "Paprika").Kolicina);
+    }
+
+    [Fact]
+    public async Task Kolicina_ispod_najmanje_se_odbija()
+    {
+        var (t, id) = await Narucena(s => s.Db.Products.Single(p => p.Id == s.KrompirId).NajmanjeUKorpici = 1m);
+        using var _ = t;
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            t.IzmijeniStavkeAsync(id, (t.KrompirId, 0.5m), (t.PaprikaId, 1m)));
+        Assert.Equal("kolicina_premala", ex.Code);
+    }
+
+    [Fact]
+    public async Task Kolicina_koja_nije_visekratnik_koraka_se_odbija()
+    {
+        var (t, id) = await Narucena();
+        using var _ = t;
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            t.IzmijeniStavkeAsync(id, (t.KrompirId, 2.25m), (t.PaprikaId, 0.8m)));
+        Assert.Equal("kolicina_neispravna", ex.Code);
+    }
+
+    [Fact]
+    public async Task Komad_sa_decimalnom_kolicinom_se_odbija()
+    {
+        var (t, id) = await Narucena();
+        using var _ = t;
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            t.IzmijeniStavkeAsync(id, (t.KrompirId, 2m), (t.SirId, 1.5m)));
+        Assert.Equal("kolicina_neispravna", ex.Code);
+    }
+
+    /// <summary>Šablonski red ispod nove najmanje količine se ne kvari: zadržan nepromijenjen prolazi.</summary>
+    [Fact]
+    public async Task Zadrzan_sablonski_red_ispod_najmanje_prolazi_nepromijenjen()
+    {
+        var (t, id) = await Narucena();
+        using var _ = t;
+        t.Db.Products.Single(p => p.Id == t.KrompirId).NajmanjeUKorpici = 3m;   // šablon ima 2 kg
+        await t.Db.SaveChangesAsync();
+        t.Db.ChangeTracker.Clear();
+
+        var r = await t.IzmijeniStavkeAsync(id, (t.KrompirId, 2m), (t.PaprikaId, 1m));
+
+        Assert.Equal(2m, r.Stavke.Single(s => s.Naziv == "Krompir").Kolicina);
+    }
+
+    /// <summary>Korpica 10 KM, marža 25 % → nabavno najviše 7,50. Krompir nabavno 3 KM/kg: 2,6 kg = 7,80.</summary>
+    [Fact]
+    public async Task Izmjena_koja_obara_marzu_se_odbija()
+    {
+        var (t, id) = await Narucena(s => s.Db.Products.Single(p => p.Id == s.KrompirId).NabavnaCijena = 3m);
+        using var _ = t;
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            t.IzmijeniStavkeAsync(id, (t.KrompirId, 2.6m), (t.PaprikaId, 0.6m)));
+        Assert.Equal("marza", ex.Code);
+    }
+
+    [Fact]
+    public async Task Detalji_nose_najmanje_i_korak()
+    {
+        var (t, id) = await Narucena(s => s.Db.Products.Single(p => p.Id == s.KrompirId).NajmanjeUKorpici = 2m);
+        using var _ = t;
+
+        var d = await t.MojaKorpicaAsync(id);
+
+        var k = d.Stavke.Single(s => s.Naziv == "Krompir");
+        Assert.Equal(2m, k.Najmanje);
+        Assert.Equal(0.5m, k.Korak);
+        var sir = d.Ponuda.Single(p => p.Naziv == "Sir");
+        Assert.Equal(1m, sir.Najmanje);
+        Assert.Equal(1m, sir.Korak);
+    }
+
+    /// <summary>Zamjena (i automatska, za spisak „ne stavljaj mi") ne smije dati manje od najmanje količine.</summary>
+    [Fact]
+    public async Task Zamjena_ispod_najmanje_kolicine_novog_artikla_se_odbija()
+    {
+        var (t, id) = await Narucena(s => s.Db.Products.Single(p => p.Id == s.SirId).NajmanjeUKorpici = 2m);
+        using var _ = t;
+
+        // Paprika 1 kg = 3,00 → Sir po 3,00 bi bio 1 kom, a najmanje je 2.
+        var ex = await Assert.ThrowsAsync<DomainException>(() => t.ZamijeniAsync(id, t.PaprikaId, t.SirId));
+        Assert.Equal("zamjena_ne_staje", ex.Code);
+    }
 }

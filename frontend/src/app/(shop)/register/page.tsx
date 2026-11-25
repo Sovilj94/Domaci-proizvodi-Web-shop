@@ -141,7 +141,7 @@ function RegisterForm() {
         <p className="mt-1 text-sm text-muted">Otvori nalog i prati svoje narudžbe.</p>
         {preporuka && (
           <p className="mt-4 rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
-            Preporučio te prijatelj — kad primiš prvu isporuku, dobijaš poene na nalogu.
+            Preporučio te prijatelj — dobro došao!
           </p>
         )}
 

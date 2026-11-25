@@ -24,7 +24,6 @@ import {
   useDostavaPravila,
   useNaseljeZaTacku,
   useKorpiceList,
-  useMojiPoeni,
   useMyAddresses,
   useProducts,
   queryKeys,
@@ -138,7 +137,6 @@ export default function CheckoutPage() {
   }, [products.data, korpice.isSuccess, korpice.data, items, reconcile, show]);
 
   const [step, setStep] = useState(1);
-  const [koristiPoene, setKoristiPoene] = useState(false);
   const [form, setForm] = useState({
     ime: "",
     prezime: "",
@@ -220,22 +218,10 @@ export default function CheckoutPage() {
     pravilaDostave.data,
   );
   // Promo kodovi su za sada isključeni iz checkouta (backend ih i dalje podržava, polje
-  // `PromoKodPolje` je ostalo u components/shop) — roba se računa samo iz korpe.
+  // `PromoKodPolje` je ostalo u components/shop) — roba se računa samo iz korpe. Poeni su
+  // takođe isključeni iz prikaza (prve iteracije ih ne koriste); backend ih i dalje podržava.
   const cijenaRobe = subtotal;
-  // Poeni (samo prijavljeni). Ista formula kao server (`PoeniPravila.ZaTrosenje`): bez poena ili
-  // robe nema popusta; popust je cijeli broj KM, najviše koliko poeni vrijede, a ne više od robe.
-  // Poena se troši tačno koliko pokriva taj popust.
-  const poeni = useMojiPoeni(!!user);
-  const stanjePoena = poeni.data?.stanje ?? 0;
-  const vrijednostPoena = poeni.data?.vrijednostPoenaKM ?? 0;
-  const roba = cijenaRobe;
-  const popustPoena =
-    stanjePoena > 0 && roba > 0 && vrijednostPoena > 0
-      ? Math.floor(Math.min(stanjePoena * vrijednostPoena, roba))
-      : 0;
-  const poenaZaTrosenje = vrijednostPoena > 0 ? Math.round(popustPoena / vrijednostPoena) : 0;
-  const poeniPopust = koristiPoene ? popustPoena : 0;
-  const total = Math.round((cijenaRobe - poeniPopust +(deliveryFee ?? 0)) * 100) / 100;
+  const total = Math.round((cijenaRobe + (deliveryFee ?? 0)) * 100) / 100;
   const minimum = pravilaDostave.data?.minimalnaNarudzba ?? 0;
   const belowMin = cijenaRobe < minimum;
 
@@ -275,7 +261,6 @@ export default function CheckoutPage() {
     mutationFn: (body: CreateOrderRequest) => orderApi.create(body),
     onSuccess: (order) => {
       clear();
-      qc.invalidateQueries({ queryKey: queryKeys.mojiPoeni() });
       setPlaced(order);
       window.scrollTo({ top: 0, behavior: "smooth" });
       // „Naruči za nekog drugog": adresa i primalac se pamte u adresar za sljedeći put.
@@ -337,7 +322,6 @@ export default function CheckoutPage() {
     } else {
       mutation.mutate({
         ...body,
-        iskoristiPoene: koristiPoene && popustPoena > 0,
         primalac: primalac ?? undefined,
       });
     }
@@ -574,30 +558,6 @@ export default function CheckoutPage() {
                 </p>
               </div>
 
-              {user && stanjePoena > 0 && (
-                popustPoena > 0 ? (
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={koristiPoene}
-                      onChange={(e) => {
-                        activeMutation.reset();
-                        setKoristiPoene(e.target.checked);
-                      }}
-                      className="h-4 w-4 accent-brand-600"
-                    />
-                    <span>
-                      Iskoristi poene ({poenaZaTrosenje} poena = −{formatPrice(popustPoena)})
-                    </span>
-                  </label>
-                ) : (
-                  <p className="text-sm text-muted">
-                    Imaš {stanjePoena} poena — treba ti bar {Math.round(1 / vrijednostPoena)} za
-                    popust od 1 KM.
-                  </p>
-                )
-              )}
-
               {belowMin && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                   Minimalna narudžba je {formatPrice(minimum)}.
@@ -622,8 +582,6 @@ export default function CheckoutPage() {
               deliveryFee={deliveryFee}
               total={total}
               zoneName={selectedZone?.name}
-              poeniPopust={poeniPopust}
-              iskoristeniPoeni={poenaZaTrosenje}
             />
           </div>
 
@@ -647,7 +605,7 @@ export default function CheckoutPage() {
               {/* Različiti `key`-evi su obavezni. Bez njih React zadrži isti <button> i samo mu
                   promijeni `type` u "submit" — a to se desi usred klika na „Nastavi" u koraku 2,
                   prije nego pregledač odluči da li klik šalje formu. Narudžba bi tako nastala
-                  bez koraka 3, pa kupac nikad ne bi vidio promo kod ni poene. */}
+                  bez koraka 3, pa kupac nikad ne bi provjerio narudžbu. */}
               {step < 3 ? (
                 <Button
                   key="nastavi"
@@ -673,8 +631,6 @@ export default function CheckoutPage() {
             deliveryFee={deliveryFee}
             total={total}
             zoneName={selectedZone?.name}
-            poeniPopust={poeniPopust}
-            iskoristeniPoeni={poenaZaTrosenje}
           />
         </aside>
       </div>

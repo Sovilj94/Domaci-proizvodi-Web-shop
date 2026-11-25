@@ -1,3 +1,4 @@
+using EPiljara.Domain.Common;
 using EPiljara.Application.Features.Korpice;
 using EPiljara.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -76,8 +77,8 @@ public class MojaKorpicaUpitiTests
 
         Assert.Equal(2, d.Stavke.Count);
         Assert.All(d.Stavke, s => Assert.False(s.DodaoKupac));
-        // Ponuda je cijela sezonska ponuda (odluka P2b), ne samo kategorije ove korpice.
-        Assert.Contains(d.Ponuda, p => p.Naziv == "Sir" && !p.IzOveKorpice);
+        // Sir je van kategorija ove korpice, ali je predložena zamjena sedmice — zato je u ponudi.
+        Assert.Contains(d.Ponuda, p => p.Naziv == "Sir" && !p.IzOveKorpice && p.PreporucenaZamjena);
         Assert.Contains(d.Ponuda, p => p.Naziv == "Krompir" && p.IzOveKorpice);
     }
 
@@ -106,5 +107,63 @@ public class MojaKorpicaUpitiTests
 
         await Assert.ThrowsAsync<EPiljara.Domain.Common.NotFoundException>(
             () => t.MojaKorpicaAsync(orderItemId));
+    }
+
+    // ---------- Ponuda samo iz kalendara ove vrste korpice ----------
+
+    /// <summary>
+    /// Povrtna korpica nudi samo povrće iz svog sezonskog kalendara (kategorije te vrste
+    /// korpice + sezona) — ne cijelu ponudu prodavnice. Jogurt je Mliječni, van kategorija i nije predložena zamjena.
+    /// </summary>
+    [Fact]
+    public async Task Ponuda_je_samo_iz_kategorija_ove_korpice()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        var dto = await t.PosaljiKorpicuAsync(kolicina: 1m);
+        t.Db.ChangeTracker.Clear();
+
+        var d = await t.MojaKorpicaAsync(await t.OrderItemIdAsync(dto.Id));
+
+        Assert.DoesNotContain(d.Ponuda, p => p.Naziv == "Jogurt");
+        Assert.Contains(d.Ponuda, p => p.Naziv == "Krompir");
+        Assert.All(d.Ponuda, p => Assert.True(p.IzOveKorpice || p.PreporucenaZamjena));
+    }
+
+    [Fact]
+    public async Task Zamjena_artiklom_iz_druge_kategorije_se_odbija()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        var dto = await t.PosaljiKorpicuAsync(kolicina: 1m);
+        var id = await t.OrderItemIdAsync(dto.Id);
+        t.Db.ChangeTracker.Clear();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => t.ZamijeniAsync(id, t.PaprikaId, t.VanKategorijeId));
+        Assert.Equal("artikal_nije_podoban", ex.Code);
+    }
+
+    [Fact]
+    public async Task Izmjena_sa_artiklom_iz_druge_kategorije_se_odbija()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        var dto = await t.PosaljiKorpicuAsync(kolicina: 1m);
+        var id = await t.OrderItemIdAsync(dto.Id);
+        t.Db.ChangeTracker.Clear();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => t.IzmijeniAsync(id, [t.KrompirId, t.VanKategorijeId]));
+        Assert.Equal("artikal_nije_podoban", ex.Code);
+    }
+
+    /// <summary>Kupac kod svake namirnice vidi od kojeg domaćina dolazi — i u kutiji i u ponudi zamjena.</summary>
+    [Fact]
+    public async Task Stavke_i_ponuda_nose_proizvodjaca()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        var dto = await t.PosaljiKorpicuAsync(kolicina: 1m);
+        t.Db.ChangeTracker.Clear();
+
+        var d = await t.MojaKorpicaAsync(await t.OrderItemIdAsync(dto.Id));
+
+        Assert.All(d.Stavke, s => { Assert.Equal("Marko", s.ProizvodjacNaziv); Assert.Equal("Manjača", s.ProizvodjacSelo); });
+        Assert.All(d.Ponuda, p => { Assert.Equal("Marko", p.ProizvodjacNaziv); Assert.Equal("Manjača", p.ProizvodjacSelo); });
     }
 }

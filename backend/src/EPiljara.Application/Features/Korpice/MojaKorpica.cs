@@ -215,15 +215,11 @@ public class GetMojaKorpicaHandler(
         // ni ponudu — vidi MojaKorpicaPravila.UcitajKorpicuAsync.
         var korpica = await MojaKorpicaPravila.UcitajKorpicuAsync(db, red, ct);
 
-        // Ponuda je CIJELA sezonska ponuda — odluka P2b. Artikli iz kategorija ove korpice se
-        // obilježavaju da ih birač može staviti prve, ali se ništa ne zabranjuje.
+        // Ponuda je sezonski kalendar OVE vrste korpice (povrtna → povrće) plus predložene
+        // zamjene sedmice — ne cijela ponuda prodavnice (izmjena odluke P2b). Isto pravilo
+        // važi pri čuvanju (PUT) i zamjeni, vidi KorpicaPodobnost.ZaKorpicu.
         // KorpicaKategorija se vezuje za TipKorpice, ne za Id konkretne korpice — vidi entitet.
-        var kategorijeKorpice = korpica.TipKorpice is null
-            ? new List<Guid>()
-            : await db.KorpicaKategorije
-                .Where(k => k.TipKorpice == korpica.TipKorpice)
-                .Select(k => k.CategoryId)
-                .ToListAsync(ct);
+        var kategorijeKorpice = await KorpicaPodobnost.KategorijeAsync(db, korpica, ct);
 
         var mjesec = SedmicaHelper
             .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, DayOfWeek.Monday, "00:00")
@@ -240,8 +236,30 @@ public class GetMojaKorpicaHandler(
 
         // Mjeseci su CSV u bazi i ne mogu se filtrirati u SQL-u — bazen se mora materijalizovati
         // (ToListAsync) PRIJE nego što USezoni pređe preko njega u memoriji.
-        var ponuda = KorpicaPodobnost
-            .USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec)
+        var podobni = KorpicaPodobnost
+            .ZaKorpicu(
+                KorpicaPodobnost.USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec),
+                kategorijeKorpice, preporucene)
+            .ToList();
+
+        // Domaćin uz svaku namirnicu (kutija i ponuda). Stavka kutije nosi samo ProductId, pa se
+        // proizvođač čita iz kataloga — IgnoreQueryFilters jer je artikal mogao biti obrisan.
+        var idjeviStavki = red.KorpicaStavke.Select(s => s.ProductId).ToList();
+        var artikliStavki = await db.Products.IgnoreQueryFilters()
+            .Where(p => idjeviStavki.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
+        var proizvodjacArtikla = podobni.ToDictionary(p => p.Id, p => p.ProducerId);
+        foreach (var x in artikliStavki.Values) proizvodjacArtikla[x.Id] = x.ProducerId;
+        var idjeviDomacina = proizvodjacArtikla.Values.Distinct().ToList();
+        var domacini = await db.Producers.IgnoreQueryFilters()
+            .Where(d => idjeviDomacina.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, d => (d.Name, d.Village), ct);
+        (string Naziv, string Selo) Domacin(Guid productId) =>
+            proizvodjacArtikla.TryGetValue(productId, out var pid) && domacini.TryGetValue(pid, out var d)
+                ? (d.Name, d.Village)
+                : (string.Empty, string.Empty);
+
+        var ponuda = podobni
             .Select(p => new PonudaArtiklaDto
             {
                 ProductId = p.Id,
@@ -251,6 +269,10 @@ public class GetMojaKorpicaHandler(
                 ImageUrl = p.ImageUrl,
                 IzOveKorpice = kategorijeKorpice.Contains(p.CategoryId),
                 PreporucenaZamjena = preporucene.Contains(p.Id),
+                ProizvodjacNaziv = Domacin(p.Id).Naziv,
+                ProizvodjacSelo = Domacin(p.Id).Selo,
+                Najmanje = p.NajmanjaKolicinaUKorpici(),
+                Korak = p.KorakUKorpici(),
             })
             .OrderByDescending(p => p.PreporucenaZamjena)
             .ThenByDescending(p => p.IzOveKorpice)
@@ -285,6 +307,15 @@ public class GetMojaKorpicaHandler(
                     Jedinica = s.Unit.ToApi(),
                     JedinicnaCijena = s.JedinicnaCijena,
                     DodaoKupac = s.DodaoKupac,
+                    ProizvodjacNaziv = Domacin(s.ProductId).Naziv,
+                    ProizvodjacSelo = Domacin(s.ProductId).Selo,
+                    // Obrisan artikal: korak jedinice iz snimka reda.
+                    Najmanje = artikliStavki.TryGetValue(s.ProductId, out var ap)
+                        ? ap.NajmanjaKolicinaUKorpici()
+                        : Product.KorakZaokruzivanja(s.Unit),
+                    Korak = artikliStavki.TryGetValue(s.ProductId, out var ak)
+                        ? ak.KorakUKorpici()
+                        : Product.KorakZaokruzivanja(s.Unit),
                 })
                 .OrderBy(s => s.Naziv)
                 .ToList(),
@@ -297,14 +328,28 @@ public class GetMojaKorpicaHandler(
     }
 }
 
-public record IzmijeniMojuKorpicuCommand(Guid OrderItemId, IReadOnlyList<Guid> ProductIds)
-    : IRequest<MojaKorpicaDetaljiDto>;
+/// <summary>Jedna stavka kupčevog nacrta. Null količina: šablonska za zadržan artikal, najmanja za nov.</summary>
+public record StavkaKorpiceUnos(Guid ProductId, decimal? Kolicina);
+
+/// <summary>
+/// Kupčev nacrt korpice. <see cref="Stavke"/> nosi i količine (korpica po budžetu); stari oblik
+/// samo sa <see cref="ProductIds"/> i dalje radi — svaka količina je tada null. Cijene klijent
+/// nikad ne šalje: server ih čita sam, pa količina ne otvara „10 kg po cijeni jednog".
+/// </summary>
+public record IzmijeniMojuKorpicuCommand(
+    Guid OrderItemId, IReadOnlyList<Guid> ProductIds, IReadOnlyList<StavkaKorpiceUnos>? Stavke = null)
+    : IRequest<MojaKorpicaDetaljiDto>
+{
+    public IReadOnlyList<StavkaKorpiceUnos> Unosi =>
+        Stavke ?? ProductIds.Select(id => new StavkaKorpiceUnos(id, null)).ToList();
+}
 
 public class IzmijeniMojuKorpicuValidator : AbstractValidator<IzmijeniMojuKorpicuCommand>
 {
     public IzmijeniMojuKorpicuValidator()
     {
-        RuleFor(x => x.ProductIds).NotEmpty().WithMessage("Korpica ne može ostati prazna.");
+        RuleFor(x => x.Unosi).NotEmpty().WithMessage("Korpica ne može ostati prazna.")
+            .OverridePropertyName("stavke");
     }
 }
 
@@ -315,6 +360,27 @@ public class IzmijeniMojuKorpicuHandler(
     /// <summary>Donja i gornja granica budžeta, kao udio CiljnaVrijednost.</summary>
     public const decimal DonjaGranica = 0.95m;
     public const decimal GornjaGranica = 1.00m;
+
+    /// <summary>
+    /// Količina novog artikla kad je klijent ne pošalje: najmanja smislena ako je admin zadao
+    /// najmanju ili količinu za malu korpicu, inače 1 u svojoj jedinici (ranije pravilo).
+    /// </summary>
+    internal static decimal PodrazumijevanaKolicina(Product p) =>
+        p.NajmanjeUKorpici is > 0 || p.KolicinaMala is > 0 ? p.NajmanjaKolicinaUKorpici() : 1m;
+
+    /// <summary>
+    /// Količina mora biti pozitivna, višekratnik koraka zaokruživanja (komad cio, kg/l na 0,1) i
+    /// ne ispod najmanje količine artikla. Obrisan artikal (nema ga u katalogu) provjerava samo korak.
+    /// </summary>
+    internal static void ProvjeriKolicinu(string naziv, EPiljara.Domain.Enums.Unit jedinica, decimal kolicina, Product? p)
+    {
+        var korak = Product.KorakZaokruzivanja(jedinica);
+        if (kolicina <= 0 || kolicina % korak != 0)
+            throw new DomainException($"Količina za {naziv} nije ispravna.", "kolicina_neispravna");
+        if (p is not null && kolicina < p.NajmanjaKolicinaUKorpici())
+            throw new DomainException(
+                $"{naziv}: najmanje {p.NajmanjaKolicinaUKorpici():0.##} {p.Unit.ToApi()} u korpici.", "kolicina_premala");
+    }
 
     public async Task<MojaKorpicaDetaljiDto> Handle(
         IzmijeniMojuKorpicuCommand cmd, CancellationToken ct)
@@ -339,7 +405,8 @@ public class IzmijeniMojuKorpicuHandler(
 
         // Duplikat bi se tiho udvostručio u količini — odbijamo ga umjesto da ga sažmemo,
         // jer kupac koji je dvaput kliknuo isti artikal nije tražio dvostruku količinu.
-        if (cmd.ProductIds.Distinct().Count() != cmd.ProductIds.Count)
+        var unosi = cmd.Unosi;
+        if (unosi.Select(u => u.ProductId).Distinct().Count() != unosi.Count)
             throw new DomainException("Isti artikal je naveden dvaput.", "duplirani_artikal");
 
         var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, opcije.Value, ct);
@@ -354,12 +421,22 @@ public class IzmijeniMojuKorpicuHandler(
             .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, DayOfWeek.Monday, "00:00")
             .Month;
 
+        // Isto pravilo kao ponuda u GET-u: kalendar ove vrste korpice + predložene zamjene sedmice.
+        var preporucene = await db.ZamjeneSadrzaja
+            .Where(z => z.SedmicniSadrzaj!.KorpicaId == red.ProductId
+                        && z.SedmicniSadrzaj.Godina == red.Order.Godina
+                        && z.SedmicniSadrzaj.Sedmica == red.Order.Sedmica
+                        && z.SedmicniSadrzaj.Status != StatusSadrzaja.Nacrt)
+            .Select(z => z.ProductId)
+            .ToListAsync(ct);
         var podobni = KorpicaPodobnost
-            .USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec)
+            .ZaKorpicu(
+                KorpicaPodobnost.USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec),
+                await KorpicaPodobnost.KategorijeAsync(db, korpica, ct), preporucene)
             .ToDictionary(p => p.Id);
 
-        // Količine iz šablona te sedmice: artikal koji je u šablonu zadržava svoju količinu,
-        // sve ostalo dobija 1 u svojoj jedinici. Količinu NIKAD ne šalje klijent — vidi spec.
+        // Količine: klijent ih smije poslati (korpica po budžetu), ali server provjerava najmanju
+        // količinu i korak; bez količine zadržan artikal ima šablonsku, a nov najmanju (vidi PodrazumijevanaKolicina).
         var sadrzaj = await db.SedmicniSadrzaji
             .Include(s => s.Stavke)
             .FirstOrDefaultAsync(s => s.KorpicaId == red.ProductId
@@ -382,23 +459,26 @@ public class IzmijeniMojuKorpicuHandler(
         // iz trenutka narudžbe i on se izmjenom ne smije pomjeriti — vidi niže.
         var zadrzani = red.KorpicaStavke.ToDictionary(s => s.ProductId);
 
-        // Nazivi SVIH poslanih id-ova, i onih koji nisu podobni (obrisan, van sezone, bez
-        // zaliha) — poruka o nepodobnom artiklu mora da ga imenuje, inače kupac vidi ćorsokak
-        // bez ijednog putokaza.
-        var trazeniIdjevi = cmd.ProductIds.ToList();
-        var nazivi = await db.Products.IgnoreQueryFilters()
+        // SVI poslani artikli iz kataloga (i nepodobni, i obrisani): naziv za poruku o nepodobnom
+        // artiklu — inače kupac vidi ćorsokak bez putokaza — i pravilo količine za zadržane.
+        var trazeniIdjevi = unosi.Select(u => u.ProductId).ToList();
+        var katalog = await db.Products.IgnoreQueryFilters()
             .Where(p => trazeniIdjevi.Contains(p.Id))
-            .Select(p => new { p.Id, p.Name })
-            .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+            .ToDictionaryAsync(p => p.Id, ct);
 
         var nove = new List<StavkaKorpiceNarudzbe>();
-        foreach (var pid in cmd.ProductIds)
+        foreach (var unos in unosi)
         {
+            var pid = unos.ProductId;
             // Zadržan artikal preskače provjeru podobnosti: spec vezuje podobnost za DODATI
             // artikal. Artikal iz šablona koji je u međuvremenu izašao iz sezone ili sa zaliha
             // inače čini cijelu kutiju zauvijek nesačuvljivom, a kupac ga nije ni dodao.
             if (zadrzani.TryGetValue(pid, out var stara))
             {
+                var kolicina = unos.Kolicina ?? sablonskeKolicine.GetValueOrDefault(pid, stara.Kolicina);
+                // Nepromijenjen red (snimak ili šablon) se ne provjerava: zatečeno stanje se ne kvari.
+                if (kolicina != stara.Kolicina && kolicina != sablonskeKolicine.GetValueOrDefault(pid, -1m))
+                    ProvjeriKolicinu(stara.ProductName, stara.Unit, kolicina, katalog.GetValueOrDefault(pid));
                 nove.Add(new StavkaKorpiceNarudzbe
                 {
                     OrderItemId = red.Id,
@@ -408,7 +488,7 @@ public class IzmijeniMojuKorpicuHandler(
                     // zadržava, pa ni jedno ni drugo nema šta da ga pomjeri.
                     ProductName = stara.ProductName,
                     Unit = stara.Unit,
-                    Kolicina = sablonskeKolicine.GetValueOrDefault(pid, stara.Kolicina),
+                    Kolicina = kolicina,
                     JedinicnaCijena = stara.JedinicnaCijena,
                     NabavnaCijena = stara.NabavnaCijena,
                     DodaoKupac = stara.DodaoKupac,
@@ -418,10 +498,13 @@ public class IzmijeniMojuKorpicuHandler(
 
             if (!podobni.TryGetValue(pid, out var p))
                 throw new DomainException(
-                    nazivi.TryGetValue(pid, out var naziv)
-                        ? $"Artikal {naziv} nije dostupan za korpicu ove sedmice."
+                    katalog.TryGetValue(pid, out var nepodoban)
+                        ? $"Artikal {nepodoban.Name} nije dostupan za korpicu ove sedmice."
                         : "Artikal nije dostupan za korpicu ove sedmice.",
                     "artikal_nije_podoban");
+
+            var novaKolicina = unos.Kolicina ?? (sablonskeKolicine.TryGetValue(p.Id, out var sk) ? sk : PodrazumijevanaKolicina(p));
+            if (unos.Kolicina is not null) ProvjeriKolicinu(p.Name, p.Unit, novaKolicina, p);
 
             nove.Add(new StavkaKorpiceNarudzbe
             {
@@ -429,7 +512,7 @@ public class IzmijeniMojuKorpicuHandler(
                 ProductId = p.Id,
                 ProductName = p.Name,
                 Unit = p.Unit,
-                Kolicina = sablonskeKolicine.GetValueOrDefault(p.Id, 1m),
+                Kolicina = novaKolicina,
                 // Cijena po prioritetu: red koji je već na narudžbi (gore), pa šablon te
                 // sedmice, pa — samo za stvarno nov artikal, kojem nijedan snimak ne postoji —
                 // trenutna katalog cijena. Inače bi se kutija mjerila današnjim cijenama
@@ -438,6 +521,7 @@ public class IzmijeniMojuKorpicuHandler(
                 JedinicnaCijena = sablonskeCijene.TryGetValue(p.Id, out var sablonska)
                     ? sablonska
                     : p.Price,
+                NabavnaCijena = p.NabavnaCijena,
                 DodaoKupac = !sablonskeKolicine.ContainsKey(p.Id),
             });
         }
@@ -460,6 +544,20 @@ public class IzmijeniMojuKorpicuHandler(
         if (nove.Count < minimum)
             throw new DomainException(
                 $"Korpica mora imati bar {minimum} artikala.", "premalo_artikala");
+
+        // Marža je jedino tvrdo pravilo: nabavni trošak kutije ne smije preći nabavni budžet
+        // (cijena × (1 − minimalna marža)) — osim kad je i dalje jeftiniji nego prije izmjene.
+        // Nabavna: snimak reda, pa katalog; artikal bez nabavne cijene ne ulazi u račun.
+        decimal Nabavna(StavkaKorpiceNarudzbe s) =>
+            s.Kolicina * (s.NabavnaCijena ?? katalog.GetValueOrDefault(s.ProductId)?.NabavnaCijena ?? 0m);
+        var nabavnoPrije = red.KorpicaStavke.Sum(s =>
+            s.Kolicina * (s.NabavnaCijena ?? 0m));
+        var nabavnoPoslije = nove.Sum(Nabavna);
+        var nabavniBudzet = red.UnitPrice * (1 - opcije.Value.MinimalnaMarza);
+        if (nabavnoPoslije > nabavniBudzet + 0.005m && nabavnoPoslije > nabavnoPrije + 0.005m)
+            throw new DomainException(
+                "Ova kombinacija se ne može složiti u korpicu. Izaberi nešto drugo ili smanji neku namirnicu.",
+                "marza");
 
         // Dodat artikal (ili veća količina zadržanog) mora imati slobodnog stanja — onog što
         // već nije obećano drugim korpicama i Špajzu. Zadržan artikal u istoj količini se ne

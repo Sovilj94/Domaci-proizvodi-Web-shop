@@ -137,7 +137,7 @@ public class SacuvajTipKorpiceHandler(IAppDbContext db) : IRequestHandler<Sacuva
 public record ArtikalKorpiceUnos(
     Guid Id, bool MozeUKorpicu, int PrioritetUKorpici,
     decimal? KolicinaMala, decimal? KolicinaSrednja, decimal? KolicinaVelika, decimal? CijenaPiljara = null,
-    decimal? TezinaKomada = null);
+    decimal? TezinaKomada = null, decimal? NajmanjeUKorpici = null);
 
 public record SacuvajArtikleKorpicaCommand(IReadOnlyList<ArtikalKorpiceUnos> Artikli) : IRequest<int>;
 
@@ -151,6 +151,8 @@ public class SacuvajArtikleKorpicaValidator : AbstractValidator<SacuvajArtikleKo
             .WithMessage("Količina u korpici mora biti veća od 0 (ili prazna).");
         RuleForEach(x => x.Artikli).Must(a => a.CijenaPiljara is null or (> 0 and <= 10000))
             .WithMessage("Cijena u piljari mora biti veća od 0 (ili prazna).");
+        RuleForEach(x => x.Artikli).Must(a => a.NajmanjeUKorpici is null or (> 0 and <= 1000))
+            .WithMessage("Najmanja količina u korpici mora biti veća od 0 (ili prazna).");
         RuleForEach(x => x.Artikli).Must(a => a.TezinaKomada is null or (> 0 and <= 50))
             .WithMessage("Težina komada mora biti od 0 do 50 kg (ili prazna).");
     }
@@ -167,13 +169,14 @@ public class SacuvajArtikleKorpicaHandler(IAppDbContext db) : IRequestHandler<Sa
         {
             if (!artikli.TryGetValue(a.Id, out var p) || p.Vrsta != VrstaProizvoda.Obican)
                 throw new NotFoundException("Artikal nije pronađen.");
-            if (p.Unit == Unit.Kom && new[] { a.KolicinaMala, a.KolicinaSrednja, a.KolicinaVelika }
+            if (p.Unit == Unit.Kom && new[] { a.KolicinaMala, a.KolicinaSrednja, a.KolicinaVelika, a.NajmanjeUKorpici }
                     .Any(v => v is not null && v != Math.Floor(v.Value)))
                 throw new DomainException($"{p.Name} ide u korpicu u cijelim komadima.", "kolicina_na_komad");
 
             p.MozeUKorpicu = a.MozeUKorpicu;
             p.PrioritetUKorpici = a.PrioritetUKorpici;
             (p.KolicinaMala, p.KolicinaSrednja, p.KolicinaVelika) = (a.KolicinaMala, a.KolicinaSrednja, a.KolicinaVelika);
+            p.NajmanjeUKorpici = a.NajmanjeUKorpici is decimal nk ? Math.Round(nk, 3) : null;
             p.CijenaPiljara = a.CijenaPiljara is decimal pc ? Math.Round(pc, 2) : null;
             // Težina komada ima smisla samo za komad; kod kg i litre jedinica je sama težina.
             p.TezinaKomada = p.Unit == Unit.Kom && a.TezinaKomada is decimal tk ? Math.Round(tk, 3) : null;

@@ -456,6 +456,7 @@ function Artikli({
       kolicinaMala: p.kolicinaMala ?? null,
       kolicinaSrednja: p.kolicinaSrednja ?? null,
       kolicinaVelika: p.kolicinaVelika ?? null,
+      najmanjeUKorpici: p.najmanjeUKorpici ?? null,
       cijenaPiljara: p.cijenaPiljara ?? null,
       tezinaKomada: p.tezinaKomada ?? null,
     };
@@ -547,6 +548,12 @@ function Artikli({
                 <th className="py-2 pr-3 font-medium">Artikal</th>
                 <th className="py-2 pr-3 font-medium">Sezona</th>
                 <th className="py-2 pr-3 font-medium" title="0 = osnovni artikal, veći broj = dopuna">Prioritet</th>
+                <th
+                  className="py-2 pr-3 font-medium"
+                  title="Najmanja smislena količina u korpici — ispod nje se ne stavlja (ni generator ni kupac). Prazno = 1 kom, odnosno 0,5 kg (ili zadata za malu, ako je manja)."
+                >
+                  Najmanje
+                </th>
                 <th className="py-2 pr-3 font-medium" title="Koliko isti artikal košta u piljari, po jedinici — za obračun cijene korpice">
                   Piljara
                 </th>
@@ -624,6 +631,25 @@ function Artikli({
                         onChange={(e) => promijeni(p, { prioritetUKorpici: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
                         className="w-16"
                       />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <span className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          step={p.unit === "kom" ? "1" : "0.1"}
+                          inputMode="decimal"
+                          placeholder={p.unit === "kom" ? "1" : String(Math.min(0.5, r.kolicinaMala ?? 0.5))}
+                          aria-label={`Najmanje u korpici — ${p.name}`}
+                          value={r.najmanjeUKorpici ?? ""}
+                          onChange={(e) => {
+                            const t = e.target.value.replace(",", ".");
+                            promijeni(p, { najmanjeUKorpici: t.trim() === "" || Number(t) <= 0 ? null : Number(t) });
+                          }}
+                          className="w-20"
+                        />
+                        <span className="text-xs text-muted">{p.unit}</span>
+                      </span>
                     </td>
                     <td className="py-2 pr-3">
                       <span className="flex items-center gap-1">

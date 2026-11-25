@@ -19,14 +19,6 @@ export function TroskoviOdjeljak({ d }: { d: PoslovanjeMjeseca }) {
       naslov="Troškovi i dobit"
       opis="Neto prihod umanjen za nabavnu robu, ambalažu, gorivo i ostale troškove mjeseca."
     >
-      {g.bezCijene && (
-        <p className="rounded-card bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          Ima dana za koje nije unesena cijena goriva — procjena goriva nije potpuna.{" "}
-          <Link href={link} className="underline underline-offset-2">
-            Unesi cijenu goriva
-          </Link>
-        </p>
-      )}
       {nemaUnosa && (
         <p className="rounded-card bg-honey-100 px-4 py-3 text-sm font-medium text-honey-700">
           Za ovaj mjesec još nema troškova.{" "}

@@ -25,16 +25,14 @@ public static class AutoZamjena
     public static async Task<List<Product>> KandidatiAsync(
         IAppDbContext db, SedmicniSadrzaj sadrzaj, Product korpica, int mjesec, CancellationToken ct)
     {
-        var kategorije = korpica.TipKorpice is null
-            ? []
-            : await db.KorpicaKategorije
-                .Where(k => k.TipKorpice == korpica.TipKorpice)
-                .Select(k => k.CategoryId)
-                .ToListAsync(ct);
+        var kategorije = await KorpicaPodobnost.KategorijeAsync(db, korpica, ct);
         var preporucene = sadrzaj.Zamjene.Select(z => z.ProductId).ToList();
 
+        // Samo kalendar ove vrste korpice (povrtna → povrće) i predložene zamjene sedmice.
         return KorpicaPodobnost
-            .USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec)
+            .ZaKorpicu(
+                KorpicaPodobnost.USezoni(await KorpicaPodobnost.UpitPodobnih(db.Products).ToListAsync(ct), mjesec),
+                kategorije, preporucene)
             // Opcionu kulturu kupac bira sam — automatska zamjena je uzima tek kad nema ništa drugo.
             .OrderBy(p => p.Opciono)
             .ThenBy(p => p.PrioritetUKorpici)
@@ -86,7 +84,8 @@ public static class AutoZamjena
             Math.Round(cilj * IzmijeniMojuKorpicuHandler.DonjaGranica, 2),
             Math.Round(cilj * IzmijeniMojuKorpicuHandler.GornjaGranica, 2),
             nov.Unit);
-        if (kolicina is null) return (null, Prepreka.NeStaje);
+        // Ispod najmanje smislene količine novog artikla zamjena ne ide — to su „mrvice" (0,3 kg batata).
+        if (kolicina is null || kolicina < nov.NajmanjaKolicinaUKorpici()) return (null, Prepreka.NeStaje);
         // Slobodno po jednoj korpici (vidi Zalihe); bez njega ostaje golo stanje.
         if (kolicina > (slobodno?.Invoke(nov) ?? nov.Stock)) return (null, Prepreka.NemaZalihe);
 

@@ -59,7 +59,6 @@ export function dokumentPoslovanja(d: PoslovanjeMjeseca): TDocumentDefinitions {
           ["Promet robe", d2(km(p.prometRobe))],
           ["Dostava naplaćena", d2(km(p.dostava))],
           ["Promo popusti", d2(`− ${km(p.promoPopust)}`)],
-          ["Popust od poena", d2(`− ${km(p.poeniPopust)}`)],
           [{ text: "Neto prihod", bold: true }, { text: km(p.neto), bold: true, alignment: "right" }],
           ["Nabavni trošak robe", d2(km(p.nabavno))],
           [
