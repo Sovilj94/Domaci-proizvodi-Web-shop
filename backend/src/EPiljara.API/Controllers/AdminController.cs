@@ -23,6 +23,11 @@ namespace EPiljara.API.Controllers;
 [Authorize(Roles = "Admin")]
 public class AdminController : ApiControllerBase
 {
+    /// <summary>Sedmica koja se pakuje (posljednja zaključana) i otvorena sedmica — za narudžbe i dostavu.</summary>
+    [HttpGet("admin/sedmice-rada")]
+    public async Task<IActionResult> SedmiceRada() =>
+        Envelope(await Mediator.Send(new EPiljara.Application.Features.Orders.GetSedmiceRadaQuery()));
+
     [HttpGet("admin/dashboard")]
     public async Task<IActionResult> Dashboard([FromQuery] DateTime? date) =>
         Envelope(await Mediator.Send(new GetDashboardQuery(date)));

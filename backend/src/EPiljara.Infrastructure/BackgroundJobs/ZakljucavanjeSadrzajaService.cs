@@ -32,6 +32,9 @@ public class ZakljucavanjeSadrzajaService(
                 var broj = await mediator.Send(new ZakljucajSadrzajeCommand(), stoppingToken);
                 if (broj > 0) log.LogInformation("Zaključano sadržaja korpica: {Broj}", broj);
                 var sedmice = await mediator.Send(new ZakljucajNarudzbeCommand(), stoppingToken);
+                // Poslije kraja dostave: narudžbe kojima niko nije promijenio status → neuspjela dostava.
+                var neisporucene = await mediator.Send(new OznaciNeisporuceneCommand(), stoppingToken);
+                if (neisporucene > 0) log.LogInformation("Označeno neuspjelih dostava poslije kraja dostave: {Broj}", neisporucene);
                 // Otkupni listovi nastaju čim se sedmica zaključa — po jedan za svako gazdinstvo.
                 // Sedmica bez listova se vraća u svakom prolazu dok ih ne dobije, pa pad jedne
                 // sedmice ne prekida ostale i sljedeći prolaz pokušava ponovo.

@@ -144,6 +144,19 @@ public class Order : Entity
     /// iz Delivered — ovo je jedini put nazad, a posljedice isporuke (brojač, poeni, fiskalni
     /// račun) poništava pozivalac (IspravkaIsporuke) prije ove metode.
     /// </summary>
+    /// <summary>
+    /// Period dostave sedmice je prošao, a narudžbi niko nije promijenio status (vozač je nije
+    /// zatvorio): označava se kao neuspjela dostava. Ide i iz Confirmed/Packing, koje mašina stanja
+    /// ručno ne nudi — ovo je jedini takav put i koristi ga samo automatski posao. Admin poslije
+    /// može nastaviti uobičajenim prelazima (ponovo u dostavu ili otkaz).
+    /// </summary>
+    public void OznaciNeisporucenu()
+    {
+        if (Status is not (OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.Packing or OrderStatus.OutForDelivery))
+            throw new DomainException("Narudžba je već završena.", "invalid_transition");
+        Status = OrderStatus.FailedDelivery;
+    }
+
     public void PonistiIsporuku()
     {
         if (Status != OrderStatus.Delivered)
