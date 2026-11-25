@@ -69,6 +69,8 @@ public interface IAppDbContext
     DbSet<EmailPoruka> EmailPoruke { get; }
     DbSet<EmailKampanja> EmailKampanje { get; }
     DbSet<FiskalniRacun> FiskalniRacuni { get; }
+    DbSet<OtkupniList> OtkupniListovi { get; }
+    DbSet<OtkupniListStavka> OtkupniListStavke { get; }
 
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
     DatabaseFacade Database { get; }

@@ -13,5 +13,15 @@ public class Producer : Entity
     public double? Longitude { get; set; }
     public string? Phone { get; set; }
 
+    // Podaci za otkupni list (registrovano poljoprivredno gazdinstvo). Sve opciono — unosi ih admin.
+    // Jmbg, ZiroRacun i Banka su lični podaci: idu samo u admin DTO, nikad u javni ProducerDto.
+    public string? NosilacIme { get; set; }
+    /// <summary>Broj registrovanog poljoprivrednog gazdinstva (BPG).</summary>
+    public string? Bpg { get; set; }
+    public string? Jmbg { get; set; }
+    public string? Adresa { get; set; }
+    public string? ZiroRacun { get; set; }
+    public string? Banka { get; set; }
+
     public ICollection<Product> Products { get; set; } = new List<Product>();
 }

@@ -64,6 +64,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<EmailPoruka> EmailPoruke => Set<EmailPoruka>();
     public DbSet<EmailKampanja> EmailKampanje => Set<EmailKampanja>();
     public DbSet<FiskalniRacun> FiskalniRacuni => Set<FiskalniRacun>();
+    public DbSet<OtkupniList> OtkupniListovi => Set<OtkupniList>();
+    public DbSet<OtkupniListStavka> OtkupniListStavke => Set<OtkupniListStavka>();
 
     /// <summary>
     /// Svaki novi red narudžbe (OrderItem, StavkaKorpiceNarudzbe) bez nabavne cijene dobija
@@ -130,6 +132,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Name).HasMaxLength(160).IsRequired();
             e.Property(x => x.Village).HasMaxLength(120);
             e.Property(x => x.Description).HasMaxLength(2000);
+            e.Property(x => x.NosilacIme).HasMaxLength(200);
+            e.Property(x => x.Bpg).HasMaxLength(20);
+            e.Property(x => x.Jmbg).HasMaxLength(13);
+            e.Property(x => x.Adresa).HasMaxLength(200);
+            e.Property(x => x.ZiroRacun).HasMaxLength(200);
+            e.Property(x => x.Banka).HasMaxLength(200);
+        });
+
+        b.Entity<OtkupniList>(e =>
+        {
+            e.Property(x => x.Broj).HasMaxLength(30);
+            e.Property(x => x.Napomena).HasMaxLength(1000);
+            e.HasIndex(x => x.Broj).IsUnique();
+            // Jedan otkupni list po gazdinstvu i sedmici — straža idempotentnosti posla.
+            e.HasIndex(x => new { x.ProducerId, x.Godina, x.Sedmica }).IsUnique();
+            e.HasOne(x => x.Producer).WithMany().HasForeignKey(x => x.ProducerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Stavke).WithOne().HasForeignKey(x => x.OtkupniListId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<OtkupniListStavka>(e =>
+        {
+            e.Property(x => x.Naziv).HasMaxLength(200);
+            e.Property(x => x.Jedinica).HasConversion<string>().HasMaxLength(10);
+            e.Property(x => x.Naruceno).HasPrecision(12, 3);
+            e.Property(x => x.Primljeno).HasPrecision(12, 3);
+            e.Property(x => x.Cijena).HasPrecision(12, 2);
         });
 
         b.Entity<Product>(e =>

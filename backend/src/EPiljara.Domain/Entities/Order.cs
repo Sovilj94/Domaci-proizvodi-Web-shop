@@ -29,6 +29,14 @@ public class Order : Entity
 
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
+    /// <summary>
+    /// Kad je narudžba zaključana (UTC): rok naručivanja njene sedmice je prošao i roba ide u
+    /// nabavku. <c>null</c> = otvorena, kupac je još smije mijenjati. Postavlja je samo pozadinski
+    /// posao (<c>ZakljucajNarudzbeCommand</c>); zaključavanje nije status nego činjenica o roku,
+    /// pa status mašina (Confirmed → Packing → …) ostaje netaknuta.
+    /// </summary>
+    public DateTime? ZakljucanaU { get; set; }
+
     public decimal Subtotal { get; set; }
     public decimal DeliveryFee { get; set; }
     public decimal TotalAmount { get; set; }
