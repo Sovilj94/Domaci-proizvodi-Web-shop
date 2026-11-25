@@ -10,7 +10,7 @@ interface StatusMeta {
 
 export const STATUS_META: Record<OrderStatus, StatusMeta> = {
   Pending: { label: "Na čekanju", badge: "bg-honey-100 text-honey-600", dot: "bg-honey-500" },
-  Confirmed: { label: "Potvrđeno", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+  Confirmed: { label: "Prihvaćeno", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
   Packing: { label: "Pakovanje", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
   OutForDelivery: { label: "U dostavi", badge: "bg-purple-100 text-purple-700", dot: "bg-purple-500" },
   Delivered: { label: "Dostavljeno", badge: "bg-brand-100 text-brand-700", dot: "bg-brand-500" },

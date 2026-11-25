@@ -41,6 +41,14 @@ export function OrderCard({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="whitespace-nowrap font-display font-semibold">{order.code}</span>
             <StatusBadge status={order.status} />
+            {order.zakljucanaU && (order.status === "Confirmed" || order.status === "Pending") && (
+              <span
+                title="Rok za izmjene je prošao — narudžba je u nabavci"
+                className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600"
+              >
+                Zaključena
+              </span>
+            )}
           </div>
           <p className="mt-0.5 truncate text-xs text-muted">
             {order.customerName} · {order.deliveryZoneName} · {order.deliveryAddress}

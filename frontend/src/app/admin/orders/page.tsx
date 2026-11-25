@@ -11,13 +11,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { OrderCard } from "@/components/admin/order-card";
 import { NarudzbeTabla } from "@/components/admin/narudzbe-tabla";
-import { ZaPotvrdu } from "@/components/admin/za-potvrdu";
 import { RobaZaSedmicu } from "@/components/admin/roba-za-sedmicu";
+import { TrakaRoka } from "@/components/admin/traka-roka";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { Input } from "@/components/ui/field";
 import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
-import { STATUS_META, narudzbeRijec } from "@/lib/orders";
+import { STATUS_META } from "@/lib/orders";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,7 @@ export default function AdminOrdersPage() {
 function AdminOrders() {
   const params = useSearchParams();
   const izbor = useIzabranaSedmica();
-  // Filter dolazi i iz linka sa početnog ekrana (?status=Pending).
+  // Filter dolazi i iz linka (?status=…).
   const [filter, setFilter] = useState<OrderStatus | null>(
     () => {
       const s = params.get("status");
@@ -94,14 +94,21 @@ function AdminOrders() {
   const vidjene = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!orders.data) return;
-    const naCekanju = orders.data.filter((o) => o.status === "Pending");
+    // Nova narudžba je odmah prihvaćena i otvorena — nema „na čekanju" koje bi se čekalo.
+    const otvorene = orders.data.filter((o) => o.status === "Confirmed" && !o.zakljucanaU);
     if (vidjene.current) {
-      const nove = naCekanju.filter((o) => !vidjene.current!.has(o.id));
+      const nove = otvorene.filter((o) => !vidjene.current!.has(o.id));
       if (nove.length === 1) show(`Nova narudžba ${nove[0].code} — ${nove[0].customerName}`, "info");
-      else if (nove.length > 1) show(`${nove.length} nove narudžbe čekaju potvrdu`, "info");
+      else if (nove.length > 1) show(`${nove.length} novih narudžbi`, "info");
     }
-    vidjene.current = new Set([...(vidjene.current ?? []), ...naCekanju.map((o) => o.id)]);
+    vidjene.current = new Set([...(vidjene.current ?? []), ...otvorene.map((o) => o.id)]);
   }, [orders.data, show]);
+
+  // Otvorene (rok još nije prošao) / zaključene (u nabavci) — iz ZakljucanaU sa servera.
+  const [rok, setRok] = useState<"sve" | "otvorene" | "zakljucene">("sve");
+  const prikazane = (orders.data ?? []).filter((o) =>
+    rok === "sve" ? true : rok === "zakljucene" ? Boolean(o.zakljucanaU) : !o.zakljucanaU,
+  );
 
   /** Optimistično pomjeri narudžbu u svim keširanim listama narudžbi. */
   function pomjeri(id: string, status: OrderStatus) {
@@ -113,26 +120,9 @@ function AdminOrders() {
     qc.invalidateQueries({ queryKey: ["admin", "orders"] });
     qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     qc.invalidateQueries({ queryKey: ["admin", "zadaci"] });
-    // Nabavka broji samo potvrđene narudžbe — potvrda/otkaz mijenja količine i cijenu.
+    // Nabavka broji sve neotkazane narudžbe — otkaz mijenja količine i cijenu.
     qc.invalidateQueries({ queryKey: ["admin", "korpice", "pakerska"] });
   }
-
-  const vise = useMutation({
-    mutationFn: async ({ lista, status }: { lista: Order[]; status: OrderStatus }) => {
-      lista.forEach((o) => pomjeri(o.id, status));
-      const r = await Promise.allSettled(lista.map((o) => adminApi.updateOrderStatus(o.id, status)));
-      return { uspjelo: r.filter((x) => x.status === "fulfilled").length, ukupno: lista.length, status };
-    },
-    onSuccess: ({ uspjelo, ukupno, status }) => {
-      osvjezi();
-      show(
-        uspjelo === ukupno
-          ? `${STATUS_META[status].label}: ${ukupno} ${narudzbeRijec(ukupno)}`
-          : `Promijenjeno ${uspjelo} od ${ukupno} — ostale nisu mogle preći u „${STATUS_META[status].label}"`,
-        uspjelo === ukupno ? "success" : "error",
-      );
-    },
-  });
 
   const mutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: OrderStatus; code?: string }) =>
@@ -228,12 +218,19 @@ function AdminOrders() {
         </Link>
       </div>
 
-      <ZaPotvrdu />
+      <TrakaRoka godina={izbor.godina} sedmica={izbor.sedmica} datum={izbor.datumParam} />
+
+      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1" role="group" aria-label="Rok za izmjene">
+        <FilterChip label="Sve" active={rok === "sve"} onClick={() => setRok("sve")} />
+        <FilterChip label="Otvorene" active={rok === "otvorene"} onClick={() => setRok("otvorene")} />
+        <FilterChip label="Zaključene" active={rok === "zakljucene"} onClick={() => setRok("zakljucene")} />
+      </div>
 
       {prikaz === "lista" && (
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
-        <FilterChip label="Sve" active={filter === null} onClick={() => setFilter(null)} />
-        {ORDER_STATUSES.map((st) => (
+        <FilterChip label="Svi statusi" active={filter === null} onClick={() => setFilter(null)} />
+        {/* „Na čekanju" više ne nastaje — narudžba je prihvaćena čim stigne. */}
+        {ORDER_STATUSES.filter((st) => st !== "Pending").map((st) => (
           <FilterChip
             key={st}
             label={STATUS_META[st].label}
@@ -248,16 +245,15 @@ function AdminOrders() {
         <LoadingBlock />
       ) : prikaz === "tabla" ? (
         <NarudzbeTabla
-          narudzbe={orders.data ?? []}
-          pending={mutation.isPending || vise.isPending}
+          narudzbe={prikazane}
+          pending={mutation.isPending}
           onPromijeni={(o, s) => mutation.mutate({ id: o.id, status: s, code: o.code })}
-          onPromijeniVise={(lista, s) => vise.mutate({ lista, status: s })}
         />
       ) : orders.isLoading ? (
         <LoadingBlock />
-      ) : orders.data && orders.data.length > 0 ? (
+      ) : prikazane.length > 0 ? (
         <div className="space-y-3">
-          {orders.data.map((o) => (
+          {prikazane.map((o) => (
             <OrderCard
               key={o.id}
               order={o}

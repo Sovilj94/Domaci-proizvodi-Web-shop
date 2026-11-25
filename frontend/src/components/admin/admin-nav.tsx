@@ -72,7 +72,7 @@ const GRUPE: { naziv: string; stavke: NavItem[] }[] = [
   {
     naziv: "Prodaja",
     stavke: [
-      { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag, badge: "narudzbe" },
+      { href: "/admin/orders", label: "Narudžbe", icon: ShoppingBag },
       { href: "/admin/nabavka", label: "Nabavka", icon: ClipboardList, badge: "nabavka" },
       { href: "/admin/pakovanje", label: "Pakovanje", icon: PackageCheck },
       { href: "/admin/pretplate", label: "Pretplate", icon: Repeat },

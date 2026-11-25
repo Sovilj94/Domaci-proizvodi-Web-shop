@@ -173,6 +173,8 @@ export interface Order {
   primalacIme?: string;
   primalacTelefon?: string;
   status: OrderStatus;
+  /** Kad je narudžba zaključana (rok prošao, ide u nabavku); izostavljeno = otvorena za izmjene. */
+  zakljucanaU?: string;
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;

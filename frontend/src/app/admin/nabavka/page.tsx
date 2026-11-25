@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { spisakRobe } from "@/lib/admin/nabavka";
-import { NaCekanjuNapomena, PdfNabavkeDugme, SpisakNabavke } from "@/components/admin/spisak-nabavke";
+import { PdfNabavkeDugme, SpisakNabavke } from "@/components/admin/spisak-nabavke";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
 import { cn, formatDateTime, formatPrice } from "@/lib/utils";
 
@@ -87,7 +87,6 @@ function Nabavka() {
         />
       ) : (
         <>
-          <NaCekanjuNapomena broj={d.naCekanju} />
           <p
             className={cn(
               "rounded-card px-4 py-3 text-sm font-medium",

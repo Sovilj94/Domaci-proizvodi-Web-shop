@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowRight, CheckCheck, GripVertical, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowRight, GripVertical, XCircle } from "lucide-react";
 import { AdminLadica } from "@/components/admin/admin-ladica";
 import { OrderCard } from "@/components/admin/order-card";
 import { KOLONE, NAJVISE_U_ZAVRSENOJ, mozePreci, rasporedi, sljedeci } from "@/lib/admin/kanban";
-import { STATUS_META, narudzbeRijec, razlogNeuspjeha } from "@/lib/orders";
+import { STATUS_META, razlogNeuspjeha } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/types/domain";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -18,13 +18,10 @@ export function NarudzbeTabla({
   narudzbe,
   pending,
   onPromijeni,
-  onPromijeniVise,
 }: {
   narudzbe: Order[];
   pending: boolean;
   onPromijeni: (o: Order, status: OrderStatus) => void;
-  /** Više narudžbi odjednom (Potvrdi sve) — jedan zahtjev po narudžbi, jedno obavještenje. */
-  onPromijeniVise: (narudzbe: Order[], status: OrderStatus) => void;
 }) {
   const t = rasporedi(narudzbe);
   const [vuce, setVuce] = useState<Order | null>(null);
@@ -114,7 +111,6 @@ export function NarudzbeTabla({
           const z = zona(k);
           const sve = t.kolone[k];
           const prikaz = k === "Delivered" ? sve.slice(0, NAJVISE_U_ZAVRSENOJ) : sve;
-          const zaPotvrdu = k === "Pending" ? sve : [];
           return (
             <section
               key={k}
@@ -133,18 +129,6 @@ export function NarudzbeTabla({
                 <span className={cn("h-2 w-2 rounded-full", STATUS_META[k].dot)} />
                 <h2 className="whitespace-nowrap text-sm font-semibold">{STATUS_META[k].label}</h2>
                 <span className="rounded-full bg-white px-1.5 text-xs font-semibold text-muted">{sve.length}</span>
-                {zaPotvrdu.length > 1 && (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => onPromijeniVise(zaPotvrdu, "Confirmed")}
-                    title={`Potvrdi ${zaPotvrdu.length} ${narudzbeRijec(zaPotvrdu.length)}`}
-                    aria-label={`Potvrdi sve: ${zaPotvrdu.length} ${narudzbeRijec(zaPotvrdu.length)}`}
-                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 disabled:opacity-50"
-                  >
-                    <CheckCheck className="h-3.5 w-3.5" /> Sve
-                  </button>
-                )}
               </header>
               <div className="flex min-h-24 flex-col gap-2">
                 {prikaz.map((o) => (

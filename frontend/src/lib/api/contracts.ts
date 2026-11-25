@@ -183,7 +183,8 @@ export interface DashboardStats {
   date: string;
   ordersToday: number;
   revenueToday: number;
-  pendingOrders: number;
+  /** Prihvaćene narudžbe kojima rok još nije prošao. */
+  openOrders: number;
   outForDelivery: number;
   statusBreakdown: { status: OrderStatus; count: number }[];
 }
@@ -247,6 +248,9 @@ export interface SadrzajPregled {
 }
 
 export interface StavkaPakerske {
+  productId: string;
+  /** Gazdinstvo od kog se artikal nabavlja; izostavljeno kad artikla više nema u katalogu. */
+  proizvodjacId?: string;
   artikal: string;
   /** Ukupno potrebno: sadržaj korpica + Špajz. */
   kolicina: number;
@@ -274,10 +278,8 @@ export interface StavkaPakerske {
 export interface PakerskaLista {
   godina: number;
   sedmica: number;
-  /** Potvrđene narudžbe u listi — samo za njih se nabavlja. */
+  /** Neotkazane narudžbe te sedmice — sve su prihvaćene, za sve se nabavlja. */
   brojNarudzbi: number;
-  /** Narudžbe koje čekaju potvrdu — nisu u listi dok se ne potvrde. */
-  naCekanju: number;
   /** Rok naručivanja te sedmice (ISO, UTC). */
   rok: string;
   /** Prvi dan isporuke te sedmice (ISO, UTC) — do tada roba mora biti nabavljena. */
@@ -288,21 +290,6 @@ export interface PakerskaLista {
   nabavnaVrijednost: number;
   bezNabavneCijene: number;
   stavke: StavkaPakerske[];
-}
-
-/** Korpice na čekanju za jednu sedmicu i koliko ih stanje dozvoljava da se potvrdi. */
-export interface PotvrdjivanjeSedmice {
-  godina: number;
-  sedmica: number;
-  korpice: {
-    korpicaId: string;
-    naziv: string;
-    naCekanju: number;
-    /** Koliko ih stanje pokriva kad se potvrđuju redom kojim su stigle. */
-    mozeSePotvrditi: number;
-    /** Artikal kojeg je prvog nestalo, kad ne mogu sve. */
-    nedostaje?: string | null;
-  }[];
 }
 
 export interface GenerisiSadrzajRequest {

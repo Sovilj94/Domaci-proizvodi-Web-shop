@@ -1,8 +1,11 @@
 import type { Order, OrderStatus } from "@/types/domain";
 import { NEXT_STATUSES } from "../orders.ts";
 
-/** Kolone table, redom kojim narudžba prolazi. Otkazane i neuspješne nisu kolone — vidi ispod. */
-export const KOLONE: OrderStatus[] = ["Pending", "Confirmed", "Packing", "OutForDelivery", "Delivered"];
+/**
+ * Kolone table, redom kojim narudžba prolazi. Nema kolone „Na čekanju": narudžba je prihvaćena
+ * čim nastane. Otkazane i neuspješne nisu kolone — vidi ispod.
+ */
+export const KOLONE: OrderStatus[] = ["Confirmed", "Packing", "OutForDelivery", "Delivered"];
 
 /** Završene kolone se skraćuju: hronika, ne posao. */
 export const NAJVISE_U_ZAVRSENOJ = 15;
@@ -32,7 +35,8 @@ export function rasporedi(narudzbe: Order[]): Tabla {
   for (const o of narudzbe) {
     if (o.status === "FailedDelivery") problemi.push(o);
     else if (o.status === "Cancelled") otkazane++;
-    else kolone[o.status].push(o);
+    // Stare narudžbe na čekanju (iz vremena odobravanja) su prihvaćene — backend ih prebacuje.
+    else kolone[o.status === "Pending" ? "Confirmed" : o.status].push(o);
   }
   for (const k of KOLONE) {
     kolone[k].sort((a, b) =>

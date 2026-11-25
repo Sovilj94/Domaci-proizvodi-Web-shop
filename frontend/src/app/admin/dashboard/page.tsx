@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard label="Narudžbe danas" value={s?.ordersToday ?? 0} icon={<ShoppingBag className="h-4 w-4" />} accent="brand" />
         <StatCard label="Promet danas" value={formatPrice(s?.revenueToday ?? 0)} icon={<Banknote className="h-4 w-4" />} accent="honey" />
-        <StatCard label="Na čekanju" value={s?.pendingOrders ?? 0} hint="čeka potvrdu" icon={<Clock className="h-4 w-4" />} accent="blue" />
+        <StatCard label="Otvorene" value={s?.openOrders ?? 0} hint="kupci ih još mogu mijenjati" icon={<Clock className="h-4 w-4" />} accent="blue" />
         <StatCard label="U dostavi" value={s?.outForDelivery ?? 0} icon={<Truck className="h-4 w-4" />} accent="purple" />
       </div>
 
