@@ -33,6 +33,8 @@ internal sealed class Scenario : IDisposable
     public AppDbContext Db => _t.Db;
     public KorpiceOpcije Opcije { get; }
     public Guid ZonaId => _zonaId;
+    /// <summary>Mejl servis koji koristi CreateOrderHandler scenarija — za provjeru poslatih mejlova.</summary>
+    public FakeEmail Email { get; } = new();
     public EPiljara.Application.Features.Geocoding.DostavaOpcije Dostava { get; set; } = TestOpcije.Dostava();
 
     /// <summary>Guid.Empty kad prijavljen == false (gost nema nalog).</summary>
@@ -278,7 +280,7 @@ internal sealed class Scenario : IDisposable
         Handler().Handle(Komanda(productId, kolicina) with { DeliveryZoneId = zonaId ?? _zonaId, Latitude = lat, Longitude = lon }, default);
 
     private CreateOrderHandler Handler() => new(
-        Db, new FakeCurrentUser(_prijavljen ? KupacId : null), new FakeEmail(), new FakeViber(),
+        Db, new FakeCurrentUser(_prijavljen ? KupacId : null), Email, new FakeViber(),
         Options.Create(Opcije), Options.Create(TestOpcije.Pretplate()), Options.Create(TestOpcije.Poeni()),
         Options.Create(Dostava));
 
@@ -289,23 +291,10 @@ internal sealed class Scenario : IDisposable
 
     // ---------- Task 6 ----------
 
-    /// <summary>
-    /// Nabavka broji samo potvrđene narudžbe, a scenario ih pravi na čekanju — pa ih ovdje
-    /// podrazumijevano prvo potvrdi, kao admin pred nabavku. <paramref name="potvrdiNaCekanju"/>
-    /// = false ostavlja statuse kakvi jesu.
-    /// </summary>
-    public async Task<PakerskaListaDto> PakerskaListaAsync(bool potvrdiNaCekanju = true)
-    {
-        if (potvrdiNaCekanju)
-        {
-            foreach (var o in await Db.Orders.Where(o => o.Status == OrderStatus.Pending).ToListAsync())
-                o.Status = OrderStatus.Confirmed;
-            await Db.SaveChangesAsync();
-            Db.ChangeTracker.Clear();
-        }
-        return await new GetPakerskaListaHandler(Db, Options.Create(Opcije))
+    /// <summary>Nabavka (pakerska lista) za sedmicu scenarija — broji sve neotkazane narudžbe.</summary>
+    public Task<PakerskaListaDto> PakerskaListaAsync() =>
+        new GetPakerskaListaHandler(Db, Options.Create(Opcije))
             .Handle(new GetPakerskaListaQuery(Godina, Sedmica), default);
-    }
 
     // ---------- Task 7 ----------
 

@@ -302,7 +302,9 @@ public class CreateOrderHandler(
             CustomerEmail = cmd.Customer.Email,
             PrimalacIme = cmd.Primalac?.Ime.Trim(),
             PrimalacTelefon = cmd.Primalac?.Telefon.Trim(),
-            Status = OrderStatus.Pending,
+            // Nema ručnog odobravanja: narudžba je prihvaćena čim nastane, a otvorena za
+            // izmjene dok je posao ne zaključa na roku (ZakljucanaU). Isto u GuestOrderRequests.
+            Status = OrderStatus.Confirmed,
             Items = items,
             Subtotal = subtotal,
             DeliveryFee = dostava,

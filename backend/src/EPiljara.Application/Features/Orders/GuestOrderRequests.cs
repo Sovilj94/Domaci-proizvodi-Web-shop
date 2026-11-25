@@ -360,7 +360,8 @@ public class ConfirmGuestOrderHandler(
             CustomerName = zahtjev.CustomerName,
             CustomerPhone = zahtjev.CustomerPhone,
             CustomerEmail = zahtjev.CustomerEmail,
-            Status = OrderStatus.Pending,
+            // Prihvaćena odmah, kao i u CreateOrder — vidi komentar tamo.
+            Status = OrderStatus.Confirmed,
             Items = items,
             // Iznosi dolaze iz zahtjeva, ne preračunati — kupac je odobrio baš ove brojeve
             // kad je poslao formu, to je i smisao snimka.
