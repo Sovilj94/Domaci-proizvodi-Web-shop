@@ -71,20 +71,6 @@ public static class ObavjestenjaPravila
             "Otvori narudžbe", "/admin/orders", $"nova:{order.Id}", ct);
     }
 
-    public static async Task OdbijeneAsync(IAppDbContext db, IEmailService email, IReadOnlyList<Order> odbijene, CancellationToken ct)
-    {
-        if (odbijene.Count == 0) return;
-        var p = await PodesavanjaAsync(db, ct);
-        if (!(p?.ObavRadnikOdbijene ?? true)) return;
-        var primaoci = await RadniciAsync(db, p, ct);
-        if (primaoci.Count == 0) return;
-        var redovi = odbijene.OrderBy(o => o.Code)
-            .Select(o => $"{o.Code} — {o.CustomerName}, {Novac(o.TotalAmount)}").ToList();
-        redovi.Insert(0, "Nisu potvrđene do roka naručivanja, pa ih je sistem odbio. Kupci su obaviješteni.");
-        await email.SendObavjestenjeAsync(primaoci, "odbijene_narudzbe",
-            $"Automatski odbijeno narudžbi: {odbijene.Count}", redovi, "Otvori narudžbe", "/admin/orders", null, ct);
-    }
-
     public static async Task FiskalnaGreskaAsync(IAppDbContext db, IEmailService email, FiskalniRacun r, string kod, CancellationToken ct)
     {
         var p = await PodesavanjaAsync(db, ct);

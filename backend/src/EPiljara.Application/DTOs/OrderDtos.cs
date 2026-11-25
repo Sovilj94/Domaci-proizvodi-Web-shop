@@ -25,6 +25,8 @@ public record OrderDto
     public string? PrimalacIme { get; init; }
     public string? PrimalacTelefon { get; init; }
     public string Status { get; init; } = "Pending";
+    /// <summary>Kad je narudžba zaključana (rok prošao, ide u nabavku); izostavljeno = otvorena.</summary>
+    public DateTime? ZakljucanaU { get; init; }
     public IReadOnlyList<OrderItemDto> Items { get; init; } = [];
     public decimal Subtotal { get; init; }
     public decimal DeliveryFee { get; init; }

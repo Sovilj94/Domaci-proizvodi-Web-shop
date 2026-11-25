@@ -80,7 +80,8 @@ public static class MojaKorpicaPravila
         var rok = SedmicaHelper
             .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, dan, vrijemeOd)
             .AddHours(-cutoff);
-        if (DateTime.UtcNow > rok)
+        // Zaključana narudžba (posao je prošao rok) se ne mijenja ni kad ovaj sat kasni za njim.
+        if (red.Order.ZakljucanaU is not null || DateTime.UtcNow > rok)
             throw new DomainException("Rok za izmjenu ove korpice je prošao.", "rok_istekao");
 
         var sadrzaj = await db.SedmicniSadrzaji
@@ -116,7 +117,8 @@ public class GetMojeKorpiceHandler(
             .Include(i => i.KorpicaStavke)
             .Where(i => i.Order!.CustomerId == current.Id
                         && i.KorpicaStavke.Any()
-                        && MojaKorpicaPravila.StatusiKojiDozvoljavaju.Contains(i.Order.Status))
+                        && MojaKorpicaPravila.StatusiKojiDozvoljavaju.Contains(i.Order.Status)
+                        && i.Order.ZakljucanaU == null)
             .ToListAsync(ct);
 
         var korpiceIdjevi = redovi.Select(r => r.ProductId).Distinct().ToList();
@@ -413,7 +415,8 @@ public class IzmijeniMojuKorpicuHandler(
         var rok = SedmicaHelper
             .DatumIsporuke(red.Order.Godina, red.Order.Sedmica, dan, vrijemeOd)
             .AddHours(-cutoff);
-        if (DateTime.UtcNow > rok)
+        // Zaključana narudžba (posao je prošao rok) se ne mijenja ni kad ovaj sat kasni za njim.
+        if (red.Order.ZakljucanaU is not null || DateTime.UtcNow > rok)
             throw new DomainException(
                 "Rok za izmjenu ove korpice je prošao.", "rok_istekao");
 

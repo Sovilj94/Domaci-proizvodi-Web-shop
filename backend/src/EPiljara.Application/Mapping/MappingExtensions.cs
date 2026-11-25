@@ -125,6 +125,7 @@ public static class MappingExtensions
         PrimalacIme = o.PrimalacIme,
         PrimalacTelefon = o.PrimalacTelefon,
         Status = o.Status.ToString(),
+        ZakljucanaU = o.ZakljucanaU,
         Items = o.Items.Select(x => x.ToDto()).ToList(),
         Subtotal = o.Subtotal,
         DeliveryFee = o.DeliveryFee,

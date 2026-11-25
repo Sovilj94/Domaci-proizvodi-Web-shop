@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace EPiljara.Infrastructure.BackgroundJobs;
 
 /// <summary>
-/// Svakih 15 minuta zatvara sadržaje kojima je rok naručivanja prošao i odbija narudžbe
-/// koje do tog roka nisu potvrđene (vidi <see cref="OdbijNepotvrdjeneCommand"/>).
+/// Svakih 15 minuta zatvara sadržaje kojima je rok naručivanja prošao i zaključava narudžbe
+/// te sedmice (vidi <see cref="ZakljucajNarudzbeCommand"/>) — od tada idu u nabavku.
 /// Zaključavanje mora biti automatsko — ako zavisi od toga da se admin sjeti,
 /// prije ili kasnije se neće sjetiti. Isti obrazac kao <see cref="ExpiredGuestRequestsCleaner"/>
 /// — oba guarda ispod su odatle preuzeta, ne izmišljena ovdje.
@@ -30,8 +30,8 @@ public class ZakljucavanjeSadrzajaService(
                 var mediator = scope.ServiceProvider.GetRequiredService<ISender>();
                 var broj = await mediator.Send(new ZakljucajSadrzajeCommand(), stoppingToken);
                 if (broj > 0) log.LogInformation("Zaključano sadržaja korpica: {Broj}", broj);
-                var odbijene = await mediator.Send(new OdbijNepotvrdjeneCommand(), stoppingToken);
-                if (odbijene > 0) log.LogInformation("Odbijeno nepotvrđenih narudžbi poslije roka: {Broj}", odbijene);
+                var sedmice = await mediator.Send(new ZakljucajNarudzbeCommand(), stoppingToken);
+                if (sedmice.Count > 0) log.LogInformation("Zaključane narudžbe sedmica: {Sedmice}", string.Join(", ", sedmice.Select(s => $"{s.Sedmica}/{s.Godina}")));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
