@@ -17,6 +17,7 @@ import type { Driver, Voznja } from "@/lib/api/contracts";
 import type { DeliveryRoute, Order, PodjelaStavka, RouteStop } from "@/types/domain";
 import { cn, formatPrice } from "@/lib/utils";
 import { useSedmiceRada } from "@/lib/admin/sedmice-rada";
+import { AutomatskiRaspored } from "@/components/admin/automatski-raspored";
 
 const NEDODIJELJENO = "nedodijeljeno";
 
@@ -307,6 +308,17 @@ function AdminDostavaContent() {
           </Link>
         </div>
       </div>
+
+      {pakovanje && (
+        <AutomatskiRaspored
+          key={`${date}-${pakovanje.sedmica}`}
+          date={date}
+          godina={pakovanje.godina}
+          sedmica={pakovanje.sedmica}
+          vozaci={drivers.data ?? []}
+          onGotovo={osvjezi}
+        />
+      )}
 
       <DispatchTabs tabs={tabs} activeId={activeId} onSelect={selectTab} />
 

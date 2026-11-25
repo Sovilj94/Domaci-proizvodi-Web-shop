@@ -918,3 +918,26 @@ export interface SedmiceRada {
   pakovanje: SedmicaRada;
   otvorena: SedmicaRada;
 }
+
+/** Naselje u prijedlogu raspodjele: centar (ako je poznat) i nedodijeljene narudžbe. */
+export interface PrijedlogNaselje {
+  zonaId: string;
+  naziv: string;
+  lat?: number;
+  lon?: number;
+  orderIds: string[];
+}
+
+/** Jedan kombi u prijedlogu: vozač i njegova naselja, od najbližeg magacinu. */
+export interface PrijedlogKombi {
+  vozacId: string;
+  naziv: string;
+  naselja: PrijedlogNaselje[];
+  ukupno: number;
+}
+
+/** `GET /admin/dostava/prijedlog` — ništa ne upisuje. */
+export interface PrijedlogRasporeda {
+  kombiji: PrijedlogKombi[];
+  nerasporedjeno: PrijedlogNaselje[];
+}

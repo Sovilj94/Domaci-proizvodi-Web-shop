@@ -172,6 +172,7 @@ import type {
   ProvjeraPromoKoda,
   OtkupniList,
   SedmiceRada,
+  PrijedlogRasporeda,
   ProducerInput,
   UnesiPrimljenoRequest,
   ProductInput,
@@ -592,6 +593,10 @@ export const adminApi = {
 
   /** Sedmica koja se pakuje i otvorena sedmica — narudžbe i dostava kreću od njih. */
   sedmiceRada: () => apiFetch<SedmiceRada>("/admin/sedmice-rada").then((r) => r.data),
+
+  /** Prijedlog koja naselja idu u koji kombi za dan; ništa ne upisuje. */
+  prijedlogRasporeda: (date: string, godina: number, sedmica: number) =>
+    apiFetch<PrijedlogRasporeda>("/admin/dostava/prijedlog", { query: { date, godina, sedmica } }).then((r) => r.data),
 
   dashboard: (date?: string) =>
     apiFetch<DashboardStats>("/admin/dashboard", { query: { date } }).then(
