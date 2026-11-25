@@ -20,7 +20,8 @@ public record SetCoordinatesRequest(double? Latitude, double? Longitude);
 /// nepotpuno tijelo (<c>{}</c>) veže na 0,0, a <c>GeoBounds</c> tu tačku odbija kao izvan BiH —
 /// nema tihog upisa pogrešne pozicije, samo 400.
 /// </summary>
-public record ReoptimizeRequest(double Latitude, double Longitude);
+/// <summary>Pozicija vozača za jedno računanje; RouteId = ruta koju gleda (opciono).</summary>
+public record ReoptimizeRequest(double Latitude, double Longitude, Guid? RouteId = null);
 
 /// <summary>
 /// Tijelo za dodjelu vozača narudžbi. <c>Date</c> je ISO "yyyy-MM-dd" — dan rute, ne dan

@@ -137,4 +137,35 @@ public class KilometrazaRuteTests
 
         Assert.Equal(24_500, (await RutaAsync(o)).KilometrazaMetara);
     }
+
+    /// <summary>
+    /// „Navigacija" u vozačkoj aplikaciji preračunava rutu koju vozač gleda, ne prvu rutu dana —
+    /// vozač sa dvije rute (dva naselja) dobija preračun baš za onu koju je otvorio.
+    /// </summary>
+    [Fact]
+    public async Task Preracun_od_lokacije_radi_nad_izabranom_rutom()
+    {
+        var o = Napravi();
+        using var _ = o.T;
+        var druga = new DeliveryRoute
+        {
+            Date = o.Ruta.Date, DriverId = o.Ruta.DriverId, Naziv = "Zzz druga", DeliveryZoneId = o.Ruta.DeliveryZoneId,
+        };
+        o.T.Db.DeliveryRoutes.Add(druga);
+        var n = new Order
+        {
+            Code = "EP-T-9", PublicToken = Guid.NewGuid().ToString("N"), CustomerName = "Kupac", Status = OrderStatus.Packing,
+            DeliveryZoneId = o.Ruta.DeliveryZoneId!.Value, DeliverySlotId = o.Narudzbe[0].DeliverySlotId,
+            Godina = 2026, Sedmica = 45, Latitude = 44.78, Longitude = 17.2,
+        };
+        o.T.Db.Orders.Add(n);
+        o.T.Db.RouteStops.Add(new RouteStop { RouteId = druga.Id, OrderId = n.Id, Sequence = 1 });
+        await o.T.Db.SaveChangesAsync();
+        o.T.Db.ChangeTracker.Clear();
+
+        var dto = await new ReoptimizeRouteHandler(o.T.Db, new FakeCurrentUser(o.Vozac.Id, UserRole.Driver), new FiksniOptimizer(1_000))
+            .Handle(new ReoptimizeRouteCommand(44.775, 17.19, druga.Id), default);
+
+        Assert.Equal(druga.Id, dto.Id);
+    }
 }

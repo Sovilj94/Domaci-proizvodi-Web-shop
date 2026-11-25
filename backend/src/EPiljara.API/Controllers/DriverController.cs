@@ -23,7 +23,7 @@ public class DriverController : ApiControllerBase
 
     [HttpPost("driver/route/reoptimize")]
     public async Task<IActionResult> Reoptimize([FromBody] ReoptimizeRequest body) =>
-        Envelope(await Mediator.Send(new ReoptimizeRouteCommand(body.Latitude, body.Longitude)));
+        Envelope(await Mediator.Send(new ReoptimizeRouteCommand(body.Latitude, body.Longitude, body.RouteId)));
 
     /// <summary>Sljedeća ruta od pozicije vozača; data = null kad ruta više nema.</summary>
     [HttpPost("driver/route/sljedeca")]

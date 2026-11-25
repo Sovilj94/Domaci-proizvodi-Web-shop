@@ -16,7 +16,8 @@ namespace EPiljara.Application.Features.Driver;
 /// loggere (vidi <c>RemoveAllLoggers()</c> u Infrastructure/DependencyInjection.cs) jer bi
 /// inače ispisivali punu OSRM putanju sa koordinatama na Information nivou.
 /// </summary>
-public record ReoptimizeRouteCommand(double Latitude, double Longitude) : IRequest<DeliveryRouteDto>;
+/// <param name="RouteId">Ruta koju vozač gleda (dugme „Navigacija"); bez nje prva današnja ruta, kao ranije.</param>
+public record ReoptimizeRouteCommand(double Latitude, double Longitude, Guid? RouteId = null) : IRequest<DeliveryRouteDto>;
 
 public class ReoptimizeRouteHandler(IAppDbContext db, ICurrentUser current, IRouteOptimizer optimizer)
     : IRequestHandler<ReoptimizeRouteCommand, DeliveryRouteDto>
@@ -38,6 +39,7 @@ public class ReoptimizeRouteHandler(IAppDbContext db, ICurrentUser current, IRou
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.DeliveryZone)
             .Include(r => r.Stops).ThenInclude(s => s.Order).ThenInclude(o => o!.Items)
             .Where(r => r.DriverId == driver.Id && r.Date == danas)
+            .Where(r => cmd.RouteId == null || r.Id == cmd.RouteId)
             .OrderBy(r => r.RedniBroj ?? int.MaxValue).ThenBy(r => r.Naziv)
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Nemate rutu za danas.");

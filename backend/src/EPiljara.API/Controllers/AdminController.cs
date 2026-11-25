@@ -23,6 +23,11 @@ namespace EPiljara.API.Controllers;
 [Authorize(Roles = "Admin")]
 public class AdminController : ApiControllerBase
 {
+    /// <summary>Prijedlog koja naselja idu u koji kombi za dan — ništa ne upisuje.</summary>
+    [HttpGet("admin/dostava/prijedlog")]
+    public async Task<IActionResult> PrijedlogRasporeda([FromQuery] string date, [FromQuery] int godina, [FromQuery] int sedmica) =>
+        Envelope(await Mediator.Send(new PredloziRasporedQuery(date, godina, sedmica)));
+
     /// <summary>Sedmica koja se pakuje (posljednja zaključana) i otvorena sedmica — za narudžbe i dostavu.</summary>
     [HttpGet("admin/sedmice-rada")]
     public async Task<IActionResult> SedmiceRada() =>
