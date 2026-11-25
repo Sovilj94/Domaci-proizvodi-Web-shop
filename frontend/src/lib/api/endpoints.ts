@@ -20,6 +20,7 @@ import type {
   OrderStatus,
   MojiPoeni,
   Pretplata,
+  AdminProducer,
   Producer,
   Product,
   SadrzajKorpice,
@@ -723,11 +724,14 @@ export const adminApi = {
   },
 
   /* Producers */
+  /** Gazdinstva sa podacima za otkupni list (JMBG, račun) — samo admin. */
+  producers: () => apiFetch<AdminProducer[]>("/admin/producers").then((r) => r.data),
+
   createProducer: (body: ProducerInput) =>
-    apiFetch<Producer>("/admin/producers", { method: "POST", body }).then((r) => r.data),
+    apiFetch<AdminProducer>("/admin/producers", { method: "POST", body }).then((r) => r.data),
 
   updateProducer: (id: string, body: ProducerInput) =>
-    apiFetch<Producer>(`/admin/producers/${id}`, { method: "PUT", body }).then((r) => r.data),
+    apiFetch<AdminProducer>(`/admin/producers/${id}`, { method: "PUT", body }).then((r) => r.data),
 
   deleteProducer: (id: string) =>
     apiFetch<string>(`/admin/producers/${id}`, { method: "DELETE" }).then(() => id),

@@ -311,3 +311,17 @@ public record PitanjeDto
     public string? PitanjeEn { get; init; }
     public string? OdgovorEn { get; init; }
 }
+
+/// <summary>
+/// Gazdinstvo kako ga vidi admin: javna polja + podaci za otkupni list. JMBG i račun su lični
+/// podaci i postoje samo ovdje, nikad u javnom <see cref="ProducerDto"/>.
+/// </summary>
+public record AdminProducerDto : ProducerDto
+{
+    public string? NosilacIme { get; init; }
+    public string? Bpg { get; init; }
+    public string? Jmbg { get; init; }
+    public string? Adresa { get; init; }
+    public string? ZiroRacun { get; init; }
+    public string? Banka { get; init; }
+}

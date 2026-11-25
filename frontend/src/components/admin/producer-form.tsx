@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { adminApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
 import type { ProducerInput } from "@/lib/api/contracts";
-import type { Producer } from "@/types/domain";
+import type { AdminProducer } from "@/types/domain";
 
 const EMPTY = {
   name: "",
@@ -18,6 +18,12 @@ const EMPTY = {
   description: "",
   phone: "",
   photoUrl: "",
+  nosilacIme: "",
+  bpg: "",
+  jmbg: "",
+  adresa: "",
+  ziroRacun: "",
+  banka: "",
 };
 
 export function ProducerForm({
@@ -27,7 +33,7 @@ export function ProducerForm({
 }: {
   open: boolean;
   onClose: () => void;
-  producer?: Producer | null;
+  producer?: AdminProducer | null;
 }) {
   const qc = useQueryClient();
   const { show } = useToast();
@@ -45,6 +51,12 @@ export function ProducerForm({
             description: producer.description ?? "",
             phone: producer.phone ?? "",
             photoUrl: producer.photoUrl ?? "",
+            nosilacIme: producer.nosilacIme ?? "",
+            bpg: producer.bpg ?? "",
+            jmbg: producer.jmbg ?? "",
+            adresa: producer.adresa ?? "",
+            ziroRacun: producer.ziroRacun ?? "",
+            banka: producer.banka ?? "",
           }
         : EMPTY,
     );
@@ -73,6 +85,12 @@ export function ProducerForm({
       description: form.description || undefined,
       phone: form.phone || undefined,
       photoUrl: form.photoUrl || undefined,
+      nosilacIme: form.nosilacIme || undefined,
+      bpg: form.bpg || undefined,
+      jmbg: form.jmbg || undefined,
+      adresa: form.adresa || undefined,
+      ziroRacun: form.ziroRacun || undefined,
+      banka: form.banka || undefined,
     });
   }
 
@@ -119,6 +137,56 @@ export function ProducerForm({
           value={form.photoUrl}
           onChange={(photoUrl) => setForm((f) => ({ ...f, photoUrl }))}
         />
+
+        <fieldset className="space-y-4 rounded-card border border-line p-4">
+          <legend className="px-1 text-sm font-semibold text-ink">Podaci za otkupni list</legend>
+          <p className="text-xs text-muted">
+            Opciono. Štampaju se na otkupnom listu koji gazdinstvo potpisuje pri predaji robe; prazno
+            polje ostaje linija za upis rukom. JMBG i račun vidi samo admin.
+          </p>
+          <Field label="Nosilac gazdinstva" error={errors["input.nosilacIme"]?.[0]}>
+            <Input
+              value={form.nosilacIme}
+              onChange={(e) => setForm({ ...form, nosilacIme: e.target.value })}
+              placeholder="Ime i prezime"
+            />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Broj gazdinstva (BPG)" error={errors["input.bpg"]?.[0]}>
+              <Input
+                value={form.bpg}
+                inputMode="numeric"
+                onChange={(e) => setForm({ ...form, bpg: e.target.value })}
+              />
+            </Field>
+            <Field label="JMBG nosioca" error={errors["input.jmbg"]?.[0]}>
+              <Input
+                value={form.jmbg}
+                inputMode="numeric"
+                maxLength={13}
+                onChange={(e) => setForm({ ...form, jmbg: e.target.value })}
+              />
+            </Field>
+          </div>
+          <Field label="Adresa" error={errors["input.adresa"]?.[0]}>
+            <Input
+              value={form.adresa}
+              onChange={(e) => setForm({ ...form, adresa: e.target.value })}
+              placeholder="Ulica i broj, mjesto"
+            />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Žiro račun" error={errors["input.ziroRacun"]?.[0]}>
+              <Input
+                value={form.ziroRacun}
+                onChange={(e) => setForm({ ...form, ziroRacun: e.target.value })}
+              />
+            </Field>
+            <Field label="Banka" error={errors["input.banka"]?.[0]}>
+              <Input value={form.banka} onChange={(e) => setForm({ ...form, banka: e.target.value })} />
+            </Field>
+          </div>
+        </fieldset>
       </form>
 
       <div className="flex gap-3 border-t border-line p-4">

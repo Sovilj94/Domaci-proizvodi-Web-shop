@@ -8,20 +8,20 @@ import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { ProducerForm } from "@/components/admin/producer-form";
 import { useToast } from "@/components/ui/toast";
-import { adminApi, catalogApi } from "@/lib/api/endpoints";
+import { adminApi } from "@/lib/api/endpoints";
 import { ApiRequestError } from "@/lib/api/client";
-import type { Producer } from "@/types/domain";
+import type { AdminProducer } from "@/types/domain";
 
 export default function AdminProducersPage() {
   const qc = useQueryClient();
   const { show } = useToast();
-  const [editing, setEditing] = useState<Producer | null>(null);
+  const [editing, setEditing] = useState<AdminProducer | null>(null);
   const [open, setOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const producers = useQuery({
-    queryKey: ["producers"],
-    queryFn: () => catalogApi.producers(),
+    queryKey: ["producers", "admin"],
+    queryFn: () => adminApi.producers(),
   });
 
   const remove = useMutation({
@@ -44,7 +44,7 @@ export default function AdminProducersPage() {
     setEditing(null);
     setOpen(true);
   }
-  function openEdit(p: Producer) {
+  function openEdit(p: AdminProducer) {
     setEditing(p);
     setOpen(true);
   }
@@ -78,6 +78,9 @@ export default function AdminProducersPage() {
                     <p className="truncate text-xs text-muted">
                       {p.village}
                       {p.phone ? ` · ${p.phone}` : ""}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {p.bpg ? `BPG ${p.bpg}` : "Bez podataka za otkupni list"}
                     </p>
                   </div>
 

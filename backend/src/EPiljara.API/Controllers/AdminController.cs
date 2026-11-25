@@ -227,6 +227,11 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> DeleteCategory(Guid id) =>
         Envelope(await Mediator.Send(new DeleteCategoryCommand(id)));
 
+    /// <summary>Gazdinstva sa podacima za otkupni list (JMBG, račun) — samo admin.</summary>
+    [HttpGet("admin/producers")]
+    public async Task<IActionResult> AdminProducers() =>
+        EnvelopeList(await Mediator.Send(new GetAdminProducersQuery()));
+
     [HttpPost("admin/producers")]
     public async Task<IActionResult> CreateProducer([FromBody] ProducerInput input) =>
         EnvelopeCreated(await Mediator.Send(new CreateProducerCommand(input)));

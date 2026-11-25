@@ -31,6 +31,25 @@ public static class MappingExtensions
         Phone = p.Phone,
     };
 
+    /// <summary>Admin pogled na gazdinstvo — uključuje podatke za otkupni list (JMBG, račun).</summary>
+    public static AdminProducerDto ToAdminDto(this Producer p) => new()
+    {
+        Id = p.Id,
+        Name = p.Name,
+        Village = p.Village,
+        Description = p.Description,
+        PhotoUrl = p.PhotoUrl,
+        Latitude = p.Latitude,
+        Longitude = p.Longitude,
+        Phone = p.Phone,
+        NosilacIme = p.NosilacIme,
+        Bpg = p.Bpg,
+        Jmbg = p.Jmbg,
+        Adresa = p.Adresa,
+        ZiroRacun = p.ZiroRacun,
+        Banka = p.Banka,
+    };
+
     public static ProducerRefDto ToRef(this Producer p) => new()
     {
         Id = p.Id,

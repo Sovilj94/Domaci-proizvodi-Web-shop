@@ -137,6 +137,13 @@ export interface ProducerInput {
   phone?: string;
   latitude?: number;
   longitude?: number;
+  /** Podaci za otkupni list — svi opcioni. */
+  nosilacIme?: string;
+  bpg?: string;
+  jmbg?: string;
+  adresa?: string;
+  ziroRacun?: string;
+  banka?: string;
 }
 
 export interface UtisakInput {

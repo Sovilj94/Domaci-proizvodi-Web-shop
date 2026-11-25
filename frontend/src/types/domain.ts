@@ -43,6 +43,20 @@ export interface Producer {
   artikli: string[];
 }
 
+/**
+ * Gazdinstvo kako ga vidi admin (`GET /admin/producers`): javna polja + podaci za otkupni list.
+ * JMBG i račun su lični podaci — dolaze samo sa admin rute.
+ */
+export interface AdminProducer extends Producer {
+  nosilacIme?: string;
+  /** Broj registrovanog poljoprivrednog gazdinstva. */
+  bpg?: string;
+  jmbg?: string;
+  adresa?: string;
+  ziroRacun?: string;
+  banka?: string;
+}
+
 /** Lightweight producer summary embedded on a product. */
 export interface ProducerRef {
   id: string;
