@@ -10,6 +10,7 @@ import { ApiRequestError } from "@/lib/api/client";
 import { adminApi } from "@/lib/api/endpoints";
 import { queryKeys, usePodesavanja } from "@/lib/api/hooks";
 import type { Podesavanja } from "@/types/domain";
+import { MJESECI } from "@/lib/admin/poslovanje";
 
 type Kljuc = keyof Podesavanja;
 
@@ -78,6 +79,8 @@ export function PoslovnaPravila() {
     for (const g of GRUPE) for (const p of g.polja) u[p.k] = uPolje(q.data[p.k] as number, p.procenat);
     u.danIsporukeRezerva = String(q.data.danIsporukeRezerva);
     u.vrijemeIsporukeRezerva = q.data.vrijemeIsporukeRezerva;
+    u.sezonaVocaOd = q.data.sezonaVocaOd ? String(q.data.sezonaVocaOd) : "";
+    u.sezonaVocaDo = q.data.sezonaVocaDo ? String(q.data.sezonaVocaDo) : "";
     u.gradDostave = q.data.gradDostave ?? "";
     setUnos(u);
   }, [q.data]);
@@ -88,6 +91,9 @@ export function PoslovnaPravila() {
       for (const g of GRUPE) for (const p of g.polja) tijelo[p.k] = izPolja(unos[p.k] ?? "", p.procenat);
       tijelo.danIsporukeRezerva = Number(unos.danIsporukeRezerva);
       tijelo.vrijemeIsporukeRezerva = unos.vrijemeIsporukeRezerva;
+      // Prazno = bez sezone; `undefined` se ne serijalizuje, pa server dobija null.
+      tijelo.sezonaVocaOd = unos.sezonaVocaOd ? Number(unos.sezonaVocaOd) : undefined;
+      tijelo.sezonaVocaDo = unos.sezonaVocaDo ? Number(unos.sezonaVocaDo) : undefined;
       tijelo.gradDostave = unos.gradDostave ?? "";
       return adminApi.sacuvajPodesavanja(tijelo as unknown as Podesavanja);
     },
@@ -164,6 +170,26 @@ export function PoslovnaPravila() {
                         maxLength={5}
                       />
                     </Field>
+                    {(["sezonaVocaOd", "sezonaVocaDo"] as const).map((k) => (
+                      <Field
+                        key={k}
+                        label={k === "sezonaVocaOd" ? "Sezona voća od (prazno = cijele godine)" : "Sezona voća do"}
+                        error={greska(k)}
+                      >
+                        <select
+                          value={unos[k] ?? ""}
+                          onChange={(e) => setUnos({ ...unos, [k]: e.target.value })}
+                          className="h-11 w-full rounded-xl border border-line bg-white px-3 text-sm"
+                        >
+                          <option value="">—</option>
+                          {MJESECI.map((m, i) => (
+                            <option key={m} value={i + 1}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    ))}
                   </>
                 )}
               </div>

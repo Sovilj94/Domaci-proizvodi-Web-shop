@@ -28,6 +28,9 @@ public class Podesavanja : Entity
     public int RokSatiRezerva { get; set; }
     public DayOfWeek DanIsporukeRezerva { get; set; }
     public string VrijemeIsporukeRezerva { get; set; } = string.Empty;
+    /// <summary>Sezona voća, mjeseci 1–12 (uključivo; smije preko nove godine). Oba null = voće cijele godine.</summary>
+    public int? SezonaVocaOd { get; set; }
+    public int? SezonaVocaDo { get; set; }
 
     // ----- Pretplate -----
     /// <summary>Popust plana na punu cijenu (0.10 = 10%), od prve isporuke.</summary>

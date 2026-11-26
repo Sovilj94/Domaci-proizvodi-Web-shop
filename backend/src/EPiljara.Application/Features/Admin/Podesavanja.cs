@@ -23,6 +23,9 @@ public record PodesavanjaDto
     /// <summary>0 = nedjelja … 6 = subota.</summary>
     public int DanIsporukeRezerva { get; init; }
     public string VrijemeIsporukeRezerva { get; init; } = string.Empty;
+    /// <summary>Sezona voća (mjesec 1–12); oba prazna = voće cijele godine.</summary>
+    public int? SezonaVocaOd { get; init; }
+    public int? SezonaVocaDo { get; init; }
     public decimal PopustNedjeljna { get; init; }
     public decimal PopustMjesecna { get; init; }
     public decimal PopustTriMjeseca { get; init; }
@@ -53,6 +56,8 @@ public static class PodesavanjaMapa
         RokSati = p.RokSatiRezerva,
         DanIsporukeRezerva = p.DanIsporukeRezerva,
         VrijemeIsporukeRezerva = p.VrijemeIsporukeRezerva,
+        SezonaVocaOd = p.SezonaVocaOd,
+        SezonaVocaDo = p.SezonaVocaDo,
         MinimalanBrojArtikala = new()
         {
             [VelicinaKorpice.Mala] = p.MinArtikalaMala,
@@ -96,6 +101,7 @@ public static class PodesavanjaMapa
         MinArtikalaMala = p.MinArtikalaMala, MinArtikalaSrednja = p.MinArtikalaSrednja, MinArtikalaVelika = p.MinArtikalaVelika,
         RokSatiRezerva = p.RokSatiRezerva, DanIsporukeRezerva = (int)p.DanIsporukeRezerva,
         VrijemeIsporukeRezerva = p.VrijemeIsporukeRezerva,
+        SezonaVocaOd = p.SezonaVocaOd, SezonaVocaDo = p.SezonaVocaDo,
         PopustNedjeljna = p.PopustNedjeljna, PopustMjesecna = p.PopustMjesecna, PopustTriMjeseca = p.PopustTriMjeseca,
         ObavezaMjesecna = p.ObavezaMjesecna, ObavezaTriMjeseca = p.ObavezaTriMjeseca, SatiUnaprijed = p.SatiUnaprijed,
         AlarmSatiPrijeRoka = p.AlarmSatiPrijeRoka, MaksPauzaSedmica = p.MaksPauzaSedmica,
@@ -148,6 +154,10 @@ public class SacuvajPodesavanjaValidator : AbstractValidator<SacuvajPodesavanjaC
         RuleFor(x => x.Podesavanja.DanIsporukeRezerva).InclusiveBetween(0, 6).WithMessage("Nepoznat dan.");
         RuleFor(x => x.Podesavanja.VrijemeIsporukeRezerva).Matches("^([01][0-9]|2[0-3]):[0-5][0-9]$")
             .WithMessage("Vrijeme mora biti u obliku HH:MM.");
+        RuleFor(x => x.Podesavanja.SezonaVocaOd)
+            .Must((x, od) => (od is null && x.Podesavanja.SezonaVocaDo is null)
+                             || (od is >= 1 and <= 12 && x.Podesavanja.SezonaVocaDo is >= 1 and <= 12))
+            .WithMessage("Sezona voća: unesi oba mjeseca (1–12) ili nijedan.");
         RuleFor(x => x.Podesavanja.PopustNedjeljna).InclusiveBetween(0m, 0.9m).WithMessage("Popust mora biti između 0 i 90%.");
         RuleFor(x => x.Podesavanja.PopustMjesecna).InclusiveBetween(0m, 0.9m).WithMessage("Popust mora biti između 0 i 90%.");
         RuleFor(x => x.Podesavanja.PopustTriMjeseca).InclusiveBetween(0m, 0.9m).WithMessage("Popust mora biti između 0 i 90%.");
@@ -183,6 +193,8 @@ public class SacuvajPodesavanjaHandler(IAppDbContext db) : IRequestHandler<Sacuv
         p.RokSatiRezerva = d.RokSatiRezerva;
         p.DanIsporukeRezerva = (DayOfWeek)d.DanIsporukeRezerva;
         p.VrijemeIsporukeRezerva = d.VrijemeIsporukeRezerva;
+        p.SezonaVocaOd = d.SezonaVocaOd;
+        p.SezonaVocaDo = d.SezonaVocaDo;
         p.PopustNedjeljna = d.PopustNedjeljna;
         p.PopustMjesecna = d.PopustMjesecna;
         p.PopustTriMjeseca = d.PopustTriMjeseca;

@@ -932,6 +932,9 @@ export interface Podesavanja {
   /** 0 = nedjelja … 6 = subota. */
   danIsporukeRezerva: number;
   vrijemeIsporukeRezerva: string;
+  /** Sezona voća, mjesec 1–12; odsutno (oba) = voće cijele godine. */
+  sezonaVocaOd?: number;
+  sezonaVocaDo?: number;
   popustNedjeljna: number;
   popustMjesecna: number;
   popustTriMjeseca: number;

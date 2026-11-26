@@ -1446,6 +1446,12 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<int>("SatiUnaprijed")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SezonaVocaDo")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SezonaVocaOd")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("VrijednostPoenaKM")
                         .HasPrecision(8, 3)
                         .HasColumnType("numeric(8,3)");

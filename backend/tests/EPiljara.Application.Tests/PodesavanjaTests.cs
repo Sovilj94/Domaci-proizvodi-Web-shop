@@ -81,6 +81,40 @@ public class PodesavanjaTests
     }
 
     [Fact]
+    public void Validator_sezone_voca_trazi_oba_mjeseca_ili_nijedan()
+    {
+        var v = new SacuvajPodesavanjaValidator();
+        SacuvajPodesavanjaCommand C(int? od, int? @do) =>
+            new(PodesavanjaMapa.UDto(Red()) with { SezonaVocaOd = od, SezonaVocaDo = @do });
+
+        v.Validate(C(null, null)).IsValid.Should().BeTrue();
+        v.Validate(C(5, 10)).IsValid.Should().BeTrue();
+        v.Validate(C(11, 3)).IsValid.Should().BeTrue();
+        var jedno = v.Validate(C(5, null));
+        jedno.IsValid.Should().BeFalse();
+        jedno.Errors.Should().Contain(e => e.PropertyName == "Podesavanja.SezonaVocaOd");
+        v.Validate(C(13, 10)).IsValid.Should().BeFalse();
+        v.Validate(C(5, 0)).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Sezona_voca_se_cuva_i_puni_opcije()
+    {
+        using var t = new TestDb();
+        t.Db.Podesavanja.Add(Red());
+        await t.Db.SaveChangesAsync();
+
+        var dto = PodesavanjaMapa.UDto(Red()) with { SezonaVocaOd = 5, SezonaVocaDo = 10 };
+        await new SacuvajPodesavanjaHandler(t.Db).Handle(new SacuvajPodesavanjaCommand(dto), default);
+        t.Db.ChangeTracker.Clear();
+
+        var red = new IzvorPodesavanja(t.Db).Red;
+        PodesavanjaMapa.Korpice(red).SezonaVocaOd.Should().Be(5);
+        PodesavanjaMapa.Korpice(red).SezonaVocaDo.Should().Be(10);
+        PodesavanjaMapa.UDto(red).SezonaVocaDo.Should().Be(10);
+    }
+
+    [Fact]
     public void Validator_odbija_vrijednosti_van_opsega()
     {
         var v = new SacuvajPodesavanjaValidator();

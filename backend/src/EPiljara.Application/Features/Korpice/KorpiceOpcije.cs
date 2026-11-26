@@ -52,4 +52,11 @@ public class KorpiceOpcije
     /// količina koju kupac vidi odgovara onome što se pakuje.
     /// </summary>
     public Dictionary<VelicinaKorpice, int> MinimalanBrojArtikala { get; set; } = new();
+
+    /// <summary>
+    /// Sezona voća, mjeseci 1–12 uključivo (smije preko nove godine, npr. 11–3). Oba null = voće
+    /// cijele godine. Pravilo nad njima postoji samo u <see cref="SezonaVoca"/>.
+    /// </summary>
+    public int? SezonaVocaOd { get; set; }
+    public int? SezonaVocaDo { get; set; }
 }
