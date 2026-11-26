@@ -1,3 +1,4 @@
+using EPiljara.Application.Common.Interfaces;
 using EPiljara.Domain.Enums;
 
 namespace EPiljara.Application.Features.Korpice;
@@ -30,6 +31,14 @@ public static class SezonaVoca
     /// <summary>Mjesec dana isporuke te sedmice, po lokalnom vremenu (Sarajevo).</summary>
     public static int MjesecIsporuke(int godina, int sedmica, DayOfWeek dan, string vrijemeOd) =>
         Lokalno(SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd)).Month;
+
+    /// <summary>Mjesec isporuke sedmice koju kupci sada naručuju (<see cref="SedmicaHelper.SedmicaZaNarudzbu"/>).</summary>
+    public static async Task<int> MjesecNarudzbeAsync(IAppDbContext db, KorpiceOpcije o, CancellationToken ct, DateTime? sada = null)
+    {
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(db, o, ct);
+        var (g, s) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijemeOd, cutoff, sada);
+        return MjesecIsporuke(g, s, dan, vrijemeOd);
+    }
 
     /// <summary>Godina u kojoj sezona sljedeći put počinje, gledano od isporuke van sezone.</summary>
     public static int GodinaPovratka(KorpiceOpcije o, DateTime isporukaUtc)

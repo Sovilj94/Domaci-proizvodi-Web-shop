@@ -51,6 +51,18 @@ public static class SnapshotKorpice
     {
         if (proizvod.Vrsta != VrstaProizvoda.Korpica) return;
 
+        // Sezona prije sadržaja: admin je mogao ručno objaviti voće van sezone, a na sajtu i u
+        // checkoutu važi sezona (spec 2026-11-26, odluka 3). Oba mjesta koja prave Order prolaze ovuda.
+        if (proizvod.TipKorpice == TipKorpice.Voce && (opcije.SezonaVocaOd is not null))
+        {
+            var (dan, vrijemeOd, _) = await SedmicaHelper.UcitajRokAsync(db, opcije, ct);
+            var mjesecIsporuke = SezonaVoca.MjesecIsporuke(godina, sedmica, dan, vrijemeOd);
+            if (SezonaVoca.VanSezone(opcije, proizvod.TipKorpice, mjesecIsporuke))
+                throw new DomainException(
+                    $"Voćne korpice slažemo od {SezonaVoca.Genitiv(opcije.SezonaVocaOd!.Value)} do " +
+                    $"{SezonaVoca.Genitiv(opcije.SezonaVocaDo!.Value)}.", "voce_van_sezone");
+        }
+
         var sadrzaj = await db.SedmicniSadrzaji
             .Include(s => s.Stavke)
             .Include(s => s.Zamjene)

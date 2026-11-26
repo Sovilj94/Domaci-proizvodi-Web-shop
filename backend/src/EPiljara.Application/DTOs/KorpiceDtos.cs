@@ -36,6 +36,11 @@ public record KorpicaDto
     /// <summary>Admin je drži u ponudi (Product.IsAvailable) — bez obzira na kapacitet.</summary>
     public bool UProdaji { get; init; }
     public bool Dostupna { get; init; }
+    /// <summary>Voćna korpica čija sedmica isporuke je van sezone voća (SezonaVoca) — ne prodaje se.</summary>
+    public bool VanSezone { get; init; }
+    /// <summary>Mjeseci sezone voća (1–12); samo za voćne korpice kad je sezona podešena.</summary>
+    public int? SezonaOd { get; init; }
+    public int? SezonaDo { get; init; }
 }
 
 public record StavkaSadrzajaDto

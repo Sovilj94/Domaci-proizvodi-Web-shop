@@ -155,4 +155,40 @@ public class CreateOrderKorpicaTests
         Assert.Equal(t.Godina, narudzba.Godina);
         Assert.Equal(t.Sedmica, narudzba.Sedmica);
     }
+
+    /// <summary>Korpica scenarija postaje voćna, a sezona je mjesec koji nije mjesec isporuke.</summary>
+    private static async Task VoceVanSezoneAsync(Scenario t)
+    {
+        var korpica = await t.Db.Products.SingleAsync(p => p.Id == t.KorpicaId);
+        korpica.TipKorpice = TipKorpice.Voce;
+        await t.Db.SaveChangesAsync();
+        var (dan, vrijemeOd, _) = await SedmicaHelper.UcitajRokAsync(t.Db, t.Opcije, default);
+        var drugi = SezonaVoca.MjesecIsporuke(t.Godina, t.Sedmica, dan, vrijemeOd) % 12 + 1;
+        t.Opcije.SezonaVocaOd = drugi;
+        t.Opcije.SezonaVocaDo = drugi;
+    }
+
+    [Fact]
+    public async Task Vocna_korpica_van_sezone_se_ne_moze_naruciti()
+    {
+        // Sadržaj JE objavljen (admin ručno) — sezona i dalje važi.
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true, prijavljen: true);
+        await VoceVanSezoneAsync(t);
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => t.PosaljiKorpicuAsync(kolicina: 1m));
+
+        Assert.Equal("voce_van_sezone", ex.Code);
+    }
+
+    [Fact]
+    public async Task Potvrda_gosta_odbija_vocnu_korpicu_van_sezone()
+    {
+        using var t = await Scenario.NapraviAsync(objaviSadrzaj: true);
+        var token = await t.ZahtjevGostaAsync(t.KorpicaId);
+        await VoceVanSezoneAsync(t);
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => t.PotvrdiGostaAsync(token));
+
+        Assert.Equal("voce_van_sezone", ex.Code);
+    }
 }

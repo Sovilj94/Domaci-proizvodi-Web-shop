@@ -194,8 +194,26 @@ public static class SedmicaHelper
     /// Iz <see cref="Zalihe.KapacitetiAsync"/>; bez njega (ili bez objavljenog sadržaja) je 0 —
     /// korpica bez sadržaja se ne može napuniti, pa se ni ne prodaje.
     /// </param>
+    /// <param name="sezona">
+    /// Opcije i mjesec isporuke sedmice koja se naručuje; bez njih se sezona voća ne prikazuje.
+    /// </param>
     public static KorpicaDto ToKorpicaDto(
-        this Product p, PretplateOpcije? pretplateOpcije = null, (int Moguce, string? UskoGrlo)? kapacitet = null) => new()
+        this Product p, PretplateOpcije? pretplateOpcije = null, (int Moguce, string? UskoGrlo)? kapacitet = null,
+        (KorpiceOpcije Opcije, int Mjesec)? sezona = null)
+    {
+        var voce = p.TipKorpice == TipKorpice.Voce;
+        var vanSezone = sezona is { } z && SezonaVoca.VanSezone(z.Opcije, p.TipKorpice, z.Mjesec);
+        return OsnovaKorpice(p, pretplateOpcije, kapacitet) with
+        {
+            VanSezone = vanSezone,
+            SezonaOd = voce ? sezona?.Opcije.SezonaVocaOd : null,
+            SezonaDo = voce ? sezona?.Opcije.SezonaVocaDo : null,
+            Dostupna = !vanSezone && p.IsAvailable && (kapacitet?.Moguce ?? 0) > 0,
+        };
+    }
+
+    private static KorpicaDto OsnovaKorpice(
+        Product p, PretplateOpcije? pretplateOpcije, (int Moguce, string? UskoGrlo)? kapacitet) => new()
     {
         Id = p.Id,
         Naziv = p.Name,
@@ -258,8 +276,10 @@ public class GetKorpiceHandler(
             .ToListAsync(ct);
 
         var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije.Value, ct);
+        var mjesec = await SezonaVoca.MjesecNarudzbeAsync(db, korpiceOpcije.Value, ct);
         return lista
-            .Select(p => p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null))
+            .Select(p => p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null,
+                (korpiceOpcije.Value, mjesec)))
             .ToList();
     }
 }
@@ -278,7 +298,9 @@ public class GetKorpicaBySlugHandler(
             .FirstOrDefaultAsync(x => x.Slug == q.Slug && x.Vrsta == VrstaProizvoda.Korpica, ct)
             ?? throw new NotFoundException("Korpica nije pronađena.");
         var kapaciteti = await Zalihe.KapacitetiAsync(db, korpiceOpcije.Value, ct);
-        return p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null);
+        var mjesec = await SezonaVoca.MjesecNarudzbeAsync(db, korpiceOpcije.Value, ct);
+        return p.ToKorpicaDto(pretplateOpcije.Value, kapaciteti.TryGetValue(p.Id, out var k) ? k : null,
+            (korpiceOpcije.Value, mjesec));
     }
 }
 

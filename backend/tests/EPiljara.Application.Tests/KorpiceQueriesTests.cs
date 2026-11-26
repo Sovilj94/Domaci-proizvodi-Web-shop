@@ -304,4 +304,42 @@ public class KorpiceQueriesTests
         // 16:00 po Sarajevu zimi (UTC+1) = 15:00 UTC.
         Assert.Equal(new DateTime(2027, 1, 7, 15, 0, 0, DateTimeKind.Utc), isporuka);
     }
+
+    [Fact]
+    public async Task Vocna_korpica_van_sezone_nije_dostupna()
+    {
+        using var t = new TestDb();
+        var o = TestOpcije.Korpice();
+        // Sezona je jedan mjesec koji NIJE mjesec isporuke ciljne sedmice — test ne zavisi od datuma.
+        var (dan, vrijemeOd, cutoff) = await SedmicaHelper.UcitajRokAsync(t.Db, o, default);
+        var (g, s) = SedmicaHelper.SedmicaZaNarudzbu(dan, vrijemeOd, cutoff);
+        var drugi = SezonaVoca.MjesecIsporuke(g, s, dan, vrijemeOd) % 12 + 1;
+        o.SezonaVocaOd = drugi;
+        o.SezonaVocaDo = drugi;
+
+        Postavi(t, StatusSadrzaja.Objavljen, g, s);
+        var voce = new Product
+        {
+            Name = "Mala korpica voća", Slug = "mala-korpica-voca", Price = 30m, Unit = Unit.Kom,
+            CategoryId = t.Db.Categories.First().Id, ProducerId = t.Db.Producers.First().Id,
+            Vrsta = VrstaProizvoda.Korpica, TipKorpice = TipKorpice.Voce, Velicina = VelicinaKorpice.Mala,
+        };
+        t.Db.Products.Add(voce);
+        t.Db.SaveChanges();
+
+        var rez = await new GetKorpiceHandler(t.Db, PretplateOpc, Options.Create(o)).Handle(new GetKorpiceQuery(null), default);
+
+        var v = Assert.Single(rez, k => k.Tip == "voce");
+        Assert.True(v.VanSezone);
+        Assert.Equal(drugi, v.SezonaOd);
+        Assert.Equal(drugi, v.SezonaDo);
+        Assert.False(v.Dostupna);
+        var p = Assert.Single(rez, k => k.Tip == "povrce");
+        Assert.False(p.VanSezone);
+        Assert.Null(p.SezonaOd);
+
+        var jedna = await new GetKorpicaBySlugHandler(t.Db, PretplateOpc, Options.Create(o))
+            .Handle(new GetKorpicaBySlugQuery("mala-korpica-voca"), default);
+        Assert.True(jedna.VanSezone);
+    }
 }
