@@ -418,6 +418,11 @@ export interface Korpica {
   /** Admin je drži u ponudi, bez obzira na kapacitet. */
   uProdaji: boolean;
   dostupna: boolean;
+  /** Voćna korpica, a sedmica isporuke je van sezone voća — ne prodaje se. Računa server. */
+  vanSezone: boolean;
+  /** Mjeseci sezone voća (1–12); samo uz voćne korpice kad je sezona podešena. */
+  sezonaOd?: number;
+  sezonaDo?: number;
 }
 
 export interface StavkaSadrzaja {
@@ -969,6 +974,7 @@ export const SEKCIJE_SADRZAJA = [
   "spajz-zasto",
   "korpice-mogucnosti",
   "partner-ponuda",
+  "korpice-voce-van-sezone",
 ] as const;
 export type SekcijaSadrzaja = (typeof SEKCIJE_SADRZAJA)[number];
 

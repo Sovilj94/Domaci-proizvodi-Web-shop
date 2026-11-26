@@ -6,7 +6,18 @@ import { cn } from "@/lib/utils";
  * Izbor vrste korpice (R2, po uzoru na farmit „🥦 povrće · 🍑 voće · 🥚 jaja"): okvir sa
  * tabovima, aktivni zeleno popunjen. Link čuva izabrani plan.
  */
-export function VrstaSegment({ aktivna, plan, putanja }: { aktivna: string; plan: KljucPlana; putanja?: (tip: string) => string }) {
+export function VrstaSegment({
+  aktivna,
+  plan,
+  putanja,
+  napomene,
+}: {
+  aktivna: string;
+  plan: KljucPlana;
+  putanja?: (tip: string) => string;
+  /** Sitna napomena ispod naziva vrste, npr. voće van sezone: „od maja". */
+  napomene?: Partial<Record<string, string>>;
+}) {
   return (
     <div className="mx-auto grid w-full max-w-[400px] grid-cols-2 gap-1 rounded-xl border border-line p-1 sm:max-w-[620px]">
       {VRSTE.map((v) => {
@@ -22,6 +33,7 @@ export function VrstaSegment({ aktivna, plan, putanja }: { aktivna: string; plan
             aria-current={da ? "page" : undefined}
           >
             <span aria-hidden>{v.emoji}</span> {v.naziv}
+            {napomene?.[v.tip] && <span className="text-xs font-medium text-muted sm:text-sm">({napomene[v.tip]})</span>}
           </Link>
         );
       })}

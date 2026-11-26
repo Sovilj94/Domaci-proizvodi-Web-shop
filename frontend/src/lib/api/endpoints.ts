@@ -264,6 +264,10 @@ export const korpiceApi = {
   sezona: (tip: TipKorpice) =>
     apiFetch<SezonaKorpice>("/korpice/sezona", { auth: false, query: { tip } }).then((r) => r.data),
 
+  /** „Javi mi kad stigne voće" — 204 bez tijela; `web` je honeypot. */
+  javiMi: (tip: TipKorpice, body: { email: string; web?: string }) =>
+    apiFetch<void>(`/korpice/${tip}/javi-mi`, { method: "POST", body, auth: false }).then(() => undefined),
+
   sedmica: () => apiFetch<Sedmica>("/korpice/sedmica", { auth: false }).then((r) => r.data),
   /** Kontakt i česta pitanja koje admin uređuje; null polje = ugrađeni tekst. */
   sadrzajSajta: () => apiFetch<SadrzajSajta>("/sadrzaj-sajta", { auth: false }).then((r) => r.data),

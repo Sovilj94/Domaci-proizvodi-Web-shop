@@ -36,6 +36,11 @@ const OPIS: Record<SekcijaSadrzaja, { naziv: string; polja: Polje[]; tekst?: str
   "spajz-zasto": { naziv: "Špajz — zašto kod nas", polja: ["ikona", "naslov", "tekst"] },
   "korpice-mogucnosti": { naziv: "Korpice — u svakom trenutku možeš", polja: ["ikona", "naslov", "tekst"] },
   "partner-ponuda": { naziv: "Postani partner — šta nudimo", polja: ["naslov"] },
+  "korpice-voce-van-sezone": {
+    naziv: "Korpice — voće van sezone",
+    polja: ["naslov", "tekst"],
+    tekst: "Oznake se same popune iz sezone u podešavanjima: {od} = „maja”, {do} = „oktobra”, {u} = „maju”, {godina} = zadnja sezona.",
+  },
 };
 
 type Unos = Omit<BlokSadrzaja, "id" | "sekcija" | "redoslijed">;

@@ -46,10 +46,12 @@ public static class SekcijeSadrzaja
     public const string SpajzZasto = "spajz-zasto";
     public const string KorpiceMogucnosti = "korpice-mogucnosti";
     public const string PartnerPonuda = "partner-ponuda";
+    /// <summary>Poruka na /korpice/voce van sezone; oznake {od} {do} {u} {godina} popunjava frontend.</summary>
+    public const string KorpiceVoceVanSezone = "korpice-voce-van-sezone";
 
     public static readonly IReadOnlyList<string> Sve =
     [
         PocetnaSlajdovi, PocetnaKoraci, PocetnaPlocice, PocetnaDomacini, PocetnaKorpica, PocetnaUtisci,
-        SpajzRazlozi, SpajzZasto, KorpiceMogucnosti, PartnerPonuda,
+        SpajzRazlozi, SpajzZasto, KorpiceMogucnosti, PartnerPonuda, KorpiceVoceVanSezone,
     ];
 }

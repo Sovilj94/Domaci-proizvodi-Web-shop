@@ -13,6 +13,8 @@ import { USvakomTrenutku } from "@/components/korpice/u-svakom-trenutku";
 import { LjepljiveKartice } from "@/components/korpice/ljepljive-kartice";
 import { useKorpiceList } from "@/lib/api/hooks";
 import { planIzUrla, VELICINE } from "@/lib/planovi";
+import { MJESECI_GENITIV } from "@/lib/mjeseci";
+import { VoceVanSezone } from "@/components/korpice/voce-van-sezone";
 
 /**
  * „Izaberi korpicu" (R2, po uzoru na farmit /gajbice/{vrsta}?plan=): naslov, izbor vrste,
@@ -29,6 +31,10 @@ export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
   const korpice = (data ?? [])
     .filter((k) => k.tip === vrsta && k.dostupna)
     .sort((a, b) => VELICINE.findIndex((v) => v.velicina === a.velicina) - VELICINE.findIndex((v) => v.velicina === b.velicina));
+  // Sezonu voća računa server (KorpicaDto.vanSezone); ovdje se samo bira šta se prikazuje.
+  const sezona = (data ?? []).find((k) => k.tip === "voce" && k.vanSezone && k.sezonaOd && k.sezonaDo);
+  const vanSezone = vrsta === "voce" && sezona !== undefined;
+  const napomene = sezona?.sezonaOd ? { voce: `od ${MJESECI_GENITIV[sezona.sezonaOd]}` } : undefined;
 
   return (
     <>
@@ -40,11 +46,16 @@ export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
             sami jeli.
           </p>
           <div className="mt-8">
-            <VrstaSegment aktivna={vrsta} plan={plan.kljuc} />
+            <VrstaSegment aktivna={vrsta} plan={plan.kljuc} napomene={napomene} />
           </div>
-          <PlanSegment aktivan={plan.kljuc} href={(k) => `/korpice/${vrsta}?plan=${k}`} />
+          {!vanSezone && <PlanSegment aktivan={plan.kljuc} href={(k) => `/korpice/${vrsta}?plan=${k}`} />}
         </div>
 
+        {vanSezone ? (
+          <div className="mt-10">
+            <VoceVanSezone sezonaOd={sezona.sezonaOd!} sezonaDo={sezona.sezonaDo!} />
+          </div>
+        ) : (
         <div ref={kartice} className="mx-auto mt-10 flex max-w-6xl flex-col gap-4 lg:flex-row lg:justify-center lg:gap-8">
           {isLoading
             ? Array.from({ length: 3 }).map((_, i) => (
@@ -63,6 +74,7 @@ export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
             <p className="text-center text-muted">Korpice ove vrste trenutno nisu u ponudi.</p>
           )}
         </div>
+        )}
 
         <p className="mt-8 text-center text-xs text-honey-500">
           *Slike su informativnog karaktera, a sadržaj se mijenja u zavisnosti od sezone.
@@ -75,7 +87,7 @@ export function IzborKorpice({ vrsta }: { vrsta: "povrce" | "voce" }) {
       <USvakomTrenutku />
       <CestaPitanja />
 
-      <LjepljiveKartice korpice={korpice} plan={plan.plan} kljucPlana={plan.kljuc} sidro={kartice} />
+      {!vanSezone && <LjepljiveKartice korpice={korpice} plan={plan.plan} kljucPlana={plan.kljuc} sidro={kartice} />}
       {sadrzajSlug && <SadrzajModal slug={sadrzajSlug} onClose={() => setSadrzajSlug(null)} />}
     </>
   );
