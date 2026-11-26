@@ -75,6 +75,12 @@ public interface IAppDbContext
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
     DatabaseFacade Database { get; }
 
+    /// <summary>
+    /// Da pozadinski posao poslije neuspjelog SaveChanges odbaci izmjene jedne stavke prije sljedeće
+    /// (AutoObjaviSadrzaje). DbContext ga već ima.
+    /// </summary>
+    Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker ChangeTracker { get; }
+
     /// <summary>B1/B2: da li baza podržava zaključavanje redova (`SELECT … FOR UPDATE`).</summary>
     bool PodrzavaZakljucavanje { get; }
 
