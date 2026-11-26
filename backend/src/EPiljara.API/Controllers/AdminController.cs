@@ -33,9 +33,10 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> SedmiceRada() =>
         Envelope(await Mediator.Send(new EPiljara.Application.Features.Orders.GetSedmiceRadaQuery()));
 
+    /// <summary>Početni ekran: šta je naručeno za sedmicu u pakovanju i za otvorenu sedmicu.</summary>
     [HttpGet("admin/dashboard")]
-    public async Task<IActionResult> Dashboard([FromQuery] DateTime? date) =>
-        Envelope(await Mediator.Send(new GetDashboardQuery(date)));
+    public async Task<IActionResult> Dashboard() =>
+        Envelope(await Mediator.Send(new GetPregledQuery()));
 
     [HttpGet("admin/poslovanje")]
     public async Task<IActionResult> Poslovanje([FromQuery] int? godina, [FromQuery] int? mjesec) =>

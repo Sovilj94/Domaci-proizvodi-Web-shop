@@ -158,7 +158,7 @@ import type {
   AdminKorpicaNarudzbe,
   AdminZadaci,
   IzbjegnutArtikal,
-  DashboardStats,
+  Pregled,
   Driver,
   DriverInput,
   GenerisiSadrzajRequest,
@@ -602,10 +602,7 @@ export const adminApi = {
   prijedlogRasporeda: (date: string, godina: number, sedmica: number) =>
     apiFetch<PrijedlogRasporeda>("/admin/dostava/prijedlog", { query: { date, godina, sedmica } }).then((r) => r.data),
 
-  dashboard: (date?: string) =>
-    apiFetch<DashboardStats>("/admin/dashboard", { query: { date } }).then(
-      (r) => r.data,
-    ),
+  pregled: () => apiFetch<Pregled>("/admin/dashboard").then((r) => r.data),
   poslovanje: (godina?: number, mjesec?: number) =>
     apiFetch<PoslovanjeMjeseca>("/admin/poslovanje", { query: godina && mjesec ? { godina, mjesec } : {} }).then((r) => r.data),
   planPoslovanja: (narudzbi: number, godina: number, mjesec: number, dodatno: number) =>

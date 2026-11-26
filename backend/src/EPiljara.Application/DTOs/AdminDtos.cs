@@ -108,12 +108,6 @@ public record DeliveryRouteDto
     public string? IzvorRedoslijeda { get; init; }
 }
 
-public record StatusCountDto
-{
-    public string Status { get; init; } = string.Empty;
-    public int Count { get; init; }
-}
-
 /// <summary>Jedan zadatak na početnom ekranu admina. Nivo: hitno | upozorenje | info.</summary>
 public record ZadatakDto
 {
@@ -134,17 +128,6 @@ public record AdminZadaciDto
     public IReadOnlyList<ZadatakDto> Zadaci { get; init; } = [];
     /// <summary>Brojke uz stavke menija: narudzbe, korpice, proizvodi, partneri.</summary>
     public IReadOnlyDictionary<string, int> Meni { get; init; } = new Dictionary<string, int>();
-}
-
-public record DashboardDto
-{
-    public DateTime Date { get; init; }
-    public int OrdersToday { get; init; }
-    public decimal RevenueToday { get; init; }
-    /// <summary>Prihvaćene narudžbe kojima rok još nije prošao — kupci ih još mogu mijenjati.</summary>
-    public int OpenOrders { get; init; }
-    public int OutForDelivery { get; init; }
-    public IReadOnlyList<StatusCountDto> StatusBreakdown { get; init; } = [];
 }
 
 /// <summary>

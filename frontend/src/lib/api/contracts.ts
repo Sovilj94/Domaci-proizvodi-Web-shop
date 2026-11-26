@@ -1,6 +1,5 @@
 import type {
   MojaKorpica,
-  OrderStatus,
   PonudaArtikla,
   RezultatAnalize,
   StatusPrijave,
@@ -179,14 +178,32 @@ export interface AdminZadaci {
   meni: Record<string, number>;
 }
 
-export interface DashboardStats {
-  date: string;
-  ordersToday: number;
-  revenueToday: number;
-  /** Prihvaćene narudžbe kojima rok još nije prošao. */
-  openOrders: number;
-  outForDelivery: number;
-  statusBreakdown: { status: OrderStatus; count: number }[];
+/** Jedna vrsta i veličina korpice u sedmici; `izPretplata` je dio `komada`. */
+export interface KorpicaUSedmici {
+  tip: string;
+  velicina: string;
+  naziv: string;
+  komada: number;
+  izPretplata: number;
+}
+
+/** Šta je naručeno za sedmicu (bez otkazanih). Novac je na Poslovanju. */
+export interface PregledSedmice {
+  godina: number;
+  sedmica: number;
+  isporuka: string;
+  rok: string;
+  narudzbi: number;
+  izPretplata: number;
+  korpica: number;
+  korpice: KorpicaUSedmici[];
+  spajz: { artikal: string; jedinica: string; kolicina: number }[];
+}
+
+/** `GET /admin/dashboard`: sedmica u pakovanju (zadnja zaključena) i otvorena sedmica. */
+export interface Pregled {
+  pakovanje: PregledSedmice;
+  otvorena: PregledSedmice;
 }
 
 export interface Driver {
