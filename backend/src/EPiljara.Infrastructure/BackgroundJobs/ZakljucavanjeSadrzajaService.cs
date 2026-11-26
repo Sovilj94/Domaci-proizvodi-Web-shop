@@ -39,6 +39,13 @@ public class ZakljucavanjeSadrzajaService(
                     if (auto.Objavljeno > 0)
                         log.LogInformation("Automatski objavljeno sadržaja korpica za {Sedmica}/{Godina}: {Broj}",
                             auto.Sedmica, auto.Godina, auto.Objavljeno);
+                    // Voće je u ponudi → „Javi mi kad stigne voće". Prijava je moguća samo van sezone, pa
+                    // ovdje ostaju samo neobaviješteni; mejl koji nije prošao ide u sljedećem prolazu.
+                    if (auto.VoceObjavljeno)
+                    {
+                        var javljeno = await mediator.Send(new ObavijestiPrijaveSezoneCommand(Domain.Enums.TipKorpice.Voce), stoppingToken);
+                        if (javljeno > 0) log.LogInformation("Javljeno da je stiglo voće: {Broj}", javljeno);
+                    }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {

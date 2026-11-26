@@ -1679,6 +1679,37 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.ToTable("PrijaveNovosti", (string)null);
                 });
 
+            modelBuilder.Entity("EPiljara.Domain.Entities.PrijavaSezone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("ObavijestenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TipKorpice")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email", "TipKorpice")
+                        .IsUnique()
+                        .HasFilter("\"ObavijestenAt\" IS NULL");
+
+                    b.ToTable("PrijaveSezone");
+                });
+
             modelBuilder.Entity("EPiljara.Domain.Entities.Producer", b =>
                 {
                     b.Property<Guid>("Id")

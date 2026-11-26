@@ -44,6 +44,9 @@ public interface IEmailService
     /// <summary>A2: pretplatniku ove sedmice nije poslata korpica (sadržaj nije objavljen ili korpica nije u ponudi).</summary>
     Task SendPreskocenaIsporukaAsync(User kupac, string korpica, DateTime isporuka, bool korpicaUPonudi = true, CancellationToken cancellationToken = default);
 
+    /// <summary>„Javi mi kad stigne voće": sezona je krenula. Jednom po prijavi.</summary>
+    Task SendSezonaKrenulaAsync(string email, CancellationToken cancellationToken = default);
+
     /// <summary>Voćna pretplata pravi pauzu do sezone; jednom po sezoni (mjesec povratka 1–12).</summary>
     Task SendSezonskaPauzaAsync(User kupac, string korpica, int mjesecPovratka, CancellationToken cancellationToken = default);
 

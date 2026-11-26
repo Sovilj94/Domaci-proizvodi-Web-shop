@@ -93,6 +93,15 @@ public class RedEmailService(
         return UpisiAsync([Poruka(kupac.Email, kupac.Name, "preskocena_isporuka", sadrzaj)], ct);
     }
 
+    public Task SendSezonaKrenulaAsync(string email, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return Task.CompletedTask;
+        // Prijava nema nalog, pa ni izabrano pismo — latinica.
+        var sadrzaj = PismoPoruke.Primijeni(Pismo.Latinica, SezonaKrenulaTemplate.Naslov,
+            SezonaKrenulaTemplate.Build($"{BaseUrl}/korpice/voce"));
+        return UpisiAsync([Poruka(email, null, "sezona_krenula", sadrzaj)], ct);
+    }
+
     public Task SendSezonskaPauzaAsync(User kupac, string korpica, int mjesecPovratka, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(kupac.Email)) return Task.CompletedTask;

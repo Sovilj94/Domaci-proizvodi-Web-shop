@@ -66,6 +66,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<FiskalniRacun> FiskalniRacuni => Set<FiskalniRacun>();
     public DbSet<OtkupniList> OtkupniListovi => Set<OtkupniList>();
     public DbSet<OtkupniListStavka> OtkupniListStavke => Set<OtkupniListStavka>();
+    public DbSet<PrijavaSezone> PrijaveSezone => Set<PrijavaSezone>();
 
     /// <summary>
     /// Svaki novi red narudžbe (OrderItem, StavkaKorpiceNarudzbe) bez nabavne cijene dobija
@@ -603,6 +604,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(x => x.ProducerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Product).WithMany()
                 .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<PrijavaSezone>(e =>
+        {
+            e.Property(x => x.Email).HasMaxLength(120).IsRequired();
+            e.Property(x => x.TipKorpice).HasConversion<string>().HasMaxLength(16);
+            // Jedna NEOBAVIJEŠTENA prijava po adresi i vrsti; obaviještene ostaju kao evidencija,
+            // pa se ista adresa za sljedeću sezonu prijavljuje ponovo (filter je load-bearing).
+            e.HasIndex(x => new { x.Email, x.TipKorpice }).IsUnique().HasFilter("\"ObavijestenAt\" IS NULL");
         });
 
         b.Entity<PartnerPrijava>(e =>

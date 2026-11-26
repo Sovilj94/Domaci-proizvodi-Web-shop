@@ -30,6 +30,14 @@ internal sealed class FakeEmail : IEmailService
         return Task.CompletedTask;
     }
 
+    public List<string> SezonaKrenula { get; } = [];
+
+    public Task SendSezonaKrenulaAsync(string email, CancellationToken ct = default)
+    {
+        SezonaKrenula.Add(email);
+        return Task.CompletedTask;
+    }
+
     public List<(User Kupac, string Korpica, int MjesecPovratka)> SezonskePauze { get; } = [];
 
     public Task SendSezonskaPauzaAsync(User kupac, string korpica, int mjesecPovratka, CancellationToken ct = default)

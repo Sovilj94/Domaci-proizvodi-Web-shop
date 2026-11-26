@@ -1,5 +1,6 @@
 using EPiljara.Application.Features.Korpice;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace EPiljara.API.Controllers;
 
@@ -24,4 +25,16 @@ public class KorpiceController : ApiControllerBase
     [HttpGet("korpice/{slug}/sadrzaj")]
     public async Task<IActionResult> Sadrzaj(string slug) =>
         Envelope(await Mediator.Send(new GetSadrzajKorpiceQuery(slug)));
+
+    /// <summary>
+    /// „Javi mi kad stigne voće" — javni upis bez prijave, ograničen politikom "auth"; honeypot
+    /// <c>web</c> je u handleru. Uvijek 204, da odgovor ne otkriva da li je adresa već prijavljena.
+    /// </summary>
+    [HttpPost("korpice/{tip}/javi-mi")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> JaviMi(string tip, [FromBody] PrijavaSezoneInput input)
+    {
+        await Mediator.Send(new PrijaviNaSezonuCommand(tip, input));
+        return NoContent();
+    }
 }

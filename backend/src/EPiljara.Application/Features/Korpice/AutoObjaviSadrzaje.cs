@@ -19,9 +19,14 @@ public record AutoObjaviSadrzajeCommand(DateTime? Sada = null) : IRequest<AutoOb
 
 /// <param name="PrvaVocnaUSezoni">
 /// U ovom prolazu je objavljena voćna korpica, a prethodna sedmica voćnog sadržaja nije imala —
-/// znak da je sezona voća upravo krenula (obavještenje prijavljenima, Task 5).
+/// znak da je sezona voća upravo krenula.
 /// </param>
-public record AutoObjavaRezultat(int Godina, int Sedmica, int Objavljeno, bool PrvaVocnaUSezoni);
+/// <param name="VoceObjavljeno">
+/// Sedmica ima objavljen (ili zaključan) voćni sadržaj, bez obzira na to da li je objavljen u ovom
+/// prolazu. Po njemu posao javlja prijavljenima na „Javi mi" — ponavlja se dok ih ima, pa se mejl koji
+/// nije prošao šalje u sljedećem prolazu.
+/// </param>
+public record AutoObjavaRezultat(int Godina, int Sedmica, int Objavljeno, bool PrvaVocnaUSezoni, bool VoceObjavljeno = false);
 
 /// <summary>
 /// Po korpici: objavljen/zaključan sadržaj se ne dira; nacrt sa stavkama se objavljuje kakav jeste
@@ -80,8 +85,9 @@ public class AutoObjaviSadrzajeHandler(
             }
         }
 
-        var prvaVocna = vocnaObjavljena && !await VoceProsleSedmiceAsync(godina, sedmica, ct);
-        return new AutoObjavaRezultat(godina, sedmica, objavljeno, prvaVocna);
+        var prvaVocna = vocnaObjavljena && !await ImaVocaAsync(SedmicaHelper.Pomjeri(godina, sedmica, -1), ct);
+        var voceObjavljeno = vocnaObjavljena || await ImaVocaAsync((godina, sedmica), ct);
+        return new AutoObjavaRezultat(godina, sedmica, objavljeno, prvaVocna, voceObjavljeno);
     }
 
     /// <summary>Generator za jednu korpicu; null kad nije sastavio ništa što se može objaviti.</summary>
@@ -101,9 +107,10 @@ public class AutoObjaviSadrzajeHandler(
         return rez.SadrzajId;
     }
 
-    private async Task<bool> VoceProsleSedmiceAsync(int godina, int sedmica, CancellationToken ct)
+    /// <summary>Da li sedmica ima objavljen ili zaključan sadržaj neke voćne korpice.</summary>
+    private async Task<bool> ImaVocaAsync((int Godina, int Sedmica) sedmica, CancellationToken ct)
     {
-        var (pg, ps) = SedmicaHelper.Pomjeri(godina, sedmica, -1);
+        var (pg, ps) = sedmica;
         return await db.SedmicniSadrzaji.AnyAsync(
             s => s.Godina == pg && s.Sedmica == ps
                  && (s.Status == StatusSadrzaja.Objavljen || s.Status == StatusSadrzaja.Zakljucan)

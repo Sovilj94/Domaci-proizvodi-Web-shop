@@ -218,6 +218,22 @@ public class AutoObjavaSadrzajaTests
     }
 
     [Fact]
+    public async Task Voce_objavljeno_javlja_i_u_prolazu_koji_nista_ne_objavi()
+    {
+        using var t = new TestDb();
+        Postavi(t);
+        var o = Opcije(5, 10);
+
+        var prvi = await Handler(t, o).Handle(new AutoObjaviSadrzajeCommand(Maj), default);
+        var drugi = await Handler(t, o).Handle(new AutoObjaviSadrzajeCommand(Maj), default);
+        var zima = await Handler(t, o).Handle(new AutoObjaviSadrzajeCommand(Decembar), default);
+
+        prvi.VoceObjavljeno.Should().BeTrue();
+        drugi.VoceObjavljeno.Should().BeTrue();
+        zima.VoceObjavljeno.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Vocna_sedmica_poslije_vocne_nije_prva()
     {
         using var t = new TestDb();

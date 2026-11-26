@@ -71,6 +71,7 @@ public interface IAppDbContext
     DbSet<FiskalniRacun> FiskalniRacuni { get; }
     DbSet<OtkupniList> OtkupniListovi { get; }
     DbSet<OtkupniListStavka> OtkupniListStavke { get; }
+    DbSet<PrijavaSezone> PrijaveSezone { get; }
 
     /// <summary>Za transakcije kad jedna izmjena mora u više SaveChanges koraka (DbContext ga već ima).</summary>
     DatabaseFacade Database { get; }
