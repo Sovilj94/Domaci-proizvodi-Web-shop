@@ -540,6 +540,33 @@ Spec: `docs/superpowers/specs/2026-11-25-narudzbe-bez-odobravanja-nabavka-design
 - **`POST /driver/route/reoptimize` prima opcioni `routeId`** — vozačka aplikacija ga šalje sa dugmeta
   „Navigacija" (preračun od trenutne lokacije prije otvaranja Google Maps); bez njega prva ruta dana.
 
+## Automatske korpice i sezona voća (2026-11-26)
+
+Spec: `docs/superpowers/specs/2026-11-26-automatske-korpice-sezona-voca-design.md`.
+
+- **Sadržaj se objavljuje sam.** `ZakljucavanjeSadrzajaService` poslije zaključavanja šalje
+  `AutoObjaviSadrzajeCommand`: za `SedmicaZaNarudzbu` svaka dostupna korpica bez objavljenog sadržaja se
+  sastavi (postojeći generator) i odmah objavi. Objavljen/zaključan se ne dira, nacrt sa stavkama se objavi
+  kakav jeste, prazan nacrt se sastavi iznova. Handler sam pravi `GenerisiSedmicniSadrzajHandler` i
+  `ObjaviSadrzajHandler` (bez `IMediator`); pad jedne korpice (`DomainException`/`DbUpdateException`)
+  → `ChangeTracker.Clear()` (zato je `ChangeTracker` u `IAppDbContext`) i sljedeća korpica.
+- **`SezonaVoca` je jedino pravilo sezone** (`KorpiceOpcije.SezonaVocaOd/Do` iz `Podesavanja`; oba null =
+  cijele godine; raspon smije preko nove godine). Mjerodavan je **mjesec isporuke** sedmice, ne današnji dan.
+  Koriste ga automatika, `KorpicaDto.vanSezone/sezonaOd/sezonaDo` (tada `dostupna = false`),
+  `SnapshotKorpice.PricvrstiAsync` (`voce_van_sezone`, oba mjesta koja prave `Order`), pretplate, alarm
+  adminu i `/admin/pretplate`. Ne ponavljaj uslov drugdje.
+- **Sezonska pauza ≠ pauza.** Voćna pretplata van sezone ostaje `Aktivna`, bez narudžbe i bez sedmičnog
+  mejla „preskočena isporuka"; jedan mejl po sezoni (`Pretplata.ObavijestSezoneGodina` = godina povratka).
+- **„Javi mi kad stigne voće"**: `POST /korpice/{tip}/javi-mi` (`auth` limit, honeypot `web`, uvijek 204),
+  samo za voće van sezone. `PrijaveSezone`, jedinstven `(Email, TipKorpice)` **filtriran na
+  `ObavijestenAt IS NULL`**. Posao šalje mejl kad `AutoObjavaRezultat.VoceObjavljeno` (ponavlja dok ima
+  neobaviještenih).
+- **Tekst stranice voća van sezone je sadržaj** — sekcija `korpice-voce-van-sezone`, oznake `{od}` `{do}`
+  (genitiv) `{u}` (lokativ) `{godina}` popunjava `lib/mjeseci.ts`. Nazivi mjeseci su interfejs. Od farmita
+  je preuzet samo pristup, ne tekst.
+- **`npm run build` pregazi `.next` pokrenutog dev servera** (ENOENT na manifestima, 500 na svim
+  stranicama) — poslije builda restartuj `npm run dev`.
+
 ## Primalac — narudžba za nekog drugog (2026-11-23)
 
 - **`Customer*` je naručilac, `Primalac*` je osoba kojoj se nosi.** `Order.PrimalacIme/PrimalacTelefon`

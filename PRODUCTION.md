@@ -153,6 +153,23 @@ and the „Napravi otkupne listove" button on `/admin/nabavka` refuses (409 `sed
 because nothing is locked. So confirm the service runs. A locked upcoming week without lists is retried
 on every pass, and the button covers a single failed pass.
 
+**Weekly content publishes itself.** In the same pass, right after locking, the service runs
+`AutoObjaviSadrzajeCommand`: for the week customers now order (`SedmicaZaNarudzbu`) every available
+korpica without published content is generated and **published immediately** — no admin step. Existing
+published/locked content is never touched; a non-empty draft is published as is. A korpica whose publish
+fails stays a draft and the existing "content not published" admin alarm covers it. Log line:
+`Automatski objavljeno sadržaja korpica za {S}/{G}: {N}`.
+
+**Fruit season** (`Podesavanja.SezonaVocaOd/Do`, months 1–12, `/admin/settings`; both empty = all year).
+**After deploying, set it (owner's choice: May–October) and add the text block** „Korpice — voće van
+sezone" in `/admin/sadrzaj` — without the block `/korpice/voce` off-season shows only the sign-up form and
+links. Off season: fruit is neither generated nor sellable (`voce_van_sezone`), fruit subscriptions get one
+mail per season instead of weekly "skipped" mails, and the admin alarm ignores fruit.
+
+**`PrijaveSezone` holds e-mail addresses** from „Javi mi kad stigne voće" (anonymous, `auth` rate limit,
+honeypot `web`). Each gets one mail when fruit is published again; notified rows are kept with
+`ObavijestenAt` as a record. Treat it as personal data in backups and exports.
+
 **Farm personal data.** A producer's JMBG, bank account and bank (for the otkupni list) are personal data.
 They are returned only by admin endpoints (`GET /admin/producers`, `/admin/otkupni-listovi`), never by the
 public `/producers`. Have the accountant confirm the otkupni list layout and any tax obligations before
