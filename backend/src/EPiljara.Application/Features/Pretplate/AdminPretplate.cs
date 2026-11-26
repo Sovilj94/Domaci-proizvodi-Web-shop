@@ -47,13 +47,17 @@ public class GetAdminPretplateHandler(
             .ToListAsync(ct);
 
         var aktivne = sve.Where(p => p.Status == StatusPretplate.Aktivna).ToList();
+        // Voće van sezone namjerno nema sadržaj (sezonska pauza) — ne „čeka" ništa.
+        var mjesec = SezonaVoca.MjesecIsporuke(godina, sedmica, dan, vrijemeOd);
+        bool CekaSadrzaj(EPiljara.Domain.Entities.Pretplata p) =>
+            !spremne.Contains(p.ProductId) && !SezonaVoca.VanSezone(korpiceOpcije.Value, p.Product?.TipKorpice, mjesec);
 
         return new AdminPretplateDto
         {
             Godina = godina,
             Sedmica = sedmica,
             BrojAktivnih = aktivne.Count,
-            CekajuSadrzaj = aktivne.Count(p => !spremne.Contains(p.ProductId)),
+            CekajuSadrzaj = aktivne.Count(CekaSadrzaj),
             Stavke = sve
                 .OrderBy(p => p.Status)
                 .ThenBy(p => p.User?.Name)

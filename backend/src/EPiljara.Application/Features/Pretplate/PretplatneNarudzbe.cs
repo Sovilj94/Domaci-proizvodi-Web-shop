@@ -67,7 +67,7 @@ public class NapraviPretplatneNarudzbeHandler(
 
         // A2b: adminu dok još ima vremena da objavi sadržaj. Ima svoj prozor, kraći od prozora narudžbi.
         if (DateTime.UtcNow >= rok.AddHours(-o.AlarmSatiPrijeRoka))
-            await UpozoriAdminaAsync(godina, sedmica, rok, ct);
+            await UpozoriAdminaAsync(godina, sedmica, rok, SezonaVoca.MjesecIsporuke(godina, sedmica, dan, vrijemeOd), ct);
 
         // Prerano: narudžba se pravi tek u prozoru od `SatiUnaprijed` prije roka, da kupac
         // ima vremena da pauzira ili otkaže prije nego što narudžba uopšte nastane.
@@ -126,9 +126,14 @@ public class NapraviPretplatneNarudzbeHandler(
                 && !db.Orders.Any(o => o.PretplataId == p.Id && o.Godina == pg && o.Sedmica == ps))
             .ToListAsync(ct);
 
+        // Voćna sedmica van sezone nije preskočena isporuka nego sezonska pauza — o njoj kupac dobija
+        // jedan mejl po sezoni (ObavijestiOSezoniAsync), ne svake sedmice.
+        var prosliMjesec = SezonaVoca.MjesecIsporuke(pg, ps, dan, vrijemeOd);
+
         foreach (var p in kandidati)
         {
             if (p.User is null) continue;
+            if (SezonaVoca.VanSezone(korpiceOpcije.Value, p.Product?.TipKorpice, prosliMjesec)) continue;
             try
             {
                 await email.SendPreskocenaIsporukaAsync(
@@ -150,7 +155,7 @@ public class NapraviPretplatneNarudzbeHandler(
     /// uslov kao `cekajuSadrzaj` na `/admin/pretplate`. Jedan mejl svim adminima po prolazu, a svaka
     /// korpica ulazi u alarm jednom po sedmici (`Product.AlarmSadrzaja*`).
     /// </summary>
-    private async Task UpozoriAdminaAsync(int godina, int sedmica, DateTime rok, CancellationToken ct)
+    private async Task UpozoriAdminaAsync(int godina, int sedmica, DateTime rok, int mjesec, CancellationToken ct)
     {
         try
         {
@@ -171,6 +176,8 @@ public class NapraviPretplatneNarudzbeHandler(
                 .Where(k => ids.Contains(k.Id)
                             && !(k.AlarmSadrzajaGodina == godina && k.AlarmSadrzajaSedmica == sedmica))
                 .ToListAsync(ct);
+            // Voće van sezone namjerno nema sadržaj — to nije nešto što admin treba da objavi.
+            korpice = korpice.Where(k => !SezonaVoca.VanSezone(korpiceOpcije.Value, k.TipKorpice, mjesec)).ToList();
             if (korpice.Count == 0) return;
 
             var admini = await db.Users
@@ -201,6 +208,28 @@ public class NapraviPretplatneNarudzbeHandler(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             log.LogError(ex, "Alarm adminu za neobjavljen sadržaj {G}/{S} nije poslat.", godina, sedmica);
+        }
+    }
+
+    /// <summary>Jedan mejl po sezoni: marker je godina povratka sezone. Pad slanja se pokušava u sljedećem prolazu.</summary>
+    private async Task ObavijestiOSezoniAsync(Pretplata p, string korpica, DateTime isporuka, CancellationToken ct)
+    {
+        var o = korpiceOpcije.Value;
+        var povratak = SezonaVoca.GodinaPovratka(o, isporuka);
+        if (p.ObavijestSezoneGodina == povratak) return;
+
+        var kupac = await db.Users.FirstOrDefaultAsync(u => u.Id == p.UserId, ct);
+        if (kupac is null) return;
+        try
+        {
+            await email.SendSezonskaPauzaAsync(kupac, korpica, o.SezonaVocaOd!.Value, ct);
+            p.ObavijestSezoneGodina = povratak;
+            await db.SaveChangesAsync(ct);
+            log.LogInformation("Pretplata {Id}: kupac obaviješten o sezonskoj pauzi do {Godina}.", p.Id, povratak);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogError(ex, "Pretplata {Id}: obavještenje o sezonskoj pauzi nije poslato.", p.Id);
         }
     }
 
@@ -242,6 +271,18 @@ public class NapraviPretplatneNarudzbeHandler(
         {
             log.LogWarning("Pretplata {Id}: korpica nije dostupna, sedmica se preskače.", p.Id);
             return false;
+        }
+
+        // Sezonska pauza voća (spec 2026-11-26, odluka 6): bez narudžbe, bez sedmičnog mejla —
+        // jedan mejl po sezoni. Prije provjere sadržaja, jer van sezone sadržaja namjerno nema.
+        if (korpica.TipKorpice == TipKorpice.Voce)
+        {
+            var (dan, vrijemeOd, _) = await SedmicaHelper.UcitajRokAsync(db, korpiceOpcije.Value, ct);
+            if (SezonaVoca.VanSezone(korpiceOpcije.Value, korpica.TipKorpice, SezonaVoca.MjesecIsporuke(godina, sedmica, dan, vrijemeOd)))
+            {
+                await ObavijestiOSezoniAsync(p, korpica.Name, SedmicaHelper.DatumIsporuke(godina, sedmica, dan, vrijemeOd), ct);
+                return false;
+            }
         }
 
         // Bez objavljenog sadržaja narudžba bi bila kutija koju niko ne zna napuniti —

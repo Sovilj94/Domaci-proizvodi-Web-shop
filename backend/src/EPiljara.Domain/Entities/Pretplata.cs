@@ -63,6 +63,13 @@ public class Pretplata : Entity
     public int? ObavijestPreskocenaSedmica { get; set; }
 
     /// <summary>
+    /// Godina povratka sezone voća za koju je kupac voćne pretplate obaviješten o sezonskoj pauzi —
+    /// jedan mejl po sezoni. Sezonska pauza NIJE <see cref="StatusPretplate.Pauzirana"/>: status ostaje
+    /// Aktivna i ne troši se najduža pauza.
+    /// </summary>
+    public int? ObavijestSezoneGodina { get; set; }
+
+    /// <summary>
     /// Prva sedmica u kojoj pretplata ponovo radi. Dok je ciljna sedmica manja od ove,
     /// posao preskače. null kad pauze nema.
     /// </summary>

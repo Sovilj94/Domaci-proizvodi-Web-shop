@@ -93,6 +93,14 @@ public class RedEmailService(
         return UpisiAsync([Poruka(kupac.Email, kupac.Name, "preskocena_isporuka", sadrzaj)], ct);
     }
 
+    public Task SendSezonskaPauzaAsync(User kupac, string korpica, int mjesecPovratka, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(kupac.Email)) return Task.CompletedTask;
+        var sadrzaj = PismoPoruke.Primijeni(kupac.Pismo, SezonskaPauzaTemplate.Naslov(mjesecPovratka),
+            SezonskaPauzaTemplate.Build(kupac, korpica, mjesecPovratka, $"{BaseUrl}/moj-nalog/pretplate"));
+        return UpisiAsync([Poruka(kupac.Email, kupac.Name, "sezonska_pauza", sadrzaj)], ct);
+    }
+
     public async Task SendStatusNarudzbeAsync(Order order, OrderStatus status, bool automatski = false, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(order.CustomerEmail)) return;

@@ -44,6 +44,9 @@ public interface IEmailService
     /// <summary>A2: pretplatniku ove sedmice nije poslata korpica (sadržaj nije objavljen ili korpica nije u ponudi).</summary>
     Task SendPreskocenaIsporukaAsync(User kupac, string korpica, DateTime isporuka, bool korpicaUPonudi = true, CancellationToken cancellationToken = default);
 
+    /// <summary>Voćna pretplata pravi pauzu do sezone; jednom po sezoni (mjesec povratka 1–12).</summary>
+    Task SendSezonskaPauzaAsync(User kupac, string korpica, int mjesecPovratka, CancellationToken cancellationToken = default);
+
     /// <summary>A2b: adminima — korpice sa aktivnim pretplatama kojima sadržaj ciljne sedmice nije objavljen, a rok se bliži.</summary>
     Task SendAlarmSadrzajaAsync(IReadOnlyList<User> admini, IReadOnlyList<(string Korpica, int Pretplata)> stavke, DateTime rok, CancellationToken cancellationToken = default);
 

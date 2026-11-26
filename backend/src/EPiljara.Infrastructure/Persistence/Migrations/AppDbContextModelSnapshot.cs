@@ -1602,6 +1602,9 @@ namespace EPiljara.Infrastructure.Persistence.Migrations
                     b.Property<int?>("ObavijestPreskocenaSedmica")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ObavijestSezoneGodina")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("OtkazanaU")
                         .HasColumnType("timestamp with time zone");
 

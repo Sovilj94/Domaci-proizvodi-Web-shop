@@ -37,6 +37,8 @@ public class PretplatneNarudzbeTests
         public int Godina { get; private set; }
         public int Sedmica { get; private set; }
         public FakeEmail Mejl { get; } = new();
+        /// <summary>Opcije korpica koje vide posao i provjere sezone; testovi sezone ih mijenjaju.</summary>
+        public KorpiceOpcije KOpcije { get; } = TestOpcije.Korpice();
 
         private Scena(TestDb t) => _t = t;
 
@@ -117,7 +119,7 @@ public class PretplatneNarudzbeTests
             new(Db,
                 new FakeMediator(Db, opcije ?? Opcije(), mediatorPuca, pucaZa),
                 Mejl,
-                Options.Create(TestOpcije.Korpice()),
+                Options.Create(KOpcije),
                 Options.Create(opcije ?? Opcije()),
                 NullLogger<NapraviPretplatneNarudzbeHandler>.Instance);
 
@@ -539,5 +541,102 @@ public class PretplatneNarudzbeTests
         await s.ProlazAsync(OpcijeAlarma(100_000));
 
         Assert.Empty(s.Mejl.AlarmiSadrzaja);
+    }
+
+    // ---- Sezonska pauza voćnih pretplata (spec 2026-11-26, odluka 6) ----
+
+    /// <summary>
+    /// Korpica scene postaje voćna. Sezona je jedan mjesec: van sezone onaj POSLIJE mjeseca isporuke
+    /// (prethodna sedmica je tada takođe van sezone), u sezoni baš mjesec isporuke — test ne zavisi od datuma.
+    /// </summary>
+    private static async Task VoceAsync(Scena s, bool uSezoni)
+    {
+        var k = await s.Db.Products.FirstAsync(x => x.Id == s.Korpica.Id);
+        k.TipKorpice = TipKorpice.Voce;
+        await s.Db.SaveChangesAsync();
+        var m = SezonaVoca.MjesecIsporuke(s.Godina, s.Sedmica, DayOfWeek.Thursday, "16:00");
+        var sezona = uSezoni ? m : m % 12 + 1;
+        s.KOpcije.SezonaVocaOd = sezona;
+        s.KOpcije.SezonaVocaDo = sezona;
+    }
+
+    [Fact]
+    public async Task Vocna_pretplata_van_sezone_ne_pravi_narudzbu_i_salje_jedan_mejl()
+    {
+        using var s = await Scena.SpremiAsync();
+        await VoceAsync(s, uSezoni: false);
+
+        await s.ProlazAsync();
+
+        Assert.Equal(0, await s.BrojNarudzbiAsync());
+        var mejl = Assert.Single(s.Mejl.SezonskePauze);
+        Assert.Equal(s.KOpcije.SezonaVocaOd, mejl.MjesecPovratka);
+        var red = await s.Db.Pretplate.AsNoTracking().FirstAsync(x => x.Id == s.Pretplata.Id);
+        var isporuka = SedmicaHelper.DatumIsporuke(s.Godina, s.Sedmica, DayOfWeek.Thursday, "16:00");
+        Assert.Equal(SezonaVoca.GodinaPovratka(s.KOpcije, isporuka), red.ObavijestSezoneGodina);
+        Assert.Equal(StatusPretplate.Aktivna, red.Status);
+        Assert.Null(red.PauzaDoGodina);
+        Assert.Null(red.PauzaDoSedmica);
+    }
+
+    [Fact]
+    public async Task Drugi_prolaz_ne_salje_ponovo_sezonski_mejl()
+    {
+        using var s = await Scena.SpremiAsync();
+        await VoceAsync(s, uSezoni: false);
+
+        await s.ProlazAsync();
+        await s.ProlazAsync();
+
+        Assert.Single(s.Mejl.SezonskePauze);
+    }
+
+    [Fact]
+    public async Task Van_sezone_nema_mejla_o_preskocenoj_isporuci()
+    {
+        using var s = await Scena.SpremiAsync();
+        await PripremiProsluSedmicuAsync(s);
+        await VoceAsync(s, uSezoni: false);
+
+        await s.ProlazAsync();
+
+        Assert.Empty(s.Mejl.PreskoceneSedmice);
+    }
+
+    [Fact]
+    public async Task U_sezoni_vocna_narudzba_se_pravi_kao_prije()
+    {
+        using var s = await Scena.SpremiAsync();
+        await VoceAsync(s, uSezoni: true);
+
+        await s.ProlazAsync();
+
+        Assert.Equal(1, await s.BrojNarudzbiAsync());
+        Assert.Empty(s.Mejl.SezonskePauze);
+    }
+
+    [Fact]
+    public async Task Alarm_adminu_ne_broji_voce_van_sezone()
+    {
+        using var s = await Scena.SpremiAsync(sadrzajObjavljen: false);
+        await DodajAdminaAsync(s);
+        await VoceAsync(s, uSezoni: false);
+
+        await s.ProlazAsync(OpcijeAlarma(100_000));
+
+        Assert.Empty(s.Mejl.AlarmiSadrzaja);
+    }
+
+    [Fact]
+    public async Task Admin_pretplate_ne_broji_voce_van_sezone_kao_cekaju_sadrzaj()
+    {
+        using var s = await Scena.SpremiAsync(sadrzajObjavljen: false);
+        await VoceAsync(s, uSezoni: false);
+
+        var dto = await new GetAdminPretplateHandler(s.Db, Options.Create(s.KOpcije), Options.Create(Opcije()))
+            .Handle(new GetAdminPretplateQuery(null), default);
+
+        Assert.Equal(1, dto.BrojAktivnih);
+        Assert.Equal(0, dto.CekajuSadrzaj);
     }
 }
