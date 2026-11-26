@@ -2,14 +2,13 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Printer, RefreshCw, TriangleAlert } from "lucide-react";
+import { RefreshCw, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { SadrzajNacrtEditor } from "@/components/admin/sadrzaj-nacrt-editor";
 import { StatusPregledaBadge } from "@/components/admin/status-sadrzaja";
-import { RobaZaSedmicu } from "@/components/admin/roba-za-sedmicu";
 import { IzborSedmice, useIzabranaSedmica } from "@/components/admin/izbor-sedmice";
 import { NAZIVI as NAZIVI_TIPA } from "@/components/korpice/tipovi-tabovi";
 import { adminKorpiceApi } from "@/lib/api/endpoints";
@@ -71,16 +70,10 @@ function AdminKorpiceSadrzaj() {
   }, [godina, sedmica]);
 
   const pregledKljuc = ["admin", "korpice", "pregled", godina, sedmica] as const;
-  const pakerskaKljuc = ["admin", "korpice", "pakerska", godina, sedmica] as const;
 
   const pregled = useQuery({
     queryKey: pregledKljuc,
     queryFn: () => adminKorpiceApi.pregled(godina, sedmica),
-  });
-
-  const pakerska = useQuery({
-    queryKey: pakerskaKljuc,
-    queryFn: () => adminKorpiceApi.pakerskaLista(godina, sedmica),
   });
 
   /** Zamjenjuje upozorenja za korpice koje su upravo (re)generisane; ostala ostaju. */
@@ -115,7 +108,8 @@ function AdminKorpiceSadrzaj() {
     mutationFn: (id: string) => adminKorpiceApi.objavi(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: pregledKljuc });
-      qc.invalidateQueries({ queryKey: pakerskaKljuc });
+      // Nabavka čita robu iz objavljenog sadržaja, pa joj se upit osvježava.
+      qc.invalidateQueries({ queryKey: ["admin", "korpice", "pakerska"] });
       show("Sadržaj objavljen");
     },
     onError: (err) => show(poruka(err, "Objavljivanje nije uspjelo"), "error"),
@@ -130,8 +124,8 @@ function AdminKorpiceSadrzaj() {
           <h1 className="font-display text-2xl font-bold text-ink">Korpice</h1>
           <p className="mt-1 text-sm text-muted">
             Sistem sastavlja korpice iz sezonske ponude po cijeni i nabavnoj cijeni (čuvajući minimalnu maržu)
-            i predlaže zamjene. Uredi, objavi, pa odštampaj pakersku listu. Objavljen sadržaj se do roka i dalje može
-            mijenjati — izmjena važi za nove narudžbe.
+            i predlaže zamjene. Uredi i objavi; robu za nabavku i štampu vidiš u Nabavci. Objavljen sadržaj se do
+            roka i dalje može mijenjati — izmjena važi za nove narudžbe.
           </p>
         </div>
 
@@ -290,24 +284,6 @@ function AdminKorpiceSadrzaj() {
             </ul>
           </div>
         )}
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-lg font-bold text-ink">Pakerska lista — roba za sedmicu</h2>
-          {pakerska.data && pakerska.data.stavke.length > 0 && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="print:hidden"
-              onClick={() => window.print()}
-            >
-              <Printer className="h-4 w-4" /> Štampaj
-            </Button>
-          )}
-        </div>
-
-        <RobaZaSedmicu godina={godina} sedmica={sedmica} />
       </section>
 
       {editor && (
