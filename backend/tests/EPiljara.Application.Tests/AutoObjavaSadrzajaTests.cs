@@ -234,6 +234,49 @@ public class AutoObjavaSadrzajaTests
     }
 
     [Fact]
+    public async Task Rucno_objavljeno_voce_van_sezone_ne_javlja_prijavljenima()
+    {
+        using var t = new TestDb();
+        var (_, voce, voca) = Postavi(t);
+        var (g, s) = Cilj(Decembar);
+        // Admin je ručno objavio voće u decembru — dozvoljeno, ali sezona i dalje važi.
+        var sadrzaj = new SedmicniSadrzaj { KorpicaId = voce.Id, Godina = g, Sedmica = s, Status = StatusSadrzaja.Objavljen };
+        sadrzaj.Stavke.Add(new StavkaSadrzaja { ProductId = voca[0].Id, Kolicina = 3m, JedinicnaCijena = 4m });
+        t.Db.SedmicniSadrzaji.Add(sadrzaj);
+        await t.Db.SaveChangesAsync();
+
+        var r = await Handler(t, Opcije(5, 10)).Handle(new AutoObjaviSadrzajeCommand(Decembar), default);
+
+        r.VoceObjavljeno.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Korpica_poslije_one_koja_pukne_se_i_dalje_objavi()
+    {
+        using var t = new TestDb();
+        var (povrce, voce, _) = Postavi(t);
+        var (g, s) = Cilj(Decembar);
+        // Povrće ide prvo (TipKorpice se poredi kao tekst: "Povrce" < "Voce"), pa ovdje pada PRVA korpica.
+        var artikal = new Product
+        {
+            Name = "Obrisano", Slug = "obrisano", Price = 4m, Unit = Unit.Kg, CategoryId = povrce.CategoryId,
+            ProducerId = povrce.ProducerId, Stock = 100m, MozeUKorpicu = true, Mjeseci = [], IsDeleted = true,
+        };
+        t.Db.Products.Add(artikal);
+        var nacrt = new SedmicniSadrzaj { KorpicaId = povrce.Id, Godina = g, Sedmica = s };
+        nacrt.Stavke.Add(new StavkaSadrzaja { ProductId = artikal.Id, Kolicina = 3m, JedinicnaCijena = 4m });
+        t.Db.SedmicniSadrzaji.Add(nacrt);
+        await t.Db.SaveChangesAsync();
+
+        var r = await Handler(t, Opcije()).Handle(new AutoObjaviSadrzajeCommand(Decembar), default);
+
+        t.Db.ChangeTracker.Clear();
+        r.Objavljeno.Should().Be(1);
+        (await t.Db.SedmicniSadrzaji.SingleAsync(x => x.Id == nacrt.Id)).Status.Should().Be(StatusSadrzaja.Nacrt);
+        (await t.Db.SedmicniSadrzaji.SingleAsync(x => x.KorpicaId == voce.Id)).Status.Should().Be(StatusSadrzaja.Objavljen);
+    }
+
+    [Fact]
     public async Task Vocna_sedmica_poslije_vocne_nije_prva()
     {
         using var t = new TestDb();

@@ -86,7 +86,10 @@ public class AutoObjaviSadrzajeHandler(
         }
 
         var prvaVocna = vocnaObjavljena && !await ImaVocaAsync(SedmicaHelper.Pomjeri(godina, sedmica, -1), ct);
-        var voceObjavljeno = vocnaObjavljena || await ImaVocaAsync((godina, sedmica), ct);
+        // Sezona prvo: admin smije ručno objaviti voće van sezone, ali to nije „stiglo je voće" —
+        // kupci ga ne mogu naručiti, a prijave bi se potrošile prije prave sezone.
+        var voceObjavljeno = !SezonaVoca.VanSezone(o, TipKorpice.Voce, mjesec)
+                             && (vocnaObjavljena || await ImaVocaAsync((godina, sedmica), ct));
         return new AutoObjavaRezultat(godina, sedmica, objavljeno, prvaVocna, voceObjavljeno);
     }
 
