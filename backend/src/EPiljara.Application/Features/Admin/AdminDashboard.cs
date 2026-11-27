@@ -11,8 +11,11 @@ namespace EPiljara.Application.Features.Admin;
 /// <summary>Jedna vrsta i veličina korpice u sedmici; <c>IzPretplata</c> je dio <c>Komada</c>.</summary>
 public record KorpicaUSedmiciDto(string Tip, string Velicina, string Naziv, int Komada, int IzPretplata);
 
-/// <summary>Artikal Špajza (sve što nije korpica) sabran po sedmici.</summary>
-public record SpajzUSedmiciDto(string Artikal, string Jedinica, decimal Kolicina);
+/// <summary>
+/// Artikal Špajza sabran po sedmici. Špajz su artikli koji se prodaju pojedinačno
+/// (<c>Product.USpajzu</c>: med, zimnica, mliječno…); voće i povrće idu samo u korpice.
+/// </summary>
+public record SpajzUSedmiciDto(string Kategorija, string Artikal, string Jedinica, decimal Kolicina);
 
 /// <summary>Šta je naručeno za sedmicu — bez otkazanih. Novac je na Poslovanju, ne ovdje.</summary>
 public record PregledSedmiceDto(
@@ -42,6 +45,11 @@ public class GetPregledHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
             .Select(p => new { p.Id, p.Name, p.TipKorpice, p.Velicina, p.IsAvailable, p.IsDeleted })
             .ToListAsync(ct);
         var korpicaIds = korpice.Select(k => k.Id).ToHashSet();
+        var uSpajzu = await db.Products
+            .IgnoreQueryFilters()
+            .Where(p => p.Vrsta == VrstaProizvoda.Obican && p.USpajzu)
+            .Select(p => new { p.Id, Kategorija = p.Category!.Name })
+            .ToDictionaryAsync(p => p.Id, p => p.Kategorija, ct);
 
         async Task<PregledSedmiceDto> SedmicaAsync((int G, int S) w)
         {
@@ -73,10 +81,12 @@ public class GetPregledHandler(IAppDbContext db, IOptions<KorpiceOpcije> opcije)
                 })
                 .ToList();
 
-            var spajz = stavke.Where(s => !korpicaIds.Contains(s.ProductId))
+            var spajz = stavke.Where(s => uSpajzu.ContainsKey(s.ProductId))
                 .GroupBy(s => s.ProductId)
-                .Select(g => new SpajzUSedmiciDto(g.First().ProductName, g.First().Unit.ToApi(), g.Sum(s => s.Quantity)))
-                .OrderBy(s => s.Artikal, StringComparer.CurrentCulture)
+                .Select(g => new SpajzUSedmiciDto(
+                    uSpajzu[g.Key], g.First().ProductName, g.First().Unit.ToApi(), g.Sum(s => s.Quantity)))
+                .OrderBy(s => s.Kategorija, StringComparer.CurrentCulture)
+                .ThenBy(s => s.Artikal, StringComparer.CurrentCulture)
                 .ToList();
 
             return new PregledSedmiceDto(

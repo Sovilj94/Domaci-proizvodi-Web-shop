@@ -197,7 +197,8 @@ export interface PregledSedmice {
   izPretplata: number;
   korpica: number;
   korpice: KorpicaUSedmici[];
-  spajz: { artikal: string; jedinica: string; kolicina: number }[];
+  /** Samo artikli Špajza (med, zimnica, mliječno…); voće i povrće su u korpicama. */
+  spajz: { kategorija: string; artikal: string; jedinica: string; kolicina: number }[];
 }
 
 /** `GET /admin/dashboard`: sedmica u pakovanju (zadnja zaključena) i otvorena sedmica. */

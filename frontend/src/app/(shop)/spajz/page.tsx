@@ -6,11 +6,11 @@ import { stranica } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = stranica({
   naslov: "Špajz",
-  opis: "Domaći sir, suho meso, ajvar, zimnica, med i sezonsko povrće i voće sa Manjače — naruči uz korpicu, dostava u Banjoj Luci.",
+  opis: "Domaći sir i mliječni proizvodi, med, ajvar i zimnica sa Manjače — naruči uz korpicu, dostava u Banjoj Luci.",
   putanja: "/spajz",
 });
 
-/** Špajz (R3) — dodaci uz korpicu: sir, suho meso, ajvar, zimnica, med. */
+/** Špajz (R3) — dodaci uz korpicu: mliječno, med, zimnica. Voće i povrće su samo u korpicama. */
 export default function SpajzPage() {
   return (
     <Suspense fallback={<LoadingBlock />}>

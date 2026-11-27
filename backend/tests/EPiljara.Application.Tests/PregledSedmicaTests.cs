@@ -61,6 +61,26 @@ public class PregledSedmicaTests
         Assert.Equal(("Krompir", "kg", 3m), (krompir.Artikal, krompir.Jedinica, krompir.Kolicina));
     }
 
+    /// <summary>
+    /// Špajz su samo artikli koji se prodaju pojedinačno (USpajzu): med, zimnica, mliječno.
+    /// Voće i povrće idu samo u korpice — i kad su (zaobilaznim putem) naručeni posebno, nisu Špajz.
+    /// </summary>
+    [Fact]
+    public async Task Spajz_su_samo_artikli_u_spajzu_sa_kategorijom()
+    {
+        using var p = await PoslovanjePodaciTest.NapraviAsync();
+        var krompir = await p.T.Db.Products.FindAsync(p.Krompir.Id);
+        krompir!.USpajzu = false;
+        await p.T.Db.SaveChangesAsync();
+        await p.NarudzbaAsync(42, OrderStatus.Pending, krompirKg: 3, jaja: 10);
+
+        var r = await PregledAsync(p);
+
+        var jaja = Assert.Single(r.Otvorena.Spajz);
+        Assert.Equal(("Jaja", "Jaja", 10m), (jaja.Kategorija, jaja.Artikal, jaja.Kolicina));
+        Assert.Equal(1, r.Otvorena.Narudzbi);
+    }
+
     /// <summary>Dostupne korpice stoje u tabeli i sa nulom — admin vidi da neka nije naručena.</summary>
     [Fact]
     public async Task Korpice_su_sve_dostupne_po_vrsti_pa_velicini_i_sa_nulom()

@@ -216,22 +216,37 @@ function TabelaKorpica({ s }: { s: PregledSedmice }) {
 }
 
 function ListaSpajza({ s }: { s: PregledSedmice }) {
+  // Server šalje sortirano po kategoriji; ovdje se samo grupiše i sortira po bosanskoj abecedi.
+  const grupe = new Map<string, PregledSedmice["spajz"]>();
+  for (const a of [...s.spajz].sort((x, y) => x.artikal.localeCompare(y.artikal, "bs"))) {
+    grupe.set(a.kategorija, [...(grupe.get(a.kategorija) ?? []), a]);
+  }
+  const kategorije = [...grupe.keys()].sort((x, y) => x.localeCompare(y, "bs"));
+
   return (
     <div className="rounded-card bg-white p-4 shadow-card sm:p-5">
-      <h3 className="mb-3 font-semibold">Špajz</h3>
-      {s.spajz.length === 0 ? (
+      <h3 className="font-semibold">Špajz</h3>
+      <p className="mb-3 text-xs text-muted">Pojedinačno naručeno: med, zimnica, mliječno… Voće i povrće su u korpicama.</p>
+      {kategorije.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted">Niko nije naručio ništa iz Špajza.</p>
       ) : (
-        <ul className="max-h-72 divide-y divide-line overflow-y-auto pr-1 text-sm">
-          {[...s.spajz].sort((a, b) => a.artikal.localeCompare(b.artikal, "bs")).map((a) => (
-            <li key={a.artikal} className="flex items-center justify-between gap-3 py-2">
-              <span className="min-w-0 truncate">{a.artikal}</span>
-              <span className="shrink-0 font-semibold tabular-nums">
-                {kolicinaFmt.format(a.kolicina)} {a.jedinica}
-              </span>
-            </li>
+        <div className="max-h-80 space-y-3 overflow-y-auto pr-1 text-sm">
+          {kategorije.map((k) => (
+            <div key={k}>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{k}</p>
+              <ul className="divide-y divide-line">
+                {grupe.get(k)!.map((a) => (
+                  <li key={a.artikal} className="flex items-center justify-between gap-3 py-1.5">
+                    <span className="min-w-0 truncate">{a.artikal}</span>
+                    <span className="shrink-0 font-semibold tabular-nums">
+                      {kolicinaFmt.format(a.kolicina)} {a.jedinica}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
