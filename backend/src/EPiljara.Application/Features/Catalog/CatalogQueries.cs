@@ -78,10 +78,11 @@ public class GetProductBySlugHandler(
     public async Task<ProductDto> Handle(GetProductBySlugQuery q, CancellationToken ct)
     {
         // Isti razlog kao u GetProductsHandler — korpica po slugu ide kroz /korpice, ne ovdje.
+        // Voće i povrće (USpajzu = false) idu samo u korpice: nemaju svoju stranicu ni cijenu.
         var product = await db.Products
             .Include(p => p.Category)
             .Include(p => p.Producer)
-            .FirstOrDefaultAsync(p => p.Slug == q.Slug && p.Vrsta == VrstaProizvoda.Obican, ct)
+            .FirstOrDefaultAsync(p => p.Slug == q.Slug && p.Vrsta == VrstaProizvoda.Obican && p.USpajzu, ct)
             ?? throw new NotFoundException("Proizvod nije pronađen.");
         var (zalihe, _, _) = await Zalihe.ZaSedmicuProdajeAsync(db, opcije.Value, ct);
         return GetProductsHandler.SaStanjem(product.ToDto(), zalihe.Slobodno(product), prodavnica.Value);
@@ -121,9 +122,10 @@ public class GetProducersHandler(IAppDbContext db)
         var producers = await db.Producers.OrderBy(p => p.Name).ToListAsync(ct);
 
         // Jedan upit za sve proizvođače umjesto po jednog za svakog. Obrisane skida
-        // globalni filter na Product (IsDeleted); korpice i nedostupne skidamo ovdje.
+        // globalni filter na Product (IsDeleted); korpice, nedostupne i voće i povrće van
+        // Špajza (kupac ih vidi samo u korpicama) skidamo ovdje.
         var artikli = await db.Products
-            .Where(p => p.IsAvailable && p.Vrsta == VrstaProizvoda.Obican)
+            .Where(p => p.IsAvailable && p.Vrsta == VrstaProizvoda.Obican && p.USpajzu)
             .OrderBy(p => p.Name)
             .Select(p => new { p.ProducerId, p.Name })
             .ToListAsync(ct);

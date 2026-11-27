@@ -127,4 +127,40 @@ public class CatalogQueriesTests
 
         Assert.Empty(Assert.Single(rez).Artikli);
     }
+
+    /// <summary>
+    /// Voće i povrće (USpajzu = false) idu samo u korpice: kupac ne smije otvoriti njihovu
+    /// stranicu sa cijenom, ni kad zna adresu ili dođe linkom iz recepta.
+    /// </summary>
+    [Fact]
+    public async Task Proizvod_po_slugu_ne_resolvuje_artikal_van_spajza()
+    {
+        using var t = new TestDb();
+        var (obican, _) = Postavi(t);
+        obican.USpajzu = false;
+        t.Db.SaveChanges();
+
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            new GetProductBySlugHandler(t.Db, TestOpcije.KorpiceO(), TestOpcije.ProdavnicaO())
+                .Handle(new GetProductBySlugQuery("babura-paprika"), default));
+    }
+
+    /// <summary>Kartica domaćina navodi samo artikle Špajza — voće i povrće kupac vidi samo u korpicama.</summary>
+    [Fact]
+    public async Task Proizvodjac_ne_navodi_artikle_van_spajza()
+    {
+        using var t = new TestDb();
+        var (obican, _) = Postavi(t);   // "Babura paprika"
+        obican.USpajzu = false;
+        t.Db.Products.Add(new Product
+        {
+            Name = "Sir", Slug = "sir", Price = 5m, Unit = Unit.Kom,
+            CategoryId = obican.CategoryId, ProducerId = obican.ProducerId, Stock = 5, Vrsta = VrstaProizvoda.Obican,
+        });
+        t.Db.SaveChanges();
+
+        var rez = await new GetProducersHandler(t.Db).Handle(new GetProducersQuery(), default);
+
+        Assert.Equal(["Sir"], Assert.Single(rez).Artikli);
+    }
 }

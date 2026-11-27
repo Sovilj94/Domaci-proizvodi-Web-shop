@@ -77,7 +77,8 @@ export default function ReceptDetaljPage() {
                     <span aria-hidden>—</span>
                   </>
                 )}
-                {s.proizvod ? (
+                {/* Voće i povrće (van Špajza) nemaju svoju stranicu — idu samo u korpice. */}
+                {s.proizvod && s.proizvod.uSpajzu !== false ? (
                   <Link
                     href={`/products/${s.proizvod.slug}`}
                     className="font-medium text-brand-700 underline-offset-2 hover:underline"
